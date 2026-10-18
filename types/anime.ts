@@ -98,3 +98,21 @@ export interface AnimeSearchParams {
   page?: number;
   perPage?: number;
 }
+
+export interface AiringScheduleEntry {
+  id: number;
+  airingAt: number; // Unix timestamp in seconds
+  timeUntilAiring: number;
+  episode: number;
+  mediaId: number;
+  media: AnimeSummary;
+}
+
+export interface WeeklyScheduleDay {
+  date: string; // "YYYY-MM-DD"
+  dayName: string; // "Monday", etc.
+  dayShort: string; // "Mon", etc.
+  dayNumber: number; // 1-31
+  isToday: boolean;
+  entries: AiringScheduleEntry[];
+}

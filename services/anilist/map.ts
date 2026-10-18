@@ -1,5 +1,6 @@
 import { stripHtml, isHttpUrl } from "@/lib/utils";
 import type {
+  AiringScheduleEntry,
   Anime,
   AnimeDate,
   AnimePage,
@@ -9,6 +10,7 @@ import type {
 
 import { AniListError } from "./errors";
 import {
+  airingScheduleNodeSchema,
   animeSchema,
   animeSummarySchema,
   mediaListPageSchema,
@@ -212,4 +214,41 @@ export function mapAnimeList(raw: unknown): AnimeSummary[] {
     }
   }
   return items;
+}
+
+/** Maps a single airing schedule node. */
+export function mapAiringScheduleEntry(
+  raw: unknown,
+): AiringScheduleEntry | null {
+  const parsed = airingScheduleNodeSchema.safeParse(raw);
+  if (!parsed.success) {
+    return null;
+  }
+  const media = mapAnimeSummary(parsed.data.media);
+  if (!media) {
+    return null;
+  }
+  return {
+    id: parsed.data.id,
+    airingAt: parsed.data.airingAt,
+    timeUntilAiring: parsed.data.timeUntilAiring,
+    episode: parsed.data.episode,
+    mediaId: parsed.data.mediaId,
+    media,
+  };
+}
+
+/** Maps a list of airing schedule nodes, skipping malformed entries. */
+export function mapAiringScheduleList(raw: unknown): AiringScheduleEntry[] {
+  if (!Array.isArray(raw)) {
+    return [];
+  }
+  const entries: AiringScheduleEntry[] = [];
+  for (const item of raw) {
+    const entry = mapAiringScheduleEntry(item);
+    if (entry) {
+      entries.push(entry);
+    }
+  }
+  return entries;
 }

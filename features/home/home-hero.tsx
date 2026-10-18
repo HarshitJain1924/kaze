@@ -60,65 +60,63 @@ export function HomeHero({
         </div>
       </div>
 
-      <div className="relative z-10 max-w-2xl px-5 py-9 sm:px-9 sm:py-12 lg:py-14">
+      <div className="relative z-10 max-w-2xl px-4 py-6 sm:px-8 sm:py-8 lg:py-9">
         <WeatherBadge season={season} year={year} />
 
         {viewer ? (
           <>
-            <h1 className="mt-5 font-display text-3xl font-bold leading-[1.1] tracking-tight text-fg sm:text-4xl">
+            <h1 className="mt-3.5 font-display text-2xl font-bold leading-tight tracking-tight text-fg sm:text-3xl">
               Welcome back.
             </h1>
-            <p className="mt-3 max-w-lg text-sm leading-relaxed text-muted sm:text-[15px]">
-              Pick up where you left off, keep your episode count current, and
-              find something new for tonight.
+            <p className="mt-2 max-w-lg text-sm leading-relaxed text-muted">
+              Pick up where you left off, log your episodes, and see what airs
+              this week.
             </p>
-            <div className="mt-6 flex flex-wrap items-center gap-2.5">
+            <div className="mt-5 flex flex-wrap items-center gap-2.5">
               <Link
                 href="/library"
-                className="inline-flex h-10 items-center gap-2 rounded-xl bg-accent px-4 text-sm font-semibold text-accent-contrast transition-colors hover:bg-accent-strong"
+                className="inline-flex h-9 items-center gap-2 rounded-xl bg-accent px-4 text-xs font-semibold text-accent-contrast transition-colors hover:bg-accent-strong"
               >
-                <PlayIcon className="h-4 w-4" />
+                <PlayIcon className="h-3.5 w-3.5" />
                 Open my library
               </Link>
               <Link
-                href="/discover"
-                className="inline-flex h-10 items-center gap-2 rounded-xl border border-border bg-surface-2 px-4 text-sm font-medium text-fg transition-colors hover:border-accent/50 hover:bg-surface-3"
+                href="/schedule"
+                className="inline-flex h-9 items-center gap-2 rounded-xl border border-border bg-surface-2 px-3.5 text-xs font-medium text-fg transition-colors hover:border-accent/50 hover:bg-surface-3"
               >
-                Discover anime
-                <ChevronRightIcon className="h-4 w-4 text-muted" />
+                Weekly schedule
+                <ChevronRightIcon className="h-3.5 w-3.5 text-muted" />
               </Link>
             </div>
           </>
         ) : (
           <>
-            <h1 className="mt-5 font-display text-3xl font-bold leading-[1.08] tracking-tight text-fg sm:text-[42px]">
-              Every episode,
-              <br />
+            <h1 className="mt-4 font-display text-2xl font-bold leading-tight tracking-tight text-fg sm:text-3xl lg:text-[34px]">
+              Every episode,{" "}
               <span className="text-accent-strong">one quiet place.</span>
             </h1>
-            <p className="mt-4 max-w-md text-sm leading-relaxed text-muted sm:text-[15px]">
-              Search thousands of anime, keep a personal watchlist, log every
-              episode and rate what you finish. Your library stays private and
-              in sync.
+            <p className="mt-2 max-w-md text-sm leading-relaxed text-muted">
+              Track exactly what you&apos;ve watched, follow the weekly broadcast
+              schedule, and rate what you finish. Private and ad-free.
             </p>
-            <div className="mt-6 flex flex-wrap items-center gap-2.5">
+            <div className="mt-5 flex flex-wrap items-center gap-2.5">
               <Link
                 href="/login"
-                className="inline-flex h-10 items-center gap-2 rounded-xl bg-accent px-4 text-sm font-semibold text-accent-contrast transition-colors hover:bg-accent-strong"
+                className="inline-flex h-9 items-center gap-2 rounded-xl bg-accent px-4 text-xs font-semibold text-accent-contrast transition-colors hover:bg-accent-strong"
               >
-                <SparkIcon className="h-4 w-4" />
+                <SparkIcon className="h-3.5 w-3.5" />
                 Start tracking
               </Link>
               <Link
                 href="/discover"
-                className="inline-flex h-10 items-center gap-2 rounded-xl border border-border bg-surface-2 px-4 text-sm font-medium text-fg transition-colors hover:border-accent/50 hover:bg-surface-3"
+                className="inline-flex h-9 items-center gap-2 rounded-xl border border-border bg-surface-2 px-3.5 text-xs font-medium text-fg transition-colors hover:border-accent/50 hover:bg-surface-3"
               >
                 Browse anime
-                <ChevronRightIcon className="h-4 w-4 text-muted" />
+                <ChevronRightIcon className="h-3.5 w-3.5 text-muted" />
               </Link>
             </div>
-            <p className="mt-4 text-xs text-faint">
-              Free · No ads · Powered by AniList metadata
+            <p className="mt-3 text-[11px] text-faint">
+              Free · No ads · AniList metadata
             </p>
           </>
         )}

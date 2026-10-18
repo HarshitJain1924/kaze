@@ -44,7 +44,7 @@ export default async function HomePage() {
   const seasonalItems = seasonal?.items ?? [];
 
   return (
-    <div className="space-y-10 sm:space-y-12">
+    <div className="space-y-8 sm:space-y-10">
       <HomeHero
         viewer={viewer}
         season={season}

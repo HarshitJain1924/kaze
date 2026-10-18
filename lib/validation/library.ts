@@ -153,3 +153,20 @@ export function computeStatusTransition(
 
   return { status: nextStatus, startedAt, completedAt };
 }
+
+export const episodeNumberSchema = z
+  .number()
+  .int("Episode number must be an integer")
+  .positive("Episode number must be greater than 0")
+  .max(10_000, "Episode number is unrealistically high");
+
+export const toggleEpisodeSchema = z.object({
+  episodeNumber: episodeNumberSchema,
+  watched: z.boolean(),
+  totalEpisodes: z.number().int().positive().nullable().optional(),
+});
+
+export const bulkEpisodeSchema = z.object({
+  action: z.enum(["markAll", "clearAll"]),
+  totalEpisodes: z.number().int().positive().optional(),
+});

@@ -31,10 +31,21 @@ export interface LibraryEntry {
   updatedAt: string;
 }
 
+export interface WatchedEpisode {
+  id: string;
+  userId: string;
+  anilistId: number;
+  episodeNumber: number;
+  watchedAt: string;
+  createdAt: string;
+}
+
 export interface LibraryItem {
   entry: LibraryEntry;
   /** Null when AniList metadata could not be loaded; the entry is preserved. */
   anime: AnimeSummary | null;
+  /** List of episode numbers that have been individually marked as watched. */
+  watchedEpisodes?: number[];
 }
 
 export type LibrarySort = "recent" | "title" | "score" | "progress";

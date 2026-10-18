@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import type { ComponentType, SVGProps } from "react";
 
 import {
+  CalendarIcon,
   ChartIcon,
   CompassIcon,
   HomeIcon,
@@ -26,6 +27,7 @@ interface MobileNavItem {
 const ITEMS: MobileNavItem[] = [
   { href: "/", label: "Home", icon: HomeIcon, exact: true },
   { href: "/discover", label: "Discover", icon: CompassIcon },
+  { href: "/schedule", label: "Schedule", icon: CalendarIcon },
   { href: "/library", label: "Library", icon: LibraryIcon },
   { href: "/stats", label: "Stats", icon: ChartIcon },
 ];
@@ -77,7 +79,7 @@ export function MobileBottomNavigation() {
       aria-label="Primary"
       className="safe-bottom fixed inset-x-0 bottom-0 z-40 border-t border-border-subtle bg-bg/95 backdrop-blur-md lg:hidden"
     >
-      <div className="grid grid-cols-4">
+      <div className="grid grid-cols-5">
         {ITEMS.map((item) => {
           const active = isActive(pathname, item);
           const Icon = item.icon;

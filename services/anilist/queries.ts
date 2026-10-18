@@ -130,3 +130,38 @@ export const ANIME_BY_IDS_QUERY = /* GraphQL */ `
   }
   ${ANIME_SUMMARY_FRAGMENT}
 `;
+
+export const AIRING_SCHEDULE_QUERY = /* GraphQL */ `
+  query AiringSchedule(
+    $airingAtGreater: Int
+    $airingAtLesser: Int
+    $mediaIdIn: [Int]
+    $page: Int
+    $perPage: Int
+  ) {
+    Page(page: $page, perPage: $perPage) {
+      pageInfo {
+        currentPage
+        lastPage
+        hasNextPage
+        total
+      }
+      airingSchedules(
+        airingAt_greater: $airingAtGreater
+        airingAt_lesser: $airingAtLesser
+        mediaId_in: $mediaIdIn
+        sort: [TIME]
+      ) {
+        id
+        airingAt
+        timeUntilAiring
+        episode
+        mediaId
+        media {
+          ...AnimeSummary
+        }
+      }
+    }
+  }
+  ${ANIME_SUMMARY_FRAGMENT}
+`;

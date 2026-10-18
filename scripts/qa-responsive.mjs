@@ -22,7 +22,7 @@ const CHROME_CANDIDATES = [
   "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
 ].filter(Boolean);
 
-const PAGES = ["/", "/discover", "/anime/154587", "/login"];
+const PAGES = ["/", "/discover", "/schedule", "/anime/154587", "/login"];
 const VIEWPORTS = [
   { width: 320, height: 700, name: "mobile-320" },
   { width: 390, height: 844, name: "mobile-390" },

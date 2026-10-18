@@ -4,11 +4,14 @@ import {
   applyLibraryEntryUpdate,
   type LibraryEntryPatch,
 } from "@/lib/library-rules";
+import { todayIsoDate } from "@/lib/utils";
 import { computeStatusTransition } from "@/lib/validation/library";
 import type { Database } from "@/types/database";
-import type { LibraryEntry, WatchStatus } from "@/types/library";
+import type { LibraryEntry, WatchStatus, WatchedEpisode } from "@/types/library";
 
 type UserAnimeRow = Database["public"]["Tables"]["user_anime"]["Row"];
+type UserAnimeEpisodeRow =
+  Database["public"]["Tables"]["user_anime_episodes"]["Row"];
 
 export class LibraryDataError extends Error {
   constructor(message: string, options: { cause?: unknown } = {}) {
@@ -57,6 +60,37 @@ export interface LibraryStore {
     patch: LibraryEntryPatch,
   ): Promise<LibraryEntry | null>;
   remove(userId: string, anilistId: number): Promise<boolean>;
+  listEpisodes(
+    userId: string,
+    anilistId?: number,
+  ): Promise<WatchedEpisode[]>;
+  recordEpisode(
+    userId: string,
+    anilistId: number,
+    episodeNumber: number,
+  ): Promise<WatchedEpisode>;
+  removeEpisode(
+    userId: string,
+    anilistId: number,
+    episodeNumber: number,
+  ): Promise<boolean>;
+  bulkRecordEpisodes(
+    userId: string,
+    anilistId: number,
+    episodeNumbers: number[],
+  ): Promise<void>;
+  removeAllEpisodes(userId: string, anilistId: number): Promise<void>;
+}
+
+export function toWatchedEpisode(row: UserAnimeEpisodeRow): WatchedEpisode {
+  return {
+    id: row.id,
+    userId: row.user_id,
+    anilistId: row.anilist_id,
+    episodeNumber: row.episode_number,
+    watchedAt: row.watched_at,
+    createdAt: row.created_at,
+  };
 }
 
 export function toLibraryEntry(row: UserAnimeRow): LibraryEntry {
@@ -182,6 +216,102 @@ export function createSupabaseLibraryStore(
       }
       return (data?.length ?? 0) > 0;
     },
+
+    async listEpisodes(userId, anilistId) {
+      let query = client
+        .from("user_anime_episodes")
+        .select("*")
+        .eq("user_id", userId);
+
+      if (anilistId !== undefined) {
+        query = query.eq("anilist_id", anilistId);
+      }
+
+      const { data, error } = await query.order("episode_number", {
+        ascending: true,
+      });
+
+      if (error) {
+        throw new LibraryDataError("Could not load watched episodes", {
+          cause: error,
+        });
+      }
+      return (data ?? []).map(toWatchedEpisode);
+    },
+
+    async recordEpisode(userId, anilistId, episodeNumber) {
+      const { data, error } = await client
+        .from("user_anime_episodes")
+        .upsert(
+          {
+            user_id: userId,
+            anilist_id: anilistId,
+            episode_number: episodeNumber,
+            watched_at: new Date().toISOString(),
+          },
+          { onConflict: "user_id,anilist_id,episode_number" },
+        )
+        .select("*")
+        .single();
+
+      if (error) {
+        throw new LibraryDataError("Could not record watched episode", {
+          cause: error,
+        });
+      }
+      return toWatchedEpisode(data);
+    },
+
+    async removeEpisode(userId, anilistId, episodeNumber) {
+      const { data, error } = await client
+        .from("user_anime_episodes")
+        .delete()
+        .eq("user_id", userId)
+        .eq("anilist_id", anilistId)
+        .eq("episode_number", episodeNumber)
+        .select("id");
+
+      if (error) {
+        throw new LibraryDataError("Could not unmark watched episode", {
+          cause: error,
+        });
+      }
+      return (data?.length ?? 0) > 0;
+    },
+
+    async bulkRecordEpisodes(userId, anilistId, episodeNumbers) {
+      if (episodeNumbers.length === 0) return;
+      const rows = episodeNumbers.map((num) => ({
+        user_id: userId,
+        anilist_id: anilistId,
+        episode_number: num,
+        watched_at: new Date().toISOString(),
+      }));
+
+      const { error } = await client
+        .from("user_anime_episodes")
+        .upsert(rows, { onConflict: "user_id,anilist_id,episode_number" });
+
+      if (error) {
+        throw new LibraryDataError("Could not bulk record episodes", {
+          cause: error,
+        });
+      }
+    },
+
+    async removeAllEpisodes(userId, anilistId) {
+      const { error } = await client
+        .from("user_anime_episodes")
+        .delete()
+        .eq("user_id", userId)
+        .eq("anilist_id", anilistId);
+
+      if (error) {
+        throw new LibraryDataError("Could not clear watched episodes", {
+          cause: error,
+        });
+      }
+    },
   };
 }
 
@@ -268,6 +398,136 @@ export class LibraryRepository {
     if (!removed) {
       throw new LibraryEntryNotFoundError(anilistId);
     }
+  }
+
+  listEpisodes(userId: string, anilistId?: number): Promise<WatchedEpisode[]> {
+    return this.store.listEpisodes(userId, anilistId);
+  }
+
+  async getWatchedEpisodes(
+    userId: string,
+    anilistId: number,
+  ): Promise<number[]> {
+    const list = await this.store.listEpisodes(userId, anilistId);
+    return list.map((item) => item.episodeNumber).sort((a, b) => a - b);
+  }
+
+  async toggleEpisode(
+    userId: string,
+    anilistId: number,
+    episodeNumber: number,
+    watched: boolean,
+    totalEpisodes: number | null,
+  ): Promise<{ watchedEpisodes: number[]; entry: LibraryEntry }> {
+    let current = await this.store.find(userId, anilistId);
+    if (!current) {
+      const created = await this.add(userId, { anilistId, status: "watching" });
+      current = created.entry;
+    }
+
+    if (watched) {
+      await this.store.recordEpisode(userId, anilistId, episodeNumber);
+    } else {
+      await this.store.removeEpisode(userId, anilistId, episodeNumber);
+    }
+
+    const remaining = await this.store.listEpisodes(userId, anilistId);
+    const watchedEpisodes = remaining
+      .map((item) => item.episodeNumber)
+      .sort((a, b) => a - b);
+
+    const newProgress =
+      watchedEpisodes.length > 0 ? Math.max(...watchedEpisodes) : 0;
+
+    const patch: LibraryEntryPatch = { progress: newProgress };
+
+    if (
+      watched &&
+      totalEpisodes !== null &&
+      totalEpisodes > 0 &&
+      watchedEpisodes.length >= totalEpisodes
+    ) {
+      patch.status = "completed";
+      patch.completedAt = current.completedAt ?? todayIsoDate();
+    } else if (watched && current.status === "planning") {
+      patch.status = "watching";
+      patch.startedAt = current.startedAt ?? todayIsoDate();
+    } else if (!watched && current.status === "completed") {
+      patch.status = "watching";
+      patch.completedAt = null;
+    }
+
+    const updatedEntry = await this.update(
+      userId,
+      anilistId,
+      patch,
+      totalEpisodes,
+    );
+
+    return { watchedEpisodes, entry: updatedEntry };
+  }
+
+  async markAllEpisodes(
+    userId: string,
+    anilistId: number,
+    totalEpisodes: number,
+  ): Promise<{ watchedEpisodes: number[]; entry: LibraryEntry }> {
+    if (!Number.isInteger(totalEpisodes) || totalEpisodes <= 0) {
+      throw new LibraryDataError("Total episodes must be a positive integer");
+    }
+
+    let current = await this.store.find(userId, anilistId);
+    if (!current) {
+      const created = await this.add(userId, { anilistId, status: "watching" });
+      current = created.entry;
+    }
+
+    const episodeNumbers = Array.from(
+      { length: totalEpisodes },
+      (_, i) => i + 1,
+    );
+    await this.store.bulkRecordEpisodes(userId, anilistId, episodeNumbers);
+
+    const updatedEntry = await this.update(
+      userId,
+      anilistId,
+      {
+        progress: totalEpisodes,
+        status: "completed",
+        completedAt: current.completedAt ?? todayIsoDate(),
+      },
+      totalEpisodes,
+    );
+
+    return { watchedEpisodes: episodeNumbers, entry: updatedEntry };
+  }
+
+  async clearAllEpisodes(
+    userId: string,
+    anilistId: number,
+    totalEpisodes: number | null,
+  ): Promise<{ watchedEpisodes: number[]; entry: LibraryEntry }> {
+    const current = await this.store.find(userId, anilistId);
+    if (!current) {
+      throw new LibraryEntryNotFoundError(anilistId);
+    }
+
+    await this.store.removeAllEpisodes(userId, anilistId);
+
+    const patch: LibraryEntryPatch = { progress: 0 };
+    if (current.status === "completed") {
+      patch.status = "watching";
+      patch.completedAt = null;
+    }
+
+    const updatedEntry = await this.update(
+      userId,
+      anilistId,
+      patch,
+      totalEpisodes,
+    );
+
+    return { watchedEpisodes: [], entry: updatedEntry };
   }
 }
 

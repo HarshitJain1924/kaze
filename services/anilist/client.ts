@@ -1,6 +1,7 @@
 import { TtlCache } from "@/lib/cache";
 import { clamp } from "@/lib/utils";
 import type {
+  AiringScheduleEntry,
   Anime,
   AnimePage,
   AnimeSearchParams,
@@ -9,8 +10,14 @@ import type {
 } from "@/types/anime";
 
 import { AniListError } from "./errors";
-import { mapAnime, mapAnimeList, mapAnimePage } from "./map";
 import {
+  mapAiringScheduleList,
+  mapAnime,
+  mapAnimeList,
+  mapAnimePage,
+} from "./map";
+import {
+  AIRING_SCHEDULE_QUERY,
   ANIME_BY_IDS_QUERY,
   ANIME_DETAILS_QUERY,
   SEARCH_ANIME_QUERY,
@@ -22,6 +29,7 @@ const TTL = {
   search: 60_000,
   details: 10 * 60_000,
   list: 5 * 60_000,
+  schedule: 5 * 60_000,
 } as const;
 
 const MAX_PER_PAGE = 50;
@@ -396,6 +404,58 @@ export class AniListClient {
       },
       { ttlMs: options.ttlMs ?? TTL.list },
     );
+  }
+
+  /**
+   * Fetches airing schedule entries in a timestamp window.
+   * If mediaIds are supplied, filters specifically to those anime.
+   */
+  async getAiringSchedule(params: {
+    airingAtGreater: number;
+    airingAtLesser: number;
+    mediaIds?: number[];
+    perPage?: number;
+    ttlMs?: number;
+  }): Promise<AiringScheduleEntry[]> {
+    const mediaIdIn =
+      params.mediaIds && params.mediaIds.length > 0
+        ? params.mediaIds.filter((id) => Number.isInteger(id) && id > 0)
+        : undefined;
+
+    const allEntries: AiringScheduleEntry[] = [];
+    let page = 1;
+    const perPage = params.perPage ?? 50;
+
+    while (page <= 3) {
+      const data = await this.execute<{ Page?: unknown }>(
+        AIRING_SCHEDULE_QUERY,
+        {
+          airingAtGreater: params.airingAtGreater,
+          airingAtLesser: params.airingAtLesser,
+          mediaIdIn,
+          page,
+          perPage,
+        },
+        params.ttlMs ?? TTL.schedule,
+      );
+
+      const pageData = data.Page as
+        | {
+            pageInfo?: { hasNextPage?: boolean };
+            airingSchedules?: unknown;
+          }
+        | undefined;
+
+      const entries = mapAiringScheduleList(pageData?.airingSchedules ?? []);
+      allEntries.push(...entries);
+
+      if (!pageData?.pageInfo?.hasNextPage || entries.length === 0) {
+        break;
+      }
+      page += 1;
+    }
+
+    return allEntries;
   }
 }
 

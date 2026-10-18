@@ -151,5 +151,22 @@ export const mediaDetailsResponseSchema = z.object({
   Media: z.unknown(),
 });
 
+export const airingScheduleNodeSchema = z.object({
+  id: z.number().int().positive(),
+  airingAt: z.number().int(),
+  timeUntilAiring: z.number().int(),
+  episode: z.number().int().positive(),
+  mediaId: z.number().int().positive(),
+  media: z.unknown(),
+});
+
+export const airingSchedulePageSchema = z.object({
+  pageInfo: pageInfoSchema,
+  airingSchedules: z.array(z.unknown()).nullish().catch(null),
+});
+
 export type ValidatedAnime = z.infer<typeof animeSchema>;
 export type ValidatedAnimeSummary = z.infer<typeof animeSummarySchema>;
+export type ValidatedAiringScheduleNode = z.infer<
+  typeof airingScheduleNodeSchema
+>;

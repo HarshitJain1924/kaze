@@ -65,6 +65,14 @@ export interface LibraryContextValue {
   ) => Promise<boolean>;
   incrementProgress: (anilistId: number) => Promise<boolean>;
   removeEntry: (anilistId: number) => Promise<boolean>;
+  watchedEpisodesFor: (anilistId: number) => number[];
+  toggleEpisode: (
+    anime: AnimeSummary,
+    episodeNumber: number,
+    watched?: boolean,
+  ) => Promise<boolean>;
+  markAllEpisodes: (anime: AnimeSummary) => Promise<boolean>;
+  clearAllEpisodes: (anilistId: number) => Promise<boolean>;
   requestAdd: (anime: AnimeSummary) => void;
   requestRemove: (anilistId: number) => void;
 }
@@ -141,6 +149,21 @@ export function LibraryProvider({
   const animeFor = useCallback(
     (anilistId: number) => animeMap.get(anilistId) ?? null,
     [animeMap],
+  );
+
+  const watchedMap = useMemo(() => {
+    const map = new Map<number, number[]>();
+    for (const item of items) {
+      if (item.watchedEpisodes && item.watchedEpisodes.length > 0) {
+        map.set(item.entry.anilistId, item.watchedEpisodes);
+      }
+    }
+    return map;
+  }, [items]);
+
+  const watchedEpisodesFor = useCallback(
+    (anilistId: number): number[] => watchedMap.get(anilistId) ?? [],
+    [watchedMap],
   );
 
   const requireSignIn = useCallback(() => {
@@ -328,13 +351,269 @@ export function LibraryProvider({
     ],
   );
 
+  const toggleEpisode = useCallback(
+    async (
+      anime: AnimeSummary,
+      episodeNumber: number,
+      targetWatched?: boolean,
+    ) => {
+      if (!canWrite) {
+        requireSignIn();
+        return false;
+      }
+
+      const existingEntry = entryMap.get(anime.id);
+      const currentEpisodes = watchedEpisodesFor(anime.id);
+      const isCurrentlyWatched = currentEpisodes.includes(episodeNumber);
+      const nextWatched =
+        targetWatched !== undefined ? targetWatched : !isCurrentlyWatched;
+
+      if (nextWatched === isCurrentlyWatched) {
+        return true;
+      }
+
+      const nextEpisodes = nextWatched
+        ? [...currentEpisodes, episodeNumber].sort((a, b) => a - b)
+        : currentEpisodes.filter((n) => n !== episodeNumber);
+
+      const optimisticProgress =
+        nextEpisodes.length > 0 ? Math.max(...nextEpisodes) : 0;
+
+      setItems((current) => {
+        const itemExists = current.some((it) => it.entry.anilistId === anime.id);
+        if (!itemExists) {
+          const now = new Date().toISOString();
+          const optimisticEntry: LibraryEntry = {
+            id: `optimistic-${anime.id}`,
+            userId: "",
+            anilistId: anime.id,
+            status: "watching",
+            progress: optimisticProgress,
+            score: null,
+            startedAt: todayIsoDate(),
+            completedAt: null,
+            notes: null,
+            createdAt: now,
+            updatedAt: now,
+          };
+          return [
+            ...current,
+            { entry: optimisticEntry, anime, watchedEpisodes: nextEpisodes },
+          ];
+        }
+
+        return current.map((it) => {
+          if (it.entry.anilistId !== anime.id) return it;
+          let nextStatus = it.entry.status;
+          let completedAt = it.entry.completedAt;
+          if (
+            nextWatched &&
+            anime.episodes !== null &&
+            anime.episodes > 0 &&
+            nextEpisodes.length >= anime.episodes
+          ) {
+            nextStatus = "completed";
+            completedAt = completedAt ?? todayIsoDate();
+          } else if (nextWatched && nextStatus === "planning") {
+            nextStatus = "watching";
+          } else if (!nextWatched && nextStatus === "completed") {
+            nextStatus = "watching";
+            completedAt = null;
+          }
+          return {
+            ...it,
+            watchedEpisodes: nextEpisodes,
+            entry: {
+              ...it.entry,
+              progress: optimisticProgress,
+              status: nextStatus,
+              completedAt,
+              updatedAt: new Date().toISOString(),
+            },
+          };
+        });
+      });
+
+      setEntryPending(anime.id, true);
+
+      try {
+        const response = await apiFetch<{
+          watchedEpisodes: number[];
+          entry: LibraryEntry;
+        }>(`/api/library/${anime.id}/episodes`, {
+          method: "POST",
+          body: JSON.stringify({
+            episodeNumber,
+            watched: nextWatched,
+            totalEpisodes: anime.episodes,
+          }),
+        });
+
+        setItems((current) =>
+          current.map((it) =>
+            it.entry.anilistId === anime.id
+              ? {
+                  ...it,
+                  entry: response.entry,
+                  watchedEpisodes: response.watchedEpisodes,
+                }
+              : it,
+          ),
+        );
+
+        toast({
+          title: nextWatched
+            ? `Watched Episode ${episodeNumber}`
+            : `Unmarked Episode ${episodeNumber}`,
+          description: getDisplayTitle(anime.title),
+          tone: "success",
+        });
+        return true;
+      } catch (error) {
+        setItems((current) => {
+          if (!existingEntry) {
+            return current.filter((it) => it.entry.anilistId !== anime.id);
+          }
+          return current.map((it) =>
+            it.entry.anilistId === anime.id
+              ? {
+                  ...it,
+                  entry: existingEntry,
+                  watchedEpisodes: currentEpisodes,
+                }
+              : it,
+          );
+        });
+
+        toast({
+          title: "Could not update episode",
+          description: messageFor(error),
+          tone: "error",
+        });
+        return false;
+      } finally {
+        setEntryPending(anime.id, false);
+      }
+    },
+    [canWrite, entryMap, requireSignIn, setEntryPending, toast, watchedEpisodesFor],
+  );
+
+  const markAllEpisodes = useCallback(
+    async (anime: AnimeSummary) => {
+      if (!canWrite) {
+        requireSignIn();
+        return false;
+      }
+      if (!anime.episodes || anime.episodes <= 0) {
+        toast({
+          title: "Cannot mark all episodes",
+          description: "This anime has no known episode total.",
+          tone: "error",
+        });
+        return false;
+      }
+
+      setEntryPending(anime.id, true);
+      try {
+        const response = await apiFetch<{
+          watchedEpisodes: number[];
+          entry: LibraryEntry;
+        }>(`/api/library/${anime.id}/episodes`, {
+          method: "POST",
+          body: JSON.stringify({
+            action: "markAll",
+            totalEpisodes: anime.episodes,
+          }),
+        });
+
+        setItems((current) =>
+          current.map((it) =>
+            it.entry.anilistId === anime.id
+              ? {
+                  ...it,
+                  entry: response.entry,
+                  watchedEpisodes: response.watchedEpisodes,
+                }
+              : it,
+          ),
+        );
+
+        toast({
+          title: "All episodes marked watched",
+          description: getDisplayTitle(anime.title),
+          tone: "success",
+        });
+        return true;
+      } catch (error) {
+        toast({
+          title: "Could not mark all episodes",
+          description: messageFor(error),
+          tone: "error",
+        });
+        return false;
+      } finally {
+        setEntryPending(anime.id, false);
+      }
+    },
+    [canWrite, requireSignIn, setEntryPending, toast],
+  );
+
+  const clearAllEpisodes = useCallback(
+    async (anilistId: number) => {
+      if (!canWrite) {
+        requireSignIn();
+        return false;
+      }
+
+      setEntryPending(anilistId, true);
+      try {
+        const response = await apiFetch<{
+          watchedEpisodes: number[];
+          entry: LibraryEntry;
+        }>(`/api/library/${anilistId}/episodes`, {
+          method: "POST",
+          body: JSON.stringify({ action: "clearAll" }),
+        });
+
+        setItems((current) =>
+          current.map((it) =>
+            it.entry.anilistId === anilistId
+              ? {
+                  ...it,
+                  entry: response.entry,
+                  watchedEpisodes: response.watchedEpisodes,
+                }
+              : it,
+          ),
+        );
+
+        toast({
+          title: "Watched episodes reset",
+          tone: "success",
+        });
+        return true;
+      } catch (error) {
+        toast({
+          title: "Could not reset episodes",
+          description: messageFor(error),
+          tone: "error",
+        });
+        return false;
+      } finally {
+        setEntryPending(anilistId, false);
+      }
+    },
+    [canWrite, requireSignIn, setEntryPending, toast],
+  );
+
   const incrementProgress = useCallback(
     async (anilistId: number) => {
       const entry = entryMap.get(anilistId);
       if (!entry) {
         return false;
       }
-      const episodes = animeMap.get(anilistId)?.episodes ?? null;
+      const anime = animeMap.get(anilistId);
+      const episodes = anime?.episodes ?? null;
       if (episodes !== null && entry.progress >= episodes) {
         toast({
           title: "You are at the final episode",
@@ -345,9 +624,22 @@ export function LibraryProvider({
         });
         return false;
       }
+
+      if (anime) {
+        const watchedSet = new Set(watchedEpisodesFor(anilistId));
+        let nextEp = 1;
+        while (watchedSet.has(nextEp)) {
+          nextEp += 1;
+        }
+        if (watchedSet.size === 0 && entry.progress > 0) {
+          nextEp = entry.progress + 1;
+        }
+        return toggleEpisode(anime, nextEp, true);
+      }
+
       return updateEntry(anilistId, { progress: entry.progress + 1 });
     },
-    [animeMap, entryMap, toast, updateEntry],
+    [animeMap, entryMap, toast, toggleEpisode, updateEntry, watchedEpisodesFor],
   );
 
   const removeEntry = useCallback(
@@ -445,9 +737,13 @@ export function LibraryProvider({
       pendingIds: pending,
       entryFor,
       animeFor,
+      watchedEpisodesFor,
       addToLibrary,
       updateEntry,
       incrementProgress,
+      toggleEpisode,
+      markAllEpisodes,
+      clearAllEpisodes,
       removeEntry,
       requestAdd,
       requestRemove,
@@ -456,15 +752,19 @@ export function LibraryProvider({
       addToLibrary,
       animeFor,
       canWrite,
+      clearAllEpisodes,
       entryFor,
       incrementProgress,
       items,
       loadError,
+      markAllEpisodes,
       pending,
       removeEntry,
       requestAdd,
       requestRemove,
+      toggleEpisode,
       updateEntry,
+      watchedEpisodesFor,
     ],
   );
 

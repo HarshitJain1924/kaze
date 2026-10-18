@@ -8,6 +8,7 @@ import { AnimePosterCard } from "@/components/anime-poster-card";
 import { ArrowLeftIcon, ExternalIcon } from "@/components/icons";
 import { ErrorState } from "@/components/error-state";
 import { RetryButton } from "@/components/retry-button";
+import { AnimeEpisodeSection } from "@/features/anime/anime-episode-section";
 import { AnimeLibraryPanel } from "@/features/anime/anime-library-panel";
 import { seasonLabel } from "@/lib/season";
 import {
@@ -216,6 +217,8 @@ export default async function AnimeDetailsPage({ params }: PageProps) {
                 </div>
               ) : null}
             </section>
+
+            <AnimeEpisodeSection anime={anime} />
 
             <section aria-labelledby="details-heading">
               <h2
