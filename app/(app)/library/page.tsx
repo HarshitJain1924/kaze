@@ -1,9 +1,7 @@
 import type { Metadata } from "next";
 
-import {
-  LibraryBrowser,
-  type LibraryStatusFilter,
-} from "@/features/library/library-browser";
+import type { LibraryStatusFilter } from "@/components/library-toolbar";
+import { LibraryBrowser } from "@/features/library/library-browser";
 import { requireViewer } from "@/lib/auth";
 import { isWatchStatus } from "@/types/library";
 

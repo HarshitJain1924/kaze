@@ -2,23 +2,23 @@
 
 import { useMemo, useState } from "react";
 
-import { AnimeSearch } from "@/components/anime-search";
 import { EmptyState } from "@/components/empty-state";
 import { ErrorState } from "@/components/error-state";
-import { GridIcon, ListIcon, LibraryIcon } from "@/components/icons";
+import { LibraryIcon } from "@/components/icons";
+import {
+  LibraryToolbar,
+  type LibraryStatusFilter,
+} from "@/components/library-toolbar";
 import { RetryButton } from "@/components/retry-button";
 import { Button } from "@/components/ui/button";
-import { Select } from "@/components/ui/field";
 import { LinkButton } from "@/components/ui/link-button";
 import { usePreferences } from "@/components/providers/preferences-provider";
 import { LibraryItemCard } from "@/features/library/library-item-card";
 import { LibraryList } from "@/features/library/library-list";
 import { useLibrary } from "@/features/library/library-provider";
-import { LIBRARY_SORT_LABELS, WATCH_STATUS_META, WATCH_STATUS_ORDER } from "@/lib/library-meta";
-import { cn, getDisplayTitle } from "@/lib/utils";
-import type { LibrarySort, WatchStatus } from "@/types/library";
-
-export type LibraryStatusFilter = WatchStatus | "all";
+import { WATCH_STATUS_META } from "@/lib/library-meta";
+import { getDisplayTitle } from "@/lib/utils";
+import type { LibrarySort } from "@/types/library";
 
 export function LibraryBrowser({
   initialStatus,
@@ -99,8 +99,7 @@ export function LibraryBrowser({
 
   const selectStatus = (next: LibraryStatusFilter) => {
     setStatus(next);
-    const url =
-      next === "all" ? "/library" : `/library?status=${next}`;
+    const url = next === "all" ? "/library" : `/library?status=${next}`;
     window.history.replaceState(null, "", url);
   };
 
@@ -109,20 +108,18 @@ export function LibraryBrowser({
 
   return (
     <div className="space-y-6">
-      <header className="flex flex-wrap items-end justify-between gap-3">
-        <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-accent-strong">
-            Your collection
-          </p>
-          <h1 className="mt-2 font-display text-2xl font-bold tracking-tight text-fg sm:text-3xl">
-            My Library
-          </h1>
-          <p className="mt-1.5 text-sm text-muted">
-            {items.length === 0
-              ? "Track anime to build your personal library."
-              : `${items.length} ${items.length === 1 ? "title" : "titles"} · ${statusCounts.watching} watching · ${statusCounts.completed} completed`}
-          </p>
-        </div>
+      <header>
+        <p className="text-xs font-semibold uppercase tracking-[0.18em] text-accent-strong">
+          Your collection
+        </p>
+        <h1 className="mt-2 font-display text-2xl font-bold tracking-tight text-fg sm:text-3xl">
+          My Library
+        </h1>
+        <p className="mt-1.5 text-sm text-muted">
+          {items.length === 0
+            ? "Track anime to build your personal library."
+            : `${items.length} ${items.length === 1 ? "title" : "titles"} · ${statusCounts.watching} watching · ${statusCounts.completed} completed`}
+        </p>
       </header>
 
       {loadError ? (
@@ -133,115 +130,17 @@ export function LibraryBrowser({
         />
       ) : null}
 
-      <div className="space-y-4">
-        <div
-          role="group"
-          aria-label="Filter by watch status"
-          className="no-scrollbar -mx-1 flex gap-1 overflow-x-auto px-1 pb-1"
-        >
-          {(["all", ...WATCH_STATUS_ORDER] as LibraryStatusFilter[]).map(
-            (value) => {
-              const active = status === value;
-              const label =
-                value === "all" ? "All" : WATCH_STATUS_META[value].shortLabel;
-              return (
-                <button
-                  key={value}
-                  type="button"
-                  aria-pressed={active}
-                  onClick={() => selectStatus(value)}
-                  className={cn(
-                    "inline-flex shrink-0 items-center gap-2 rounded-lg border px-3 py-2 text-[13px] font-medium transition-colors",
-                    active
-                      ? "border-accent/40 bg-accent-soft text-fg"
-                      : "border-transparent bg-surface-2/60 text-muted hover:bg-surface-2 hover:text-fg",
-                  )}
-                >
-                  {label}
-                  <span
-                    className={cn(
-                      "rounded-full px-1.5 py-0.5 text-[10px] tabular-nums",
-                      active
-                        ? "bg-accent/20 text-accent-strong"
-                        : "bg-surface-3 text-faint",
-                    )}
-                  >
-                    {statusCounts[value]}
-                  </span>
-                </button>
-              );
-            },
-          )}
-        </div>
-
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <AnimeSearch
-            value={query}
-            onChange={setQuery}
-            placeholder="Search your library…"
-            label="Search your library"
-            className="w-full sm:max-w-xs"
-          />
-
-          <div className="flex items-center gap-2">
-            <label htmlFor="library-sort" className="sr-only">
-              Sort library
-            </label>
-            <Select
-              id="library-sort"
-              aria-label="Sort library"
-              value={sort}
-              onChange={(event) => setSort(event.target.value as LibrarySort)}
-              className="h-11 min-w-[170px]"
-            >
-              {(
-                Object.entries(LIBRARY_SORT_LABELS) as Array<
-                  [LibrarySort, string]
-                >
-              ).map(([value, label]) => (
-                <option key={value} value={value}>
-                  {label}
-                </option>
-              ))}
-            </Select>
-
-            <div
-              role="group"
-              aria-label="Library layout"
-              className="flex rounded-xl border border-border bg-surface-2/70 p-0.5"
-            >
-              <button
-                type="button"
-                aria-pressed={view === "grid"}
-                onClick={() => setPreference("libraryView", "grid")}
-                className={cn(
-                  "flex h-10 w-10 items-center justify-center rounded-[10px] transition-colors",
-                  view === "grid"
-                    ? "bg-surface-3 text-fg"
-                    : "text-faint hover:text-muted",
-                )}
-                aria-label="Grid view"
-              >
-                <GridIcon className="h-4 w-4" />
-              </button>
-              <button
-                type="button"
-                aria-pressed={view === "list"}
-                onClick={() => setPreference("libraryView", "list")}
-                className={cn(
-                  "flex h-10 w-10 items-center justify-center rounded-[10px] transition-colors",
-                  view === "list"
-                    ? "bg-surface-3 text-fg"
-                    : "text-faint hover:text-muted",
-                )}
-                aria-label="Compact list view"
-              >
-                <ListIcon className="h-4 w-4" />
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
+      <LibraryToolbar
+        status={status}
+        onStatusChange={selectStatus}
+        statusCounts={statusCounts}
+        query={query}
+        onQueryChange={setQuery}
+        sort={sort}
+        onSortChange={setSort}
+        view={view}
+        onViewChange={(next) => setPreference("libraryView", next)}
+      />
 
       {items.length === 0 && !loadError ? (
         <EmptyState
@@ -266,7 +165,7 @@ export function LibraryBrowser({
           }
           description={
             hasQuery
-              ? `No titles in ${status === "all" ? "your library" : meta?.label ?? status} match “${query.trim()}”.`
+              ? `No titles in ${status === "all" ? "your library" : (meta?.label ?? status)} match “${query.trim()}”.`
               : meta
                 ? meta.emptyBody
                 : "Try another filter."

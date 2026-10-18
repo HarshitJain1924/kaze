@@ -11,6 +11,7 @@ import {
 } from "react";
 import type { ReactNode } from "react";
 
+import { ConfirmationDialog } from "@/components/confirmation-dialog";
 import { Button } from "@/components/ui/button";
 import { Dialog } from "@/components/ui/dialog";
 import { Select } from "@/components/ui/field";
@@ -531,48 +532,34 @@ export function LibraryProvider({
         </div>
       </Dialog>
 
-      <Dialog
+      <ConfirmationDialog
         open={removeTargetId !== null}
         onClose={() => {
           if (!dialogBusy) {
             setRemoveTargetId(null);
           }
         }}
+        onConfirm={() => void handleRemove()}
         title="Remove from library?"
         description={
           removeAnime
             ? `“${getDisplayTitle(removeAnime.title, preferences.titleLanguage === "english")}” will be removed from your library.`
             : "This title will be removed from your library."
         }
-        size="sm"
-        mobileSheet
-        footer={
-          <>
-            <Button
-              variant="secondary"
-              onClick={() => setRemoveTargetId(null)}
-              disabled={dialogBusy}
-            >
-              Keep it
-            </Button>
-            <Button
-              variant="danger"
-              onClick={handleRemove}
-              disabled={dialogBusy}
-            >
-              {dialogBusy ? "Removing…" : "Remove"}
-            </Button>
-          </>
-        }
+        confirmLabel="Remove"
+        cancelLabel="Keep it"
+        destructive
+        loading={dialogBusy}
       >
         <p className="text-sm leading-relaxed text-muted">
           Your episode progress
-          {removeEntryData?.score !== null && removeEntryData?.score !== undefined
+          {removeEntryData?.score !== null &&
+          removeEntryData?.score !== undefined
             ? ", rating"
             : ""}{" "}
           and notes for this anime will be deleted. This cannot be undone.
         </p>
-      </Dialog>
+      </ConfirmationDialog>
     </LibraryContext.Provider>
   );
 }

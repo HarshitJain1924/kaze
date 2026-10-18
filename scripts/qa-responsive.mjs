@@ -55,6 +55,9 @@ const chrome = spawn(
   { stdio: "ignore" },
 );
 
+// Do not let the browser keep the script alive; cleanup kills it explicitly.
+chrome.unref();
+
 function cleanup() {
   try {
     chrome.kill();
@@ -157,6 +160,29 @@ const EVALUATE = `(() => {
   });
 })()`;
 
+async function navigate(path) {
+  await session.send("Page.navigate", { url: `${BASE_URL}${path}` });
+  for (let attempt = 0; attempt < 60; attempt += 1) {
+    const ready = await session.send("Runtime.evaluate", {
+      expression: "document.readyState",
+      returnByValue: true,
+    });
+    if (ready.result.value === "complete") {
+      break;
+    }
+    await sleep(100);
+  }
+  await sleep(700);
+}
+
+async function evaluate(expression) {
+  const result = await session.send("Runtime.evaluate", {
+    expression,
+    returnByValue: true,
+  });
+  return result.result.value;
+}
+
 const port = await readDebugPort();
 const targetResponse = await fetch(
   `http://127.0.0.1:${port}/json/new?about:blank`,
@@ -179,27 +205,9 @@ for (const viewport of VIEWPORTS) {
   });
 
   for (const path of PAGES) {
-    await session.send("Page.navigate", { url: `${BASE_URL}${path}` });
+    await navigate(path);
 
-    for (let attempt = 0; attempt < 60; attempt += 1) {
-      const ready = await session.send("Runtime.evaluate", {
-        expression: "document.readyState",
-        returnByValue: true,
-      });
-      if (ready.result.value === "complete") {
-        break;
-      }
-      await sleep(100);
-    }
-
-    // Let client components hydrate before measuring.
-    await sleep(700);
-
-    const evaluation = await session.send("Runtime.evaluate", {
-      expression: EVALUATE,
-      returnByValue: true,
-    });
-    const metrics = JSON.parse(evaluation.result.value);
+    const metrics = JSON.parse(await evaluate(EVALUATE));
 
     // The login screen sits outside the app shell and intentionally has no
     // sidebar or bottom navigation.
@@ -226,7 +234,180 @@ for (const viewport of VIEWPORTS) {
   }
 }
 
+function record(name, passed, detail) {
+  if (!passed) {
+    failures += 1;
+  }
+  console.log(
+    `${passed ? "PASS" : "FAIL"} flow         ${name}${detail ? ` (${detail})` : ""}`,
+  );
+}
+
+const TYPE_IN_SEARCH = `(() => {
+  const input = document.querySelector('input[role="searchbox"]');
+  if (!input) return false;
+  const setter = Object.getOwnPropertyDescriptor(
+    window.HTMLInputElement.prototype,
+    'value',
+  ).set;
+  setter.call(input, VALUE);
+  input.dispatchEvent(new Event('input', { bubbles: true }));
+  return true;
+})()`;
+
+// Browser-level flow checks for everything reachable without Supabase
+// credentials: live debounced search, empty results, the auth gate on quick
+// add, and the sign-in action on an anime page.
+await session.send("Emulation.setDeviceMetricsOverride", {
+  width: 390,
+  height: 844,
+  deviceScaleFactor: 1,
+  mobile: true,
+});
+
+async function attemptSearch(query) {
+  await navigate("/discover");
+  await evaluate(TYPE_IN_SEARCH.replace("VALUE", JSON.stringify(query)));
+  await sleep(2500);
+  return JSON.parse(
+    await evaluate(`JSON.stringify({
+      search: location.search,
+      cards: document.querySelectorAll('article').length,
+      firstTitle: document.querySelector('article h3')
+        ? document.querySelector('article h3').textContent
+        : null,
+      emptyState: document.body.innerText.includes('No anime found'),
+      errorState:
+        document.body.innerText.toLowerCase().includes('unreachable') ||
+        document.body.innerText.toLowerCase().includes('rate limit'),
+    })`),
+  );
+}
+
+const SEARCH_QUERY = "cowboy bebop";
+let searchState = await attemptSearch(SEARCH_QUERY);
+
+// AniList allows roughly 30 requests per minute. When this environment has
+// burned that budget the UI shows its error state; wait for the window to
+// reset and try once more, then report the check as skipped rather than
+// pretending it passed.
+if (searchState.errorState && searchState.cards === 0) {
+  console.log(
+    "      … AniList rate limited; waiting 65s before one retry",
+  );
+  await sleep(65_000);
+  searchState = await attemptSearch(SEARCH_QUERY);
+}
+
+if (searchState.errorState && searchState.cards === 0) {
+  console.log(
+    "SKIP flow         debounced search (AniList rate limited in this environment)",
+  );
+} else {
+  record(
+    "debounced search updates the URL and results",
+    searchState.search.includes("q=cowboy") && searchState.cards > 0,
+    `cards=${searchState.cards} first="${searchState.firstTitle}"`,
+  );
+}
+
+const emptySearch = await attemptSearch("qqqzzzxxyynope");
+if (emptySearch.errorState && emptySearch.cards === 0) {
+  console.log(
+    "SKIP flow         empty search state (AniList rate limited in this environment)",
+  );
+} else {
+  record(
+    "empty search results render an empty state",
+    emptySearch.emptyState === true,
+    `cards=${emptySearch.cards}`,
+  );
+}
+
+await navigate("/discover");
+const clickedAdd = await evaluate(`(() => {
+  const button = document.querySelector('button[aria-label^="Add "]');
+  if (!button) return false;
+  button.click();
+  return true;
+})()`);
+await sleep(1500);
+const gate = JSON.parse(
+  await evaluate(`JSON.stringify({ path: location.pathname, search: location.search })`),
+);
+record(
+  "quick add sends signed-out visitors to sign in",
+  clickedAdd === true &&
+    gate.path === "/login" &&
+    gate.search.includes("next=%2Fdiscover"),
+  `${gate.path}${gate.search}`,
+);
+
+await navigate("/anime/154587");
+const detail = JSON.parse(
+  await evaluate(`JSON.stringify({
+    path: location.pathname,
+    textLength: document.body.innerText.length,
+    hasCommunity: document.body.innerText.toLowerCase().includes('community'),
+    hasRelated: document.body.innerText.includes('Related anime'),
+    signInHref: (() => {
+      const panel = document.querySelector(
+        'section[aria-label="Your library actions"]',
+      );
+      const link = panel ? panel.querySelector('a') : null;
+      return link ? link.getAttribute('href') : null;
+    })(),
+  })`),
+);
+record(
+  "anime details render metadata, relations and a sign-in action",
+  detail.hasCommunity === true &&
+    detail.hasRelated === true &&
+    typeof detail.signInHref === "string" &&
+    detail.signInHref.includes("/login?next="),
+  `path=${detail.path} community=${detail.hasCommunity} related=${detail.hasRelated} text=${detail.textLength} href=${detail.signInHref}`,
+);
+
+await session.send("Emulation.setDeviceMetricsOverride", {
+  width: 768,
+  height: 1024,
+  deviceScaleFactor: 1,
+  mobile: false,
+});
+await navigate("/");
+await evaluate(`(() => {
+  document.documentElement.classList.add('light');
+  document.documentElement.dataset.theme = 'light';
+  return true;
+})()`);
+await sleep(400);
+const lightTheme = JSON.parse(
+  await evaluate(`(() => {
+    const background = getComputedStyle(document.body).backgroundColor;
+    const color = getComputedStyle(document.body).color;
+    const overflow = Math.max(
+      0,
+      document.documentElement.scrollWidth - window.innerWidth,
+    );
+    const rootStyle = getComputedStyle(document.documentElement);
+    return JSON.stringify({
+      background,
+      color,
+      overflow,
+      hasClass: document.documentElement.classList.contains('light'),
+      rootBg: rootStyle.getPropertyValue('--bg').trim(),
+      colorScheme: rootStyle.colorScheme,
+    });
+  })()`),
+);
+record(
+  "light theme applies and keeps the layout within the viewport",
+  lightTheme.background === "rgb(247, 246, 251)" && lightTheme.overflow <= 1,
+  `background=${lightTheme.background} hasClass=${lightTheme.hasClass} rootBg=${lightTheme.rootBg} colorScheme=${lightTheme.colorScheme} overflow=${lightTheme.overflow}`,
+);
+
 session.close();
+cleanup();
 
 if (failures > 0) {
   console.error(`\n${failures} responsive check(s) failed.`);
@@ -234,3 +415,4 @@ if (failures > 0) {
 }
 
 console.log("\nAll responsive checks passed.");
+process.exit(0);

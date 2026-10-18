@@ -104,6 +104,10 @@ npm run lint       # ESLint (Next core-web-vitals + TypeScript)
 npm run typecheck  # tsc --noEmit
 npm test           # Vitest unit/integration tests
 npm run icons      # regenerate PWA/app icons from scripts/generate-icons.mjs
+
+# Responsive + signed-out flow QA against a running production server:
+#   npm run build && PORT=3100 npm run start
+#   QA_BASE_URL=http://localhost:3100 npm run qa:responsive
 ```
 
 ## Architecture
@@ -219,31 +223,56 @@ watch time, streaks or historical trends.
 
 ## Verification performed
 
-The following commands were run in this repository and passed:
+Automated checks, all run against this repository:
 
 ```text
-npm run typecheck   # passed
-npm run lint        # passed, no warnings
-npm test            # 7 files, 72 tests passed
-npm run build       # production build passed
+npm run typecheck     # passed
+npm run lint          # passed, no errors or warnings
+npm test              # 7 files, 74 tests passed
+npm run build         # production build passed (all routes compiled)
+npm run qa:responsive # 25 checks passed against a production server
 ```
 
-Coverage includes AniList response mapping (missing metadata, malformed entries,
-spoiler tags, non-anime relations), client caching/deduplication, pagination
-bounds, 429/5xx retry behavior, GraphQL errors, library creation and duplicate
+Unit and integration coverage includes AniList response mapping (missing
+metadata, malformed entries, spoiler tags, non-anime relations), client caching
+and request deduplication, pagination bounds, 429/5xx retry with `Retry-After`,
+GraphQL errors, missing-media handling, library creation and duplicate
 prevention, concurrent insert races, status transitions, completion reversal,
-progress validation, repository scoping/removal, statistics, season calculation,
-search-parameter serialization, and score/notes validation.
+progress validation, repository scoping and removal, statistics, season
+calculation, search-parameter serialization, and score/notes validation.
+
+`npm run qa:responsive` drives an installed Chrome over the DevTools protocol
+against a running production build. It verified, with live AniList data:
+
+- No horizontal overflow and no clipped content at 320, 390, 768, 1024 and
+  1440 px on `/`, `/discover`, `/anime/[id]` and `/login` (20 checks).
+- The desktop sidebar appears from 1024 px and the mobile bottom navigation
+  below it; the login screen correctly has neither.
+- Debounced search updates the URL and results (`cards=4`, first result
+  “Cowboy Bebop”), and an impossible query renders the empty state.
+- Adding anime while signed out routes to `/login?next=/discover` instead of
+  failing silently.
+- Anime details render community metadata, related anime and a sign-in action
+  linking back to the same title.
+- The light theme variables apply (content background `#f7f6fb`) and keep the
+  layout inside the viewport.
+
+The script retries once after an AniList rate-limit window and reports
+`SKIP` for those checks rather than counting a rate-limited environment as a
+pass.
 
 ### Not verified here
 
 - No live Supabase project credentials were available in this environment, so
-  real sign-in, email delivery and cross-device synchronization were not
-  exercised end-to-end. The schema, policies and repository behavior are covered
-  by the migration and unit tests.
-- No Playwright/Cypress suite is configured. The critical browser flows
-  (search → details → add → status → progress → reload → second account
-  isolation) should be run manually or automated once test credentials exist.
+  real sign-in, email delivery, cross-device synchronization and RLS isolation
+  were not exercised end-to-end at runtime. The schema, policies and repository
+  behavior are covered by `supabase/migrations/20261018000000_create_user_anime.sql`
+  and the repository tests, and `/library` was confirmed to redirect to
+  `/login?next=%2Flibrary`, but a credentialed run of the checklist below is
+  still required before release.
+- No Playwright/Cypress suite is configured; `scripts/qa-responsive.mjs` covers
+  layout and the signed-out flows only because the authenticated flows need test
+  credentials.
 - PWA install prompts and offline behavior vary by browser and require an HTTPS
   deployment to test fully.
 
