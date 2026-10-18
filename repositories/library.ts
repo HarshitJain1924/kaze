@@ -252,13 +252,31 @@ export function createSupabaseLibraryStore(
           { onConflict: "user_id,anilist_id,episode_number" },
         )
         .select("*")
-        .single();
+        .maybeSingle();
 
       if (error) {
         throw new LibraryDataError("Could not record watched episode", {
           cause: error,
         });
       }
+
+      if (!data) {
+        const { data: existing, error: fetchError } = await client
+          .from("user_anime_episodes")
+          .select("*")
+          .eq("user_id", userId)
+          .eq("anilist_id", anilistId)
+          .eq("episode_number", episodeNumber)
+          .maybeSingle();
+
+        if (fetchError || !existing) {
+          throw new LibraryDataError("Could not record watched episode", {
+            cause: fetchError,
+          });
+        }
+        return toWatchedEpisode(existing);
+      }
+
       return toWatchedEpisode(data);
     },
 

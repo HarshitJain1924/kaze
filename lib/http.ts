@@ -9,13 +9,25 @@ export class ApiRequestError extends Error {
 }
 
 function readErrorMessage(payload: unknown): string | null {
+  if (!payload || typeof payload !== "object") {
+    return null;
+  }
+  const obj = payload as Record<string, unknown>;
+  if (typeof obj.error === "string") {
+    return obj.error;
+  }
   if (
-    payload &&
-    typeof payload === "object" &&
-    "error" in payload &&
-    typeof payload.error === "string"
+    obj.error &&
+    typeof obj.error === "object" &&
+    typeof (obj.error as Record<string, unknown>).message === "string"
   ) {
-    return payload.error;
+    return (obj.error as Record<string, unknown>).message as string;
+  }
+  if (typeof obj.message === "string") {
+    return obj.message;
+  }
+  if (typeof obj.details === "string") {
+    return obj.details;
   }
   return null;
 }
@@ -51,8 +63,10 @@ export async function apiFetch<T>(
   const payload: unknown = await response.json().catch(() => null);
 
   if (!response.ok) {
+    const errorMsg = readErrorMessage(payload);
+    console.error("[apiFetch error]", response.status, payload);
     throw new ApiRequestError(
-      readErrorMessage(payload) ?? "The request could not be completed.",
+      errorMsg ?? "The request could not be completed.",
       response.status,
     );
   }
