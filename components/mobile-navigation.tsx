@@ -77,9 +77,9 @@ export function MobileBottomNavigation() {
   return (
     <nav
       aria-label="Primary"
-      className="safe-bottom fixed inset-x-0 bottom-0 z-40 border-t border-border-subtle bg-bg/95 backdrop-blur-md lg:hidden"
+      className="safe-bottom fixed inset-x-0 bottom-0 z-40 border-t border-border-subtle bg-bg/85 backdrop-blur-xl shadow-[0_-8px_24px_rgba(0,0,0,0.35)] lg:hidden"
     >
-      <div className="grid grid-cols-5">
+      <div className="grid grid-cols-5 py-0.5">
         {ITEMS.map((item) => {
           const active = isActive(pathname, item);
           const Icon = item.icon;
@@ -89,14 +89,20 @@ export function MobileBottomNavigation() {
               href={item.href}
               aria-current={active ? "page" : undefined}
               className={cn(
-                "flex min-h-14 flex-col items-center justify-center gap-1 px-1 py-2 text-[10px] font-medium transition-colors",
-                active ? "text-accent-strong" : "text-faint hover:text-muted",
+                "relative flex min-h-[58px] flex-col items-center justify-center gap-1 px-1 py-1 text-[10px] font-medium transition-colors",
+                active ? "text-accent-strong font-semibold" : "text-faint hover:text-muted",
               )}
             >
               <Icon
-                className={cn("h-5 w-5", active && "text-accent-strong")}
+                className={cn(
+                  "h-5 w-5 transition-transform duration-200",
+                  active ? "scale-110 text-accent-strong drop-shadow-[0_0_6px_rgba(139,92,246,0.6)]" : "text-faint",
+                )}
               />
-              {item.label}
+              <span>{item.label}</span>
+              {active ? (
+                <span className="absolute bottom-1 h-1 w-3.5 rounded-full bg-accent shadow-[0_0_8px_rgba(139,92,246,0.8)]" />
+              ) : null}
             </Link>
           );
         })}

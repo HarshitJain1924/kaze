@@ -214,10 +214,10 @@ export function ScheduleBrowser({
               aria-selected={isSelected}
               onClick={() => setSelectedDate(day.date)}
               className={cn(
-                "group relative flex min-w-[76px] shrink-0 flex-col items-center justify-center rounded-2xl border p-2.5 text-center transition-all sm:min-w-0 sm:shrink",
+                "group relative flex min-w-[76px] shrink-0 flex-col items-center justify-center rounded-2xl border p-2.5 text-center transition-all duration-200 sm:min-w-0 sm:shrink",
                 isSelected
-                  ? "border-accent/50 bg-accent-soft text-fg shadow-sm shadow-accent/10"
-                  : "border-border-subtle bg-surface/70 text-muted hover:border-border hover:bg-surface hover:text-fg",
+                  ? "border-accent/50 bg-accent-soft/80 text-fg shadow-sm shadow-accent/20 ring-1 ring-accent/40 backdrop-blur-sm"
+                  : "border-border-subtle bg-surface/60 text-muted hover:border-border hover:bg-surface hover:text-fg",
               )}
             >
               {day.isToday ? (
@@ -375,10 +375,10 @@ function ScheduleReleaseCard({
   return (
     <div
       className={cn(
-        "group relative flex gap-3 rounded-2xl border p-3 transition-colors",
+        "group relative flex gap-3 rounded-2xl border p-3 transition-all duration-200 hover:-translate-y-0.5",
         inWatching
-          ? "border-accent/40 bg-surface/90 hover:border-accent"
-          : "border-border-subtle bg-surface hover:border-border",
+          ? "border-accent/40 bg-surface/90 shadow-sm shadow-accent/5 hover:border-accent hover:shadow-md hover:shadow-accent/10"
+          : "border-border-subtle bg-surface/70 hover:border-border hover:bg-surface hover:shadow-sm",
       )}
     >
       {/* Poster */}

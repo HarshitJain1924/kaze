@@ -66,6 +66,7 @@ export default async function HomePage() {
         actionHref={`/discover?${seasonQuery}`}
         items={seasonal?.items ?? null}
         error={seasonal === null}
+        priorityCount={4}
       />
 
       <AnimeSection

@@ -88,8 +88,8 @@ export function AnimePosterCard({
       : 0;
 
   return (
-    <article className={cn("group relative flex flex-col", className)}>
-      <div className="relative aspect-[2/3] overflow-hidden rounded-xl border border-border-subtle bg-surface-2 poster-shadow">
+    <article className={cn("group relative flex flex-col transition-transform duration-300 ease-out hover:-translate-y-1.5", className)}>
+      <div className="relative aspect-[2/3] overflow-hidden rounded-xl border border-border-subtle bg-surface-2 poster-shadow transition-all duration-300 ease-out group-hover:border-accent/45 group-hover:shadow-[0_16px_36px_-10px_rgba(139,92,246,0.28)]">
         {cover ? (
           <Image
             src={cover}
@@ -97,7 +97,7 @@ export function AnimePosterCard({
             fill
             sizes={sizes}
             priority={priority}
-            className="object-cover transition-transform duration-500 ease-out group-hover:scale-[1.04]"
+            className="object-cover transition-transform duration-500 ease-out group-hover:scale-[1.05]"
           />
         ) : (
           <PosterFallback color={anime.coverImage.color} />
@@ -108,7 +108,7 @@ export function AnimePosterCard({
           className={cn(
             "pointer-events-none absolute inset-0",
             metaMode === "overlay"
-              ? "bg-gradient-to-t from-black/95 via-black/25 to-black/5"
+              ? "bg-gradient-to-t from-black/95 via-black/30 to-black/5"
               : "bg-gradient-to-t from-black/70 via-transparent to-transparent",
           )}
         />
@@ -120,8 +120,8 @@ export function AnimePosterCard({
         />
 
         {score ? (
-          <span className="pointer-events-none absolute left-2 top-2 z-20 inline-flex items-center gap-1 rounded-md bg-black/60 px-1.5 py-1 text-[11px] font-semibold text-white backdrop-blur-sm">
-            <StarIcon className="h-3 w-3 fill-white/90 text-white/90" />
+          <span className="pointer-events-none absolute left-2 top-2 z-20 inline-flex items-center gap-1 rounded-full border border-white/10 bg-black/65 px-2 py-0.5 text-[11px] font-semibold text-amber-300 backdrop-blur-md shadow-sm">
+            <StarIcon className="h-3 w-3 fill-amber-400 text-amber-400" />
             {score}
           </span>
         ) : null}
@@ -131,7 +131,7 @@ export function AnimePosterCard({
             type="button"
             onClick={() => requestAdd(anime)}
             aria-label={`Add ${title} to your library`}
-            className="absolute right-2 top-2 z-20 flex h-8 w-8 items-center justify-center rounded-lg border border-white/15 bg-black/55 text-white opacity-90 backdrop-blur-sm transition hover:border-white/30 hover:bg-accent focus-visible:opacity-100 sm:opacity-0 sm:group-hover:opacity-100 sm:group-focus-within:opacity-100"
+            className="absolute right-2 top-2 z-20 flex h-8 w-8 items-center justify-center rounded-full border border-white/20 bg-black/60 text-white opacity-90 backdrop-blur-md transition-all duration-200 hover:scale-110 hover:border-accent/60 hover:bg-accent hover:shadow-[0_0_12px_rgba(139,92,246,0.6)] focus-visible:opacity-100 sm:opacity-0 sm:group-hover:opacity-100 sm:group-focus-within:opacity-100"
           >
             <PlusIcon className="h-4 w-4" />
           </button>

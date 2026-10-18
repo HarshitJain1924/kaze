@@ -77,6 +77,7 @@ function SingleWatchingCard({
               src={cover}
               alt=""
               fill
+              priority
               sizes="(max-width: 640px) 112px, 128px"
               className="object-cover transition-transform duration-300 hover:scale-105"
             />

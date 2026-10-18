@@ -6,7 +6,7 @@ export function LogoMark({ className }: { className?: string }) {
   return (
     <span
       className={cn(
-        "flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-accent text-accent-contrast shadow-lg shadow-accent/20",
+        "flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-gradient-to-tr from-violet-600 via-indigo-600 to-purple-400 text-white shadow-[0_0_20px_-2px_rgba(139,92,246,0.45)] ring-1 ring-white/25 transition-transform duration-300 hover:scale-105",
         className,
       )}
       aria-hidden="true"
@@ -15,9 +15,9 @@ export function LogoMark({ className }: { className?: string }) {
         viewBox="0 0 24 24"
         fill="none"
         stroke="currentColor"
-        strokeWidth={1.7}
+        strokeWidth={1.8}
         strokeLinecap="round"
-        className="h-5 w-5"
+        className="h-5 w-5 drop-shadow-[0_1px_2px_rgba(0,0,0,0.4)]"
       >
         <path d="M4 7.5h16" />
         <path d="M6.5 7.5V19M17.5 7.5V19" />

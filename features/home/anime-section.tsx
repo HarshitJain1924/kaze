@@ -13,6 +13,7 @@ export function AnimeSection({
   items,
   error,
   emptyMessage = "No anime to show right now.",
+  priorityCount = 0,
 }: {
   title: string;
   description?: string;
@@ -21,6 +22,7 @@ export function AnimeSection({
   items: AnimeSummary[] | null;
   error?: boolean;
   emptyMessage?: string;
+  priorityCount?: number;
 }) {
   return (
     <section aria-label={title}>
@@ -43,7 +45,7 @@ export function AnimeSection({
           description={emptyMessage}
         />
       ) : (
-        <AnimeGrid items={items} />
+        <AnimeGrid items={items} priorityCount={priorityCount} />
       )}
     </section>
   );

@@ -55,12 +55,15 @@ export function AnimeLibraryPanel({ anime }: { anime: Anime }) {
   return (
     <section
       aria-label="Your library actions"
-      className="rounded-2xl border border-border-subtle bg-surface p-4 shadow-sm shadow-black/10 sm:p-5"
+      className="rounded-2xl border border-white/10 bg-surface/75 backdrop-blur-xl p-5 shadow-xl shadow-black/25"
     >
-      <div className="flex items-center justify-between gap-3">
-        <h2 className="font-display text-base font-semibold text-fg">
-          Your library
-        </h2>
+      <div className="flex items-center justify-between gap-3 border-b border-border-subtle/80 pb-3.5">
+        <div className="flex items-center gap-2">
+          <span className="h-2 w-2 rounded-full bg-accent shadow-[0_0_8px_rgba(139,92,246,0.8)]" />
+          <h2 className="font-display text-base font-semibold text-fg">
+            Your library
+          </h2>
+        </div>
         {entry ? <StatusBadge status={entry.status} /> : null}
       </div>
 

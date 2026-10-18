@@ -35,12 +35,14 @@ export function HomeHero({
             const cover =
               anime.coverImage.extraLarge ?? anime.coverImage.large;
             return (
-              <div
+              <Link
                 key={anime.id}
-                className="relative aspect-[2/3] w-[110px] overflow-hidden rounded-xl border border-white/10 shadow-2xl shadow-black/50 xl:w-[140px]"
+                href={`/anime/${anime.id}`}
+                aria-label={anime.title.english ?? anime.title.romaji ?? "Anime"}
+                className="group relative aspect-[2/3] w-[110px] overflow-hidden rounded-xl border border-white/10 shadow-2xl shadow-black/70 transition-all duration-300 hover:z-20 hover:scale-105 hover:border-accent/50 hover:shadow-accent/20 xl:w-[140px]"
                 style={{
                   transform: `rotate(${(index - 1) * 4}deg) translateY(${index === 1 ? "-10px" : "10px"})`,
-                  opacity: index === 1 ? 1 : 0.72,
+                  opacity: index === 1 ? 1 : 0.82,
                 }}
               >
                 {cover ? (
@@ -48,13 +50,15 @@ export function HomeHero({
                     src={cover}
                     alt=""
                     fill
+                    priority={index <= 1}
                     sizes="140px"
-                    className="object-cover"
+                    className="object-cover transition-transform duration-500 ease-out group-hover:scale-105"
                   />
                 ) : (
                   <div className="absolute inset-0 bg-surface-3" />
                 )}
-              </div>
+                <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
+              </Link>
             );
           })}
         </div>
