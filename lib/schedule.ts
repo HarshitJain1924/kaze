@@ -17,6 +17,8 @@ export interface WeekRange {
   sunday: Date;
   airingAtGreater: number; // Unix seconds
   airingAtLesser: number; // Unix seconds
+  queryAiringAtGreater: number; // Padded Unix seconds (accounts for UTC-12 to UTC+14 timezone offset)
+  queryAiringAtLesser: number; // Padded Unix seconds (accounts for UTC-12 to UTC+14 timezone offset)
   days: Array<{
     date: string; // "YYYY-MM-DD"
     dayName: string;
@@ -37,27 +39,68 @@ export function toIsoDateString(d: Date): string {
 }
 
 /**
+ * Parses a Date, ISO date string "YYYY-MM-DD", or timestamp into a local noon Date object.
+ * Using midday (12:00:00) avoids date shifting across timezones or DST transitions.
+ */
+export function parseDateInput(input?: Date | string | null): Date {
+  if (!input) return new Date();
+  if (input instanceof Date) return new Date(input.getTime());
+  if (typeof input === "string") {
+    const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(input.trim());
+    if (match) {
+      const year = Number(match[1]);
+      const month = Number(match[2]) - 1;
+      const day = Number(match[3]);
+      return new Date(year, month, day, 12, 0, 0);
+    }
+    const parsed = new Date(input);
+    if (!isNaN(parsed.getTime())) {
+      return parsed;
+    }
+  }
+  return new Date();
+}
+
+/**
  * Returns Monday-Sunday boundaries and 7 daily metadata entries for any reference date.
  */
-export function getWeekRange(referenceDate: Date = new Date()): WeekRange {
-  const d = new Date(referenceDate);
+export function getWeekRange(referenceDate: Date | string = new Date()): WeekRange {
+  const d = parseDateInput(referenceDate);
   const dayOfWeek = d.getDay();
   const diffToMonday = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
 
-  const monday = new Date(d);
-  monday.setDate(d.getDate() + diffToMonday);
-  monday.setHours(0, 0, 0, 0);
+  const monday = new Date(
+    d.getFullYear(),
+    d.getMonth(),
+    d.getDate() + diffToMonday,
+    0,
+    0,
+    0,
+    0,
+  );
 
-  const sunday = new Date(monday);
-  sunday.setDate(monday.getDate() + 6);
-  sunday.setHours(23, 59, 59, 999);
+  const sunday = new Date(
+    monday.getFullYear(),
+    monday.getMonth(),
+    monday.getDate() + 6,
+    23,
+    59,
+    59,
+    999,
+  );
 
   const todayStr = toIsoDateString(new Date());
 
   const days: WeekRange["days"] = [];
   for (let i = 0; i < 7; i += 1) {
-    const cur = new Date(monday);
-    cur.setDate(monday.getDate() + i);
+    const cur = new Date(
+      monday.getFullYear(),
+      monday.getMonth(),
+      monday.getDate() + i,
+      12,
+      0,
+      0,
+    );
     const dateStr = toIsoDateString(cur);
     const curDay = cur.getDay();
 
@@ -70,11 +113,23 @@ export function getWeekRange(referenceDate: Date = new Date()): WeekRange {
     });
   }
 
-  const prevMonday = new Date(monday);
-  prevMonday.setDate(monday.getDate() - 7);
+  const prevMonday = new Date(
+    monday.getFullYear(),
+    monday.getMonth(),
+    monday.getDate() - 7,
+    12,
+    0,
+    0,
+  );
 
-  const nextMonday = new Date(monday);
-  nextMonday.setDate(monday.getDate() + 7);
+  const nextMonday = new Date(
+    monday.getFullYear(),
+    monday.getMonth(),
+    monday.getDate() + 7,
+    12,
+    0,
+    0,
+  );
 
   const monthFormatter = new Intl.DateTimeFormat("en-US", { month: "short" });
   const startMonth = monthFormatter.format(monday);
@@ -84,11 +139,18 @@ export function getWeekRange(referenceDate: Date = new Date()): WeekRange {
       ? `${startMonth} ${monday.getDate()} – ${sunday.getDate()}, ${sunday.getFullYear()}`
       : `${startMonth} ${monday.getDate()} – ${endMonth} ${sunday.getDate()}, ${sunday.getFullYear()}`;
 
+  const mondaySec = Math.floor(monday.getTime() / 1000);
+  const sundaySec = Math.floor(sunday.getTime() / 1000);
+  // Pad query range by 28 hours (100,800 sec) to cover timezone offsets up to UTC+14 / UTC-12
+  const paddingSec = 28 * 3600;
+
   return {
     monday,
     sunday,
-    airingAtGreater: Math.floor(monday.getTime() / 1000) - 1,
-    airingAtLesser: Math.floor(sunday.getTime() / 1000) + 1,
+    airingAtGreater: mondaySec - 1,
+    airingAtLesser: sundaySec + 1,
+    queryAiringAtGreater: mondaySec - paddingSec,
+    queryAiringAtLesser: sundaySec + paddingSec,
     days,
     prevWeekDate: toIsoDateString(prevMonday),
     nextWeekDate: toIsoDateString(nextMonday),

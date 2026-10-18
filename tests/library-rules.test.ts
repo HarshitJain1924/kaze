@@ -163,3 +163,50 @@ describe("applyLibraryEntryUpdate", () => {
     expect(result.progress).toBeUndefined();
   });
 });
+
+import { getNextEpisodeNumber } from "@/features/library/continue-watching";
+
+describe("getNextEpisodeNumber", () => {
+  it("calculates next episode when no episodes are watched", () => {
+    const { nextEp, atEnd } = getNextEpisodeNumber(0, [], 12);
+    expect(nextEp).toBe(1);
+    expect(atEnd).toBe(false);
+  });
+
+  it("calculates next episode with sequential watched episodes", () => {
+    const { nextEp, atEnd } = getNextEpisodeNumber(2, [1, 2], 12);
+    expect(nextEp).toBe(3);
+    expect(atEnd).toBe(false);
+  });
+
+  it("finds the first unwatched episode in non-sequential watches", () => {
+    const { nextEp, atEnd } = getNextEpisodeNumber(3, [1, 3], 12);
+    expect(nextEp).toBe(2);
+    expect(atEnd).toBe(false);
+  });
+
+  it("handles legacy progress with empty watched array", () => {
+    const { nextEp, atEnd } = getNextEpisodeNumber(4, [], 12);
+    expect(nextEp).toBe(5);
+    expect(atEnd).toBe(false);
+  });
+
+  it("handles unknown total episodes correctly", () => {
+    const { nextEp, atEnd } = getNextEpisodeNumber(10, [1, 2, 3, 4, 5, 6, 7, 8, 9, 10], null);
+    expect(nextEp).toBe(11);
+    expect(atEnd).toBe(false);
+  });
+
+  it("detects when all episodes are watched", () => {
+    const watched = Array.from({ length: 12 }, (_, i) => i + 1);
+    const { nextEp, atEnd } = getNextEpisodeNumber(12, watched, 12);
+    expect(nextEp).toBe(13);
+    expect(atEnd).toBe(true);
+  });
+
+  it("detects when legacy progress has reached total", () => {
+    const { nextEp, atEnd } = getNextEpisodeNumber(12, [], 12);
+    expect(nextEp).toBe(13);
+    expect(atEnd).toBe(true);
+  });
+});

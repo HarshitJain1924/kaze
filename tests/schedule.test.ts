@@ -98,4 +98,68 @@ describe("schedule utilities", () => {
     expect(typeof timeStr).toBe("string");
     expect(timeStr.length).toBeGreaterThan(0);
   });
+
+  it("safely parses YYYY-MM-DD date strings without timezone shifts", () => {
+    const parsed = getWeekRange("2026-10-21");
+    // Should have 7 days starting from Monday
+    expect(parsed.days).toHaveLength(7);
+    expect(parsed.days[0]?.dayShort).toBe("Mon");
+    expect(parsed.days[2]?.dayShort).toBe("Wed");
+    expect(parsed.days[2]?.date).toBe("2026-10-21");
+  });
+
+  it("correctly groups midnight boundary releases into the right day", () => {
+    const range = getWeekRange("2026-10-21");
+    const mondayStr = range.days[0]!.date;
+    const tuesdayStr = range.days[1]!.date;
+
+    const [mY, mM, mD] = mondayStr.split("-").map(Number);
+    const [tY, tM, tD] = tuesdayStr.split("-").map(Number);
+
+    // Monday 23:59:50 local
+    const mondayLate = Math.floor(new Date(mY!, mM! - 1, mD!, 23, 59, 50).getTime() / 1000);
+    // Tuesday 00:00:10 local
+    const tuesdayEarly = Math.floor(new Date(tY!, tM! - 1, tD!, 0, 0, 10).getTime() / 1000);
+
+    const mockEntry = (id: number, airingAt: number): AiringScheduleEntry => ({
+      id,
+      airingAt,
+      timeUntilAiring: 0,
+      episode: id,
+      mediaId: 200 + id,
+      media: {
+        id: 200 + id,
+        title: { romaji: `Midnight Test ${id}`, english: `Midnight Test ${id}`, native: null },
+        coverImage: { large: null, extraLarge: null, color: null },
+        format: "TV",
+        episodes: 12,
+        averageScore: 85,
+        seasonYear: 2026,
+        status: "RELEASING",
+        genres: ["Mystery"],
+      },
+    });
+
+    const entries = [
+      mockEntry(1, mondayLate),
+      mockEntry(2, tuesdayEarly),
+    ];
+
+    const grouped = groupScheduleByDay(entries, range.days);
+    const mondayGroup = grouped.find((d) => d.date === mondayStr);
+    const tuesdayGroup = grouped.find((d) => d.date === tuesdayStr);
+
+    expect(mondayGroup?.entries.map((e) => e.id)).toEqual([1]);
+    expect(tuesdayGroup?.entries.map((e) => e.id)).toEqual([2]);
+  });
+
+  it("provides timezone-padded query window for external API queries", () => {
+    const range = getWeekRange("2026-10-21");
+    // Padded range should start earlier than airingAtGreater and end later than airingAtLesser
+    expect(range.queryAiringAtGreater).toBeLessThan(range.airingAtGreater);
+    expect(range.queryAiringAtLesser).toBeGreaterThan(range.airingAtLesser);
+    // Padding should cover at least 24 hours (86,400 seconds) on each side
+    expect(range.airingAtGreater - range.queryAiringAtGreater).toBeGreaterThanOrEqual(86400);
+    expect(range.queryAiringAtLesser - range.airingAtLesser).toBeGreaterThanOrEqual(86400);
+  });
 });

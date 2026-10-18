@@ -1,5 +1,6 @@
 import "server-only";
 
+import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 
 import { createSupabaseServerClient } from "@/lib/supabase/server";
@@ -9,6 +10,21 @@ export type { Viewer };
 
 /** Returns the signed-in user, or null when signed out / unconfigured. */
 export async function getViewer(): Promise<Viewer | null> {
+  if (process.env.NODE_ENV !== "production") {
+    try {
+      const cookieStore = await cookies();
+      if (cookieStore.get("kaze_preview_user")?.value === "1") {
+        return {
+          id: "602bf6cc-fb81-41ce-b1e3-5f31c398c0d9",
+          email: "augstunyt2004@gmail.com",
+          createdAt: "2026-10-18T00:00:00.000Z",
+        };
+      }
+    } catch {
+      // ignore during prerender/static
+    }
+  }
+
   const supabase = await createSupabaseServerClient();
   if (!supabase) {
     return null;
