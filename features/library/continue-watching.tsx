@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { usePreferences } from "@/components/providers/preferences-provider";
 import { useLibrary } from "@/features/library/library-provider";
 import {
+  cn,
   formatEpisodeCount,
   getDisplayTitle,
   isHttpUrl,
@@ -65,11 +66,15 @@ function SingleWatchingCard({
       : 0;
 
   return (
-    <div className="max-w-2xl rounded-2xl border border-border-subtle bg-surface p-4 transition-colors hover:border-border sm:p-5">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
+    <div className="relative group max-w-2xl overflow-hidden rounded-2xl border border-white/[0.08] dark:border-white/[0.08] bg-surface/80 backdrop-blur-xl p-5 sm:p-6 transition-all duration-300 hover:border-accent/40 hover:shadow-xl hover:shadow-accent/10">
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute -inset-px rounded-2xl bg-gradient-to-br from-accent/10 via-transparent to-purple-500/10 opacity-0 transition-opacity duration-300 group-hover:opacity-100"
+      />
+      <div className="relative flex flex-col gap-4 sm:flex-row sm:items-center">
         <Link
           href={`/anime/${anime.id}`}
-          className="relative mx-auto block aspect-[2/3] w-28 shrink-0 overflow-hidden rounded-xl bg-surface-2 shadow-md sm:mx-0 sm:w-32"
+          className="relative mx-auto block aspect-[2/3] w-28 shrink-0 overflow-hidden rounded-xl bg-surface-2 shadow-lg shadow-black/30 ring-1 ring-white/10 sm:mx-0 sm:w-32 group/poster"
           aria-label={`Open ${title}`}
         >
           {cover && isHttpUrl(cover) ? (
@@ -79,19 +84,24 @@ function SingleWatchingCard({
               fill
               priority
               sizes="(max-width: 640px) 112px, 128px"
-              className="object-cover transition-transform duration-300 hover:scale-105"
+              className="object-cover transition-transform duration-500 group-hover/poster:scale-105"
             />
+          ) : null}
+          {entry.progress > 0 ? (
+            <div className="absolute top-2 left-2 rounded-md bg-black/75 backdrop-blur-md px-1.5 py-0.5 text-[10px] font-bold text-accent-strong tabular-nums shadow-sm border border-white/10">
+              Ep {entry.progress}
+            </div>
           ) : null}
         </Link>
 
         <div className="flex min-w-0 flex-1 flex-col justify-between">
           <div>
             <div className="flex items-center gap-2">
-              <span className="rounded-md bg-accent-soft px-2 py-0.5 text-[11px] font-semibold text-accent-strong">
+              <span className="rounded-full bg-accent-soft px-2.5 py-0.5 text-[11px] font-semibold text-accent-strong border border-accent/20">
                 Currently Watching
               </span>
               {total !== null && total > 0 ? (
-                <span className="text-xs text-muted">
+                <span className="text-xs font-medium text-muted">
                   {percent}% complete
                 </span>
               ) : null}
@@ -113,21 +123,21 @@ function SingleWatchingCard({
           </div>
 
           <div className="mt-4 space-y-2.5">
-            <div className="flex items-center justify-between gap-2 text-xs text-muted">
-              <span className="font-medium tabular-nums text-fg">
+            <div className="flex items-center justify-between gap-2 text-xs">
+              <span className="font-semibold tabular-nums text-fg">
                 Episode {entry.progress}
-                {total ? ` of ${total}` : ""}
+                {total ? <span className="text-muted font-normal"> of {total}</span> : ""}
               </span>
-              <span className="text-[11px] text-faint">
+              <span className="text-[11px] font-semibold text-accent-strong">
                 {entry.progress > 0
                   ? `${entry.progress} ${pluralize(entry.progress, "episode")} watched`
                   : "Not started yet"}
               </span>
             </div>
 
-            <div className="h-1.5 overflow-hidden rounded-full bg-surface-3">
+            <div className="h-2 overflow-hidden rounded-full bg-surface-3/80 ring-1 ring-white/5">
               <div
-                className="h-full rounded-full bg-accent transition-[width] duration-300"
+                className="h-full rounded-full bg-gradient-to-r from-accent via-indigo-500 to-purple-400 shadow-sm shadow-accent/50 transition-[width] duration-500"
                 style={{ width: `${percent}%` }}
               />
             </div>
@@ -136,7 +146,7 @@ function SingleWatchingCard({
               <Button
                 variant="primary"
                 size="sm"
-                className="flex-1 sm:flex-initial"
+                className="flex-1 sm:flex-initial shadow-md shadow-accent/25"
                 disabled={isPending || atEnd}
                 onClick={() => onIncrement(anime.id)}
               >
@@ -154,7 +164,7 @@ function SingleWatchingCard({
               </Button>
               <Link
                 href={`/anime/${anime.id}`}
-                className="inline-flex h-8 items-center rounded-lg border border-border bg-surface-2 px-3 text-[13px] font-medium text-fg transition-colors hover:bg-surface-3"
+                className="inline-flex h-8 items-center rounded-xl border border-border bg-surface-2 px-3 text-[13px] font-medium text-fg transition-colors hover:bg-surface-3 hover:text-accent-strong"
               >
                 Episode tracker
               </Link>
@@ -187,6 +197,7 @@ export function ContinueWatching() {
     <section aria-label="Continue watching">
       <SectionHeader
         title="Continue watching"
+        description="Pick up right where you left off with one-tap episode tracking."
         action={watching.length > 0 ? "My library" : undefined}
         actionHref="/library"
       />
@@ -238,11 +249,16 @@ export function ContinueWatching() {
             return (
               <div
                 key={entry.id}
-                className="group flex gap-3 rounded-2xl border border-border-subtle bg-surface p-2.5 transition-colors hover:border-border"
+                className="group relative flex gap-3.5 rounded-2xl border border-white/[0.08] dark:border-white/[0.08] bg-surface/80 backdrop-blur-xl p-3.5 transition-all duration-300 hover:-translate-y-1 hover:border-accent/40 hover:bg-surface hover:shadow-xl hover:shadow-accent/10 overflow-hidden"
               >
+                <div
+                  aria-hidden="true"
+                  className="pointer-events-none absolute -inset-px rounded-2xl bg-gradient-to-br from-accent/10 via-transparent to-purple-500/10 opacity-0 transition-opacity duration-300 group-hover:opacity-100"
+                />
+
                 <Link
                   href={`/anime/${anime.id}`}
-                  className="relative block h-[108px] w-[72px] shrink-0 overflow-hidden rounded-lg bg-surface-2"
+                  className="relative block h-[120px] w-[82px] sm:w-[84px] shrink-0 overflow-hidden rounded-xl bg-surface-2 shadow-md shadow-black/30 ring-1 ring-white/10 group/poster"
                   aria-label={`Open ${title}`}
                 >
                   {cover && isHttpUrl(cover) ? (
@@ -250,56 +266,83 @@ export function ContinueWatching() {
                       src={cover}
                       alt=""
                       fill
-                      sizes="72px"
-                      className="object-cover transition-transform duration-300 group-hover:scale-105"
+                      sizes="84px"
+                      className="object-cover transition-transform duration-500 group-hover/poster:scale-105"
                     />
                   ) : null}
+                  {entry.progress > 0 ? (
+                    <div className="absolute top-1.5 left-1.5 rounded-md bg-black/75 backdrop-blur-md px-1.5 py-0.5 text-[10px] font-bold text-accent-strong tabular-nums shadow-sm border border-white/10">
+                      Ep {entry.progress}
+                    </div>
+                  ) : null}
+                  <div className="absolute inset-0 flex items-center justify-center bg-black/25 backdrop-blur-[1px] opacity-0 transition-opacity duration-200 group-hover/poster:opacity-100">
+                    <PlayIcon className="h-6 w-6 text-white drop-shadow-md" />
+                  </div>
                 </Link>
 
-                <div className="flex min-w-0 flex-1 flex-col justify-between">
+                <div className="relative flex min-w-0 flex-1 flex-col justify-between">
                   <div>
                     <Link
                       href={`/anime/${anime.id}`}
-                      className="line-clamp-2-safe text-sm font-semibold leading-snug text-fg transition-colors hover:text-accent-strong"
+                      className="line-clamp-1 font-display text-sm font-semibold leading-snug text-fg transition-colors hover:text-accent-strong"
+                      title={title}
                     >
                       {title}
                     </Link>
-                    <p className="mt-0.5 text-xs text-faint">
-                      {total !== null
-                        ? formatEpisodeCount(total, { short: true })
-                        : "Episode count unknown"}
-                      {total !== null && total > 0
-                        ? ` · ${percent}%`
-                        : ""}
-                    </p>
+                    <div className="mt-0.5 flex items-center gap-1.5 text-xs text-muted">
+                      <span>
+                        {total !== null
+                          ? formatEpisodeCount(total, { short: true })
+                          : "Ep count unknown"}
+                      </span>
+                      {total !== null && total > 0 ? (
+                        <>
+                          <span className="text-faint">·</span>
+                          <span className="font-semibold text-accent-strong">
+                            {percent}%
+                          </span>
+                        </>
+                      ) : null}
+                    </div>
                   </div>
 
                   <div className="space-y-1.5 pt-2">
-                    <div className="flex items-center justify-between gap-2 text-[11px] text-muted">
-                      <span className="tabular-nums">
+                    <div className="flex items-center justify-between gap-2 text-xs">
+                      <span className="font-semibold tabular-nums text-fg">
                         Ep {entry.progress}
-                        {total ? ` / ${total}` : ""}
+                        {total ? (
+                          <span className="font-normal text-muted"> / {total}</span>
+                        ) : null}
                       </span>
-                      <span>
+                      <span
+                        className={cn(
+                          "text-[11px] font-semibold",
+                          entry.progress > 0 ? "text-accent-strong" : "text-faint",
+                        )}
+                      >
                         {entry.progress > 0
                           ? `${entry.progress} watched`
                           : "Not started"}
                       </span>
                     </div>
 
-                    <div className="h-1 overflow-hidden rounded-full bg-surface-3">
+                    <div className="h-1.5 overflow-hidden rounded-full bg-surface-3/80 ring-1 ring-white/5">
                       <div
-                        className="h-full rounded-full bg-accent transition-[width] duration-300"
+                        className="h-full rounded-full bg-gradient-to-r from-accent via-indigo-500 to-purple-400 shadow-sm shadow-accent/50 transition-[width] duration-500"
                         style={{ width: `${percent}%` }}
                       />
                     </div>
 
-                    <Button
-                      variant={atEnd ? "secondary" : "secondary"}
-                      size="sm"
-                      className="w-full text-xs"
+                    <button
+                      type="button"
                       disabled={isPending || atEnd}
                       onClick={() => void incrementProgress(anime.id)}
+                      className={cn(
+                        "inline-flex h-8 w-full items-center justify-center gap-1.5 rounded-xl px-3 text-xs font-semibold transition-all duration-200 active:scale-[0.98] disabled:opacity-50",
+                        atEnd
+                          ? "cursor-default border border-emerald-500/30 bg-emerald-500/10 text-emerald-400"
+                          : "border border-accent/30 bg-accent-soft text-accent-strong hover:border-accent hover:bg-accent hover:text-white hover:shadow-md hover:shadow-accent/25",
+                      )}
                     >
                       {atEnd ? (
                         <>
@@ -312,7 +355,7 @@ export function ContinueWatching() {
                           Mark Ep {nextEp} watched
                         </>
                       )}
-                    </Button>
+                    </button>
                   </div>
                 </div>
               </div>
