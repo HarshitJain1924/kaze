@@ -88,8 +88,8 @@ export function AnimePosterCard({
       : 0;
 
   return (
-    <article className={cn("group relative flex flex-col transition-transform duration-300 ease-out hover:-translate-y-1.5", className)}>
-      <div className="relative aspect-[2/3] overflow-hidden rounded-xl border border-border-subtle bg-surface-2 poster-shadow transition-all duration-300 ease-out group-hover:border-accent/45 group-hover:shadow-[0_16px_36px_-10px_rgba(139,92,246,0.28)]">
+    <article className={cn("group relative flex flex-col transition-transform duration-200 ease-out hover:-translate-y-1", className)}>
+      <div className="relative aspect-[2/3] overflow-hidden rounded-xl border border-border-subtle bg-surface-2 shadow-sm transition-all duration-200 ease-out group-hover:border-border group-hover:shadow-md">
         {cover ? (
           <Image
             src={cover}
@@ -97,7 +97,7 @@ export function AnimePosterCard({
             fill
             sizes={sizes}
             priority={priority}
-            className="object-cover transition-transform duration-500 ease-out group-hover:scale-[1.05]"
+            className="object-cover transition-transform duration-300 ease-out group-hover:scale-[1.03]"
           />
         ) : (
           <PosterFallback color={anime.coverImage.color} />
@@ -108,8 +108,8 @@ export function AnimePosterCard({
           className={cn(
             "pointer-events-none absolute inset-0",
             metaMode === "overlay"
-              ? "bg-gradient-to-t from-black/95 via-black/30 to-black/5"
-              : "bg-gradient-to-t from-black/70 via-transparent to-transparent",
+              ? "bg-gradient-to-t from-black/90 via-black/30 to-black/5"
+              : "bg-gradient-to-t from-black/60 via-transparent to-transparent",
           )}
         />
 
@@ -120,7 +120,7 @@ export function AnimePosterCard({
         />
 
         {score ? (
-          <span className="pointer-events-none absolute left-2 top-2 z-20 inline-flex items-center gap-1 rounded-full border border-white/10 bg-black/65 px-2 py-0.5 text-[11px] font-semibold text-amber-300 backdrop-blur-md shadow-sm">
+          <span className="pointer-events-none absolute left-2 top-2 z-20 inline-flex items-center gap-1 rounded-md border border-white/10 bg-black/75 px-1.5 py-0.5 text-[11px] font-semibold text-amber-300 tabular-nums shadow-sm">
             <StarIcon className="h-3 w-3 fill-amber-400 text-amber-400" />
             {score}
           </span>
@@ -131,7 +131,7 @@ export function AnimePosterCard({
             type="button"
             onClick={() => requestAdd(anime)}
             aria-label={`Add ${title} to your library`}
-            className="absolute right-2 top-2 z-20 flex h-8 w-8 items-center justify-center rounded-full border border-white/20 bg-black/60 text-white opacity-90 backdrop-blur-md transition-all duration-200 hover:scale-110 hover:border-accent/60 hover:bg-accent hover:shadow-[0_0_12px_rgba(139,92,246,0.6)] focus-visible:opacity-100 sm:opacity-0 sm:group-hover:opacity-100 sm:group-focus-within:opacity-100"
+            className="absolute right-2 top-2 z-20 flex h-8 w-8 items-center justify-center rounded-full border border-white/20 bg-black/70 text-white transition-all duration-150 hover:scale-105 hover:border-accent hover:bg-accent hover:text-accent-contrast focus-visible:opacity-100 opacity-90 sm:opacity-0 sm:group-hover:opacity-100 sm:group-focus-within:opacity-100"
           >
             <PlusIcon className="h-4 w-4" />
           </button>
@@ -162,17 +162,17 @@ export function AnimePosterCard({
         ) : null}
 
         {metaMode === "overlay" ? (
-          <div className="pointer-events-none absolute inset-x-0 bottom-0 z-10 space-y-1 p-3 pt-12">
+          <div className="pointer-events-none absolute inset-x-0 bottom-0 z-10 space-y-1 p-2.5 pt-12">
             {entry ? (
               <StatusBadge
                 status={entry.status}
                 className="border-white/15 bg-black/55 text-white/90 backdrop-blur-sm"
               />
             ) : null}
-            <h3 className="line-clamp-2-safe font-display text-[13px] font-semibold leading-tight text-white sm:text-sm">
+            <h3 className="line-clamp-2-safe font-display text-[13px] font-semibold leading-snug text-white sm:text-sm">
               {title}
             </h3>
-            <p className="text-[11px] font-medium text-white/65">
+            <p className="text-[11px] font-medium text-white/70">
               {meta}
               {entry && totalEpisodes
                 ? ` · ${entry.progress}/${totalEpisodes}`
@@ -183,17 +183,17 @@ export function AnimePosterCard({
       </div>
 
       {metaMode === "below" ? (
-        <div className="mt-2.5 space-y-1">
+        <div className="mt-2 space-y-0.5">
           <Link
             href={`/anime/${anime.id}`}
-            className="block text-[13px] font-semibold leading-snug text-fg transition-colors hover:text-accent-strong sm:text-sm"
+            className="line-clamp-1 block text-[13px] font-semibold leading-snug text-fg transition-colors hover:text-accent-strong sm:text-sm"
           >
             {title}
           </Link>
           {secondary && secondary !== title ? (
-            <p className="truncate text-[11px] text-faint">{secondary}</p>
+            <p className="line-clamp-1 text-[11px] text-faint">{secondary}</p>
           ) : null}
-          <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-[11px] text-faint">
+          <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-[11px] text-muted pt-0.5">
             {entry ? <StatusBadge status={entry.status} /> : null}
             {entry?.score ? (
               <span className="inline-flex items-center gap-1 text-warning">

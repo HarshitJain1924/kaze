@@ -124,9 +124,9 @@ export function WatchProgressControl({
       </div>
 
       {!compact && max !== null ? (
-        <div className="h-2 overflow-hidden rounded-full bg-surface-3/80">
+        <div className="h-2 overflow-hidden rounded-full bg-surface-3">
           <div
-            className="h-full rounded-full bg-gradient-to-r from-violet-500 to-indigo-400 shadow-[0_0_8px_rgba(139,92,246,0.5)] transition-[width] duration-300"
+            className="h-full rounded-full bg-accent transition-[width] duration-300"
             style={{ width: `${percent}%` }}
           />
         </div>

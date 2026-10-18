@@ -122,7 +122,7 @@ export function EpisodeTracker({
   return (
     <div
       className={cn(
-        "rounded-2xl border border-border-subtle bg-surface/60 backdrop-blur-md p-4 shadow-lg shadow-black/20 sm:p-5",
+        "rounded-2xl border border-border-subtle bg-surface p-4 sm:p-5",
         className,
       )}
     >
@@ -132,7 +132,7 @@ export function EpisodeTracker({
             <h3 className="font-display text-sm font-semibold text-fg">
               Episode tracking
             </h3>
-            <span className="rounded-full bg-accent-soft px-2.5 py-0.5 text-xs font-semibold tabular-nums text-accent-strong border border-accent/20">
+            <span className="rounded-md bg-accent-soft px-2 py-0.5 text-xs font-semibold tabular-nums text-accent-strong">
               {watchedCount}
               {total ? ` / ${total}` : ""} watched
             </span>
@@ -150,7 +150,7 @@ export function EpisodeTracker({
             size="sm"
             disabled={isPending}
             onClick={() => void handleToggle(nextUnwatchedEpisode, true)}
-            className="self-start sm:self-auto bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 text-white shadow-md shadow-violet-600/30 hover:scale-[1.02] active:scale-95 transition-all"
+            className="self-start sm:self-auto"
           >
             <PlayIcon className="h-3.5 w-3.5" />
             Watch Ep {nextUnwatchedEpisode}
@@ -160,9 +160,9 @@ export function EpisodeTracker({
 
       {/* Progress Bar */}
       {total && total > 0 ? (
-        <div className="mt-3.5 h-2 overflow-hidden rounded-full bg-surface-3/80">
+        <div className="mt-3.5 h-2 overflow-hidden rounded-full bg-surface-3">
           <div
-            className="h-full rounded-full bg-gradient-to-r from-violet-500 via-indigo-500 to-purple-400 shadow-[0_0_10px_rgba(139,92,246,0.6)] transition-[width] duration-300"
+            className="h-full rounded-full bg-accent transition-[width] duration-300"
             style={{ width: `${percent}%` }}
           />
         </div>
@@ -202,11 +202,11 @@ export function EpisodeTracker({
                 aria-pressed={isWatched}
                 aria-label={`Episode ${epNum}: ${isWatched ? "Watched" : "Unwatched"}`}
                 className={cn(
-                  "relative flex min-h-[44px] min-w-[44px] flex-col items-center justify-center rounded-xl border text-xs font-semibold transition-all duration-200 active:scale-95 disabled:pointer-events-none disabled:opacity-60",
+                  "relative flex min-h-[44px] min-w-[44px] flex-col items-center justify-center rounded-xl border text-xs font-semibold transition-colors active:scale-95 disabled:pointer-events-none disabled:opacity-60",
                   isWatched
-                    ? "border-accent/40 bg-gradient-to-br from-violet-600 to-indigo-600 text-white shadow-sm shadow-violet-600/30 hover:brightness-110"
-                    : "border-border-subtle bg-surface-2/70 hover:border-accent/50 hover:bg-surface-3 hover:text-fg text-muted hover:scale-105",
-                  isNext && !isWatched && "ring-2 ring-accent ring-offset-2 ring-offset-surface shadow-[0_0_12px_rgba(139,92,246,0.4)] text-fg font-bold",
+                    ? "border-accent bg-accent text-accent-contrast"
+                    : "border-border-subtle bg-surface-2 text-muted hover:border-border hover:bg-surface-3 hover:text-fg",
+                  isNext && !isWatched && "border-accent/60 bg-accent-soft text-fg ring-1 ring-accent",
                 )}
               >
                 {isBusy ? (

@@ -55,11 +55,11 @@ export function AnimeLibraryPanel({ anime }: { anime: Anime }) {
   return (
     <section
       aria-label="Your library actions"
-      className="rounded-2xl border border-white/10 bg-surface/75 backdrop-blur-xl p-5 shadow-xl shadow-black/25"
+      className="rounded-2xl border border-border-subtle bg-surface p-5"
     >
-      <div className="flex items-center justify-between gap-3 border-b border-border-subtle/80 pb-3.5">
+      <div className="flex items-center justify-between gap-3 border-b border-border-subtle pb-3.5">
         <div className="flex items-center gap-2">
-          <span className="h-2 w-2 rounded-full bg-accent shadow-[0_0_8px_rgba(139,92,246,0.8)]" />
+          <span className="h-2 w-2 rounded-full bg-accent" />
           <h2 className="font-display text-base font-semibold text-fg">
             Your library
           </h2>

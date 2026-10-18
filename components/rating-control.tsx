@@ -69,12 +69,12 @@ export function RatingControl({
               onMouseEnter={() => !disabled && setHoverScore(value)}
               onClick={() => onChange(score === value ? null : value)}
               className={cn(
-                "flex h-8 w-7 items-center justify-center rounded-lg transition-all duration-150 hover:scale-125 disabled:opacity-50",
-                active ? "text-amber-400 drop-shadow-[0_0_6px_rgba(251,191,36,0.6)]" : "text-faint hover:text-amber-300/80",
+                "flex h-8 w-7 items-center justify-center rounded-lg transition-transform duration-150 hover:scale-110 disabled:opacity-50",
+                active ? "text-amber-400" : "text-faint hover:text-amber-400/80",
               )}
             >
               <StarIcon
-                className={cn("h-4 w-4 transition-transform", active && "fill-current scale-110")}
+                className={cn("h-4 w-4 transition-transform", active && "fill-current")}
               />
             </button>
           );

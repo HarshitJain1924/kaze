@@ -96,12 +96,12 @@ export function MobileBottomNavigation() {
               <Icon
                 className={cn(
                   "h-5 w-5 transition-transform duration-200",
-                  active ? "scale-110 text-accent-strong drop-shadow-[0_0_6px_rgba(139,92,246,0.6)]" : "text-faint",
+                  active ? "text-accent-strong" : "text-faint",
                 )}
               />
               <span>{item.label}</span>
               {active ? (
-                <span className="absolute bottom-1 h-1 w-3.5 rounded-full bg-accent shadow-[0_0_8px_rgba(139,92,246,0.8)]" />
+                <span className="absolute bottom-1 h-1 w-3.5 rounded-full bg-accent" />
               ) : null}
             </Link>
           );

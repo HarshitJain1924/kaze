@@ -214,14 +214,14 @@ export function ScheduleBrowser({
               aria-selected={isSelected}
               onClick={() => setSelectedDate(day.date)}
               className={cn(
-                "group relative flex min-w-[76px] shrink-0 flex-col items-center justify-center rounded-2xl border p-2.5 text-center transition-all duration-200 sm:min-w-0 sm:shrink",
+                "group relative flex min-w-[72px] shrink-0 flex-col items-center justify-center rounded-xl border p-2.5 text-center transition-colors sm:min-w-0 sm:shrink",
                 isSelected
-                  ? "border-accent/50 bg-accent-soft/80 text-fg shadow-sm shadow-accent/20 ring-1 ring-accent/40 backdrop-blur-sm"
-                  : "border-border-subtle bg-surface/60 text-muted hover:border-border hover:bg-surface hover:text-fg",
+                  ? "border-accent bg-accent-soft text-fg"
+                  : "border-border-subtle bg-surface text-muted hover:border-border hover:text-fg",
               )}
             >
               {day.isToday ? (
-                <span className="absolute -top-1.5 rounded-full bg-accent px-1.5 py-0.2 text-[9px] font-bold uppercase tracking-wider text-accent-contrast shadow-sm">
+                <span className="absolute -top-2 rounded-full bg-accent px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wider text-accent-contrast">
                   Today
                 </span>
               ) : null}
@@ -375,16 +375,16 @@ function ScheduleReleaseCard({
   return (
     <div
       className={cn(
-        "group relative flex gap-3 rounded-2xl border p-3 transition-all duration-200 hover:-translate-y-0.5",
+        "group relative flex gap-3 rounded-2xl border p-3 transition-colors",
         inWatching
-          ? "border-accent/40 bg-surface/90 shadow-sm shadow-accent/5 hover:border-accent hover:shadow-md hover:shadow-accent/10"
-          : "border-border-subtle bg-surface/70 hover:border-border hover:bg-surface hover:shadow-sm",
+          ? "border-accent/40 bg-surface shadow-sm hover:border-accent"
+          : "border-border-subtle bg-surface hover:border-border",
       )}
     >
       {/* Poster */}
       <Link
         href={`/anime/${anime.id}`}
-        className="relative block h-[110px] w-[74px] shrink-0 overflow-hidden rounded-xl bg-surface-2"
+        className="relative block h-[110px] w-[74px] shrink-0 overflow-hidden rounded-xl border border-border-subtle bg-surface-2"
         aria-label={`Open ${title}`}
       >
         {cover && isHttpUrl(cover) ? (
@@ -405,12 +405,12 @@ function ScheduleReleaseCard({
             Ep {entry.episode}
           </span>
           {anime.format ? (
-            <span className="text-[10px] uppercase text-faint">
+            <span className="text-[10px] uppercase text-muted">
               {formatFormat(anime.format)}
             </span>
           ) : null}
           {inWatching ? (
-            <span className="ml-auto rounded-full bg-accent/20 px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wider text-accent-strong">
+            <span className="ml-auto rounded-full bg-accent/15 px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wider text-accent-strong">
               Watching
             </span>
           ) : libraryEntry ? (
@@ -428,10 +428,10 @@ function ScheduleReleaseCard({
         </Link>
 
         {/* Airing Timestamp & Countdown */}
-        <div className="mt-1 flex items-center gap-2 text-xs text-muted">
-          <span className="font-medium text-fg">{airingTimeStr}</span>
+        <div className="mt-1 flex items-center gap-1.5 text-xs text-muted">
+          <span className="font-semibold text-fg tabular-nums">{airingTimeStr}</span>
           <span className="text-faint">·</span>
-          <span className={cn(relative.hasAired ? "text-faint" : "text-accent-strong")}>
+          <span className={cn(relative.hasAired ? "text-muted" : "font-medium text-accent-strong")}>
             {relative.label}
           </span>
         </div>
