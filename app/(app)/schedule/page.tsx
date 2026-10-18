@@ -23,16 +23,7 @@ export default async function SchedulePage({
   searchParams,
 }: SchedulePageProps) {
   const { date } = await searchParams;
-
-  let refDate = new Date();
-  if (date && /^\d{4}-\d{2}-\d{2}$/.test(date)) {
-    const parsed = new Date(`${date}T12:00:00Z`);
-    if (!Number.isNaN(parsed.getTime())) {
-      refDate = parsed;
-    }
-  }
-
-  const week = getWeekRange(refDate);
+  const week = getWeekRange(date);
   const viewer = await getViewer();
 
   // Load viewer's watching titles if authenticated
@@ -53,8 +44,8 @@ export default async function SchedulePage({
 
   try {
     entries = await getAniListClient().getAiringSchedule({
-      airingAtGreater: week.airingAtGreater,
-      airingAtLesser: week.airingAtLesser,
+      airingAtGreater: week.queryAiringAtGreater,
+      airingAtLesser: week.queryAiringAtLesser,
     });
   } catch (error) {
     console.error("[schedule] could not load airing schedule", error);

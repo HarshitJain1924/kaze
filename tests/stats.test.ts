@@ -25,12 +25,14 @@ function makeItem({
   score = null,
   anime = makeAnime(),
   anilistId = 1,
+  watchedEpisodes,
 }: {
   status?: WatchStatus;
   progress?: number;
   score?: number | null;
   anime?: AnimeSummary | null;
   anilistId?: number;
+  watchedEpisodes?: number[];
 }): LibraryItem {
   const entry: LibraryEntry = {
     id: `entry-${anilistId}`,
@@ -45,7 +47,7 @@ function makeItem({
     createdAt: "2026-01-01T00:00:00.000Z",
     updatedAt: "2026-01-01T00:00:00.000Z",
   };
-  return { entry, anime };
+  return { entry, anime, watchedEpisodes };
 }
 
 describe("calculateStats", () => {
@@ -149,5 +151,23 @@ describe("calculateStats", () => {
     ]);
     expect(stats.scoredCount).toBe(1);
     expect(stats.averageScore).toBe(1);
+  });
+
+  it("uses individual watched episode records as source of truth for watched count", () => {
+    const stats = calculateStats([
+      // Non-sequential watch: progress is 10 (highest episode watched), but only 2 episodes actually watched
+      makeItem({
+        progress: 10,
+        watchedEpisodes: [1, 10],
+      }),
+      // Legacy entry: no watchedEpisodes array, progress is 4
+      makeItem({
+        anilistId: 2,
+        progress: 4,
+      }),
+    ]);
+
+    // 2 (from [1, 10]) + 4 (from legacy progress) = 6 watched episodes (NOT 10 + 4 = 14)
+    expect(stats.episodesWatched).toBe(6);
   });
 });

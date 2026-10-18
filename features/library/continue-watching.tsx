@@ -30,10 +30,13 @@ export function getNextEpisodeNumber(
   if (watchedSet.size === 0 && progress > 0) {
     nextEp = progress + 1;
   }
+  const hasRecords = watchedEpisodes.length > 0;
   const atEnd =
     total !== null &&
     total > 0 &&
-    (progress >= total || (watchedSet.size >= total && nextEp > total));
+    (hasRecords
+      ? watchedEpisodes.length >= total || nextEp > total
+      : progress >= total);
   return { nextEp, atEnd };
 }
 

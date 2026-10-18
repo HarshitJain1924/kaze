@@ -358,10 +358,11 @@ function ScheduleReleaseCard({
   const airingTimeStr = formatAiringTime(entry.airingAt);
   const relative = formatAiringRelative(entry.airingAt);
 
-  // Check if this specific episode has been watched
+  // Check if this specific episode has been watched. Individual records are the source of truth when present.
   const isWatched =
-    watchedEpisodes.includes(entry.episode) ||
-    (libraryEntry !== null && libraryEntry.progress >= entry.episode);
+    watchedEpisodes.length > 0
+      ? watchedEpisodes.includes(entry.episode)
+      : (libraryEntry !== null && libraryEntry.progress >= entry.episode);
 
   const [toggling, setToggling] = useState(false);
 

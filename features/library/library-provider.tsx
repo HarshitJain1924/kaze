@@ -361,6 +361,9 @@ export function LibraryProvider({
         requireSignIn();
         return false;
       }
+      if (pending.has(anime.id)) {
+        return false;
+      }
 
       const existingEntry = entryMap.get(anime.id);
       const currentEpisodes = watchedEpisodesFor(anime.id);
@@ -495,13 +498,16 @@ export function LibraryProvider({
         setEntryPending(anime.id, false);
       }
     },
-    [canWrite, entryMap, requireSignIn, setEntryPending, toast, watchedEpisodesFor],
+    [canWrite, entryMap, pending, requireSignIn, setEntryPending, toast, watchedEpisodesFor],
   );
 
   const markAllEpisodes = useCallback(
     async (anime: AnimeSummary) => {
       if (!canWrite) {
         requireSignIn();
+        return false;
+      }
+      if (pending.has(anime.id)) {
         return false;
       }
       if (!anime.episodes || anime.episodes <= 0) {
@@ -555,13 +561,16 @@ export function LibraryProvider({
         setEntryPending(anime.id, false);
       }
     },
-    [canWrite, requireSignIn, setEntryPending, toast],
+    [canWrite, pending, requireSignIn, setEntryPending, toast],
   );
 
   const clearAllEpisodes = useCallback(
     async (anilistId: number) => {
       if (!canWrite) {
         requireSignIn();
+        return false;
+      }
+      if (pending.has(anilistId)) {
         return false;
       }
 
@@ -603,7 +612,7 @@ export function LibraryProvider({
         setEntryPending(anilistId, false);
       }
     },
-    [canWrite, requireSignIn, setEntryPending, toast],
+    [canWrite, pending, requireSignIn, setEntryPending, toast],
   );
 
   const incrementProgress = useCallback(
@@ -614,19 +623,17 @@ export function LibraryProvider({
       }
       const anime = animeMap.get(anilistId);
       const episodes = anime?.episodes ?? null;
-      if (episodes !== null && entry.progress >= episodes) {
+      if (episodes === 0) {
         toast({
           title: "You are at the final episode",
-          description:
-            episodes === 0
-              ? "This title has no reported episodes yet."
-              : `All ${episodes} episodes are marked as watched.`,
+          description: "This title has no reported episodes yet.",
         });
         return false;
       }
 
       if (anime) {
-        const watchedSet = new Set(watchedEpisodesFor(anilistId));
+        const watched = watchedEpisodesFor(anilistId);
+        const watchedSet = new Set(watched);
         let nextEp = 1;
         while (watchedSet.has(nextEp)) {
           nextEp += 1;
@@ -634,7 +641,28 @@ export function LibraryProvider({
         if (watchedSet.size === 0 && entry.progress > 0) {
           nextEp = entry.progress + 1;
         }
+        if (episodes !== null && episodes > 0) {
+          const isFinished =
+            watched.length > 0
+              ? watched.length >= episodes || nextEp > episodes
+              : entry.progress >= episodes;
+          if (isFinished) {
+            toast({
+              title: "You are at the final episode",
+              description: `All ${episodes} episodes are marked as watched.`,
+            });
+            return false;
+          }
+        }
         return toggleEpisode(anime, nextEp, true);
+      }
+
+      if (episodes !== null && entry.progress >= episodes) {
+        toast({
+          title: "You are at the final episode",
+          description: `All ${episodes} episodes are marked as watched.`,
+        });
+        return false;
       }
 
       return updateEntry(anilistId, { progress: entry.progress + 1 });

@@ -26,7 +26,7 @@ import type { AiringScheduleEntry, AnimeSummary } from "@/types/anime";
 
 interface HomeScheduleProps {
   week: WeekRange;
-  initialEntries: AiringScheduleEntry[];
+  initialEntries: AiringScheduleEntry[] | null;
 }
 
 export function HomeSchedule({ week, initialEntries }: HomeScheduleProps) {
@@ -40,6 +40,8 @@ export function HomeSchedule({ week, initialEntries }: HomeScheduleProps) {
     pendingIds,
   } = useLibrary();
 
+  const isError = initialEntries === null;
+
   const watchingIds = useMemo(() => {
     return items
       .filter((item) => item.entry.status === "watching")
@@ -49,16 +51,22 @@ export function HomeSchedule({ week, initialEntries }: HomeScheduleProps) {
   const watchingSet = useMemo(() => new Set(watchingIds), [watchingIds]);
 
   // Default active day is today if within this week, otherwise first day
-  const todayIso = useMemo(() => toIsoDateString(new Date()), []);
-  const initialDayDate = useMemo(() => {
-    const todayMatch = week.days.find((d) => d.date === todayIso);
-    return todayMatch ? todayMatch.date : (week.days[0]?.date ?? todayIso);
-  }, [todayIso, week.days]);
+  const initialDate = useMemo(() => {
+    const localTodayIso = toIsoDateString(new Date());
+    const match = week.days.find((d) => d.date === localTodayIso);
+    return match ? match.date : (week.days[0]?.date ?? "");
+  }, [week.days]);
 
-  const [selectedDate, setSelectedDate] = useState<string>(initialDayDate);
+  const [selectedDate, setSelectedDate] = useState<string>(initialDate);
   const [filterMode, setFilterMode] = useState<"all" | "watching">("all");
 
   const days = useMemo(() => {
+    if (!initialEntries) {
+      return week.days.map((day) => ({
+        ...day,
+        entries: [],
+      }));
+    }
     return groupScheduleByDay(initialEntries, week.days);
   }, [initialEntries, week.days]);
 
@@ -86,6 +94,37 @@ export function HomeSchedule({ week, initialEntries }: HomeScheduleProps) {
     }
     return activeDay.entries;
   }, [activeDay, filterMode, watchingSet]);
+
+  if (isError) {
+    return (
+      <section aria-label="Airing this week" className="space-y-4">
+        <SectionHeader
+          title="Airing this week"
+          description={`Broadcast releases in your local timezone · ${week.weekLabel}`}
+          action="Full schedule"
+          actionHref="/schedule"
+        />
+        <div className="rounded-2xl border border-border-subtle bg-surface p-6 text-center">
+          <CalendarIcon className="mx-auto h-6 w-6 text-muted" />
+          <h3 className="mt-2 text-sm font-semibold text-fg">
+            Could not load this week&apos;s schedule
+          </h3>
+          <p className="mx-auto mt-1 max-w-sm text-xs leading-relaxed text-muted">
+            AniList schedule service could not be reached. The rest of your dashboard remains functional.
+          </p>
+          <div className="mt-3.5 flex justify-center">
+            <Link
+              href="/schedule"
+              className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-border bg-surface-2 px-3 text-xs font-semibold text-fg transition-colors hover:bg-surface-3"
+            >
+              Open schedule page
+              <ChevronRightIcon className="h-3 w-3" />
+            </Link>
+          </div>
+        </div>
+      </section>
+    );
+  }
 
   return (
     <section aria-label="Airing this week" className="space-y-4">
@@ -290,9 +329,12 @@ function HomeScheduleCard({
   const airingTimeStr = formatAiringTime(entry.airingAt);
   const relative = formatAiringRelative(entry.airingAt);
 
+  // Individual watched records are the source of truth when present.
+  // Fall back to legacy progress only when no individual records exist.
   const isWatched =
-    watchedEpisodes.includes(entry.episode) ||
-    (libraryEntry !== null && libraryEntry.progress >= entry.episode);
+    watchedEpisodes.length > 0
+      ? watchedEpisodes.includes(entry.episode)
+      : libraryEntry !== null && libraryEntry.progress >= entry.episode;
 
   const [toggling, setToggling] = useState(false);
 

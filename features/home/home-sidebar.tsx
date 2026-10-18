@@ -21,8 +21,9 @@ import { cn, formatFormat, getDisplayTitle, isHttpUrl } from "@/lib/utils";
 import type { AiringScheduleEntry, AnimeSummary } from "@/types/anime";
 
 interface HomeSidebarProps {
-  todayEntries: AiringScheduleEntry[];
+  todayEntries: AiringScheduleEntry[] | null;
   featuredAnime?: AnimeSummary | null;
+  compact?: boolean;
 }
 
 function formatRelativeTime(dateString: string): string {
@@ -43,10 +44,13 @@ function formatRelativeTime(dateString: string): string {
 export function HomeSidebar({
   todayEntries,
   featuredAnime,
+  compact = false,
 }: HomeSidebarProps) {
   const { items, canWrite } = useLibrary();
   const { preferences } = usePreferences();
   const stats = calculateStats(items);
+
+  const isScheduleError = todayEntries === null;
 
   // Set of anime IDs in the user's library
   const librarySet = useMemo(() => {
@@ -55,6 +59,7 @@ export function HomeSidebar({
 
   // Today's schedule prioritized by user's library first, then airing time
   const prioritizedToday = useMemo(() => {
+    if (!todayEntries) return [];
     const todayIso = toIsoDateString(new Date());
     const list = todayEntries.filter((entry) => {
       const entryIso = toIsoDateString(new Date(entry.airingAt * 1000));
@@ -156,88 +161,94 @@ export function HomeSidebar({
         </section>
       ) : null}
 
-      {/* 2. Today's Schedule */}
-      <section
-        aria-label="Today's schedule"
-        className="rounded-2xl border border-border-subtle bg-surface p-4.5"
-      >
-        <div className="flex items-center justify-between pb-3">
-          <div className="flex items-center gap-1.5">
-            <CalendarIcon className="h-3.5 w-3.5 text-accent-strong" />
-            <h2 className="text-xs font-bold uppercase tracking-wider text-muted">
-              Today&apos;s Schedule
-            </h2>
+      {/* 2. Today's Schedule (omitted in compact mobile view to avoid duplicating the weekly schedule widget right above) */}
+      {!compact ? (
+        <section
+          aria-label="Today's schedule"
+          className="rounded-2xl border border-border-subtle bg-surface p-4.5"
+        >
+          <div className="flex items-center justify-between pb-3">
+            <div className="flex items-center gap-1.5">
+              <CalendarIcon className="h-3.5 w-3.5 text-accent-strong" />
+              <h2 className="text-xs font-bold uppercase tracking-wider text-muted">
+                Today&apos;s Schedule
+              </h2>
+            </div>
+            <Link
+              href="/schedule"
+              className="group inline-flex items-center gap-0.5 text-xs font-medium text-muted transition-colors hover:text-accent-strong"
+            >
+              <span>All</span>
+              <ChevronRightIcon className="h-3 w-3 transition-transform group-hover:translate-x-0.5" />
+            </Link>
           </div>
-          <Link
-            href="/schedule"
-            className="group inline-flex items-center gap-0.5 text-xs font-medium text-muted transition-colors hover:text-accent-strong"
-          >
-            <span>All</span>
-            <ChevronRightIcon className="h-3 w-3 transition-transform group-hover:translate-x-0.5" />
-          </Link>
-        </div>
 
-        {prioritizedToday.length === 0 ? (
-          <p className="py-2 text-xs text-muted">
-            No anime broadcasts scheduled for today.
-          </p>
-        ) : (
-          <div className="space-y-2">
-            {prioritizedToday.map((entry) => {
-              const inLibrary = librarySet.has(entry.mediaId);
-              const title = getDisplayTitle(
-                entry.media.title,
-                preferences.titleLanguage === "english",
-              );
-              const cover =
-                entry.media.coverImage.extraLarge ??
-                entry.media.coverImage.large;
+          {isScheduleError ? (
+            <p className="py-2 text-xs text-muted">
+              Could not load today&apos;s releases.
+            </p>
+          ) : prioritizedToday.length === 0 ? (
+            <p className="py-2 text-xs text-muted">
+              No anime broadcasts scheduled for today.
+            </p>
+          ) : (
+            <div className="space-y-2">
+              {prioritizedToday.map((entry) => {
+                const inLibrary = librarySet.has(entry.mediaId);
+                const title = getDisplayTitle(
+                  entry.media.title,
+                  preferences.titleLanguage === "english",
+                );
+                const cover =
+                  entry.media.coverImage.extraLarge ??
+                  entry.media.coverImage.large;
 
-              return (
-                <Link
-                  key={entry.id}
-                  href={`/anime/${entry.mediaId}`}
-                  className={cn(
-                    "group flex items-center gap-2.5 rounded-xl border p-2 transition-all duration-150",
-                    inLibrary
-                      ? "border-accent/35 bg-accent-soft/30 hover:border-accent hover:bg-accent-soft/50"
-                      : "border-border-subtle bg-surface-2/30 hover:border-border hover:bg-surface-2/60",
-                  )}
-                >
-                  <div className="relative aspect-[2/3] w-9 shrink-0 overflow-hidden rounded-lg border border-border-subtle bg-surface-3">
-                    {cover && isHttpUrl(cover) ? (
-                      <Image
-                        src={cover}
-                        alt=""
-                        fill
-                        sizes="36px"
-                        className="object-cover"
-                      />
-                    ) : null}
-                  </div>
-
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-center justify-between gap-1">
-                      <span className="text-[10px] font-semibold text-accent-strong">
-                        Ep {entry.episode}
-                      </span>
-                      <span className="text-[10px] tabular-nums text-muted">
-                        {formatAiringTime(entry.airingAt)}
-                      </span>
+                return (
+                  <Link
+                    key={entry.id}
+                    href={`/anime/${entry.mediaId}`}
+                    className={cn(
+                      "group flex items-center gap-2.5 rounded-xl border p-2 transition-all duration-150",
+                      inLibrary
+                        ? "border-accent/35 bg-accent-soft/30 hover:border-accent hover:bg-accent-soft/50"
+                        : "border-border-subtle bg-surface-2/30 hover:border-border hover:bg-surface-2/60",
+                    )}
+                  >
+                    <div className="relative aspect-[2/3] w-9 shrink-0 overflow-hidden rounded-lg border border-border-subtle bg-surface-3">
+                      {cover && isHttpUrl(cover) ? (
+                        <Image
+                          src={cover}
+                          alt=""
+                          fill
+                          sizes="36px"
+                          className="object-cover"
+                        />
+                      ) : null}
                     </div>
-                    <p
-                      className="line-clamp-1 font-display text-xs font-medium text-fg group-hover:text-accent-strong"
-                      title={title}
-                    >
-                      {title}
-                    </p>
-                  </div>
-                </Link>
-              );
-            })}
-          </div>
-        )}
-      </section>
+
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center justify-between gap-1">
+                        <span className="text-[10px] font-semibold text-accent-strong">
+                          Ep {entry.episode}
+                        </span>
+                        <span className="text-[10px] tabular-nums text-muted">
+                          {formatAiringTime(entry.airingAt)}
+                        </span>
+                      </div>
+                      <p
+                        className="line-clamp-1 font-display text-xs font-medium text-fg group-hover:text-accent-strong"
+                        title={title}
+                      >
+                        {title}
+                      </p>
+                    </div>
+                  </Link>
+                );
+              })}
+            </div>
+          )}
+        </section>
+      ) : null}
 
       {/* 3. Recent Activity */}
       {recentActivity.length > 0 ? (
@@ -313,8 +324,8 @@ export function HomeSidebar({
         </section>
       ) : null}
 
-      {/* 4. Decorative / Seasonal Spotlight Panel */}
-      {featuredAnime ? (
+      {/* 4. Decorative / Seasonal Spotlight Panel (desktop only) */}
+      {!compact && featuredAnime ? (
         <section
           aria-label="Seasonal spotlight"
           className="relative overflow-hidden rounded-2xl border border-border-subtle bg-surface"

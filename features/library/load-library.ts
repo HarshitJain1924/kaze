@@ -12,8 +12,11 @@ import type { LibraryItem } from "@/types/library";
  *
  * If AniList is unavailable the entries are still returned with
  * `anime: null`, so users never lose access to their own progress, ratings
- * or notes. The UI renders an explicit unavailable state for those rows
- * instead of inventing metadata.
+ * or notes.
+ *
+ * If individual episode-record fetching fails, entries are returned without
+ * an empty `watchedEpisodes` array so the system does not incorrectly overwrite
+ * or misinterpret failed queries as a genuine "zero episodes watched" record.
  */
 export async function loadLibraryItems(
   viewerId: string,
@@ -24,12 +27,21 @@ export async function loadLibraryItems(
   }
 
   const repository = createLibraryRepository(supabase);
-  const [entries, rawEpisodes] = await Promise.all([
+
+  // Load library entries and individual watched-episode history in parallel
+  const [entries, rawEpisodesResult] = await Promise.all([
     repository.list(viewerId),
-    repository.listEpisodes(viewerId).catch((err) => {
-      console.error("[library] could not load episode records", err);
-      return [];
-    }),
+    repository
+      .listEpisodes(viewerId)
+      .then((records) => ({ ok: true as const, records }))
+      .catch((err) => {
+        // Log sanitized error without leaking sensitive internals
+        console.error(
+          "[library] failed to load episode history; preserving aggregate progress",
+          err instanceof Error ? err.message : "database query error",
+        );
+        return { ok: false as const, error: err };
+      }),
   ]);
 
   if (entries.length === 0) {
@@ -37,16 +49,18 @@ export async function loadLibraryItems(
   }
 
   const episodesByAnime = new Map<number, number[]>();
-  for (const ep of rawEpisodes) {
-    let list = episodesByAnime.get(ep.anilistId);
-    if (!list) {
-      list = [];
-      episodesByAnime.set(ep.anilistId, list);
+  if (rawEpisodesResult.ok) {
+    for (const ep of rawEpisodesResult.records) {
+      let list = episodesByAnime.get(ep.anilistId);
+      if (!list) {
+        list = [];
+        episodesByAnime.set(ep.anilistId, list);
+      }
+      list.push(ep.episodeNumber);
     }
-    list.push(ep.episodeNumber);
-  }
-  for (const list of episodesByAnime.values()) {
-    list.sort((a, b) => a - b);
+    for (const list of episodesByAnime.values()) {
+      list.sort((a, b) => a - b);
+    }
   }
 
   let animeById = new Map<number, AnimeSummary>();
@@ -57,13 +71,15 @@ export async function loadLibraryItems(
   } catch (error) {
     console.error(
       "[library] could not hydrate anime metadata; entries kept without metadata",
-      error,
+      error instanceof Error ? error.message : "AniList request error",
     );
   }
 
   return entries.map((entry) => ({
     entry,
     anime: animeById.get(entry.anilistId) ?? null,
-    watchedEpisodes: episodesByAnime.get(entry.anilistId) ?? [],
+    ...(rawEpisodesResult.ok
+      ? { watchedEpisodes: episodesByAnime.get(entry.anilistId) ?? [] }
+      : {}),
   }));
 }

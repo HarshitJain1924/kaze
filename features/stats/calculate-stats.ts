@@ -59,7 +59,11 @@ export function calculateStats(items: LibraryItem[]): LibraryStats {
       statusCounts[entry.status] += 1;
     }
 
-    episodesWatched += entry.progress;
+    const episodesForEntry =
+      item.watchedEpisodes && item.watchedEpisodes.length > 0
+        ? item.watchedEpisodes.length
+        : entry.progress;
+    episodesWatched += episodesForEntry;
 
     if (anime === null) {
       missingMetadataCount += 1;

@@ -31,7 +31,25 @@ export interface WeekRange {
   weekLabel: string; // e.g. "Oct 19 – Oct 25, 2026"
 }
 
-export function toIsoDateString(d: Date): string {
+export function toIsoDateString(d: Date, timeZone?: string): string {
+  if (timeZone) {
+    try {
+      const parts = new Intl.DateTimeFormat("en-US", {
+        timeZone,
+        year: "numeric",
+        month: "2-digit",
+        day: "2-digit",
+      }).formatToParts(d);
+      const year = parts.find((p) => p.type === "year")?.value;
+      const month = parts.find((p) => p.type === "month")?.value;
+      const day = parts.find((p) => p.type === "day")?.value;
+      if (year && month && day) {
+        return `${year}-${month}-${day}`;
+      }
+    } catch {
+      // Fall back to local getters if timezone is unrecognized
+    }
+  }
   const year = d.getFullYear();
   const month = String(d.getMonth() + 1).padStart(2, "0");
   const day = String(d.getDate()).padStart(2, "0");
@@ -159,11 +177,13 @@ export function getWeekRange(referenceDate: Date | string = new Date()): WeekRan
 }
 
 /**
- * Groups an array of airing schedule entries by local date "YYYY-MM-DD".
+ * Groups an array of airing schedule entries by date "YYYY-MM-DD".
+ * Filters out entries from the query-padding window that fall outside the 7 days of the week.
  */
 export function groupScheduleByDay(
   entries: AiringScheduleEntry[],
   weekDays: WeekRange["days"],
+  timeZone?: string,
 ): WeeklyScheduleDay[] {
   const map = new Map<string, AiringScheduleEntry[]>();
   for (const day of weekDays) {
@@ -172,7 +192,7 @@ export function groupScheduleByDay(
 
   for (const entry of entries) {
     const entryDate = new Date(entry.airingAt * 1000);
-    const dateStr = toIsoDateString(entryDate);
+    const dateStr = toIsoDateString(entryDate, timeZone);
     const list = map.get(dateStr);
     if (list) {
       list.push(entry);
@@ -193,12 +213,16 @@ export function groupScheduleByDay(
 /**
  * Formats a Unix timestamp into a user-friendly local time string (e.g. "8:30 PM").
  */
-export function formatAiringTime(airingAt: number): string {
+export function formatAiringTime(airingAt: number, timeZone?: string): string {
   const date = new Date(airingAt * 1000);
-  return new Intl.DateTimeFormat("en-US", {
+  const options: Intl.DateTimeFormatOptions = {
     hour: "numeric",
     minute: "2-digit",
-  }).format(date);
+  };
+  if (timeZone) {
+    options.timeZone = timeZone;
+  }
+  return new Intl.DateTimeFormat("en-US", options).format(date);
 }
 
 /**

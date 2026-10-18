@@ -1,6 +1,5 @@
 import "server-only";
 
-import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 
 import { createSupabaseServerClient } from "@/lib/supabase/server";
@@ -8,25 +7,25 @@ import type { Viewer } from "@/types/viewer";
 
 export type { Viewer };
 
-/** Returns the signed-in user, or null when signed out / unconfigured. */
+/**
+ * Returns the signed-in user, or null when signed out / unconfigured.
+ * In development, an explicit, synthetic preview fixture is only enabled if
+ * ALLOW_LOCAL_PREVIEW is set in the environment, protecting real identities and
+ * preventing preview mechanisms from running in production.
+ */
 export async function getViewer(): Promise<Viewer | null> {
-  if (process.env.NODE_ENV !== "production") {
-    try {
-      const cookieStore = await cookies();
-      if (cookieStore.get("kaze_preview_user")?.value === "1") {
-        return {
-          id: "602bf6cc-fb81-41ce-b1e3-5f31c398c0d9",
-          email: "augstunyt2004@gmail.com",
-          createdAt: "2026-10-18T00:00:00.000Z",
-        };
-      }
-    } catch {
-      // ignore during prerender/static
-    }
-  }
-
   const supabase = await createSupabaseServerClient();
   if (!supabase) {
+    if (
+      process.env.NODE_ENV !== "production" &&
+      process.env.ALLOW_LOCAL_PREVIEW === "true"
+    ) {
+      return {
+        id: "00000000-0000-0000-0000-000000000001",
+        email: "preview-developer@kaze.local",
+        createdAt: "2026-01-01T00:00:00.000Z",
+      };
+    }
     return null;
   }
 

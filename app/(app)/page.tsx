@@ -26,12 +26,12 @@ async function safeLoad(
 
 async function safeLoadSchedule(
   load: () => Promise<AiringScheduleEntry[]>,
-): Promise<AiringScheduleEntry[]> {
+): Promise<AiringScheduleEntry[] | null> {
   try {
     return await load();
   } catch (error) {
     console.error("[home] could not load airing schedule", error);
-    return [];
+    return null;
   }
 }
 
@@ -88,6 +88,7 @@ export default async function HomePage() {
             <HomeSidebar
               todayEntries={scheduleEntries}
               featuredAnime={featuredAnime}
+              compact
             />
           </div>
 
