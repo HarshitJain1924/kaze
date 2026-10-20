@@ -2,6 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
+import { useState, type ReactNode } from "react";
 
 import { PlusIcon, StarIcon } from "@/components/icons";
 import { usePreferences } from "@/components/providers/preferences-provider";
@@ -55,6 +56,9 @@ export interface AnimePosterCardProps {
   showQuickAdd?: boolean;
   className?: string;
   sizes?: string;
+  /** Optional row under the title and metadata; used by the library for its
+      one-tap episode action. */
+  footer?: ReactNode;
 }
 
 export function AnimePosterCard({
@@ -63,11 +67,13 @@ export function AnimePosterCard({
   priority = false,
   showQuickAdd = true,
   className,
-  sizes = "(max-width: 640px) 46vw, (max-width: 1024px) 30vw, (max-width: 1280px) 22vw, 17vw",
+  sizes = "(max-width: 640px) 46vw, (max-width: 1024px) 30vw, (max-width: 1280px) 22vw, 16vw",
+  footer,
 }: AnimePosterCardProps) {
   const { entryFor, requestAdd, pendingIds } = useLibrary();
   const { preferences } = usePreferences();
 
+  const [imageFailed, setImageFailed] = useState(false);
   const entry = entryFor(anime.id);
   const title = getDisplayTitle(
     anime.title,
@@ -88,16 +94,17 @@ export function AnimePosterCard({
       : 0;
 
   return (
-    <article className={cn("group relative flex flex-col transition-transform duration-200 ease-out hover:-translate-y-1", className)}>
-      <div className="relative aspect-[2/3] overflow-hidden rounded-xl border border-border-subtle bg-surface-2 shadow-sm transition-all duration-200 ease-out group-hover:border-border group-hover:shadow-md">
-        {cover ? (
+    <article className={cn("group relative flex flex-col", className)}>
+      <div className="relative aspect-[2/3] overflow-hidden rounded-xl border border-border-subtle bg-surface-2 transition-colors duration-200 ease-out group-hover:border-border">
+        {cover && !imageFailed ? (
           <Image
             src={cover}
             alt=""
             fill
             sizes={sizes}
             priority={priority}
-            className="object-cover transition-transform duration-300 ease-out group-hover:scale-[1.03]"
+            className="poster-zoom object-cover"
+            onError={() => setImageFailed(true)}
           />
         ) : (
           <PosterFallback color={anime.coverImage.color} />
@@ -131,7 +138,7 @@ export function AnimePosterCard({
             type="button"
             onClick={() => requestAdd(anime)}
             aria-label={`Add ${title} to your library`}
-            className="absolute right-2 top-2 z-20 flex h-8 w-8 items-center justify-center rounded-full border border-white/20 bg-black/70 text-white transition-all duration-150 hover:scale-105 hover:border-accent hover:bg-accent hover:text-accent-contrast focus-visible:opacity-100 opacity-90 sm:opacity-0 sm:group-hover:opacity-100 sm:group-focus-within:opacity-100"
+            className="absolute right-2 top-2 z-20 flex h-9 w-9 items-center justify-center rounded-full border border-white/20 bg-black/75 text-white opacity-90 transition-[background-color,border-color,transform] duration-150 ease-out hover:border-accent hover:bg-accent hover:text-accent-contrast active:scale-[0.94] focus-visible:opacity-100 sm:opacity-0 sm:group-hover:opacity-100 sm:group-focus-within:opacity-100"
           >
             <PlusIcon className="h-4 w-4" />
           </button>
@@ -148,13 +155,13 @@ export function AnimePosterCard({
                   />
                 </div>
                 {metaMode === "below" ? (
-                  <p className="text-[10px] font-medium text-white/80">
+                  <p className="text-[11px] font-medium text-white/85">
                     {entry.progress} / {totalEpisodes} episodes
                   </p>
                 ) : null}
               </div>
             ) : entry.progress > 0 && metaMode === "below" ? (
-              <p className="text-[10px] font-medium text-white/80">
+              <p className="text-[11px] font-medium text-white/85">
                 {formatEpisodeCount(entry.progress, { short: true })} watched
               </p>
             ) : null}
@@ -172,7 +179,7 @@ export function AnimePosterCard({
             <h3 className="line-clamp-2-safe font-display text-[13px] font-semibold leading-snug text-white sm:text-sm">
               {title}
             </h3>
-            <p className="text-[11px] font-medium text-white/70">
+            <p className="text-[11px] font-medium text-white/75">
               {meta}
               {entry && totalEpisodes
                 ? ` · ${entry.progress}/${totalEpisodes}`
@@ -183,17 +190,14 @@ export function AnimePosterCard({
       </div>
 
       {metaMode === "below" ? (
-        <div className="mt-2 space-y-0.5">
+        <div className="mt-2 flex flex-1 flex-col gap-1">
           <Link
             href={`/anime/${anime.id}`}
-            className="line-clamp-1 block text-[13px] font-semibold leading-snug text-fg transition-colors hover:text-accent-strong sm:text-sm"
+            className="line-clamp-1 block text-sm font-semibold leading-snug text-fg transition-colors hover:text-accent-strong"
           >
             {title}
           </Link>
-          {secondary && secondary !== title ? (
-            <p className="line-clamp-1 text-[11px] text-faint">{secondary}</p>
-          ) : null}
-          <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-[11px] text-muted pt-0.5">
+          <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted">
             {entry ? <StatusBadge status={entry.status} /> : null}
             {entry?.score ? (
               <span className="inline-flex items-center gap-1 text-warning">
@@ -203,6 +207,10 @@ export function AnimePosterCard({
             ) : null}
             {meta ? <span>{meta}</span> : null}
           </div>
+          {secondary && secondary !== title ? (
+            <p className="line-clamp-1 text-xs text-faint">{secondary}</p>
+          ) : null}
+          {footer ? <div className="mt-auto pt-1.5">{footer}</div> : null}
         </div>
       ) : null}
 

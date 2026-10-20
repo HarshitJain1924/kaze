@@ -50,7 +50,7 @@ export function Logo({
           KAZE
         </span>
         {compact ? null : (
-          <span className="mt-1 text-[9px] font-medium uppercase tracking-[0.3em] text-faint">
+          <span className="mt-1 text-[11px] font-medium uppercase tracking-[0.18em] text-faint">
             Anime tracker
           </span>
         )}

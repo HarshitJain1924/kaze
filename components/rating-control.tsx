@@ -35,9 +35,7 @@ export function RatingControl({
   return (
     <div className={cn("space-y-2", className)}>
       <div className="flex items-center justify-between gap-3">
-        <span className="text-xs font-medium uppercase tracking-[0.08em] text-muted">
-          Your rating
-        </span>
+        <span className="text-xs font-medium text-muted">Your rating</span>
         <span className="text-xs text-faint">
           {displayScore ? (
             <span className="text-amber-300 font-medium">

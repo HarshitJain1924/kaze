@@ -29,16 +29,29 @@ import type {
   WeeklyScheduleDay,
 } from "@/types/anime";
 
+function formatDayHeading(isoDate: string): string {
+  const date = new Date(`${isoDate}T12:00:00`);
+  if (Number.isNaN(date.getTime())) return isoDate;
+  return new Intl.DateTimeFormat("en-US", {
+    weekday: "long",
+    month: "short",
+    day: "numeric",
+  }).format(date);
+}
+
 interface ScheduleBrowserProps {
   week: WeekRange;
   days: WeeklyScheduleDay[];
   watchingIds: number[];
+  /** A `?date=` deep link selects that day, not just its week. */
+  initialDate?: string;
 }
 
 export function ScheduleBrowser({
   week,
   days,
   watchingIds,
+  initialDate,
 }: ScheduleBrowserProps) {
   const router = useRouter();
   const { preferences } = usePreferences();
@@ -55,9 +68,12 @@ export function ScheduleBrowser({
   // Default active day is today if within this week, otherwise Monday (first day)
   const todayIso = useMemo(() => toIsoDateString(new Date()), []);
   const initialDayDate = useMemo(() => {
+    if (initialDate && week.days.some((day) => day.date === initialDate)) {
+      return initialDate;
+    }
     const todayMatch = week.days.find((d) => d.date === todayIso);
     return todayMatch ? todayMatch.date : (week.days[0]?.date ?? todayIso);
-  }, [todayIso, week.days]);
+  }, [initialDate, todayIso, week.days]);
 
   const [selectedDate, setSelectedDate] = useState<string>(initialDayDate);
   const [filterMode, setFilterMode] = useState<"all" | "watching">("all");
@@ -106,15 +122,10 @@ export function ScheduleBrowser({
       {/* Top Header & Week Controls */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <div className="flex items-center gap-2">
-            <span className="text-xs font-semibold uppercase tracking-[0.18em] text-accent-strong">
-              Airing calendar
-            </span>
-          </div>
-          <h1 className="mt-1 font-display text-2xl font-bold tracking-tight text-fg sm:text-3xl">
-            Weekly Schedule
+          <h1 className="font-display text-2xl font-semibold tracking-tight text-fg sm:text-[28px]">
+            Weekly schedule
           </h1>
-          <p className="mt-1 text-sm text-muted">
+          <p className="mt-1 text-[13px] text-muted">
             Expected releases in your local timezone · {week.weekLabel}
           </p>
         </div>
@@ -154,52 +165,44 @@ export function ScheduleBrowser({
 
       {/* Filter Tabs: All vs My Watching */}
       <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border-subtle pb-3">
-        <div role="tablist" aria-label="Schedule filter" className="flex gap-1.5">
+        <div
+          role="group"
+          aria-label="Schedule filter"
+          className="flex gap-1 rounded-lg border border-border-subtle bg-surface p-0.5"
+        >
           <button
             type="button"
-            role="tab"
-            aria-selected={filterMode === "all"}
+            aria-pressed={filterMode === "all"}
             onClick={() => setFilterMode("all")}
             className={cn(
-              "inline-flex items-center gap-2 rounded-xl px-3 py-1.5 text-xs font-semibold transition-colors",
+              "inline-flex items-center gap-2 rounded-md px-3 py-1.5 text-xs font-medium transition-colors",
               filterMode === "all"
-                ? "bg-accent-soft text-fg"
-                : "text-muted hover:bg-surface-2 hover:text-fg",
+                ? "bg-surface-3 text-fg"
+                : "text-muted hover:text-fg",
             )}
           >
             All releases
           </button>
           <button
             type="button"
-            role="tab"
-            aria-selected={filterMode === "watching"}
+            aria-pressed={filterMode === "watching"}
             onClick={() => setFilterMode("watching")}
             className={cn(
-              "inline-flex items-center gap-2 rounded-xl px-3 py-1.5 text-xs font-semibold transition-colors",
+              "inline-flex items-center gap-2 rounded-md px-3 py-1.5 text-xs font-medium transition-colors",
               filterMode === "watching"
-                ? "bg-accent-soft text-fg"
-                : "text-muted hover:bg-surface-2 hover:text-fg",
+                ? "bg-surface-3 text-fg"
+                : "text-muted hover:text-fg",
             )}
           >
             <span>My watching</span>
-            <span className="rounded-full bg-accent/20 px-1.5 py-0.5 text-[10px] tabular-nums text-accent-strong">
-              {totalWatchingInWeek}
-            </span>
+            <span className="tabular-nums text-faint">{totalWatchingInWeek}</span>
           </button>
         </div>
 
-        <span className="text-xs text-faint">
-          {filteredEntries.length} {filteredEntries.length === 1 ? "release" : "releases"} on{" "}
-          {activeDay?.dayName}
-        </span>
       </div>
 
       {/* Horizontal Day Selector (Mon - Sun) */}
-      <div
-        role="tablist"
-        aria-label="Days of the week"
-        className="no-scrollbar -mx-2 flex gap-2 overflow-x-auto px-2 py-1 sm:grid sm:grid-cols-7"
-      >
+      <div className="no-scrollbar -mx-2 flex gap-1.5 overflow-x-auto px-2 py-0.5 sm:grid sm:grid-cols-7">
         {days.map((day) => {
           const isSelected = day.date === selectedDate;
           const dayWatchingCount = day.entries.filter((e) =>
@@ -210,42 +213,39 @@ export function ScheduleBrowser({
             <button
               key={day.date}
               type="button"
-              role="tab"
-              aria-selected={isSelected}
+              aria-pressed={isSelected}
+              aria-label={`${day.dayName} ${day.dayNumber}, ${day.entries.length} releases`}
               onClick={() => setSelectedDate(day.date)}
               className={cn(
-                "group relative flex min-w-[72px] shrink-0 flex-col items-center justify-center rounded-xl border p-2.5 text-center transition-colors sm:min-w-0 sm:shrink",
+                "group flex min-w-[64px] shrink-0 flex-col items-center justify-center rounded-lg border px-2 py-2 text-center transition-colors sm:min-w-0 sm:shrink",
                 isSelected
-                  ? "border-accent bg-accent-soft text-fg"
-                  : "border-border-subtle bg-surface text-muted hover:border-border hover:text-fg",
+                  ? "border-accent/60 bg-accent-soft"
+                  : "border-border-subtle bg-surface hover:bg-surface-2",
               )}
             >
-              {day.isToday ? (
-                <span className="absolute -top-2 rounded-full bg-accent px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wider text-accent-contrast">
-                  Today
-                </span>
-              ) : null}
-
-              <span className="text-[11px] font-medium uppercase tracking-wider text-faint group-hover:text-muted">
-                {day.dayShort}
-              </span>
               <span
                 className={cn(
-                  "mt-1 font-display text-lg font-bold tabular-nums",
-                  isSelected ? "text-accent-strong" : "text-fg",
+                  "text-[11px] font-medium",
+                  day.isToday
+                    ? "text-accent-strong"
+                    : isSelected
+                      ? "text-fg"
+                      : "text-faint group-hover:text-muted",
                 )}
               >
+                {day.isToday ? "Today" : day.dayShort}
+              </span>
+              <span className="mt-0.5 font-display text-lg font-semibold tabular-nums text-fg">
                 {day.dayNumber}
               </span>
-
-              {/* Dot Indicators */}
-              <div className="mt-1 flex items-center gap-1">
+              <span className="mt-0.5 flex items-center gap-1 text-[11px] tabular-nums text-faint">
                 {day.entries.length > 0 ? (
-                  <span className="text-[10px] tabular-nums text-faint">
-                    {day.entries.length}
+                  <span>
+                    {day.entries.length}{" "}
+                    {day.entries.length === 1 ? "ep" : "eps"}
                   </span>
                 ) : (
-                  <span className="text-[10px] text-faint/60">—</span>
+                  <span>No eps</span>
                 )}
                 {dayWatchingCount > 0 ? (
                   <span
@@ -253,7 +253,7 @@ export function ScheduleBrowser({
                     className="h-1.5 w-1.5 rounded-full bg-accent-strong"
                   />
                 ) : null}
-              </div>
+              </span>
             </button>
           );
         })}
@@ -261,15 +261,14 @@ export function ScheduleBrowser({
 
       {/* Active Day Release Timeline / List */}
       <div className="space-y-4">
-        <div className="flex items-center justify-between">
+        <div className="flex items-baseline justify-between gap-3">
           <h2 className="font-display text-base font-semibold text-fg">
-            {activeDay?.dayName}, {activeDay?.date}
+            {activeDay ? formatDayHeading(activeDay.date) : ""}
           </h2>
-          {activeDay?.isToday ? (
-            <span className="rounded-full bg-accent/20 px-2.5 py-0.5 text-xs font-medium text-accent-strong">
-              Today&apos;s releases
-            </span>
-          ) : null}
+          <span className="text-xs text-muted tabular-nums">
+            {filteredEntries.length}{" "}
+            {filteredEntries.length === 1 ? "release" : "releases"}
+          </span>
         </div>
 
         {filteredEntries.length === 0 ? (
@@ -401,19 +400,13 @@ function ScheduleReleaseCard({
 
       {/* Details */}
       <div className="flex min-w-0 flex-1 flex-col">
-        <div className="flex flex-wrap items-center gap-1.5">
-          <span className="rounded-md bg-accent-soft px-1.5 py-0.5 text-[10px] font-semibold text-accent-strong">
-            Ep {entry.episode}
+        <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-[11px] text-muted">
+          <span className="font-semibold text-accent-strong">
+            Episode {entry.episode}
           </span>
-          {anime.format ? (
-            <span className="text-[10px] uppercase text-muted">
-              {formatFormat(anime.format)}
-            </span>
-          ) : null}
+          {anime.format ? <span>{formatFormat(anime.format)}</span> : null}
           {inWatching ? (
-            <span className="ml-auto rounded-full bg-accent/15 px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wider text-accent-strong">
-              Watching
-            </span>
+            <span className="ml-auto text-[11px] text-muted">Watching</span>
           ) : libraryEntry ? (
             <span className="ml-auto">
               <StatusBadge status={libraryEntry.status} />
@@ -445,7 +438,7 @@ function ScheduleReleaseCard({
                 type="button"
                 disabled={isPending || toggling}
                 onClick={handleMarkWatched}
-                className="inline-flex h-7 items-center gap-1.5 rounded-lg border border-accent/30 bg-accent-soft px-2.5 text-[11px] font-semibold text-accent-strong transition-colors hover:bg-accent/20"
+                className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-accent/30 bg-accent-soft px-2.5 text-xs font-semibold text-accent-strong transition-colors hover:bg-accent/20"
                 aria-label={`Unmark Episode ${entry.episode}`}
               >
                 <CheckIcon className="h-3 w-3" />
@@ -455,23 +448,20 @@ function ScheduleReleaseCard({
               <Button
                 variant="secondary"
                 size="sm"
-                className="h-7 text-[11px]"
                 disabled={isPending || toggling}
                 onClick={handleMarkWatched}
               >
                 {toggling ? "Saving…" : `Mark Ep ${entry.episode} watched`}
               </Button>
             ) : (
-              <span className="text-[11px] text-faint">
-                Airs {airingTimeStr}
-              </span>
+              <span className="text-xs text-faint">Airs {airingTimeStr}</span>
             )
           ) : (
             <Link
               href={`/anime/${anime.id}`}
-              className="inline-flex h-7 items-center gap-1 text-[11px] text-muted hover:text-fg"
+              className="inline-flex h-8 items-center gap-1 text-xs font-medium text-muted hover:text-fg"
             >
-              Details →
+              View details
             </Link>
           )}
         </div>

@@ -41,7 +41,7 @@ export function AnimeDetailsHeader({
       <div className="flex flex-wrap items-center gap-1.5">
         {anime.status ? (
           <span
-            className={`inline-flex items-center rounded-md border px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.08em] ${
+            className={`inline-flex items-center rounded-md border px-2 py-1 text-[11px] font-medium ${
               STATUS_TONE[anime.status] ??
               "border-border-subtle bg-surface-2 text-muted"
             }`}
@@ -50,21 +50,21 @@ export function AnimeDetailsHeader({
           </span>
         ) : null}
         {anime.format ? (
-          <span className="inline-flex items-center rounded-md border border-border-subtle bg-surface-2 px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.08em] text-muted">
+          <span className="inline-flex items-center rounded-md border border-border-subtle bg-surface-2 px-2 py-1 text-[11px] font-medium text-muted">
             {FORMAT_LABELS[anime.format]}
           </span>
         ) : null}
         {season ? (
-          <span className="inline-flex items-center rounded-md border border-border-subtle bg-surface-2 px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.08em] text-muted">
+          <span className="inline-flex items-center rounded-md border border-border-subtle bg-surface-2 px-2 py-1 text-[11px] font-medium text-muted">
             {season}
           </span>
         ) : null}
-        <span className="inline-flex items-center rounded-md border border-border-subtle bg-surface-2 px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.08em] text-muted">
+        <span className="inline-flex items-center rounded-md border border-border-subtle bg-surface-2 px-2 py-1 text-[11px] font-medium text-muted">
           {formatEpisodeCount(anime.episodes, { short: true })}
         </span>
       </div>
 
-      <h1 className="mt-3 font-display text-2xl font-bold leading-tight tracking-tight text-fg sm:text-4xl">
+      <h1 className="mt-3 font-display text-2xl font-semibold leading-tight tracking-tight text-fg sm:text-[32px]">
         {title}
       </h1>
       {secondary ? (
@@ -74,9 +74,7 @@ export function AnimeDetailsHeader({
       <div className="mt-5 flex flex-wrap items-center gap-x-6 gap-y-3 border-t border-border-subtle pt-4">
         {score ? (
           <div>
-            <p className="text-[10px] font-medium uppercase tracking-[0.1em] text-faint">
-              Community
-            </p>
+            <p className="text-xs text-faint">Community</p>
             <p className="mt-0.5 flex items-center gap-1.5 text-sm font-semibold text-fg">
               <StarIcon className="h-4 w-4 fill-warning text-warning" />
               {score}
@@ -86,9 +84,7 @@ export function AnimeDetailsHeader({
         ) : null}
         {popularity ? (
           <div>
-            <p className="text-[10px] font-medium uppercase tracking-[0.1em] text-faint">
-              Popularity
-            </p>
+            <p className="text-xs text-faint">Popularity</p>
             <p className="mt-0.5 text-sm font-semibold text-fg">
               {popularity} members
             </p>
@@ -96,9 +92,7 @@ export function AnimeDetailsHeader({
         ) : null}
         {anime.duration ? (
           <div>
-            <p className="text-[10px] font-medium uppercase tracking-[0.1em] text-faint">
-              Episode length
-            </p>
+            <p className="text-xs text-faint">Episode length</p>
             <p className="mt-0.5 text-sm font-semibold text-fg">
               {anime.duration} min
             </p>
@@ -106,9 +100,7 @@ export function AnimeDetailsHeader({
         ) : null}
         {anime.genres.length > 0 ? (
           <div className="min-w-0">
-            <p className="text-[10px] font-medium uppercase tracking-[0.1em] text-faint">
-              Genres
-            </p>
+            <p className="text-xs text-faint">Genres</p>
             <p className="mt-0.5 truncate text-sm text-muted">
               {anime.genres.slice(0, 3).join(" · ")}
             </p>

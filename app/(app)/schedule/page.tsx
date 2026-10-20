@@ -71,6 +71,7 @@ export default async function SchedulePage({
       week={week}
       days={days}
       watchingIds={watchingIds}
+      initialDate={date}
     />
   );
 }

@@ -43,7 +43,7 @@ export function DesktopSidebar({ viewer }: { viewer: Viewer | null }) {
   const pathname = usePathname();
 
   return (
-    <aside className="fixed inset-y-0 left-0 z-40 hidden w-[252px] flex-col border-r border-border-subtle bg-bg-soft/95 px-4 py-6 backdrop-blur-xl shadow-[4px_0_24px_rgba(0,0,0,0.18)] lg:flex">
+    <aside className="fixed inset-y-0 left-0 z-40 hidden w-[252px] flex-col border-r border-border-subtle bg-bg-soft px-4 py-6 lg:flex">
       <div className="px-2">
         <Logo />
       </div>
@@ -58,16 +58,16 @@ export function DesktopSidebar({ viewer }: { viewer: Viewer | null }) {
               href={item.href}
               aria-current={active ? "page" : undefined}
               className={cn(
-                "group relative flex items-center gap-3 rounded-xl px-3.5 py-2.5 text-sm font-medium transition-colors",
+                "group relative flex items-center gap-3 rounded-lg px-3.5 py-2.5 text-sm transition-colors",
                 active
-                  ? "bg-accent-soft text-fg font-semibold border border-accent/25"
-                  : "text-muted hover:bg-surface/70 hover:text-fg",
+                  ? "bg-surface-2 font-semibold text-fg"
+                  : "font-medium text-muted hover:bg-surface/60 hover:text-fg",
               )}
             >
               <Icon
                 className={cn(
                   "h-[18px] w-[18px] transition-colors",
-                  active ? "text-accent-strong" : "text-faint group-hover:text-muted",
+                  active ? "text-fg" : "text-faint group-hover:text-muted",
                 )}
               />
               <span className="flex-1">{item.label}</span>
@@ -80,10 +80,10 @@ export function DesktopSidebar({ viewer }: { viewer: Viewer | null }) {
         <Link
           href="/settings"
           className={cn(
-            "flex items-center gap-3 rounded-xl px-3.5 py-2.5 text-sm font-medium transition-colors",
+            "flex items-center gap-3 rounded-lg px-3.5 py-2.5 text-sm transition-colors",
             pathname === "/settings"
-              ? "bg-accent-soft text-fg border border-accent/25"
-              : "text-muted hover:bg-surface/70 hover:text-fg",
+              ? "bg-surface-2 font-semibold text-fg"
+              : "font-medium text-muted hover:bg-surface/60 hover:text-fg",
           )}
         >
           <SettingsIcon className="h-[18px] w-[18px] text-faint" />
@@ -93,7 +93,7 @@ export function DesktopSidebar({ viewer }: { viewer: Viewer | null }) {
         {viewer ? (
           <Link
             href="/settings"
-            className="group flex items-center gap-3 rounded-xl border border-border-subtle bg-surface/70 p-2.5 transition-colors hover:border-border hover:bg-surface"
+            className="group flex items-center gap-3 rounded-lg border border-border-subtle bg-surface/60 p-2.5 transition-colors hover:bg-surface"
           >
             <div className="relative shrink-0">
               <UserAvatar email={viewer.email} />
@@ -119,7 +119,7 @@ export function DesktopSidebar({ viewer }: { viewer: Viewer | null }) {
           </Link>
         )}
 
-        <p className="px-2 text-[10px] leading-relaxed text-faint">
+        <p className="px-2 text-[11px] leading-relaxed text-faint">
           Metadata from AniList. Library stays private to your account.
         </p>
       </div>

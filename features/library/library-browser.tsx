@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 
+import { AnimePosterCard } from "@/components/anime-poster-card";
 import { EmptyState } from "@/components/empty-state";
 import { ErrorState } from "@/components/error-state";
 import { LibraryIcon } from "@/components/icons";
@@ -18,12 +19,16 @@ import { LibraryList } from "@/features/library/library-list";
 import { useLibrary } from "@/features/library/library-provider";
 import { WATCH_STATUS_META } from "@/lib/library-meta";
 import { getDisplayTitle } from "@/lib/utils";
+import type { AnimeSummary } from "@/types/anime";
 import type { LibrarySort } from "@/types/library";
 
 export function LibraryBrowser({
   initialStatus,
+  suggestions = [],
 }: {
   initialStatus: LibraryStatusFilter;
+  /** This season's most-watched titles, shown only on a first run. */
+  suggestions?: AnimeSummary[];
 }) {
   const { items, loadError, pendingIds } = useLibrary();
   const { preferences, setPreference } = usePreferences();
@@ -109,13 +114,10 @@ export function LibraryBrowser({
   return (
     <div className="space-y-6">
       <header>
-        <p className="text-xs font-semibold uppercase tracking-[0.18em] text-accent-strong">
-          Your collection
-        </p>
-        <h1 className="mt-2 font-display text-2xl font-bold tracking-tight text-fg sm:text-3xl">
-          My Library
+        <h1 className="font-display text-2xl font-semibold tracking-tight text-fg sm:text-[28px]">
+          My library
         </h1>
-        <p className="mt-1.5 text-sm text-muted">
+        <p className="mt-1 text-[13px] text-muted">
           {items.length === 0
             ? "Track anime to build your personal library."
             : `${items.length} ${items.length === 1 ? "title" : "titles"} · ${statusCounts.watching} watching · ${statusCounts.completed} completed`}
@@ -130,29 +132,57 @@ export function LibraryBrowser({
         />
       ) : null}
 
-      <LibraryToolbar
-        status={status}
-        onStatusChange={selectStatus}
-        statusCounts={statusCounts}
-        query={query}
-        onQueryChange={setQuery}
-        sort={sort}
-        onSortChange={setSort}
-        view={view}
-        onViewChange={(next) => setPreference("libraryView", next)}
-      />
+      {/* An empty library has nothing to filter, so the toolbar stays out of
+          the first run and the page offers a starting point instead. */}
+      {items.length > 0 || loadError ? (
+        <LibraryToolbar
+          status={status}
+          onStatusChange={selectStatus}
+          statusCounts={statusCounts}
+          query={query}
+          onQueryChange={setQuery}
+          sort={sort}
+          onSortChange={setSort}
+          view={view}
+          onViewChange={(next) => setPreference("libraryView", next)}
+        />
+      ) : null}
 
       {items.length === 0 && !loadError ? (
-        <EmptyState
-          icon={<LibraryIcon className="h-5 w-5" />}
-          title="Your library is empty"
-          description="Find something in Discover and add it to your library. Your progress, ratings and notes will appear here."
-          action={
-            <LinkButton href="/discover" variant="primary" size="sm">
-              Discover anime
-            </LinkButton>
-          }
-        />
+        <div className="space-y-6">
+          <section className="rounded-xl border border-border-subtle bg-surface p-5 sm:p-6">
+            <div className="max-w-xl">
+              <h2 className="font-display text-lg font-semibold text-fg">
+                Your library is empty
+              </h2>
+              <p className="mt-1 text-sm leading-relaxed text-muted">
+                Add a title you are already watching, or one you plan to start.
+                Progress, ratings and notes stay on this account only.
+              </p>
+              <LinkButton
+                href="/discover"
+                variant="primary"
+                size="sm"
+                className="mt-4"
+              >
+                Find anime
+              </LinkButton>
+            </div>
+          </section>
+
+          {suggestions.length > 0 ? (
+            <section aria-label="Starting suggestions">
+              <p className="text-[13px] text-muted">
+                Most watched this season
+              </p>
+              <div className="mt-3 grid grid-cols-2 gap-x-3 gap-y-5 sm:grid-cols-4 sm:gap-x-4">
+                {suggestions.map((anime) => (
+                  <AnimePosterCard key={anime.id} anime={anime} />
+                ))}
+              </div>
+            </section>
+          ) : null}
+        </div>
       ) : visibleItems.length === 0 ? (
         <EmptyState
           icon={<LibraryIcon className="h-5 w-5" />}
@@ -191,7 +221,7 @@ export function LibraryBrowser({
           }
         />
       ) : view === "grid" ? (
-        <div className="grid grid-cols-2 gap-x-3 gap-y-6 sm:grid-cols-3 sm:gap-x-5 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6">
+        <div className="grid grid-cols-2 gap-x-3 gap-y-6 sm:grid-cols-3 sm:gap-x-5 lg:grid-cols-4 xl:grid-cols-6">
           {visibleItems.map((item) => (
             <LibraryItemCard key={item.entry.id} item={item} />
           ))}

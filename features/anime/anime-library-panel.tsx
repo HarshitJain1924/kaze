@@ -137,7 +137,7 @@ export function AnimeLibraryPanel({ anime }: { anime: Anime }) {
             <div className="flex items-center justify-between gap-3">
               <label
                 htmlFor="entry-notes"
-                className="text-xs font-medium uppercase tracking-[0.08em] text-muted"
+                className="text-xs font-medium text-muted"
               >
                 Personal notes
               </label>

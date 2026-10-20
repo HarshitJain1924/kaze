@@ -7,31 +7,36 @@ export function EmptyState({
   title,
   description,
   action,
+  compact = false,
   className,
 }: {
   icon?: ReactNode;
   title: string;
   description: string;
   action?: ReactNode;
+  /** A single-screen block: used inside the dashboard where a tall empty
+      panel would push real content below the fold. */
+  compact?: boolean;
   className?: string;
 }) {
   return (
     <div
       className={cn(
-        "flex flex-col items-center justify-center rounded-2xl border border-dashed border-border bg-surface/40 px-5 py-12 text-center sm:py-16",
+        "flex flex-col items-center justify-center rounded-xl border border-border-subtle bg-surface/60 px-5 text-center",
+        compact ? "gap-2 py-6" : "gap-2.5 py-10 sm:py-12",
         className,
       )}
     >
       {icon ? (
-        <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-xl border border-border-subtle bg-surface-2 text-accent-strong">
+        <div className="mb-1 flex h-9 w-9 items-center justify-center rounded-lg border border-border-subtle bg-surface-2 text-muted">
           {icon}
         </div>
       ) : null}
-      <h3 className="font-display text-base font-semibold text-fg">{title}</h3>
-      <p className="mt-2 max-w-md text-sm leading-relaxed text-muted">
+      <h3 className="font-display text-[15px] font-semibold text-fg">{title}</h3>
+      <p className="max-w-md text-sm leading-relaxed text-muted">
         {description}
       </p>
-      {action ? <div className="mt-5">{action}</div> : null}
+      {action ? <div className="mt-2">{action}</div> : null}
     </div>
   );
 }

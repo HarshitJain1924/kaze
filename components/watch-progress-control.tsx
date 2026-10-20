@@ -53,9 +53,7 @@ export function WatchProgressControl({
   return (
     <div className={cn("space-y-2", className)}>
       <div className="flex items-center justify-between gap-3">
-        <span className="text-xs font-medium uppercase tracking-[0.08em] text-muted">
-          Episode progress
-        </span>
+        <span className="text-xs font-medium text-muted">Episode progress</span>
         <span className="text-xs text-faint">
           {max !== null
             ? `${progress} of ${max} ${pluralize(max, "episode")}`

@@ -215,7 +215,7 @@ export function LoginForm({
             API. Sign-in and your personal library need a Supabase project.
           </p>
           <div className="mt-4 rounded-lg border border-border-subtle bg-surface-2 p-3">
-            <p className="text-[10px] font-semibold uppercase tracking-[0.1em] text-faint">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-faint">
               Required environment variables
             </p>
             <ul className="mt-2 space-y-1 font-mono text-[11px] text-muted">

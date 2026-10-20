@@ -4,8 +4,7 @@ import type { ComponentProps } from "react";
 import { cn } from "@/lib/utils";
 
 const VARIANTS = {
-  primary:
-    "bg-accent text-accent-contrast hover:bg-accent-strong shadow-sm shadow-black/20",
+  primary: "bg-accent text-accent-contrast hover:bg-accent-strong",
   secondary:
     "border border-border bg-surface-2 text-fg hover:border-accent/50 hover:bg-surface-3",
   ghost: "text-muted hover:bg-surface-2 hover:text-fg",
@@ -32,7 +31,7 @@ export function LinkButton({
     <Link
       href={href}
       className={cn(
-        "inline-flex shrink-0 items-center justify-center font-medium transition-colors duration-150",
+        "inline-flex shrink-0 items-center justify-center font-medium transition-[background-color,border-color,color,transform] duration-150 ease-out active:scale-[0.97]",
         VARIANTS[variant],
         SIZES[size],
         className,

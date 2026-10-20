@@ -41,7 +41,7 @@ function isActive(pathname: string, item: MobileNavItem): boolean {
 
 export function MobileHeader({ viewer }: { viewer: Viewer | null }) {
   return (
-    <header className="sticky top-0 z-40 border-b border-border-subtle bg-bg/85 backdrop-blur-md lg:hidden">
+    <header className="sticky top-0 z-40 border-b border-border-subtle bg-bg lg:hidden">
       <div className="flex h-14 items-center justify-between px-4">
         <Logo compact />
         <div className="flex items-center gap-1">
@@ -77,7 +77,7 @@ export function MobileBottomNavigation() {
   return (
     <nav
       aria-label="Primary"
-      className="safe-bottom fixed inset-x-0 bottom-0 z-40 border-t border-border-subtle bg-bg/85 backdrop-blur-xl shadow-[0_-8px_24px_rgba(0,0,0,0.35)] lg:hidden"
+      className="safe-bottom fixed inset-x-0 bottom-0 z-40 border-t border-border-subtle bg-bg-soft lg:hidden"
     >
       <div className="grid grid-cols-5 py-0.5">
         {ITEMS.map((item) => {
@@ -89,7 +89,7 @@ export function MobileBottomNavigation() {
               href={item.href}
               aria-current={active ? "page" : undefined}
               className={cn(
-                "relative flex min-h-[58px] flex-col items-center justify-center gap-1 px-1 py-1 text-[10px] font-medium transition-colors",
+                "relative flex min-h-[58px] flex-col items-center justify-center gap-1 px-1 py-1 text-[11px] font-medium transition-colors",
                 active ? "text-accent-strong font-semibold" : "text-faint hover:text-muted",
               )}
             >
@@ -101,7 +101,10 @@ export function MobileBottomNavigation() {
               />
               <span>{item.label}</span>
               {active ? (
-                <span className="absolute bottom-1 h-1 w-3.5 rounded-full bg-accent" />
+                <span
+                  aria-hidden="true"
+                  className="absolute bottom-1 h-0.5 w-3.5 rounded-full bg-accent-strong"
+                />
               ) : null}
             </Link>
           );

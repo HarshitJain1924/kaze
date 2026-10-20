@@ -187,14 +187,11 @@ export function DiscoverBrowser({
   return (
     <div className="space-y-6">
       <header>
-        <p className="text-xs font-semibold uppercase tracking-[0.18em] text-accent-strong">
+        <h1 className="font-display text-2xl font-semibold tracking-tight text-fg sm:text-[28px]">
           Discover
-        </p>
-        <h1 className="mt-2 font-display text-2xl font-bold tracking-tight text-fg sm:text-3xl">
-          Find your next watch
         </h1>
-        <p className="mt-2 max-w-2xl text-sm leading-relaxed text-muted">
-          Search the AniList catalogue or browse by genre, format, season and
+        <p className="mt-1 max-w-2xl text-[13px] leading-relaxed text-muted">
+          Search the AniList catalogue, or narrow it by genre, format, season and
           year.
         </p>
       </header>

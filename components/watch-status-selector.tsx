@@ -23,7 +23,7 @@ export function WatchStatusSelector({
 }) {
   return (
     <label className={cn("block space-y-1.5", className)} htmlFor={id}>
-      <span className="block text-xs font-medium uppercase tracking-[0.08em] text-muted">
+      <span className="block text-xs font-medium text-muted">
         {label}
       </span>
       <Select

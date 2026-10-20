@@ -3,10 +3,10 @@ import type { ComponentProps, ReactNode } from "react";
 import { cn } from "@/lib/utils";
 
 export const inputClass =
-  "h-10 w-full rounded-xl border border-border bg-surface-2/70 px-3 text-sm text-fg placeholder:text-faint transition-colors hover:border-border focus:border-accent focus:bg-surface-2 focus:outline-none disabled:cursor-not-allowed disabled:opacity-60";
+  "h-10 w-full rounded-lg border border-border bg-surface-2/70 px-3 text-sm text-fg placeholder:text-faint transition-colors hover:border-border focus:border-accent focus:bg-surface-2 focus:outline-none disabled:cursor-not-allowed disabled:opacity-60";
 
 export const selectClass =
-  "h-10 w-full appearance-none rounded-xl border border-border bg-surface-2/70 pl-3 pr-9 text-sm text-fg transition-colors hover:border-border focus:border-accent focus:outline-none disabled:cursor-not-allowed disabled:opacity-60";
+  "h-10 w-full appearance-none rounded-lg border border-border bg-surface-2/70 pl-3 pr-9 text-sm text-fg transition-colors hover:border-border focus:border-accent focus:outline-none disabled:cursor-not-allowed disabled:opacity-60";
 
 export const textareaClass =
   "w-full resize-y rounded-xl border border-border bg-surface-2/70 px-3 py-2.5 text-sm leading-relaxed text-fg placeholder:text-faint transition-colors hover:border-border focus:border-accent focus:outline-none";
@@ -64,7 +64,7 @@ export function Field({
     <div className={cn("space-y-1.5", className)}>
       <label
         htmlFor={htmlFor}
-        className="block text-xs font-medium uppercase tracking-[0.08em] text-muted"
+        className="block text-xs font-medium text-muted"
       >
         {label}
       </label>

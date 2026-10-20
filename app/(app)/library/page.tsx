@@ -3,7 +3,10 @@ import type { Metadata } from "next";
 import type { LibraryStatusFilter } from "@/components/library-toolbar";
 import { LibraryBrowser } from "@/features/library/library-browser";
 import { requireViewer } from "@/lib/auth";
+import { getCurrentSeason } from "@/lib/season";
+import { getAniListClient } from "@/services/anilist/client";
 import { isWatchStatus } from "@/types/library";
+import type { AnimeSummary } from "@/types/anime";
 
 export const metadata: Metadata = {
   title: "My library",
@@ -15,6 +18,20 @@ function parseStatus(value: string | string[] | undefined): LibraryStatusFilter 
   return isWatchStatus(candidate) ? candidate : "all";
 }
 
+/** A starting point for the first run, when the library has nothing to show. */
+async function loadSeasonPicks(): Promise<AnimeSummary[]> {
+  try {
+    const { season, year } = getCurrentSeason();
+    const page = await getAniListClient().getSeasonalAnime(season, year, {
+      perPage: 4,
+    });
+    return page.items;
+  } catch (error) {
+    console.error("[library] could not load seasonal suggestions", error);
+    return [];
+  }
+}
+
 export default async function LibraryPage({
   searchParams,
 }: {
@@ -23,7 +40,13 @@ export default async function LibraryPage({
   await requireViewer("/library");
   const params = await searchParams;
   const initialStatus = parseStatus(params.status);
+  const suggestions = await loadSeasonPicks();
+
   return (
-    <LibraryBrowser key={initialStatus} initialStatus={initialStatus} />
+    <LibraryBrowser
+      key={initialStatus}
+      initialStatus={initialStatus}
+      suggestions={suggestions}
+    />
   );
 }

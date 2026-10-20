@@ -187,7 +187,7 @@ export default async function AnimeDetailsPage({ params }: PageProps) {
                   <ExternalIcon className="h-3 w-3" />
                 </a>
               </div>
-              <p className="mt-3 max-w-3xl whitespace-pre-line text-sm leading-relaxed text-muted sm:text-[15px]">
+              <p className="mt-3 max-w-[68ch] whitespace-pre-line text-sm leading-[1.65] text-muted sm:text-[15px]">
                 {anime.synopsis ??
                   "No synopsis has been provided for this title."}
               </p>
@@ -208,9 +208,7 @@ export default async function AnimeDetailsPage({ params }: PageProps) {
 
               {anime.tags.length > 0 ? (
                 <div className="mt-5">
-                  <h3 className="text-[10px] font-semibold uppercase tracking-[0.12em] text-faint">
-                    Tags
-                  </h3>
+                  <h3 className="text-[13px] font-semibold text-fg">Tags</h3>
                   <p className="mt-2 text-xs leading-relaxed text-muted">
                     {anime.tags.slice(0, 12).join(" · ")}
                   </p>
@@ -229,7 +227,7 @@ export default async function AnimeDetailsPage({ params }: PageProps) {
               </h2>
               <dl className="mt-3 grid grid-cols-2 gap-x-6 gap-y-4 rounded-xl border border-border-subtle bg-surface/60 p-4 sm:grid-cols-3">
                 <div>
-                  <dt className="text-[10px] font-medium uppercase tracking-[0.1em] text-faint">
+                  <dt className="text-xs text-faint">
                     Format
                   </dt>
                   <dd className="mt-1 text-sm text-fg">
@@ -237,7 +235,7 @@ export default async function AnimeDetailsPage({ params }: PageProps) {
                   </dd>
                 </div>
                 <div>
-                  <dt className="text-[10px] font-medium uppercase tracking-[0.1em] text-faint">
+                  <dt className="text-xs text-faint">
                     Episodes
                   </dt>
                   <dd className="mt-1 text-sm text-fg">
@@ -245,7 +243,7 @@ export default async function AnimeDetailsPage({ params }: PageProps) {
                   </dd>
                 </div>
                 <div>
-                  <dt className="text-[10px] font-medium uppercase tracking-[0.1em] text-faint">
+                  <dt className="text-xs text-faint">
                     Season
                   </dt>
                   <dd className="mt-1 text-sm text-fg">
@@ -255,7 +253,7 @@ export default async function AnimeDetailsPage({ params }: PageProps) {
                   </dd>
                 </div>
                 <div>
-                  <dt className="text-[10px] font-medium uppercase tracking-[0.1em] text-faint">
+                  <dt className="text-xs text-faint">
                     Aired
                   </dt>
                   <dd className="mt-1 text-sm text-fg">
@@ -267,7 +265,7 @@ export default async function AnimeDetailsPage({ params }: PageProps) {
                   </dd>
                 </div>
                 <div>
-                  <dt className="text-[10px] font-medium uppercase tracking-[0.1em] text-faint">
+                  <dt className="text-xs text-faint">
                     Release status
                   </dt>
                   <dd className="mt-1 text-sm text-fg">
@@ -277,7 +275,7 @@ export default async function AnimeDetailsPage({ params }: PageProps) {
                   </dd>
                 </div>
                 <div>
-                  <dt className="text-[10px] font-medium uppercase tracking-[0.1em] text-faint">
+                  <dt className="text-xs text-faint">
                     Episode length
                   </dt>
                   <dd className="mt-1 text-sm text-fg">
@@ -298,7 +296,7 @@ export default async function AnimeDetailsPage({ params }: PageProps) {
                 <div className="mt-4 space-y-6">
                   {relationGroups.map(([label, items]) => (
                     <div key={label}>
-                      <h3 className="mb-2.5 text-[10px] font-semibold uppercase tracking-[0.12em] text-faint">
+                      <h3 className="mb-2.5 text-[13px] font-medium text-muted">
                         {label}
                       </h3>
                       <div className="grid grid-cols-2 gap-x-3 gap-y-5 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
@@ -319,7 +317,7 @@ export default async function AnimeDetailsPage({ params }: PageProps) {
 
           <aside className="lg:sticky lg:top-6 lg:self-start">
             <AnimeLibraryPanel anime={anime} />
-            <p className="mt-3 px-1 text-[11px] leading-relaxed text-faint">
+            <p className="mt-3 px-1 text-xs leading-relaxed text-faint">
               Anime metadata and community scores come from AniList. Personal
               ratings are on a 1–10 scale and remain private to your account.
             </p>

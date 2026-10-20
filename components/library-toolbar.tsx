@@ -58,7 +58,7 @@ export function LibraryToolbar({
                 {label}
                 <span
                   className={cn(
-                    "rounded-full px-1.5 py-0.5 text-[10px] tabular-nums",
+                    "rounded-full px-1.5 py-0.5 text-[11px] tabular-nums",
                     active
                       ? "bg-accent/20 text-accent-strong"
                       : "bg-surface-3 text-faint",

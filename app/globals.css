@@ -2,31 +2,38 @@
 
 :root {
   color-scheme: dark;
+  /* Ground and surfaces are a single family. Depth comes from a tone step,
+     not from borders or shadows stacked on top of each other. */
   --bg: #08080c;
   --bg-soft: #0b0b11;
   --surface: #101017;
   --surface-2: #16161f;
   --surface-3: #1d1d29;
-  --border: #262533;
-  --border-subtle: rgba(255, 255, 255, 0.07);
+  --border: #2a2938;
+  --border-subtle: #1e1d29;
   --fg: #f5f4f9;
-  --muted: #a6a3b6;
-  --faint: #77748a;
-  --accent: #8b5cf6;
-  --accent-strong: #a78bfa;
-  --accent-soft: rgba(139, 92, 246, 0.16);
+  --muted: #b0adc0;
+  --faint: #918da4;
+  /* Violet is Kaze's brand hue, kept for state and the one primary action.
+     Darkened so white labels on it clear 4.5:1. */
+  --accent: #7c3aed;
+  --accent-strong: #b9a4ff;
+  --accent-soft: rgba(124, 58, 237, 0.18);
   --accent-contrast: #ffffff;
-  --danger: #f87171;
+  --danger: #fca5a5;
   --danger-soft: rgba(248, 113, 113, 0.12);
-  --success: #4ade80;
-  --warning: #fbbf24;
+  --success: #6ee7a0;
+  --warning: #fcd34d;
   --shadow-card: 0 18px 40px -24px rgba(0, 0, 0, 0.9);
 
-  --status-watching: #818cf8;
-  --status-completed: #4ade80;
-  --status-planning: #38bdf8;
-  --status-on-hold: #fbbf24;
-  --status-dropped: #f87171;
+  --status-watching: #a5b4fc;
+  --status-completed: #6ee7a0;
+  --status-planning: #7dd3fc;
+  --status-on-hold: #fcd34d;
+  --status-dropped: #fca5a5;
+
+  --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+  --ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
 }
 
 .light {
@@ -36,26 +43,29 @@
   --surface: #ffffff;
   --surface-2: #f4f2fa;
   --surface-3: #ebe8f4;
-  --border: #e2deed;
-  --border-subtle: rgba(20, 15, 40, 0.08);
+  --border: #dcd7e8;
+  --border-subtle: #e7e3f0;
   --fg: #17131f;
   --muted: #5f5a70;
-  --faint: #8b8599;
-  --accent: #7c3aed;
-  --accent-strong: #6d28d9;
+  --faint: #6b6678;
+  --accent: #6d28d9;
+  --accent-strong: #5b21b6;
   --accent-soft: rgba(124, 58, 237, 0.1);
   --accent-contrast: #ffffff;
-  --danger: #dc2626;
+  --danger: #b91c1c;
   --danger-soft: rgba(220, 38, 38, 0.08);
-  --success: #16a34a;
-  --warning: #b45309;
+  --success: #15803d;
+  --warning: #a16207;
   --shadow-card: 0 20px 45px -30px rgba(30, 20, 60, 0.35);
 
-  --status-watching: #6366f1;
-  --status-completed: #16a34a;
-  --status-planning: #0284c7;
-  --status-on-hold: #b45309;
-  --status-dropped: #dc2626;
+  --status-watching: #4f46e5;
+  --status-completed: #15803d;
+  --status-planning: #0369a1;
+  --status-on-hold: #a16207;
+  --status-dropped: #b91c1c;
+
+  --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+  --ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
 }
 
 @theme inline {
@@ -163,32 +173,29 @@
     overflow: hidden;
   }
 
+  /* A settled surface: one tone step above the ground and a hairline edge.
+     Used by panels that do not float. */
   .surface-card {
     background-color: var(--surface);
     border: 1px solid var(--border-subtle);
     border-radius: var(--radius-card);
-    box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.35);
   }
-
-  .glass-panel {
-    background: rgba(16, 16, 23, 0.72);
-    backdrop-filter: blur(16px);
-    -webkit-backdrop-filter: blur(16px);
-    border: 1px solid rgba(255, 255, 255, 0.08);
-    box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.06);
-  }
-
-  .light .glass-panel {
-    background: rgba(255, 255, 255, 0.82);
-    backdrop-filter: blur(16px);
-    -webkit-backdrop-filter: blur(16px);
-    border: 1px solid rgba(0, 0, 0, 0.06);
-    box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.8);
-  }
-
 
   .poster-shadow {
     box-shadow: var(--shadow-card);
+  }
+
+  /* Artwork settles into a hair of zoom on pointer devices only: touch taps
+     otherwise leave a stuck hover state. */
+  .poster-zoom {
+    transition: transform 300ms var(--ease-out);
+  }
+
+  @media (hover: hover) and (pointer: fine) {
+    .group:hover .poster-zoom,
+    .group:focus-within .poster-zoom {
+      transform: scale(1.03);
+    }
   }
 
   /* Sleek custom scrollbars */
@@ -211,11 +218,11 @@
   }
 
   .animate-rise {
-    animation: rise 0.45s cubic-bezier(0.16, 1, 0.3, 1) both;
+    animation: rise 0.3s var(--ease-out) both;
   }
 
   .animate-fade {
-    animation: fade 0.3s ease both;
+    animation: fade 0.2s ease both;
   }
 }
 
@@ -239,39 +246,11 @@
   }
 }
 
-@keyframes shimmer {
-  100% {
-    transform: translateX(100%);
-  }
-}
-
+/* Loading placeholders keep the final layout and the real block sizes, and
+   stay still: a moving shimmer reads as decoration and distracts from the
+   content arriving. */
 .skeleton {
-  position: relative;
-  overflow: hidden;
   background-color: var(--surface-2);
-}
-
-.skeleton::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  transform: translateX(-100%);
-  background-image: linear-gradient(
-    90deg,
-    transparent,
-    rgba(255, 255, 255, 0.05),
-    transparent
-  );
-  animation: shimmer 1.8s infinite;
-}
-
-.light .skeleton::after {
-  background-image: linear-gradient(
-    90deg,
-    transparent,
-    rgba(255, 255, 255, 0.7),
-    transparent
-  );
 }
 
 @media (prefers-reduced-motion: reduce) {

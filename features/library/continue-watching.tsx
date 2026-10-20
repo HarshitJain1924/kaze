@@ -8,12 +8,7 @@ import { SectionHeader } from "@/components/section-header";
 import { EmptyState } from "@/components/empty-state";
 import { usePreferences } from "@/components/providers/preferences-provider";
 import { useLibrary } from "@/features/library/library-provider";
-import {
-  cn,
-  formatEpisodeCount,
-  getDisplayTitle,
-  isHttpUrl,
-} from "@/lib/utils";
+import { cn, getDisplayTitle, isHttpUrl } from "@/lib/utils";
 import type { AnimeSummary } from "@/types/anime";
 import type { LibraryItem } from "@/types/library";
 
@@ -74,13 +69,13 @@ function ContinueWatchingCard({
       : 0;
 
   return (
-    <div className="group relative flex flex-col justify-between rounded-2xl border border-border-subtle bg-surface p-4 transition-all duration-200 hover:border-border sm:p-4.5">
+    <div className="group relative flex flex-col justify-between rounded-xl border border-border-subtle bg-surface p-3 transition-colors hover:border-border">
       {/* Top row: Poster + Info */}
-      <div className="flex gap-3.5 sm:gap-4">
+      <div className="flex gap-3">
         {/* Poster */}
         <Link
           href={`/anime/${anime.id}`}
-          className="relative aspect-[2/3] w-[84px] shrink-0 overflow-hidden rounded-xl border border-border-subtle bg-surface-2 shadow-sm transition-transform duration-200 group-hover:scale-[1.02] sm:w-[92px]"
+          className="relative aspect-[2/3] w-[62px] shrink-0 overflow-hidden rounded-lg border border-border-subtle bg-surface-2"
           aria-label={`Open ${title}`}
         >
           {cover && isHttpUrl(cover) ? (
@@ -88,7 +83,7 @@ function ContinueWatchingCard({
               src={cover}
               alt=""
               fill
-              sizes="92px"
+              sizes="62px"
               className="object-cover"
             />
           ) : (
@@ -101,60 +96,62 @@ function ContinueWatchingCard({
           <div>
             <Link
               href={`/anime/${anime.id}`}
-              className="line-clamp-1 font-display text-sm font-semibold leading-snug text-fg transition-colors hover:text-accent-strong sm:text-base"
+              className="line-clamp-1 font-display text-sm font-semibold leading-snug text-fg transition-colors hover:text-accent-strong"
               title={title}
             >
               {title}
             </Link>
 
             <p className="mt-0.5 text-xs text-muted">
-              {total !== null && total > 0
-                ? `${formatEpisodeCount(total, { short: true })} · ${percent}%`
-                : "Episode count unknown"}
+              Up next: episode {nextEp}
+              {total !== null && total > 0 ? ` of ${total}` : ""}
             </p>
           </div>
 
           {/* Progress information + thin progress bar */}
           <div className="space-y-1.5 pt-2">
-            <div className="flex items-center justify-between text-xs">
+            <div className="flex items-baseline justify-between text-xs">
               <span className="font-semibold tabular-nums text-fg">
-                Ep {entry.progress}
+                {entry.progress}
                 {total && total > 0 ? (
                   <span className="font-normal text-muted"> / {total}</span>
                 ) : null}
+                <span className="ml-1 font-normal text-muted">watched</span>
               </span>
-              <span className="text-[11px] font-medium text-muted tabular-nums">
+              <span className="tabular-nums text-muted">
                 {atEnd ? (
-                  <span className="font-semibold text-success">Completed</span>
-                ) : watchedCount > 0 ? (
-                  `${watchedCount} watched`
+                  <span className="font-medium text-success">Completed</span>
+                ) : total !== null && total > 0 ? (
+                  `${percent}%`
                 ) : (
-                  "Not started"
+                  "Total unknown"
                 )}
               </span>
             </div>
 
-            <div className="h-1.5 w-full overflow-hidden rounded-full bg-surface-3">
-              <div
-                className="h-full rounded-full bg-accent transition-[width] duration-300"
-                style={{ width: `${percent}%` }}
-              />
-            </div>
+            {total !== null && total > 0 ? (
+              <div className="h-1.5 w-full overflow-hidden rounded-full bg-surface-3">
+                <div
+                  className="h-full rounded-full bg-accent transition-[width] duration-300"
+                  style={{ width: `${percent}%` }}
+                />
+              </div>
+            ) : null}
           </div>
         </div>
       </div>
 
       {/* Primary Action Button */}
-      <div className="mt-3.5 pt-1">
+      <div className="mt-3">
         <button
           type="button"
           disabled={isPending || atEnd}
           onClick={() => onIncrement(anime.id)}
           className={cn(
-            "inline-flex h-9 w-full items-center justify-center gap-1.5 rounded-xl px-3 text-xs font-semibold transition-all duration-150 disabled:opacity-50",
+            "inline-flex h-10 w-full items-center justify-center gap-1.5 rounded-lg px-3 text-xs font-semibold transition-[background-color,border-color,color,transform] duration-150 ease-out active:scale-[0.98] disabled:opacity-60 sm:h-8",
             atEnd
               ? "cursor-default border border-border-subtle bg-surface-2/40 text-muted"
-              : "border border-accent/35 bg-accent-soft text-accent-strong hover:border-accent/60 hover:bg-accent hover:text-accent-contrast active:scale-[0.99]",
+              : "border border-accent/35 bg-accent-soft text-accent-strong hover:border-accent/60 hover:bg-accent hover:text-accent-contrast",
           )}
         >
           {atEnd ? (
@@ -191,7 +188,7 @@ export function ContinueWatching() {
         new Date(b.entry.updatedAt).getTime() -
         new Date(a.entry.updatedAt).getTime(),
     )
-    .slice(0, 6);
+    .slice(0, 4);
 
   return (
     <section aria-label="Continue watching">
@@ -203,6 +200,7 @@ export function ContinueWatching() {
 
       {watching.length === 0 ? (
         <EmptyState
+          compact
           icon={<PlayIcon className="h-5 w-5" />}
           title="Nothing in progress"
           description="Mark an anime as Watching and it will appear here with one-tap episode updates."

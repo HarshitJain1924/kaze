@@ -836,7 +836,7 @@ export function LibraryProvider({
             </div>
           ) : null}
           <label className="block space-y-1.5">
-            <span className="text-xs font-medium uppercase tracking-[0.08em] text-muted">
+            <span className="text-xs font-medium text-muted">
               Status
             </span>
             <Select

@@ -41,24 +41,12 @@ export default async function LoginPage({
   return (
     <div className="grid min-h-dvh lg:grid-cols-[1.05fr_1fr]">
       <aside className="relative hidden overflow-hidden border-r border-border-subtle bg-bg-soft p-10 lg:flex lg:flex-col lg:justify-between">
-        <div
-          aria-hidden="true"
-          className="absolute -left-24 -top-24 h-96 w-96 rounded-full bg-accent/20 blur-[110px]"
-        />
-        <div
-          aria-hidden="true"
-          className="absolute bottom-0 right-0 h-80 w-80 rounded-full bg-indigo-500/10 blur-[100px]"
-        />
-
         <div className="relative">
           <Logo />
         </div>
 
         <div className="relative max-w-md">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-accent-strong">
-            Personal anime tracker
-          </p>
-          <h2 className="mt-4 font-display text-[38px] font-bold leading-[1.1] tracking-tight text-fg">
+          <h2 className="font-display text-[30px] font-semibold leading-[1.15] tracking-tight text-fg sm:text-[34px]">
             A quieter way to keep up with anime.
           </h2>
           <p className="mt-4 text-sm leading-relaxed text-muted">
@@ -86,7 +74,7 @@ export default async function LoginPage({
           </ul>
         </div>
 
-        <p className="relative text-[10px] leading-relaxed text-faint">
+        <p className="relative text-xs leading-relaxed text-faint">
           Anime metadata provided by AniList. Personal library data stored
           securely in Supabase.
         </p>
@@ -103,7 +91,7 @@ export default async function LoginPage({
             linkError={errorParam}
           />
         </div>
-        <p className="text-center text-[10px] text-faint lg:hidden">
+        <p className="text-center text-xs text-faint lg:hidden">
           Anime metadata by AniList · Library secured by Supabase
         </p>
       </div>

@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import {
   DownloadIcon,
@@ -69,10 +69,12 @@ function Section({
   children: React.ReactNode;
 }) {
   return (
-    <section className="rounded-2xl border border-border-subtle bg-surface p-4 sm:p-5">
+    <section className="rounded-xl border border-border-subtle bg-surface p-4 sm:p-5">
       <h2 className="font-display text-base font-semibold text-fg">{title}</h2>
       {description ? (
-        <p className="mt-1 text-xs leading-relaxed text-faint">{description}</p>
+        <p className="mt-1 text-[13px] leading-relaxed text-muted">
+          {description}
+        </p>
       ) : null}
       <div className="mt-4">{children}</div>
     </section>
@@ -87,6 +89,23 @@ export function SettingsView({ viewer }: { viewer: Viewer }) {
   const { items } = useLibrary();
   const supabase = useMemo(() => getSupabaseBrowserClient(), []);
   const [signingOut, setSigningOut] = useState(false);
+  const [savedVisible, setSavedVisible] = useState(false);
+  const savedTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Preferences write to this device immediately. Say so, quietly, instead of
+  // leaving the user unsure whether anything was persisted.
+  const markSaved = useCallback(() => {
+    setSavedVisible(true);
+    if (savedTimer.current) clearTimeout(savedTimer.current);
+    savedTimer.current = setTimeout(() => setSavedVisible(false), 2200);
+  }, []);
+
+  useEffect(
+    () => () => {
+      if (savedTimer.current) clearTimeout(savedTimer.current);
+    },
+    [],
+  );
 
   const availableTitles = items.filter((item) => item.anime !== null).length;
 
@@ -194,15 +213,21 @@ export function SettingsView({ viewer }: { viewer: Viewer }) {
 
   return (
     <div className="mx-auto max-w-4xl space-y-6">
-      <header>
-        <p className="text-xs font-semibold uppercase tracking-[0.18em] text-accent-strong">
-          Settings
-        </p>
-        <h1 className="mt-2 font-display text-2xl font-bold tracking-tight text-fg sm:text-3xl">
-          Account & preferences
-        </h1>
-        <p className="mt-2 text-sm text-muted">
-          Manage your account, appearance and personal data.
+      <header className="flex flex-wrap items-start justify-between gap-x-4 gap-y-2">
+        <div>
+          <h1 className="font-display text-2xl font-semibold tracking-tight text-fg sm:text-[28px]">
+            Account & preferences
+          </h1>
+          <p className="mt-1 text-[13px] text-muted">
+            Manage your account, appearance and personal data.
+          </p>
+        </div>
+        <p
+          role="status"
+          aria-live="polite"
+          className="mt-1 min-h-4 text-xs font-medium text-success"
+        >
+          {savedVisible ? "Saved on this device" : ""}
         </p>
       </header>
 
@@ -212,14 +237,14 @@ export function SettingsView({ viewer }: { viewer: Viewer }) {
       >
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-center gap-3">
-            <span className="flex h-11 w-11 items-center justify-center rounded-full border border-accent/30 bg-accent-soft text-accent-strong">
+            <span className="flex h-10 w-10 items-center justify-center rounded-full border border-border-subtle bg-surface-2 text-muted">
               <UserIcon className="h-5 w-5" />
             </span>
             <div className="min-w-0">
               <p className="truncate text-sm font-medium text-fg">
                 {viewer.email ?? "Signed in"}
               </p>
-              <p className="mt-0.5 text-[11px] text-faint">
+              <p className="mt-0.5 text-xs text-faint">
                 {viewer.createdAt
                   ? `Member since ${formatIsoDate(viewer.createdAt)}`
                   : "Authenticated account"}
@@ -239,60 +264,62 @@ export function SettingsView({ viewer }: { viewer: Viewer }) {
         </div>
       </Section>
 
-      <div className="grid gap-4 lg:grid-cols-2">
-        <Section
-          title="Theme"
-          description="Choose how Kaze looks on this device."
-        >
-          <div
-            role="group"
-            aria-label="Theme preference"
-            className="grid grid-cols-3 gap-1.5 rounded-xl border border-border bg-surface-2/60 p-1"
-          >
-            {THEME_OPTIONS.map((option) => {
-              const active = mode === option.value;
-              return (
-                <button
-                  key={option.value}
-                  type="button"
-                  aria-pressed={active}
-                  onClick={() => setMode(option.value)}
-                  className={`flex h-10 items-center justify-center gap-2 rounded-lg text-xs font-medium transition-colors ${
-                    active
-                      ? "bg-surface-3 text-fg shadow-sm"
-                      : "text-faint hover:text-muted"
-                  }`}
-                >
-                  {option.icon}
-                  {option.label}
-                </button>
-              );
-            })}
+      <Section
+        title="Appearance"
+        description="How Kaze looks and how titles are labelled on this device. Changes save immediately."
+      >
+        <div className="grid gap-6 lg:grid-cols-2">
+          <div>
+            <p className="text-xs font-medium text-muted">Theme</p>
+            <div
+              role="group"
+              aria-label="Theme preference"
+              className="mt-1.5 grid grid-cols-3 gap-1 rounded-lg border border-border bg-surface-2/60 p-1"
+            >
+              {THEME_OPTIONS.map((option) => {
+                const active = mode === option.value;
+                return (
+                  <button
+                    key={option.value}
+                    type="button"
+                    aria-pressed={active}
+                    onClick={() => {
+                      setMode(option.value);
+                      markSaved();
+                    }}
+                    className={`flex h-9 items-center justify-center gap-2 rounded-md text-xs font-medium transition-colors ${
+                      active
+                        ? "bg-surface-3 text-fg"
+                        : "text-faint hover:text-muted"
+                    }`}
+                  >
+                    {option.icon}
+                    {option.label}
+                  </button>
+                );
+              })}
+            </div>
+            <p className="mt-2 text-xs leading-relaxed text-faint">
+              System follows your operating system preference and updates
+              automatically.
+            </p>
           </div>
-          <p className="mt-3 text-[11px] leading-relaxed text-faint">
-            System follows your operating system preference and updates
-            automatically.
-          </p>
-        </Section>
 
-        <Section
-          title="Display"
-          description="Defaults used across search results and your library."
-        >
           <div className="space-y-3">
             <label className="block space-y-1.5" htmlFor="title-language">
-              <span className="text-[10px] font-medium uppercase tracking-[0.1em] text-faint">
+              <span className="text-xs font-medium text-muted">
                 Poster title language
               </span>
               <Select
                 id="title-language"
                 value={preferences.titleLanguage}
-                onChange={(event) =>
+                onChange={(event) => {
                   setPreference(
                     "titleLanguage",
                     event.target.value as "english" | "romaji",
-                  )
-                }
+                  );
+                  markSaved();
+                }}
               >
                 <option value="english">English title (when available)</option>
                 <option value="romaji">Romaji title</option>
@@ -300,33 +327,34 @@ export function SettingsView({ viewer }: { viewer: Viewer }) {
             </label>
 
             <label className="block space-y-1.5" htmlFor="library-view">
-              <span className="text-[10px] font-medium uppercase tracking-[0.1em] text-faint">
+              <span className="text-xs font-medium text-muted">
                 Preferred library view
               </span>
               <Select
                 id="library-view"
                 value={preferences.libraryView}
-                onChange={(event) =>
+                onChange={(event) => {
                   setPreference(
                     "libraryView",
                     event.target.value as LibraryView,
-                  )
-                }
+                  );
+                  markSaved();
+                }}
               >
                 <option value="grid">Poster grid</option>
                 <option value="list">Compact list</option>
               </Select>
             </label>
           </div>
-        </Section>
-      </div>
+        </div>
+      </Section>
 
       <Section
         title="Your data"
         description="Download a copy of your library. Exports include every entry, including titles whose AniList metadata is currently unavailable."
       >
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <p className="text-xs text-muted">
+          <p className="text-[13px] text-muted">
             {items.length} {items.length === 1 ? "entry" : "entries"} ·{" "}
             {availableTitles} with AniList metadata
           </p>
@@ -354,36 +382,28 @@ export function SettingsView({ viewer }: { viewer: Viewer }) {
       <Section title="About this app">
         <dl className="grid gap-4 text-xs sm:grid-cols-2">
           <div>
-            <dt className="font-medium uppercase tracking-[0.1em] text-faint">
-              Anime metadata
-            </dt>
+            <dt className="text-[13px] font-medium text-fg">Anime metadata</dt>
             <dd className="mt-1 leading-relaxed text-muted">
               Sourced from the public AniList GraphQL API. Community scores are
               provided by AniList, not calculated here.
             </dd>
           </div>
           <div>
-            <dt className="font-medium uppercase tracking-[0.1em] text-faint">
-              Personal library
-            </dt>
+            <dt className="text-[13px] font-medium text-fg">Personal library</dt>
             <dd className="mt-1 leading-relaxed text-muted">
               Stored in Supabase with row level security, so only your account
               can read or change your entries.
             </dd>
           </div>
           <div>
-            <dt className="font-medium uppercase tracking-[0.1em] text-faint">
-              Privacy
-            </dt>
+            <dt className="text-[13px] font-medium text-fg">Privacy</dt>
             <dd className="mt-1 leading-relaxed text-muted">
               There are no public profiles, comments or social features. Your
               notes and ratings stay private.
             </dd>
           </div>
           <div>
-            <dt className="font-medium uppercase tracking-[0.1em] text-faint">
-              Version
-            </dt>
+            <dt className="text-[13px] font-medium text-fg">Version</dt>
             <dd className="mt-1 leading-relaxed text-muted">Kaze 1.0</dd>
           </div>
         </dl>

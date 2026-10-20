@@ -21,27 +21,18 @@ function StatCard({
   label,
   value,
   hint,
-  accent = false,
 }: {
   label: string;
   value: string | number;
   hint?: string;
-  accent?: boolean;
 }) {
   return (
-    <div
-      className={cn(
-        "rounded-2xl border border-border-subtle bg-surface p-4 sm:p-5",
-        accent && "bg-accent-soft/60",
-      )}
-    >
-      <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-faint">
-        {label}
-      </p>
-      <p className="mt-2 font-display text-3xl font-bold tabular-nums tracking-tight text-fg">
+    <div className="bg-surface px-4 py-3.5 sm:px-5 sm:py-4">
+      <p className="text-xs text-muted">{label}</p>
+      <p className="mt-1 font-display text-2xl font-semibold tabular-nums tracking-tight text-fg">
         {value}
       </p>
-      {hint ? <p className="mt-1 text-[11px] text-faint">{hint}</p> : null}
+      {hint ? <p className="mt-0.5 text-[11px] text-faint">{hint}</p> : null}
     </div>
   );
 }
@@ -64,10 +55,7 @@ export function StatsView() {
     return (
       <div className="space-y-6">
         <header>
-          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-accent-strong">
-            Statistics
-          </p>
-          <h1 className="mt-2 font-display text-2xl font-bold tracking-tight text-fg sm:text-3xl">
+          <h1 className="font-display text-2xl font-semibold tracking-tight text-fg sm:text-[28px]">
             Your watching
           </h1>
         </header>
@@ -81,6 +69,33 @@ export function StatsView() {
             </LinkButton>
           }
         />
+
+        <section
+          aria-label="What statistics include"
+          className="grid gap-px overflow-hidden rounded-xl border border-border-subtle bg-border-subtle sm:grid-cols-3"
+        >
+          {[
+            {
+              title: "Totals",
+              body: "Titles tracked, episodes logged and counts for every watch status.",
+            },
+            {
+              title: "Ratings",
+              body: "The spread of your 1–10 scores, and an average from rated titles only.",
+            },
+            {
+              title: "Genres",
+              body: "Which genres your library leans on, counted from AniList metadata.",
+            },
+          ].map((item) => (
+            <div key={item.title} className="bg-surface p-4">
+              <h2 className="text-[13px] font-semibold text-fg">{item.title}</h2>
+              <p className="mt-1 text-xs leading-relaxed text-muted">
+                {item.body}
+              </p>
+            </div>
+          ))}
+        </section>
       </div>
     );
   }
@@ -95,24 +110,21 @@ export function StatsView() {
   return (
     <div className="space-y-8">
       <header>
-        <p className="text-xs font-semibold uppercase tracking-[0.18em] text-accent-strong">
-          Statistics
-        </p>
-        <h1 className="mt-2 font-display text-2xl font-bold tracking-tight text-fg sm:text-3xl">
+        <h1 className="font-display text-2xl font-semibold tracking-tight text-fg sm:text-[28px]">
           Your watching
         </h1>
-        <p className="mt-2 max-w-2xl text-sm leading-relaxed text-muted">
-          Calculated from your library — {stats.total}{" "}
-          {stats.total === 1 ? "title" : "titles"} tracked, including recorded
-          episode progress and personal ratings.
+        <p className="mt-1 max-w-2xl text-[13px] leading-relaxed text-muted">
+          Calculated from your library: {stats.total}{" "}
+          {stats.total === 1 ? "title" : "titles"} tracked, with recorded
+          episode progress and personal ratings only.
         </p>
       </header>
 
       <section
         aria-label="Library totals"
-        className="grid grid-cols-2 gap-3 lg:grid-cols-4"
+        className="grid grid-cols-2 gap-px overflow-hidden rounded-xl border border-border-subtle bg-border-subtle lg:grid-cols-4"
       >
-        <StatCard label="Tracked" value={stats.total} accent />
+        <StatCard label="Tracked" value={stats.total} />
         <StatCard
           label="Currently watching"
           value={stats.statusCounts.watching}
@@ -137,7 +149,7 @@ export function StatsView() {
       <div className="grid gap-3 lg:grid-cols-2">
         <section
           aria-labelledby="status-distribution"
-          className="rounded-2xl border border-border-subtle bg-surface p-4 sm:p-5"
+          className="rounded-xl border border-border-subtle bg-surface p-4 sm:p-5"
         >
           <div className="mb-4 flex items-baseline justify-between gap-2">
             <h2
@@ -146,7 +158,7 @@ export function StatsView() {
             >
               Status distribution
             </h2>
-            <span className="text-[11px] text-faint">
+            <span className="text-xs text-muted tabular-nums">
               {stats.total} total
             </span>
           </div>
@@ -187,7 +199,7 @@ export function StatsView() {
 
         <section
           aria-labelledby="rating-distribution"
-          className="rounded-2xl border border-border-subtle bg-surface p-4 sm:p-5"
+          className="rounded-xl border border-border-subtle bg-surface p-4 sm:p-5"
         >
           <div className="mb-4 flex items-baseline justify-between gap-2">
             <h2
@@ -196,7 +208,7 @@ export function StatsView() {
             >
               Ratings
             </h2>
-            <span className="text-[11px] text-faint">
+            <span className="text-xs text-muted tabular-nums">
               {stats.averageScore !== null
                 ? `Average ${stats.averageScore} / 10 · ${stats.scoredCount} rated`
                 : "No ratings yet"}
@@ -207,7 +219,7 @@ export function StatsView() {
             {stats.scoreDistribution.map((bucket) => {
               const height =
                 bucket.count === 0
-                  ? 2
+                  ? 0
                   : Math.max(6, (bucket.count / maxScoreCount) * 100);
               return (
                 <div
@@ -215,22 +227,24 @@ export function StatsView() {
                   className="flex h-full flex-1 flex-col items-center justify-end gap-1.5"
                   title={`${bucket.count} rated ${bucket.score}/10`}
                 >
-                  <span className="text-[10px] tabular-nums text-faint">
+                  <span className="text-[11px] tabular-nums text-muted">
                     {bucket.count > 0 ? bucket.count : ""}
                   </span>
                   <div
                     className={cn(
                       "w-full rounded-t-sm",
-                      bucket.count > 0 ? "bg-accent/80" : "bg-surface-3",
+                      bucket.count > 0 ? "bg-accent/80" : "bg-transparent",
                     )}
                     style={{ height: `${height}%` }}
                   />
-                  <span className="text-[10px] text-faint">{bucket.score}</span>
+                  <span className="text-[11px] tabular-nums text-faint">
+                    {bucket.score}
+                  </span>
                 </div>
               );
             })}
           </div>
-          <p className="mt-3 text-[11px] text-faint">
+          <p className="mt-3 text-xs text-faint">
             Personal ratings only. Community scores are shown on anime pages.
           </p>
         </section>
@@ -238,7 +252,7 @@ export function StatsView() {
 
       <section
         aria-labelledby="genre-distribution"
-        className="rounded-2xl border border-border-subtle bg-surface p-4 sm:p-5"
+        className="rounded-xl border border-border-subtle bg-surface p-4 sm:p-5"
       >
         <div className="mb-4 flex items-baseline justify-between gap-2">
           <h2
@@ -247,7 +261,7 @@ export function StatsView() {
           >
             Genres you watch
           </h2>
-          <span className="text-[11px] text-faint">
+          <span className="text-xs text-muted tabular-nums">
             {stats.genreDistribution.length} genres
           </span>
         </div>
@@ -266,7 +280,7 @@ export function StatsView() {
                     {genre.count}
                   </span>
                 </div>
-                <div className="mt-1.5 h-1 overflow-hidden rounded-full bg-surface-3">
+                <div className="mt-1.5 h-[3px] overflow-hidden rounded-full bg-surface-3">
                   <div
                     className="h-full rounded-full bg-accent"
                     style={{
@@ -282,9 +296,9 @@ export function StatsView() {
 
       <section
         aria-label="Data notes"
-        className="rounded-2xl border border-border-subtle bg-surface/60 p-4 text-xs leading-relaxed text-faint sm:p-5"
+        className="rounded-xl border border-border-subtle bg-surface/60 p-4 text-xs leading-relaxed text-faint sm:p-5"
       >
-        <h2 className="mb-2 text-[10px] font-semibold uppercase tracking-[0.12em] text-muted">
+        <h2 className="mb-2 text-[13px] font-semibold text-fg">
           How these numbers work
         </h2>
         <ul className="list-disc space-y-1 pl-4">

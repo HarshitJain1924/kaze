@@ -81,7 +81,7 @@ function FilterFields({
       <div className="space-y-1.5">
         <label
           htmlFor={`${idPrefix}-genre`}
-          className="text-[11px] font-medium uppercase tracking-[0.08em] text-faint lg:sr-only"
+          className="text-xs font-medium text-muted lg:sr-only"
         >
           Genre
         </label>
@@ -105,7 +105,7 @@ function FilterFields({
       <div className="space-y-1.5">
         <label
           htmlFor={`${idPrefix}-format`}
-          className="text-[11px] font-medium uppercase tracking-[0.08em] text-faint lg:sr-only"
+          className="text-xs font-medium text-muted lg:sr-only"
         >
           Format
         </label>
@@ -133,7 +133,7 @@ function FilterFields({
       <div className="space-y-1.5">
         <label
           htmlFor={`${idPrefix}-season`}
-          className="text-[11px] font-medium uppercase tracking-[0.08em] text-faint lg:sr-only"
+          className="text-xs font-medium text-muted lg:sr-only"
         >
           Season
         </label>
@@ -161,7 +161,7 @@ function FilterFields({
       <div className="space-y-1.5">
         <label
           htmlFor={`${idPrefix}-year`}
-          className="text-[11px] font-medium uppercase tracking-[0.08em] text-faint lg:sr-only"
+          className="text-xs font-medium text-muted lg:sr-only"
         >
           Year
         </label>
@@ -189,7 +189,7 @@ function FilterFields({
       <div className="space-y-1.5">
         <label
           htmlFor={`${idPrefix}-sort`}
-          className="text-[11px] font-medium uppercase tracking-[0.08em] text-faint lg:sr-only"
+          className="text-xs font-medium text-muted lg:sr-only"
         >
           Sort
         </label>
