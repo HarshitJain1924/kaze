@@ -17,9 +17,9 @@ export function AppShell({
   return (
     <div className="min-h-dvh">
       <DesktopSidebar viewer={viewer} />
-      <div className="lg:pl-[252px]">
+      <div className="lg:pl-[238px]">
         <MobileHeader viewer={viewer} />
-        <main className="mx-auto w-full max-w-[1560px] px-4 pb-24 pt-5 sm:px-6 lg:px-10 lg:pb-16 lg:pt-8">
+        <main className="mx-auto w-full max-w-[1600px] px-4 pb-24 pt-4 sm:px-6 lg:px-10 lg:pb-16 lg:pt-6">
           {children}
         </main>
       </div>

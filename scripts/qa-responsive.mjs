@@ -12,7 +12,7 @@ import { existsSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
-const BASE_URL = process.env.QA_BASE_URL ?? "http://localhost:3100";
+const BASE_URL = process.env.QA_BASE_URL ?? "http://localhost:3000";
 const CHROME_CANDIDATES = [
   process.env.CHROME_PATH,
   "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe",

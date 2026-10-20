@@ -152,8 +152,8 @@ export function HomeSchedule({ week, initialEntries }: HomeScheduleProps) {
         actionHref="/schedule"
       />
 
-      {/* Week selector: the day's name and number, today named in words. */}
-      <div className="no-scrollbar -mx-1 flex gap-1.5 overflow-x-auto px-1 py-0.5 sm:grid sm:grid-cols-7">
+      {/* Week selector: 7 evenly sized day tiles */}
+      <div className="no-scrollbar -mx-1 flex gap-2 overflow-x-auto px-1 py-1 sm:grid sm:grid-cols-7 sm:gap-2.5">
         {days.map((day) => {
           const isSelected = day.date === selectedDate;
           const dayWatchingCount = day.entries.filter((e) =>
@@ -168,33 +168,37 @@ export function HomeSchedule({ week, initialEntries }: HomeScheduleProps) {
               aria-label={`${day.dayName} ${day.dayNumber}, ${day.entries.length} releases`}
               onClick={() => setSelectedDate(day.date)}
               className={cn(
-                "group flex min-w-[64px] shrink-0 flex-col items-center justify-center rounded-lg border px-2 py-2 text-center transition-colors sm:min-w-0 sm:shrink",
-                isSelected
-                  ? "border-accent/60 bg-accent-soft"
-                  : "border-border-subtle bg-surface hover:bg-surface-2",
+                "group flex min-w-[70px] shrink-0 flex-col items-center justify-center rounded-xl border p-2.5 text-center transition-all sm:min-w-0 sm:shrink",
+                day.isToday
+                  ? isSelected
+                    ? "border-accent bg-[#261545] text-white shadow-[0_0_20px_rgba(124,58,237,0.3)] ring-1 ring-accent"
+                    : "border-accent/70 bg-[#1d1238] text-white shadow-[0_0_14px_rgba(124,58,237,0.2)]"
+                  : isSelected
+                    ? "border-white/25 bg-[#181829] text-white ring-1 ring-white/15"
+                    : "border-white/10 bg-[#0d0d17] hover:border-white/20 hover:bg-[#141423]",
               )}
             >
               <span
                 className={cn(
-                  "text-[11px] font-medium",
+                  "text-xs font-medium tracking-wide",
                   day.isToday
-                    ? "text-accent-strong"
+                    ? "text-[#c084fc] font-semibold"
                     : isSelected
-                      ? "text-fg"
-                      : "text-faint group-hover:text-muted",
+                      ? "text-white"
+                      : "text-white/60 group-hover:text-white/80",
                 )}
               >
                 {day.isToday ? "Today" : day.dayShort}
               </span>
-              <span className="mt-0.5 font-display text-lg font-semibold tabular-nums text-fg">
+              <span className="mt-1 font-display text-xl font-bold tabular-nums text-white">
                 {day.dayNumber}
               </span>
-              <span className="mt-0.5 flex items-center gap-1 text-[11px] tabular-nums text-faint">
-                {day.entries.length} {day.entries.length === 1 ? "ep" : "eps"}
+              <span className="mt-1 flex items-center justify-center gap-1 text-[11px] tabular-nums text-white/50">
+                <span>{day.entries.length} eps</span>
                 {dayWatchingCount > 0 ? (
                   <span
                     title={`${dayWatchingCount} from your library`}
-                    className="h-1.5 w-1.5 rounded-full bg-accent-strong"
+                    className="h-1.5 w-1.5 rounded-full bg-accent-strong shadow-[0_0_4px_rgba(185,164,255,0.8)]"
                   />
                 ) : null}
               </span>

@@ -1,158 +1,141 @@
+"use client";
+
 import Image from "next/image";
 import Link from "next/link";
+import { useMemo } from "react";
 
-import { ChevronRightIcon, SparkIcon } from "@/components/icons";
-import type { AnimeSummary, AnimeSeason } from "@/types/anime";
+import { CalendarIcon, ChevronRightIcon } from "@/components/icons";
+import { useLibrary } from "@/features/library/library-provider";
+import type { AnimeSeason, AnimeSummary } from "@/types/anime";
 import type { Viewer } from "@/types/viewer";
 
-/**
- * The first band of the dashboard. Signed-out visitors get the product's
- * promise; signed-in visitors get today's answer in eighty pixels instead of
- * a greeting that pushes their next episode below the fold.
- */
-export function HomeHero({
-  viewer,
-  season,
-  year,
-  posters,
-  summary,
-  todayLabel,
-}: {
+function getGreetingWord(hour: number): string {
+  if (hour < 12) return "morning";
+  if (hour < 17) return "afternoon";
+  return "evening";
+}
+
+interface HomeHeroProps {
   viewer: Viewer | null;
   season: AnimeSeason;
   year: number;
   posters: AnimeSummary[];
-  summary?: string;
+  todayCount?: number;
   todayLabel?: string;
-}) {
-  const featured = posters.slice(0, 3);
+  serverHour?: number;
+  fallbackSummary?: string;
+}
 
-  if (viewer) {
-    return (
-      <header className="flex flex-wrap items-end justify-between gap-x-6 gap-y-3 border-b border-border-subtle pb-4">
-        <div className="min-w-0">
+export function HomeHero({
+  viewer,
+  todayCount = 0,
+  todayLabel,
+  serverHour,
+  fallbackSummary,
+}: HomeHeroProps) {
+  const { items } = useLibrary();
+
+  const greetingWord = useMemo(() => {
+    const hour = serverHour ?? new Date().getHours();
+    return getGreetingWord(hour);
+  }, [serverHour]);
+
+  // Compute how many episodes behind the user is across currently watching anime
+  const { episodesBehind, seriesBehind } = useMemo(() => {
+    let epCount = 0;
+    let seriesCount = 0;
+
+    for (const item of items) {
+      if (item.entry.status === "watching" && item.anime) {
+        const total = item.anime.episodes;
+        const progress = item.entry.progress;
+        if (total !== null && total > 0 && progress < total) {
+          const behind = total - progress;
+          epCount += behind;
+          seriesCount += 1;
+        }
+      }
+    }
+
+    return { episodesBehind: epCount, seriesBehind: seriesCount };
+  }, [items]);
+
+  const summaryText = useMemo(() => {
+    if (fallbackSummary) return fallbackSummary;
+
+    const episodesTodayText =
+      todayCount === 1 ? "1 episode airs today." : `${todayCount} episodes air today.`;
+
+    if (!viewer) {
+      return `${episodesTodayText} Track your watch progress and follow the broadcast week.`;
+    }
+
+    if (seriesBehind > 0) {
+      const epWord = episodesBehind === 1 ? "episode" : "episodes";
+      const seriesWord = seriesBehind === 1 ? "series" : "series";
+      return `${episodesTodayText} You're ${episodesBehind} ${epWord} behind across ${seriesBehind} ${seriesWord}.`;
+    }
+
+    if (items.some((it) => it.entry.status === "watching")) {
+      return `${episodesTodayText} You're all caught up on your tracked series.`;
+    }
+
+    return `${episodesTodayText} Add anime to your library to track upcoming releases.`;
+  }, [fallbackSummary, todayCount, viewer, seriesBehind, episodesBehind, items]);
+
+  return (
+    <header
+      aria-label="Home banner"
+      className="relative overflow-hidden rounded-2xl border border-white/10 bg-[#090912] shadow-2xl"
+    >
+      {/* Background artwork */}
+      <div className="pointer-events-none absolute inset-0 select-none">
+        <Image
+          src="/hero-banner.jpg"
+          alt=""
+          fill
+          priority
+          sizes="(max-width: 1024px) 100vw, 1400px"
+          className="object-cover object-[75%_35%] sm:object-[68%_35%]"
+        />
+        {/* Contrast overlays: keep left text crisp while letting right atmospheric moon artwork shine through */}
+        <div className="absolute inset-0 bg-gradient-to-r from-[#08080c] via-[#08080c]/85 to-transparent sm:w-[65%]" />
+        <div className="absolute inset-0 bg-gradient-to-t from-[#08080c]/80 via-transparent to-transparent" />
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_70%_20%,rgba(168,85,247,0.12),transparent_50%)]" />
+      </div>
+
+      {/* Content wrapper */}
+      <div className="relative z-10 flex flex-col justify-between gap-5 p-6 sm:flex-row sm:items-center sm:p-7 lg:px-8 lg:py-7">
+        <div className="max-w-2xl min-w-0">
           {todayLabel ? (
-            <p className="text-xs text-faint">{todayLabel}</p>
+            <p className="text-xs font-medium tracking-wide text-white/60">
+              {todayLabel}
+            </p>
           ) : null}
-          <h1 className="mt-0.5 font-display text-2xl font-semibold tracking-tight text-fg sm:text-[28px]">
-            Today
+
+          <h1 className="mt-1 font-display text-2xl font-bold tracking-tight text-white sm:text-3xl lg:text-[34px]">
+            Good{" "}
+            <span className="text-[#c084fc] drop-shadow-[0_0_16px_rgba(192,132,252,0.45)]">
+              {greetingWord}
+            </span>
           </h1>
-          <p className="mt-1 text-[13px] leading-relaxed text-muted">
-            {summary ?? "Your library, the broadcast week and what to watch next."}
+
+          <p className="mt-1.5 text-xs leading-relaxed text-white/75 sm:text-[13px]">
+            {summaryText}
           </p>
         </div>
 
-        <Link
-          href="/schedule"
-          className="inline-flex h-8 shrink-0 items-center gap-1 rounded-lg border border-border bg-surface px-3 text-[13px] font-medium text-fg transition-colors hover:bg-surface-2"
-        >
-          Weekly schedule
-          <ChevronRightIcon className="h-3.5 w-3.5 text-muted" />
-        </Link>
-      </header>
-    );
-  }
-
-  return (
-    <section className="grid gap-7 border-b border-border-subtle pb-6 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-end">
-      <div className="max-w-xl">
-        <h1 className="font-display text-[28px] font-semibold leading-[1.1] tracking-tight text-fg sm:text-[32px]">
-          Every episode, one quiet place.
-        </h1>
-        <p className="mt-2.5 text-sm leading-relaxed text-muted sm:text-[15px]">
-          Track what you watch, follow the broadcast week and keep a private
-          library of progress, ratings and notes.
-        </p>
-
-        <div className="mt-5 flex flex-wrap items-center gap-2">
+        <div className="shrink-0">
           <Link
-            href="/login"
-            className="inline-flex h-9 items-center gap-1.5 rounded-lg bg-accent px-3.5 text-[13px] font-semibold text-accent-contrast transition-colors hover:bg-accent-strong"
+            href="/schedule"
+            className="inline-flex h-9 items-center gap-2 rounded-xl border border-white/15 bg-black/45 px-3.5 text-xs font-semibold text-white shadow-sm backdrop-blur-md transition-all hover:border-white/30 hover:bg-black/65 active:scale-[0.98]"
           >
-            <SparkIcon className="h-3.5 w-3.5" />
-            Start tracking
-          </Link>
-          <Link
-            href="/discover"
-            className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-border bg-surface px-3.5 text-[13px] font-medium text-fg transition-colors hover:bg-surface-2"
-          >
-            Browse anime
-            <ChevronRightIcon className="h-3.5 w-3.5 text-muted" />
+            <CalendarIcon className="h-3.5 w-3.5 text-white/80" />
+            <span>Weekly schedule</span>
+            <ChevronRightIcon className="h-3 w-3 text-white/60" />
           </Link>
         </div>
-
-        <p className="mt-3 text-xs text-faint">
-          Free and ad-free. Metadata from AniList; your library stays private.
-        </p>
       </div>
-
-      {/* On a phone the artwork is the first honest impression of the product,
-          so the same three covers sit under the actions instead of vanishing. */}
-      {featured.length > 0 ? (
-        <div className="flex items-end gap-2 lg:hidden">
-          {featured.map((anime) => {
-            const cover = anime.coverImage.extraLarge ?? anime.coverImage.large;
-            const title = anime.title.english ?? anime.title.romaji ?? "Anime";
-            return (
-              <Link
-                key={anime.id}
-                href={`/anime/${anime.id}`}
-                aria-label={title}
-                className="relative aspect-[2/3] flex-1 overflow-hidden rounded-lg border border-border-subtle bg-surface-2"
-              >
-                {cover ? (
-                  <Image
-                    src={cover}
-                    alt=""
-                    fill
-                    sizes="33vw"
-                    className="object-cover"
-                  />
-                ) : (
-                  <span className="absolute inset-0 flex items-center justify-center px-2 text-center text-[11px] text-faint">
-                    {title}
-                  </span>
-                )}
-              </Link>
-            );
-          })}
-        </div>
-      ) : null}
-
-      {featured.length > 0 ? (
-        <div className="hidden items-end gap-2.5 lg:flex">
-          {featured.map((anime) => {
-            const cover = anime.coverImage.extraLarge ?? anime.coverImage.large;
-            const title = anime.title.english ?? anime.title.romaji ?? "Anime";
-            return (
-              <Link
-                key={anime.id}
-                href={`/anime/${anime.id}`}
-                aria-label={title}
-                className="group relative aspect-[2/3] w-[86px] shrink-0 overflow-hidden rounded-lg border border-border-subtle bg-surface-2 xl:w-[96px]"
-              >
-                {cover ? (
-                  <Image
-                    src={cover}
-                    alt=""
-                    fill
-                    sizes="96px"
-                    className="poster-zoom object-cover"
-                  />
-                ) : (
-                  <span className="absolute inset-0 flex items-center justify-center px-2 text-center text-[11px] text-faint">
-                    {title}
-                  </span>
-                )}
-              </Link>
-            );
-          })}
-        </div>
-      ) : (
-        <p className="hidden text-xs text-faint lg:block">
-          {season} {year}
-        </p>
-      )}
-    </section>
+    </header>
   );
 }

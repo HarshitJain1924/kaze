@@ -6,14 +6,18 @@ import { useMemo } from "react";
 
 import {
   CalendarIcon,
+  CheckIcon,
   ChevronRightIcon,
   ClockIcon,
+  LibraryIcon,
+  ListIcon,
+  PlayIcon,
 } from "@/components/icons";
 import { usePreferences } from "@/components/providers/preferences-provider";
 import { calculateStats } from "@/features/stats/calculate-stats";
 import { useLibrary } from "@/features/library/library-provider";
 import { formatAiringTime, toIsoDateString } from "@/lib/schedule";
-import { cn, formatFormat, getDisplayTitle, isHttpUrl } from "@/lib/utils";
+import { getDisplayTitle, isHttpUrl } from "@/lib/utils";
 import type { AiringScheduleEntry, AnimeSummary } from "@/types/anime";
 
 interface HomeSidebarProps {
@@ -39,7 +43,6 @@ function formatRelativeTime(dateString: string): string {
 
 export function HomeSidebar({
   todayEntries,
-  featuredAnime,
   compact = false,
 }: HomeSidebarProps) {
   const { items, canWrite } = useLibrary();
@@ -53,8 +56,7 @@ export function HomeSidebar({
     return new Set(items.map((i) => i.entry.anilistId));
   }, [items]);
 
-  // Only the viewer's own titles: the main column already lists every release
-  // airing today, so repeating them here would waste the rail.
+  // Only the viewer's own titles that air today
   const libraryToday = useMemo(() => {
     if (!todayEntries) return [];
     const todayIso = toIsoDateString(new Date());
@@ -76,89 +78,150 @@ export function HomeSidebar({
           new Date(b.entry.updatedAt).getTime() -
           new Date(a.entry.updatedAt).getTime(),
       )
-      .slice(0, 3);
+      .slice(0, 4);
   }, [items]);
 
+  if (!canWrite && compact) {
+    return null;
+  }
+
   return (
-    <aside className="space-y-5 lg:sticky lg:top-6" aria-label="Dashboard sidebar">
-      {/* 1. Quick Stats */}
-      {canWrite ? (
-        <section
-          aria-label="Quick statistics"
-          className="rounded-xl border border-border-subtle bg-surface p-4"
-        >
-          <div className="flex items-center justify-between pb-3">
-            <h2 className="text-[13px] font-semibold text-fg">Your library</h2>
+    <aside
+      className="space-y-4 lg:sticky lg:top-6"
+      aria-label="Dashboard sidebar"
+    >
+      {/* 1. Your library (2x2 Stats Grid or Sign in prompt) */}
+      <section
+        aria-label="Your library statistics"
+        className="rounded-2xl border border-white/10 bg-[#0d0d17] p-4 shadow-xl"
+      >
+        <div className="flex items-center justify-between pb-3">
+          <h2 className="font-display text-sm font-bold text-white">
+            Your library
+          </h2>
+          {canWrite ? (
             <Link
               href="/stats"
-              className="group inline-flex items-center gap-0.5 text-xs font-medium text-muted transition-colors hover:text-accent-strong"
+              className="group inline-flex items-center gap-0.5 text-xs font-medium text-white/60 transition-colors hover:text-white"
             >
               <span>Full stats</span>
-              <ChevronRightIcon className="h-3 w-3 transition-transform group-hover:translate-x-0.5" />
+              <ChevronRightIcon className="h-3 w-3 text-white/40 transition-transform group-hover:translate-x-0.5" />
+            </Link>
+          ) : null}
+        </div>
+
+        {canWrite ? (
+          <div className="grid grid-cols-2 gap-2">
+            {/* Tracked */}
+            <Link
+              href="/library"
+              className="group flex flex-col justify-between rounded-xl border border-white/5 bg-[#141423] p-3 transition-colors hover:border-white/15 hover:bg-[#19192c]"
+            >
+              <div className="flex items-center justify-between">
+                <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-accent-soft text-accent-strong">
+                  <LibraryIcon className="h-4 w-4" />
+                </span>
+                <span className="font-display text-xl font-bold tabular-nums text-white">
+                  {stats.total}
+                </span>
+              </div>
+              <p className="mt-2 text-xs font-medium text-white/55">Tracked</p>
+            </Link>
+
+            {/* Watching */}
+            <Link
+              href="/library?status=watching"
+              className="group flex flex-col justify-between rounded-xl border border-white/5 bg-[#141423] p-3 transition-colors hover:border-white/15 hover:bg-[#19192c]"
+            >
+              <div className="flex items-center justify-between">
+                <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-[#6329db]/30 text-accent-strong">
+                  <PlayIcon className="h-3.5 w-3.5 fill-current" />
+                </span>
+                <span className="font-display text-xl font-bold tabular-nums text-white">
+                  {stats.statusCounts.watching}
+                </span>
+              </div>
+              <p className="mt-2 text-xs font-medium text-white/55">Watching</p>
+            </Link>
+
+            {/* Completed */}
+            <Link
+              href="/library?status=completed"
+              className="group flex flex-col justify-between rounded-xl border border-white/5 bg-[#141423] p-3 transition-colors hover:border-white/15 hover:bg-[#19192c]"
+            >
+              <div className="flex items-center justify-between">
+                <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-emerald-500/20 text-emerald-400">
+                  <CheckIcon className="h-4 w-4" />
+                </span>
+                <span className="font-display text-xl font-bold tabular-nums text-white">
+                  {stats.statusCounts.completed}
+                </span>
+              </div>
+              <p className="mt-2 text-xs font-medium text-white/55">Completed</p>
+            </Link>
+
+            {/* Episodes */}
+            <Link
+              href="/stats"
+              className="group flex flex-col justify-between rounded-xl border border-white/5 bg-[#141423] p-3 transition-colors hover:border-white/15 hover:bg-[#19192c]"
+            >
+              <div className="flex items-center justify-between">
+                <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-amber-500/20 text-amber-400">
+                  <ListIcon className="h-4 w-4" />
+                </span>
+                <span className="font-display text-xl font-bold tabular-nums text-white">
+                  {stats.episodesWatched}
+                </span>
+              </div>
+              <p className="mt-2 text-xs font-medium text-white/55">Episodes</p>
             </Link>
           </div>
-
-          <div className="grid grid-cols-2 gap-px overflow-hidden rounded-lg bg-border-subtle">
-            <div className="bg-surface p-2.5">
-              <p className="text-[11px] text-faint">Tracked</p>
-              <p className="mt-1 font-display text-lg font-semibold tabular-nums text-fg">
-                {stats.total}
-              </p>
-            </div>
-            <div className="bg-surface p-2.5">
-              <p className="text-[11px] text-faint">Watching</p>
-              <p className="mt-1 font-display text-lg font-semibold tabular-nums text-fg">
-                {stats.statusCounts.watching}
-              </p>
-            </div>
-            <div className="bg-surface p-2.5">
-              <p className="text-[11px] text-faint">Completed</p>
-              <p className="mt-1 font-display text-lg font-semibold tabular-nums text-fg">
-                {stats.statusCounts.completed}
-              </p>
-            </div>
-            <div className="bg-surface p-2.5">
-              <p className="text-[11px] text-faint">Episodes</p>
-              <p className="mt-1 font-display text-lg font-semibold tabular-nums text-fg">
-                {stats.episodesWatched}
-              </p>
-            </div>
+        ) : (
+          <div className="space-y-3 pt-1">
+            <p className="text-xs text-white/60 leading-relaxed">
+              Sign in to track what you watch, record episodes and view your library statistics.
+            </p>
+            <Link
+              href="/login"
+              className="inline-flex h-9 w-full items-center justify-center rounded-xl bg-accent text-xs font-semibold text-white transition-colors hover:bg-accent-strong"
+            >
+              Sign in to track
+            </Link>
           </div>
-        </section>
-      ) : null}
+        )}
+      </section>
 
-      {/* 2. Today from the viewer's own list. The main column already shows
-             every release, so this rail only repeats what is theirs. */}
-      {!compact && canWrite ? (
+      {/* 2. From your library today */}
+      {canWrite ? (
         <section
           aria-label="Today from your library"
-          className="rounded-xl border border-border-subtle bg-surface p-4"
+          className="rounded-2xl border border-white/10 bg-[#0d0d17] p-4 shadow-xl"
         >
           <div className="flex items-center justify-between pb-3">
             <div className="flex items-center gap-1.5">
-              <CalendarIcon className="h-3.5 w-3.5 text-muted" />
-              <h2 className="text-[13px] font-semibold text-fg">
+              <CalendarIcon className="h-4 w-4 text-white/50" />
+              <h2 className="font-display text-sm font-bold text-white">
                 From your library today
               </h2>
             </div>
             <Link
               href="/schedule"
-              className="group inline-flex items-center gap-0.5 text-xs font-medium text-muted transition-colors hover:text-fg"
+              className="group inline-flex items-center gap-0.5 text-xs font-medium text-white/60 transition-colors hover:text-white"
             >
               <span>Week</span>
-              <ChevronRightIcon className="h-3 w-3 transition-transform group-hover:translate-x-0.5" />
+              <ChevronRightIcon className="h-3 w-3 text-white/40 transition-transform group-hover:translate-x-0.5" />
             </Link>
           </div>
 
           {isScheduleError ? (
-            <p className="py-2 text-xs text-muted">
-              Could not load today&apos;s releases.
+            <p className="py-2 text-xs text-white/50">
+              Could not load today&apos;s schedule.
             </p>
           ) : libraryToday.length === 0 ? (
-            <p className="py-1 text-xs leading-relaxed text-muted">
+            <p className="py-2 text-xs leading-relaxed text-white/50">
               {items.length === 0
                 ? "Add titles to see their airing episodes here."
-                : "None of your titles air today."}
+                : "None of your tracked anime air today."}
             </p>
           ) : (
             <div className="space-y-2">
@@ -175,11 +238,9 @@ export function HomeSidebar({
                   <Link
                     key={entry.id}
                     href={`/anime/${entry.mediaId}`}
-                    className={cn(
-                      "group flex items-center gap-2.5 rounded-lg border border-border-subtle bg-surface-2/40 p-2 transition-colors hover:bg-surface-2/80",
-                    )}
+                    className="group flex items-center gap-2.5 rounded-xl border border-white/5 bg-[#141423] p-2 transition-all hover:border-white/15 hover:bg-[#19192c]"
                   >
-                    <div className="relative aspect-[2/3] w-9 shrink-0 overflow-hidden rounded-lg border border-border-subtle bg-surface-3">
+                    <div className="relative aspect-[2/3] w-9 shrink-0 overflow-hidden rounded-lg border border-white/10 bg-[#1e1d2c]">
                       {cover && isHttpUrl(cover) ? (
                         <Image
                           src={cover}
@@ -192,20 +253,21 @@ export function HomeSidebar({
                     </div>
 
                     <div className="min-w-0 flex-1">
-                      <div className="flex items-center justify-between gap-1">
-                        <span className="text-[11px] font-semibold text-accent-strong">
-                          Episode {entry.episode}
-                        </span>
-                        <span className="text-[11px] tabular-nums text-muted">
-                          {formatAiringTime(entry.airingAt)}
-                        </span>
-                      </div>
+                      <span className="text-[11px] font-semibold text-accent-strong">
+                        Episode {entry.episode}
+                      </span>
                       <p
-                        className="line-clamp-1 text-[13px] font-medium text-fg"
+                        className="line-clamp-1 text-[13px] font-medium text-white group-hover:text-accent-strong transition-colors"
                         title={title}
                       >
                         {title}
                       </p>
+                    </div>
+
+                    <div className="shrink-0 text-right">
+                      <span className="text-[11px] font-medium tabular-nums text-white/50">
+                        {formatAiringTime(entry.airingAt)}
+                      </span>
                     </div>
                   </Link>
                 );
@@ -215,24 +277,25 @@ export function HomeSidebar({
         </section>
       ) : null}
 
-      {/* 3. Recent Activity */}
+      {/* 3. Recently updated */}
       {recentActivity.length > 0 ? (
         <section
-          aria-label="Recent activity"
-          className="rounded-xl border border-border-subtle bg-surface p-4"
+          aria-label="Recently updated"
+          className="rounded-2xl border border-white/10 bg-[#0d0d17] p-4 shadow-xl"
         >
           <div className="flex items-center justify-between pb-3">
             <div className="flex items-center gap-1.5">
-              <ClockIcon className="h-3.5 w-3.5 text-muted" />
-              <h2 className="text-[13px] font-semibold text-fg">
+              <ClockIcon className="h-4 w-4 text-white/50" />
+              <h2 className="font-display text-sm font-bold text-white">
                 Recently updated
               </h2>
             </div>
             <Link
               href="/library"
-              className="text-xs font-medium text-muted hover:text-accent-strong"
+              className="group inline-flex items-center gap-0.5 text-xs font-medium text-white/60 transition-colors hover:text-white"
             >
-              Library
+              <span>Library</span>
+              <ChevronRightIcon className="h-3 w-3 text-white/40 transition-transform group-hover:translate-x-0.5" />
             </Link>
           </div>
 
@@ -250,9 +313,9 @@ export function HomeSidebar({
                 <Link
                   key={entry.id}
                   href={`/anime/${anime.id}`}
-                  className="group flex items-center gap-2.5 rounded-xl border border-border-subtle bg-surface-2/30 p-2 transition-all hover:border-border hover:bg-surface-2/60"
+                  className="group flex items-center gap-2.5 rounded-xl border border-white/5 bg-[#141423] p-2 transition-all hover:border-white/15 hover:bg-[#19192c]"
                 >
-                  <div className="relative aspect-[2/3] w-9 shrink-0 overflow-hidden rounded-lg border border-border-subtle bg-surface-3">
+                  <div className="relative aspect-[2/3] w-9 shrink-0 overflow-hidden rounded-lg border border-white/10 bg-[#1e1d2c]">
                     {cover && isHttpUrl(cover) ? (
                       <Image
                         src={cover}
@@ -266,100 +329,27 @@ export function HomeSidebar({
 
                   <div className="min-w-0 flex-1">
                     <p
-                      className="line-clamp-1 text-[13px] font-medium text-fg group-hover:text-accent-strong"
+                      className="line-clamp-1 text-[13px] font-medium text-white group-hover:text-accent-strong transition-colors"
                       title={title}
                     >
                       {title}
                     </p>
-                    <div className="mt-0.5 flex items-center justify-between gap-1 text-[11px] text-muted">
-                      <span>
-                        {entry.status === "completed"
-                          ? "Completed"
-                          : `Episode ${entry.progress}`}
-                      </span>
-                      <span className="text-faint">
-                        {formatRelativeTime(entry.updatedAt)}
-                      </span>
-                    </div>
+                    <p className="text-[11px] text-white/50">
+                      {entry.status === "completed"
+                        ? "Completed"
+                        : `Episode ${entry.progress}`}
+                    </p>
+                  </div>
+
+                  <div className="shrink-0 text-right">
+                    <span className="text-[11px] font-medium tabular-nums text-white/40">
+                      {formatRelativeTime(entry.updatedAt)}
+                    </span>
                   </div>
                 </Link>
               );
             })}
           </div>
-        </section>
-      ) : null}
-
-      {/* 4. Decorative / Seasonal Spotlight Panel (desktop only) */}
-      {!compact && featuredAnime ? (
-        <section
-          aria-label="Seasonal spotlight"
-          className="relative overflow-hidden rounded-xl border border-border-subtle bg-surface"
-        >
-          {(() => {
-            const cover =
-              featuredAnime.coverImage.extraLarge ??
-              featuredAnime.coverImage.large;
-            return (
-              <div className="relative flex items-center gap-3 p-3.5">
-                <div className="relative aspect-[2/3] w-14 shrink-0 overflow-hidden rounded-xl border border-border-subtle bg-surface-2 shadow-sm">
-                  {cover && isHttpUrl(cover) ? (
-                    <Image
-                      src={cover}
-                      alt=""
-                      fill
-                      sizes="56px"
-                      className="object-cover"
-                    />
-                  ) : (
-                    <div className="absolute inset-0 bg-surface-3" />
-                  )}
-                </div>
-
-                <div className="min-w-0 flex-1">
-                  <span className="text-[11px] font-medium text-accent-strong">
-                    This season&apos;s standout
-                  </span>
-                  <Link
-                    href={`/anime/${featuredAnime.id}`}
-                    className="mt-0.5 block font-display text-[13px] font-semibold text-fg transition-colors hover:text-accent-strong line-clamp-1"
-                    title={getDisplayTitle(
-                      featuredAnime.title,
-                      preferences.titleLanguage === "english",
-                    )}
-                  >
-                    {getDisplayTitle(
-                      featuredAnime.title,
-                      preferences.titleLanguage === "english",
-                    )}
-                  </Link>
-
-                  <div className="mt-1 flex flex-wrap items-center gap-1.5 text-[11px] text-muted">
-                    {featuredAnime.format ? (
-                      <span className="uppercase">
-                        {formatFormat(featuredAnime.format)}
-                      </span>
-                    ) : null}
-                    {featuredAnime.genres.length > 0 ? (
-                      <>
-                        <span className="text-faint">·</span>
-                        <span className="line-clamp-1">
-                          {featuredAnime.genres.slice(0, 2).join(", ")}
-                        </span>
-                      </>
-                    ) : null}
-                  </div>
-
-                  <Link
-                    href={`/anime/${featuredAnime.id}`}
-                    className="mt-2 inline-flex items-center gap-1 text-xs font-medium text-muted transition-colors hover:text-fg"
-                  >
-                    <span>View details</span>
-                    <ChevronRightIcon className="h-3 w-3" />
-                  </Link>
-                </div>
-              </div>
-            );
-          })()}
         </section>
       ) : null}
     </aside>

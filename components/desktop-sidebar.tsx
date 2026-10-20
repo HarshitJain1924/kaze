@@ -42,8 +42,10 @@ function isActive(pathname: string, item: NavItem): boolean {
 export function DesktopSidebar({ viewer }: { viewer: Viewer | null }) {
   const pathname = usePathname();
 
+  const username = viewer?.email ? viewer.email.split("@")[0] : null;
+
   return (
-    <aside className="fixed inset-y-0 left-0 z-40 hidden w-[252px] flex-col border-r border-border-subtle bg-bg-soft px-4 py-6 lg:flex">
+    <aside className="fixed inset-y-0 left-0 z-40 hidden w-[238px] flex-col border-r border-border-subtle bg-bg-soft px-3.5 py-6 lg:flex">
       <div className="px-2">
         <Logo />
       </div>
@@ -58,16 +60,16 @@ export function DesktopSidebar({ viewer }: { viewer: Viewer | null }) {
               href={item.href}
               aria-current={active ? "page" : undefined}
               className={cn(
-                "group relative flex items-center gap-3 rounded-lg px-3.5 py-2.5 text-sm transition-colors",
+                "group relative flex items-center gap-3 rounded-xl px-3.5 py-2.5 text-sm transition-colors",
                 active
-                  ? "bg-surface-2 font-semibold text-fg"
+                  ? "bg-[#181826] font-semibold text-white shadow-sm ring-1 ring-white/5"
                   : "font-medium text-muted hover:bg-surface/60 hover:text-fg",
               )}
             >
               <Icon
                 className={cn(
                   "h-[18px] w-[18px] transition-colors",
-                  active ? "text-fg" : "text-faint group-hover:text-muted",
+                  active ? "text-white" : "text-faint group-hover:text-muted",
                 )}
               />
               <span className="flex-1">{item.label}</span>
@@ -80,9 +82,9 @@ export function DesktopSidebar({ viewer }: { viewer: Viewer | null }) {
         <Link
           href="/settings"
           className={cn(
-            "flex items-center gap-3 rounded-lg px-3.5 py-2.5 text-sm transition-colors",
+            "flex items-center gap-3 rounded-xl px-3.5 py-2.5 text-sm transition-colors",
             pathname === "/settings"
-              ? "bg-surface-2 font-semibold text-fg"
+              ? "bg-[#181826] font-semibold text-white ring-1 ring-white/5"
               : "font-medium text-muted hover:bg-surface/60 hover:text-fg",
           )}
         >
@@ -93,21 +95,21 @@ export function DesktopSidebar({ viewer }: { viewer: Viewer | null }) {
         {viewer ? (
           <Link
             href="/settings"
-            className="group flex items-center gap-3 rounded-lg border border-border-subtle bg-surface/60 p-2.5 transition-colors hover:bg-surface"
+            className="group flex items-center gap-2.5 rounded-xl border border-border-subtle bg-surface/50 p-2 transition-colors hover:border-border hover:bg-surface"
           >
             <div className="relative shrink-0">
               <UserAvatar email={viewer.email} />
-              <span className="absolute -bottom-0.5 -right-0.5 flex h-2 w-2">
-                <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-500 ring-2 ring-surface" />
-              </span>
             </div>
             <span className="min-w-0 flex-1">
-              <span className="block truncate text-[13px] font-semibold text-fg group-hover:text-accent-strong transition-colors">
-                {viewer.email ?? "Signed in"}
+              <span className="block truncate text-[12px] font-semibold text-fg transition-colors group-hover:text-accent-strong">
+                {username ?? viewer.email}
               </span>
-              <span className="mt-0.5 block text-[11px] text-faint">
-                Account & settings
+              <span className="block truncate text-[10px] text-faint">
+                {viewer.email}
               </span>
+            </span>
+            <span className="text-faint transition-transform group-hover:translate-x-0.5 group-hover:text-muted">
+              ›
             </span>
           </Link>
         ) : (
@@ -118,10 +120,6 @@ export function DesktopSidebar({ viewer }: { viewer: Viewer | null }) {
             Sign in to track
           </Link>
         )}
-
-        <p className="px-2 text-[11px] leading-relaxed text-faint">
-          Metadata from AniList. Library stays private to your account.
-        </p>
       </div>
     </aside>
   );
