@@ -18,7 +18,10 @@ async function safeLoad(
   try {
     return await load();
   } catch (error) {
-    console.error(`[home] could not load ${label}`, error);
+    console.error(
+      `[home] could not load ${label}:`,
+      error instanceof Error ? error.message : "unknown error",
+    );
     return null;
   }
 }
@@ -29,7 +32,10 @@ async function safeLoadSchedule(
   try {
     return await load();
   } catch (error) {
-    console.error("[home] could not load airing schedule", error);
+    console.error(
+      "[home] could not load airing schedule:",
+      error instanceof Error ? error.message : "unknown error",
+    );
     return null;
   }
 }

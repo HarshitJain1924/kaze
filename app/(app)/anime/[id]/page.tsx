@@ -78,11 +78,15 @@ export default async function AnimeDetailsPage({ params }: PageProps) {
   }
 
   let anime: Anime | null = null;
-  const catalogStatus = getCatalogService().getStatus();
+  const catalog = getCatalogService();
   try {
-    anime = await getCatalogService().getAnimeById(numericId);
+    anime = await catalog.getAnimeById(numericId);
   } catch (error) {
-    console.error("[anime] could not load details", numericId, error);
+    console.error(
+      "[anime] could not load details",
+      numericId,
+      error instanceof Error ? error.message : "unknown error",
+    );
     return (
       <div className="py-10">
         <Link
@@ -106,6 +110,9 @@ export default async function AnimeDetailsPage({ params }: PageProps) {
     notFound();
   }
 
+  // Read status after the lookup so the banner describes the source that
+  // actually answered this request.
+  const catalogStatus = catalog.getStatus();
   const cover = anime.coverImage.extraLarge ?? anime.coverImage.large;
   const startDate = formatAnimeDate(anime.startDate);
   const endDate = formatAnimeDate(anime.endDate);
@@ -147,12 +154,16 @@ export default async function AnimeDetailsPage({ params }: PageProps) {
       </div>
 
       <div className="mx-auto max-w-[1560px] px-4 sm:px-6 lg:px-10">
-        {catalogStatus.isSuspended ? (
+        {catalogStatus.degraded ? (
           <div className="mt-3 flex flex-wrap items-center justify-between gap-2 rounded-xl border border-amber-500/25 bg-amber-950/40 px-3.5 py-2 text-xs text-amber-200 backdrop-blur-sm">
             <span>
-              Offline resilience mode: Serving cached anime details. AniList is temporarily unavailable upstream.
+              {catalogStatus.isSuspended
+                ? "Offline resilience mode: AniList is temporarily suspended upstream. Showing the metadata that is still available."
+                : "Offline resilience mode: AniList is unavailable right now. Showing the metadata that is still available."}
             </span>
-            <span className="font-semibold text-amber-400">Library tracking operational</span>
+            <span className="font-semibold text-amber-400">
+              Library tracking operational
+            </span>
           </div>
         ) : null}
         <div className="-mt-20 flex flex-col gap-5 sm:-mt-24 sm:flex-row sm:gap-7">

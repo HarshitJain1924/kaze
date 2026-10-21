@@ -27,11 +27,6 @@ import {
   ANIME_DETAILS_QUERY,
   SEARCH_ANIME_QUERY,
 } from "./queries";
-import {
-  MetadataCache,
-  getMetadataCache,
-} from "@/services/catalog/metadata-cache";
-import { KitsuClient } from "@/services/catalog/kitsu-client";
 
 const ANILIST_ENDPOINT = "https://graphql.anilist.co";
 
@@ -58,16 +53,27 @@ export interface AniListClientOptions {
   maxRetries?: number;
   baseBackoffMs?: number;
   maxBackoffMs?: number;
+  /**
+   * Largest `Retry-After` delay this request is willing to wait for. Longer
+   * delays are surfaced to the caller immediately so a later request can
+   * retry, instead of holding a server request open.
+   */
+  maxRetryAfterMs?: number;
+  /** Total time this request may spend sleeping between attempts. */
+  retryBudgetMs?: number;
   sleep?: (ms: number) => Promise<void>;
   random?: () => number;
+  now?: () => number;
   circuitBreaker?: CircuitBreaker;
-  metadataCache?: MetadataCache;
-  kitsuClient?: KitsuClient;
 }
 
 interface CallOptions {
   ttlMs?: number;
 }
+
+type AttemptResult =
+  | { ok: true; data: unknown }
+  | { ok: false; error: AniListError; retryable: boolean };
 
 function isSuspensionMessage(msg?: string): boolean {
   if (!msg) return false;
@@ -78,6 +84,17 @@ function isSuspensionMessage(msg?: string): boolean {
     lower.includes("stability issues") ||
     lower.includes("service suspension") ||
     lower.includes("api has been disabled")
+  );
+}
+
+function isRateLimitMessage(msg?: string): boolean {
+  if (!msg) return false;
+  const lower = msg.toLowerCase();
+  return (
+    lower.includes("too many requests") ||
+    lower.includes("rate limit") ||
+    lower.includes("rate-limit") ||
+    lower.includes("ratelimit")
   );
 }
 
@@ -94,15 +111,29 @@ function defaultSleep(ms: number): Promise<void> {
   });
 }
 
-function parseRetryAfter(header: string | null, now: number): number | null {
+/**
+ * Parses both `Retry-After` forms defined by RFC 9110: delay-seconds and an
+ * HTTP-date. Returns milliseconds from `now`, or `null` when unusable.
+ */
+export function parseRetryAfter(
+  header: string | null,
+  now: number,
+): number | null {
   if (!header) {
     return null;
   }
-  const seconds = Number(header);
-  if (Number.isFinite(seconds) && seconds >= 0) {
-    return Math.round(seconds * 1000);
+  const value = header.trim();
+  if (value === "") {
+    return null;
   }
-  const date = Date.parse(header);
+
+  // delay-seconds (integers only; a date never parses cleanly as one).
+  if (/^\d+$/.test(value)) {
+    const seconds = Number(value);
+    return Number.isFinite(seconds) ? seconds * 1000 : null;
+  }
+
+  const date = Date.parse(value);
   if (Number.isFinite(date)) {
     return Math.max(0, date - now);
   }
@@ -132,11 +163,12 @@ export class AniListClient {
   private readonly maxRetries: number;
   private readonly baseBackoffMs: number;
   private readonly maxBackoffMs: number;
+  private readonly maxRetryAfterMs: number;
+  private readonly retryBudgetMs: number;
   private readonly sleep: (ms: number) => Promise<void>;
   private readonly random: () => number;
+  private readonly now: () => number;
   readonly circuitBreaker: CircuitBreaker;
-  private readonly metadataCache: MetadataCache;
-  private readonly kitsuClient: KitsuClient;
 
   constructor(options: AniListClientOptions = {}) {
     this.endpoint = options.endpoint ?? ANILIST_ENDPOINT;
@@ -144,11 +176,14 @@ export class AniListClient {
     this.cache =
       options.cache ?? new TtlCache<unknown>(options.cacheMaxEntries ?? 250);
     this.timeoutMs = options.timeoutMs ?? 12_000;
-    this.maxRetries = options.maxRetries ?? 2;
+    this.maxRetries = Math.max(0, options.maxRetries ?? 2);
     this.baseBackoffMs = options.baseBackoffMs ?? 400;
     this.maxBackoffMs = options.maxBackoffMs ?? 8_000;
+    this.maxRetryAfterMs = options.maxRetryAfterMs ?? 5_000;
+    this.retryBudgetMs = options.retryBudgetMs ?? 8_000;
     this.sleep = options.sleep ?? defaultSleep;
     this.random = options.random ?? Math.random.bind(Math);
+    this.now = options.now ?? Date.now.bind(Date);
 
     this.circuitBreaker =
       options.circuitBreaker ??
@@ -160,16 +195,6 @@ export class AniListClient {
           err instanceof AniListSuspendedError ||
           (err instanceof AniListError &&
             (err.isSuspended || err.status === 403)),
-      });
-    this.metadataCache =
-      options.metadataCache ??
-      (options.fetchImpl
-        ? new MetadataCache({ cacheDir: "" })
-        : getMetadataCache());
-    this.kitsuClient =
-      options.kitsuClient ??
-      new KitsuClient({
-        fetchImpl: this.fetchImpl,
       });
   }
 
@@ -214,149 +239,204 @@ export class AniListClient {
     return request as Promise<T>;
   }
 
+  /**
+   * One upstream request lifecycle: acquire a circuit permit, run the bounded
+   * retry loop, then record the outcome exactly once.
+   */
   private async send(
     query: string,
     variables: Record<string, unknown>,
   ): Promise<unknown> {
-    if (this.circuitBreaker.isOpen()) {
+    if (!this.circuitBreaker.tryAcquire()) {
       throw new CircuitBreakerOpenError(
         this.circuitBreaker.serviceName,
-        this.circuitBreaker.getState().nextProbeAt ?? Date.now(),
+        this.circuitBreaker.getState().nextProbeAt ?? this.now(),
       );
     }
 
+    try {
+      const data = await this.sendWithRetries(query, variables);
+      this.circuitBreaker.recordSuccess();
+      return data;
+    } catch (error) {
+      this.circuitBreaker.recordFailure(error);
+      throw error;
+    }
+  }
+
+  private async sendWithRetries(
+    query: string,
+    variables: Record<string, unknown>,
+  ): Promise<unknown> {
     let lastError: AniListError | null = null;
+    let sleptMs = 0;
 
     for (let attempt = 0; attempt <= this.maxRetries; attempt += 1) {
-      try {
-        const response = await this.fetchImpl(this.endpoint, {
-          method: "POST",
-          headers: {
-            "content-type": "application/json",
-            accept: "application/json",
-          },
-          body: JSON.stringify({ query, variables }),
-          signal: AbortSignal.timeout(this.timeoutMs),
-          cache: "no-store",
-        });
-
-        // Upstream suspension check: HTTP 403
-        if (response.status === 403) {
-          const errMsg = await readErrorMessage(response);
-          const suspendedErr = new AniListSuspendedError(errMsg);
-          this.circuitBreaker.recordFailure(suspendedErr);
-          throw suspendedErr;
-        }
-
-        if (response.status === 429 || response.status >= 500) {
-          const retryAfter = parseRetryAfter(
-            response.headers.get("retry-after"),
-            Date.now(),
-          );
-          lastError = new AniListError(
-            response.status === 429
-              ? "AniList rate limit reached"
-              : "AniList is temporarily unavailable",
-            { status: response.status, retryAfterMs: retryAfter },
-          );
-          if (attempt < this.maxRetries) {
-            await this.sleep(
-              Math.min(
-                retryAfter ?? this.backoffDelay(attempt),
-                this.maxBackoffMs,
-              ),
-            );
-            continue;
-          }
-          this.circuitBreaker.recordFailure(lastError);
-          throw lastError;
-        }
-
-        if (!response.ok) {
-          const errMsg = await readErrorMessage(response);
-          if (isSuspensionMessage(errMsg)) {
-            const suspendedErr = new AniListSuspendedError(errMsg);
-            this.circuitBreaker.recordFailure(suspendedErr);
-            throw suspendedErr;
-          }
-          const err = new AniListError(errMsg, {
-            status: response.status,
-          });
-          this.circuitBreaker.recordFailure(err);
-          throw err;
-        }
-
-        let payload: GraphQLPayload;
-        try {
-          payload = (await response.json()) as GraphQLPayload;
-        } catch (error) {
-          const err = new AniListError("AniList returned invalid JSON", {
-            status: response.status,
-            cause: error,
-          });
-          this.circuitBreaker.recordFailure(err);
-          throw err;
-        }
-
-        const errors = payload.errors ?? [];
-        if (errors.length > 0 && payload.data == null) {
-          const firstMsg = errors[0]?.message ?? "AniList rejected the request";
-          if (isSuspensionMessage(firstMsg)) {
-            const suspendedErr = new AniListSuspendedError(firstMsg);
-            this.circuitBreaker.recordFailure(suspendedErr);
-            throw suspendedErr;
-          }
-          const err = new AniListError(firstMsg, { status: response.status });
-          this.circuitBreaker.recordFailure(err);
-          throw err;
-        }
-        if (payload.data == null) {
-          const err = new AniListError("AniList returned no data", {
-            status: response.status,
-          });
-          this.circuitBreaker.recordFailure(err);
-          throw err;
-        }
-
-        this.circuitBreaker.recordSuccess();
-        return payload.data;
-      } catch (error) {
-        if (error instanceof AniListError && !this.isRetryable(error)) {
-          this.circuitBreaker.recordFailure(error);
-          throw error;
-        }
-        lastError =
-          error instanceof AniListError
-            ? error
-            : new AniListError("Could not reach AniList", { cause: error });
-
-        if (attempt >= this.maxRetries) {
-          this.circuitBreaker.recordFailure(lastError);
-          throw lastError;
-        }
-        await this.sleep(
-          Math.min(
-            lastError.retryAfterMs ?? this.backoffDelay(attempt),
-            this.maxBackoffMs,
-          ),
-        );
+      const result = await this.attempt(query, variables);
+      if (result.ok) {
+        return result.data;
       }
+
+      lastError = result.error;
+
+      if (!result.retryable || attempt >= this.maxRetries) {
+        throw lastError;
+      }
+
+      const delay = this.retryDelay(lastError, attempt);
+      if (delay === null) {
+        // The server asked for a longer pause than this request can afford.
+        // Surface the rate limit now and let a later request retry.
+        throw lastError;
+      }
+      if (sleptMs + delay > this.retryBudgetMs) {
+        throw lastError;
+      }
+
+      sleptMs += delay;
+      await this.sleep(delay);
     }
 
-    if (lastError) {
-      this.circuitBreaker.recordFailure(lastError);
-    }
     throw lastError ?? new AniListError("AniList request failed");
   }
 
-  private isRetryable(error: AniListError): boolean {
-    if (error.isSuspended || error.status === 403) {
-      return false; // NEVER RETRY A SUSPENDED SERVICE!
+  /**
+   * Honours `Retry-After` exactly. Returns `null` when the requested delay is
+   * beyond the practical waiting budget; callers must never shorten it.
+   */
+  private retryDelay(error: AniListError, attempt: number): number | null {
+    if (error.retryAfterMs !== null) {
+      return error.retryAfterMs > this.maxRetryAfterMs
+        ? null
+        : error.retryAfterMs;
     }
-    if (error.status === null) {
-      return true;
+    return this.backoffDelay(attempt);
+  }
+
+  /** Performs one HTTP attempt and classifies the response. */
+  private async attempt(
+    query: string,
+    variables: Record<string, unknown>,
+  ): Promise<AttemptResult> {
+    let response: Response;
+    try {
+      response = await this.fetchImpl(this.endpoint, {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          accept: "application/json",
+        },
+        body: JSON.stringify({ query, variables }),
+        signal: AbortSignal.timeout(this.timeoutMs),
+        cache: "no-store",
+      });
+    } catch (cause) {
+      // Network failure, DNS error or timeout: transient, bounded retries.
+      return {
+        ok: false,
+        error: new AniListError("Could not reach AniList", { cause }),
+        retryable: true,
+      };
     }
-    return error.status === 429 || error.status >= 500;
+
+    // A confirmed suspension: never retried in a tight loop.
+    if (response.status === 403) {
+      const message = await readErrorMessage(response);
+      return {
+        ok: false,
+        error: new AniListSuspendedError(message),
+        retryable: false,
+      };
+    }
+
+    if (response.status === 429 || response.status >= 500) {
+      const retryAfterMs = parseRetryAfter(
+        response.headers.get("retry-after"),
+        this.now(),
+      );
+      return {
+        ok: false,
+        error: new AniListError(
+          response.status === 429
+            ? "AniList rate limit reached"
+            : "AniList is temporarily unavailable",
+          { status: response.status, retryAfterMs },
+        ),
+        retryable: true,
+      };
+    }
+
+    if (!response.ok) {
+      const message = await readErrorMessage(response);
+      // AniList reports API disablement as 403, but some proxies return a
+      // GraphQL error with a different status; treat the message as canonical.
+      if (isSuspensionMessage(message)) {
+        return {
+          ok: false,
+          error: new AniListSuspendedError(message),
+          retryable: false,
+        };
+      }
+      return {
+        ok: false,
+        error: new AniListError(message, { status: response.status }),
+        retryable: false,
+      };
+    }
+
+    let payload: GraphQLPayload;
+    try {
+      payload = (await response.json()) as GraphQLPayload;
+    } catch (cause) {
+      return {
+        ok: false,
+        error: new AniListError("AniList returned invalid JSON", {
+          status: response.status,
+          cause,
+        }),
+        retryable: false,
+      };
+    }
+
+    const errors = payload.errors ?? [];
+
+    if (errors.length > 0 && payload.data == null) {
+      const firstMsg = errors[0]?.message ?? "AniList rejected the request";
+
+      if (isSuspensionMessage(firstMsg)) {
+        return {
+          ok: false,
+          error: new AniListSuspendedError(firstMsg),
+          retryable: false,
+        };
+      }
+
+      if (isRateLimitMessage(firstMsg)) {
+        return {
+          ok: false,
+          error: new AniListError(firstMsg, { status: 429 }),
+          retryable: true,
+        };
+      }
+
+      return {
+        ok: false,
+        error: new AniListError(firstMsg, { status: response.status }),
+        retryable: false,
+      };
+    }
+
+    if (payload.data == null) {
+      return {
+        ok: false,
+        error: new AniListError("AniList returned no data", {
+          status: response.status,
+        }),
+        retryable: false,
+      };
+    }
+
+    return { ok: true, data: payload.data };
   }
 
   async searchAnime(
@@ -370,41 +450,6 @@ export class AniListClient {
       MAX_PER_PAGE,
     );
     const search = params.query?.trim();
-
-    // Outage resilience: check circuit breaker
-    if (this.circuitBreaker.isOpen()) {
-      if (search) {
-        const kitsuItems = await this.kitsuClient.searchAnime(search, perPage);
-        if (kitsuItems.length > 0) {
-          this.metadataCache.putSummaries(kitsuItems);
-          return {
-            pageInfo: {
-              currentPage: page,
-              lastPage: 1,
-              hasNextPage: false,
-              total: kitsuItems.length,
-            },
-            items: kitsuItems,
-          };
-        }
-        const localMatches = this.metadataCache.searchLocal(search, perPage);
-        if (localMatches.length > 0) {
-          return {
-            pageInfo: {
-              currentPage: page,
-              lastPage: 1,
-              hasNextPage: false,
-              total: localMatches.length,
-            },
-            items: localMatches,
-          };
-        }
-      }
-      throw new CircuitBreakerOpenError(
-        this.circuitBreaker.serviceName,
-        this.circuitBreaker.getState().nextProbeAt ?? Date.now(),
-      );
-    }
 
     const variables = {
       page,
@@ -423,9 +468,7 @@ export class AniListClient {
       options.ttlMs ?? TTL.search,
     );
 
-    const mapped = mapAnimePage(data.Page, page);
-    this.metadataCache.putSummaries(mapped.items);
-    return mapped;
+    return mapAnimePage(data.Page, page);
   }
 
   async getAnimeById(
@@ -462,8 +505,6 @@ export class AniListClient {
     if (!anime) {
       throw new AniListError("AniList returned unreadable anime details");
     }
-    this.metadataCache.putDetails(anime);
-    this.metadataCache.putSummary(anime);
     return anime;
   }
 
@@ -487,7 +528,6 @@ export class AniListClient {
       for (const summary of summaries) {
         result.set(summary.id, summary);
       }
-      this.metadataCache.putSummaries(summaries);
     }
 
     return result;

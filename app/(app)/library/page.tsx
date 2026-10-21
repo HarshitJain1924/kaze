@@ -27,7 +27,10 @@ async function loadSeasonPicks(): Promise<AnimeSummary[]> {
     });
     return page.items;
   } catch (error) {
-    console.error("[library] could not load seasonal suggestions", error);
+    console.error(
+      "[library] could not load seasonal suggestions:",
+      error instanceof Error ? error.message : "unknown error",
+    );
     return [];
   }
 }

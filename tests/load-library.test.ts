@@ -72,6 +72,61 @@ describe("loadLibraryItems error resilience", () => {
     expect(items[0]!.watchedEpisodes).toEqual([1, 3]);
   });
 
+  it("keeps entries visible and editable when catalogue metadata is unavailable", async () => {
+    const entry: LibraryEntry = {
+      id: "e2",
+      userId: "u1",
+      anilistId: 300,
+      status: "completed",
+      progress: 24,
+      score: 8,
+      startedAt: "2025-12-01",
+      completedAt: "2026-02-01",
+      notes: "Great finale",
+      createdAt: "2025-12-01T00:00:00Z",
+      updatedAt: "2026-02-01T00:00:00Z",
+    };
+    mockList.mockResolvedValue([entry]);
+    mockListEpisodes.mockResolvedValue([]);
+    // Catalogue outage: no summaries resolve at all.
+    mockGetAnimeByIds.mockResolvedValue(new Map());
+
+    const items = await loadLibraryItems("u1");
+
+    expect(items).toHaveLength(1);
+    expect(items[0]!.anime).toBeNull();
+    expect(items[0]!.entry).toEqual(entry);
+    expect(items[0]!.entry.score).toBe(8);
+    expect(items[0]!.entry.notes).toBe("Great finale");
+    expect(items[0]!.entry.completedAt).toBe("2026-02-01");
+    expect(items[0]!.watchedEpisodes).toEqual([]);
+  });
+
+  it("preserves entries when metadata hydration throws", async () => {
+    const entry: LibraryEntry = {
+      id: "e3",
+      userId: "u1",
+      anilistId: 400,
+      status: "watching",
+      progress: 5,
+      score: null,
+      startedAt: null,
+      completedAt: null,
+      notes: null,
+      createdAt: "2026-01-01T00:00:00Z",
+      updatedAt: "2026-01-01T00:00:00Z",
+    };
+    mockList.mockResolvedValue([entry]);
+    mockListEpisodes.mockResolvedValue([]);
+    mockGetAnimeByIds.mockRejectedValue(new Error("catalogue unavailable"));
+
+    const items = await loadLibraryItems("u1");
+
+    expect(items).toHaveLength(1);
+    expect(items[0]!.anime).toBeNull();
+    expect(items[0]!.entry.progress).toBe(5);
+  });
+
   it("preserves entry progress without falsifying empty watched history if listEpisodes fails", async () => {
     const entry: LibraryEntry = {
       id: "e1",

@@ -6,6 +6,7 @@ import {
   toAnimeSearchParams,
 } from "@/lib/validation/anime";
 import { getCatalogService } from "@/services/catalog/catalog-service";
+import { CatalogUnavailableError } from "@/services/catalog/errors";
 import {
   AniListError,
   AniListSuspendedError,
@@ -14,7 +15,9 @@ import {
 
 /**
  * Server-side proxy for anime search with outage resilience.
- * Uses CatalogService which coordinates primary AniList, fallback Kitsu, and local cache.
+ * CatalogueService coordinates primary AniList, verified Kitsu fallback and
+ * cached metadata. A failed catalogue is reported as unavailable — never as a
+ * successful empty result.
  */
 export async function GET(request: Request) {
   try {
@@ -25,10 +28,14 @@ export async function GET(request: Request) {
 
     const status = catalog.getStatus();
     const headers: Record<string, string> = {
-      "cache-control": "public, s-maxage=60, stale-while-revalidate=300",
+      "x-catalog-provider": status.activeProvider,
     };
-    if (status.isSuspended) {
-      headers["x-catalog-fallback"] = status.activeProvider;
+    if (status.degraded) {
+      headers["x-catalog-degraded"] = "1";
+      headers["cache-control"] = "private, max-age=0, must-revalidate";
+    } else {
+      headers["cache-control"] =
+        "public, s-maxage=60, stale-while-revalidate=300";
     }
 
     return NextResponse.json(page, { headers });
@@ -43,6 +50,22 @@ export async function GET(request: Request) {
       );
     }
 
+    if (error instanceof CatalogUnavailableError) {
+      const headers: Record<string, string> = {};
+      if (error.retryAfterMs !== null && error.retryAfterMs > 0) {
+        headers["retry-after"] = String(
+          Math.max(1, Math.ceil(error.retryAfterMs / 1000)),
+        );
+      }
+      return NextResponse.json(
+        { error: error.userMessage, code: error.code },
+        {
+          status: error.reason === "rate_limited" ? 429 : 503,
+          headers,
+        },
+      );
+    }
+
     if (
       error instanceof AniListSuspendedError ||
       error instanceof CircuitBreakerOpenError
@@ -50,7 +73,7 @@ export async function GET(request: Request) {
       return NextResponse.json(
         {
           error:
-            "The AniList API has been temporarily disabled due to severe stability issues. Showing available cached titles.",
+            "The anime catalogue provider is temporarily unavailable. Your library and progress are unaffected.",
           code: "upstream_suspended",
         },
         { status: 503 },
@@ -58,28 +81,42 @@ export async function GET(request: Request) {
     }
 
     if (error instanceof AniListError) {
-      const isSuspended = error.isSuspended || error.status === 403;
-      const status = error.status === 429 ? 429 : isSuspended ? 503 : 502;
+      // Preserve the rate-limit signal; never surface provider internals.
+      const headers: Record<string, string> = {};
+      if (error.status === 429) {
+        if (error.retryAfterSeconds !== null) {
+          headers["retry-after"] = String(
+            Math.max(1, error.retryAfterSeconds),
+          );
+        }
+        return NextResponse.json(
+          {
+            error:
+              "The anime catalogue is rate limiting requests. Please try again in a moment.",
+            code: "rate_limited",
+          },
+          { status: 429, headers },
+        );
+      }
+
+      console.error("[api/anime/search] upstream catalogue failure", {
+        status: error.status,
+        suspended: error.isSuspended,
+      });
       return NextResponse.json(
         {
           error:
-            status === 429
-              ? "AniList is rate limiting requests. Please retry in a moment."
-              : isSuspended
-                ? "The AniList API is temporarily suspended upstream."
-                : error.message,
-          code:
-            status === 429
-              ? "rate_limited"
-              : isSuspended
-                ? "upstream_suspended"
-                : "upstream_error",
+            "The anime catalogue is temporarily unavailable. Your library and progress are unaffected.",
+          code: "upstream_error",
         },
-        { status },
+        { status: 502 },
       );
     }
 
-    console.error("[api/anime/search] unexpected failure", error);
+    console.error(
+      "[api/anime/search] unexpected failure",
+      error instanceof Error ? error.message : "unknown error",
+    );
     return NextResponse.json(
       { error: "Could not load anime right now.", code: "unexpected_error" },
       { status: 500 },

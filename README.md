@@ -42,6 +42,7 @@ require Supabase. The login screen shows a setup notice when it is missing.
 | `NEXT_PUBLIC_SUPABASE_URL` | for accounts | `https://<project-ref>.supabase.co` |
 | `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | for accounts | Publishable/anon key. Never use a secret or service-role key in a `NEXT_PUBLIC_` variable. |
 | `NEXT_PUBLIC_SITE_URL` | recommended | Public origin used for metadata and auth email links, e.g. `https://kaze.example.com`. |
+| `SUPABASE_SERVICE_ROLE_KEY` | optional | Server-only secret key used to persist public catalogue metadata in `catalog_cache`. Never expose it with a `NEXT_PUBLIC_` name. Without it the catalogue cache is in-memory only. |
 
 `.env.example` contains placeholders only. Real credentials are never committed.
 
@@ -50,9 +51,9 @@ require Supabase. The login screen shows a setup notice when it is missing.
 1. Create a project at <https://supabase.com>.
 2. Copy the Project URL and the **publishable (anon)** key from
    **Project Settings → API** into `.env.local`.
-3. Apply the migration in `supabase/migrations/20261018000000_create_user_anime.sql`.
-   Either:
-   - paste the file into the Supabase SQL editor and run it, or
+3. Apply the migrations in `supabase/migrations/` (library tables and the
+   shared `catalog_cache` table). Either:
+   - paste the files into the Supabase SQL editor and run them in order, or
    - use the Supabase CLI: `supabase link --project-ref <ref>` then
      `supabase db push`.
 4. In **Authentication → Providers → Email**, keep email/password enabled.
@@ -131,7 +132,8 @@ features/anime/          discover browser, details actions
 features/library/        provider, hydration, cards, list, dialogs
 features/stats/          pure statistics calculation and view
 features/settings/       settings screen and exports
-services/anilist/        GraphQL documents, schemas, mapping, client
+services/anilist/        GraphQL documents, schemas, mapping, client, circuit breaker
+services/catalog/        catalogue fallback, metadata cache, Kitsu client
 repositories/            library store + repository rules
 lib/supabase/            browser/server clients and config
 lib/validation/          Zod schemas shared by UI and API routes
@@ -149,13 +151,81 @@ tests/                   Vitest suites
 - bounds and caches requests in-memory (search 60s, lists 5min, details 10min,
   LRU capped at 250 entries);
 - deduplicates concurrent identical queries;
-- retries HTTP 429 and 5xx with `Retry-After` support and exponential backoff
-  (two retries by default, 12s timeout);
+- retries only transient failures (network errors, timeouts, HTTP 429 and
+  5xx) within a bounded policy: two retries, exponential backoff, and an
+  overall 8s sleeping budget;
+- honours `Retry-After` exactly (both delay-seconds and HTTP-date forms). If
+  the requested delay exceeds the request's budget it returns the rate-limit
+  error immediately so a later request retries instead of holding the
+  connection open;
+- never retries a confirmed suspension or HTTP 403, and never retries
+  non-retryable 4xx client errors;
+- records one failure per request (not per retry) and keeps the circuit
+  breaker's half-open state to a single probe request;
 - handles GraphQL errors, invalid JSON, missing media and malformed entries;
 - skips individual unreadable entries a page while failing loudly if an entire
   page is unusable;
 - defaults missing/unknown episode counts to `null` — progress is never bounded
   by fabricated totals.
+
+The client only talks to AniList. Provider fallback lives in
+`services/catalog/catalog-service.ts`, so a Kitsu or cached response is never
+reported as if it came from AniList.
+
+### Catalogue outage resilience
+
+`services/catalog/` coordinates every catalogue read:
+
+- **AniList** is the primary provider while its circuit is closed.
+- **Fresh cache** is served without a provider request when it is still valid.
+- **Stale cache** is served only during an outage and is always flagged as a
+  fallback (`CatalogProviderStatus.degraded`), never presented as live data.
+- **Kitsu** is used only when a verified `anilist/anime` mapping exists. A
+  missing or ambiguous mapping never produces a guessed AniList ID, and Kitsu
+  IDs are never stored in library records.
+- **Unavailable** is a first-class state: the API returns 503 with a clear
+  message instead of a fake empty result set.
+
+`services/catalog/metadata-cache.ts` models three states explicitly:
+
+| Kind | Fresh | Stale fallback kept |
+| --- | --- | --- |
+| summaries | 12h | +30 days |
+| details | 6h | +30 days |
+| popular / trending | 30m | +7 days |
+| seasonal | 6h | +30 days |
+
+After the stale window the entry is deleted. Entries are bounded in memory
+(2,000 summaries, 300 details, 48 collections) with oldest-first eviction, so
+the cache cannot grow without limit. Corrupt or incomplete persisted records
+are dropped and logged instead of being served.
+
+Cache contents are public provider metadata only. User-owned library entries
+and episode progress are never written to the catalogue cache.
+
+#### Cache persistence
+
+When `SUPABASE_SERVICE_ROLE_KEY` is configured, the cache hydrates from and
+persists to the `public.catalog_cache` table through a server-only Supabase
+client. The table is logically separate from `user_anime` and
+`user_anime_episodes`, has RLS enabled with no policies for `anon` or
+`authenticated`, and only the service role can read or write it.
+
+Limitations to be explicit about:
+
+- There is **no filesystem persistence**. Vercel serverless functions have an
+  ephemeral, per-instance filesystem, so writing `.cache/catalog` there is not
+  durable. The previous file-based cache has been removed and any leftover
+  `.cache/catalog` files are no longer read.
+- Without the service-role key the cache is **in-memory and best-effort**. It
+  improves behaviour within a warm instance but is not shared across instances
+  or regions and is lost on cold starts.
+- Persistence writes are batched and best-effort. A failed cache write is
+  logged and never fails the catalogue request; the data still serves from
+  memory for that instance.
+- The airing schedule has no safe cached substitute and reports an unavailable
+  state during an outage. Library, ratings, notes and episode progress keep
+  working because they live in Supabase.
 
 The browser never calls AniList directly for search: `/api/anime/search`
 validates filters with Zod, applies caching headers, and converts failures into
@@ -213,11 +283,15 @@ watch time, streaks or historical trends.
 
 1. Push the repository to GitHub and import it into Vercel.
 2. Add the environment variables from `.env.example` to Production and Preview.
-   Set `NEXT_PUBLIC_SITE_URL` to the production origin.
-3. Run the Supabase migration against the production project.
+   Set `NEXT_PUBLIC_SITE_URL` to the production origin. Add
+   `SUPABASE_SERVICE_ROLE_KEY` if you want the shared durable catalogue cache.
+3. Run the Supabase migrations against the production project, including
+   `20261021000000_create_catalog_cache.sql`.
 4. Add the production origin and `/auth/callback` URLs to Supabase Auth redirect
    URLs.
 5. Deploy. `next build` is the build command; no separate backend is required.
+
+No cache directory or writable volume is required on Vercel.
 6. Verify `/manifest.webmanifest`, `/icons/*`, sign-in, and a library update in
    the deployed environment.
 

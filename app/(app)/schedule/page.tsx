@@ -35,7 +35,10 @@ export default async function SchedulePage({
         .filter((item) => item.entry.status === "watching")
         .map((item) => item.entry.anilistId);
     } catch (err) {
-      console.error("[schedule] could not load user watching list", err);
+      console.error(
+        "[schedule] could not load user watching list:",
+        err instanceof Error ? err.message : "unknown error",
+      );
     }
   }
 
@@ -48,7 +51,10 @@ export default async function SchedulePage({
       airingAtLesser: week.queryAiringAtLesser,
     });
   } catch (error) {
-    console.error("[schedule] could not load airing schedule", error);
+    console.error(
+      "[schedule] could not load airing schedule:",
+      error instanceof Error ? error.message : "unknown error",
+    );
     loadError = true;
   }
 
@@ -56,8 +62,8 @@ export default async function SchedulePage({
     return (
       <div className="py-6">
         <ErrorState
-          title="Could not load weekly schedule"
-          message="AniList schedule service could not be reached. Please check your connection and try again."
+          title="Weekly schedule is temporarily unavailable"
+          message="The AniList schedule could not be reached. Your library, ratings and episode progress are unaffected — try again in a moment."
           action={<RetryButton />}
         />
       </div>

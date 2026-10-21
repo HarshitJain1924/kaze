@@ -340,6 +340,20 @@ describe("LibraryRepository", () => {
     expect(revertedResult.entry.completedAt).toBeNull();
   });
 
+  it("never completes an entry when the episode total is unknown", async () => {
+    const repository = new LibraryRepository(new MemoryStore());
+    await repository.add("user-1", { anilistId: 905, status: "watching" });
+
+    await repository.toggleEpisode("user-1", 905, 1, true, null);
+    const result = await repository.toggleEpisode("user-1", 905, 2, true, null);
+
+    // A missing catalogue total must not imply a false completion.
+    expect(result.entry.status).toBe("watching");
+    expect(result.entry.completedAt).toBeNull();
+    expect(result.entry.progress).toBe(2);
+    expect(result.watchedEpisodes).toEqual([1, 2]);
+  });
+
   it("marks all episodes and clears all episodes", async () => {
     const repository = new LibraryRepository(new MemoryStore());
     await repository.add("user-1", { anilistId: 903, status: "watching" });

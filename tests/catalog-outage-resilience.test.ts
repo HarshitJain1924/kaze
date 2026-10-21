@@ -3,283 +3,525 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 vi.mock("server-only", () => ({}));
 
 import { AniListClient } from "@/services/anilist/client";
-import {
-  AniListError,
-  AniListSuspendedError,
-  CircuitBreakerOpenError,
-} from "@/services/anilist/errors";
 import { CircuitBreaker } from "@/services/anilist/circuit-breaker";
-import { MetadataCache } from "@/services/catalog/metadata-cache";
-import { KitsuClient } from "@/services/catalog/kitsu-client";
 import { CatalogService } from "@/services/catalog/catalog-service";
-import type { AnimeSummary } from "@/types/anime";
+import { CatalogUnavailableError } from "@/services/catalog/errors";
+import { KitsuClient } from "@/services/catalog/kitsu-client";
+import type { MetadataCache } from "@/services/catalog/metadata-cache";
 import type { LibraryEntry } from "@/types/library";
 
-describe("Phase 6: Catalog Outage Resilience & Verification", () => {
+import {
+  anilistDetailsResponse,
+  anilistPageResponse,
+  createTestCache,
+  jsonResponse,
+  kitsuMappingResponse,
+  kitsuSearchResponse,
+  makeSummary,
+  suspensionResponse,
+} from "./helpers/catalog-fixtures";
+
+const HOUR = 60 * 60 * 1000;
+
+interface CatalogHarnessOptions {
+  cache?: MetadataCache;
+  circuitBreaker?: CircuitBreaker;
+  fetchImpl?: ReturnType<typeof vi.fn>;
+  kitsuFetch?: ReturnType<typeof vi.fn>;
+  now?: () => number;
+  maxRetries?: number;
+}
+
+function createCatalog(options: CatalogHarnessOptions = {}) {
+  const fetchImpl =
+    options.fetchImpl ??
+    vi.fn(async () => anilistPageResponse([]));
+  const kitsuFetch =
+    options.kitsuFetch ??
+    vi.fn(async () => jsonResponse({ data: [], meta: { count: 0 } }));
+
+  const cache = options.cache ?? createTestCache();
+  const anilistClient = new AniListClient({
+    fetchImpl: fetchImpl as unknown as typeof fetch,
+    circuitBreaker: options.circuitBreaker,
+    maxRetries: options.maxRetries ?? 0,
+    sleep: async () => {},
+    random: () => 0,
+    baseBackoffMs: 1,
+    maxBackoffMs: 10,
+    timeoutMs: 1000,
+    now: options.now,
+  });
+  const kitsuClient = new KitsuClient({
+    fetchImpl: kitsuFetch as unknown as typeof fetch,
+    timeoutMs: 1000,
+  });
+
+  return {
+    catalog: new CatalogService({
+      anilistClient,
+      metadataCache: cache,
+      kitsuClient,
+      now: options.now,
+    }),
+    cache,
+    fetchImpl,
+    kitsuFetch,
+  };
+}
+
+function emptyKitsu() {
+  return vi.fn(async () => jsonResponse({ data: [], meta: { count: 0 } }));
+}
+
+describe("Catalogue outage resilience", () => {
   beforeEach(() => {
     vi.restoreAllMocks();
   });
 
-  describe("1. AniList 403 suspension handling", () => {
-    it("detects suspension error, prevents tight-loop retries, and trips circuit breaker", async () => {
+  describe("AniList suspension and rate limits", () => {
+    it("does not retry a confirmed suspension and reports it accurately", async () => {
       const circuitBreaker = new CircuitBreaker({ cooldownMs: 5000 });
       let fetchCallCount = 0;
-
-      const fetchMock = vi.fn().mockImplementation(async () => {
+      const fetchMock = vi.fn(async () => {
         fetchCallCount += 1;
-        return new Response(
-          JSON.stringify({
-            errors: [
-              {
-                message:
-                  "The AniList API has been temporarily disabled due to severe stability issues.",
-                status: 403,
-              },
-            ],
-            data: null,
-          }),
-          {
-            status: 403,
-            statusText: "Forbidden",
-            headers: { "content-type": "application/json" },
-          },
-        );
+        return suspensionResponse();
       });
 
-      const client = new AniListClient({
-        fetchImpl: fetchMock as unknown as typeof fetch,
+      const { catalog } = createCatalog({
+        fetchImpl: fetchMock,
         circuitBreaker,
-        maxRetries: 3, // Should NOT retry 403 suspensions
+        maxRetries: 3,
+        kitsuFetch: emptyKitsu(),
       });
 
-      await expect(client.getAnimeById(154587)).rejects.toThrow(
-        AniListSuspendedError,
+      await expect(catalog.getAnimeById(154587)).rejects.toBeInstanceOf(
+        CatalogUnavailableError,
       );
 
-      // Crucial: Must NOT perform tight-loop retries on suspension
+      // A suspension must never be retried in a tight loop.
       expect(fetchCallCount).toBe(1);
-
-      // Circuit breaker must immediately trip to OPEN
-      expect(circuitBreaker.isOpen()).toBe(true);
       expect(circuitBreaker.getState().state).toBe("OPEN");
 
-      // Immediate subsequent call must be rejected by circuit breaker without network request
-      await expect(client.getAnimeById(154587)).rejects.toThrow(
-        CircuitBreakerOpenError,
-      );
-      expect(fetchCallCount).toBe(1); // Still exactly 1!
-    });
-  });
+      const status = catalog.getStatus();
+      expect(status.isSuspended).toBe(true);
+      expect(status.circuitBreakerState).toBe("OPEN");
+      // Nothing answered, so the provider is unavailable — not Kitsu.
+      expect(status.activeProvider).toBe("unavailable");
 
-  describe("2. HTTP 429 rate limit with Retry-After", () => {
-    it("parses Retry-After header and respects rate limit backoff", async () => {
-      const fetchMock = vi.fn().mockResolvedValue(
-        new Response(
-          JSON.stringify({
-            errors: [{ message: "Too Many Requests", status: 429 }],
-          }),
-          {
+      await expect(catalog.getAnimeById(154587)).rejects.toBeInstanceOf(
+        CatalogUnavailableError,
+      );
+      expect(fetchCallCount).toBe(1);
+    });
+
+    it("surfaces a rate-limit reason when the retry budget is exhausted", async () => {
+      const circuitBreaker = new CircuitBreaker({ failureThreshold: 5 });
+      const fetchMock = vi.fn(
+        async () =>
+          new Response("", {
             status: 429,
-            headers: {
-              "retry-after": "5",
-              "content-type": "application/json",
-            },
-          },
-        ),
+            headers: { "retry-after": "120" },
+          }),
       );
 
-      const client = new AniListClient({
-        fetchImpl: fetchMock as unknown as typeof fetch,
-        maxRetries: 0,
-      });
-
-      try {
-        await client.getAnimeById(100);
-        expect.unreachable("Should have thrown rate limit error");
-      } catch (err) {
-        expect(err).toBeInstanceOf(AniListError);
-        const anilistErr = err as AniListError;
-        expect(anilistErr.status).toBe(429);
-        expect(anilistErr.retryAfterSeconds).toBe(5);
-        expect(anilistErr.isRateLimited).toBe(true);
-      }
-    });
-  });
-
-  describe("3. Transient server failure with bounded retries", () => {
-    it("retries transient 500 errors up to bounded limit with backoff and stops", async () => {
-      let fetchAttempts = 0;
-      const fetchMock = vi.fn().mockImplementation(async () => {
-        fetchAttempts += 1;
-        return new Response(
-          JSON.stringify({
-            errors: [{ message: "Internal server error", status: 500 }],
-          }),
-          {
-            status: 500,
-            headers: { "content-type": "application/json" },
-          },
-        );
-      });
-
-      const client = new AniListClient({
-        fetchImpl: fetchMock as unknown as typeof fetch,
+      const { catalog } = createCatalog({
+        circuitBreaker,
+        fetchImpl: fetchMock,
+        kitsuFetch: emptyKitsu(),
         maxRetries: 2,
-        baseBackoffMs: 1, // Fast backoff for testing
-        sleep: () => Promise.resolve(),
       });
 
-      await expect(client.getAnimeById(100)).rejects.toThrow(AniListError);
-      // Initial attempt (1) + 2 retries = 3 attempts total
-      expect(fetchAttempts).toBe(3);
+      const error = await catalog
+        .searchAnime({ query: "rate limited" })
+        .then(() => null)
+        .catch((caught: unknown) => caught);
+
+      expect(error).toBeInstanceOf(CatalogUnavailableError);
+      const unavailable = error as CatalogUnavailableError;
+      expect(unavailable.reason).toBe("rate_limited");
+      expect(unavailable.retryAfterMs).toBe(120_000);
+      // The server-requested delay was never shortened into a tight loop.
+      expect(fetchMock).toHaveBeenCalledTimes(1);
+    });
+
+    it("treats an open circuit from transient failures as degraded, not suspended", async () => {
+      const circuitBreaker = new CircuitBreaker({
+        failureThreshold: 1,
+        cooldownMs: 5000,
+      });
+      const fetchMock = vi.fn(async () =>
+        jsonResponse({ errors: [{ message: "boom" }] }, 500),
+      );
+
+      const { catalog } = createCatalog({
+        fetchImpl: fetchMock,
+        circuitBreaker,
+        kitsuFetch: emptyKitsu(),
+      });
+
+      await expect(
+        catalog.searchAnime({ query: "anything" }),
+      ).rejects.toBeInstanceOf(CatalogUnavailableError);
+
+      const status = catalog.getStatus();
+      expect(status.circuitBreakerState).toBe("OPEN");
+      // An open breaker alone is not proof of an upstream suspension.
+      expect(status.isSuspended).toBe(false);
+      expect(status.activeProvider).toBe("unavailable");
     });
   });
 
-  describe("4. Cache hit while AniList is suspended", () => {
-    it("serves cached metadata without network overhead during an outage", async () => {
-      const cache = new MetadataCache({ cacheDir: undefined });
-      const testSummary: AnimeSummary = {
-        id: 99999,
-        title: {
-          english: "Cached Anime",
-          romaji: "Cached Anime Romaji",
-          native: "キャシュ",
-        },
-        coverImage: {
-          extraLarge: "https://example.com/cover.jpg",
-          large: "https://example.com/cover-m.jpg",
-          color: "#4f46e5",
-        },
-        format: "TV",
-        episodes: 12,
-        averageScore: 85,
-        seasonYear: 2024,
-        status: "FINISHED",
-        genres: ["Action", "Sci-Fi"],
-      };
-      cache.putSummary(testSummary);
+  describe("Fallback ordering", () => {
+    it("serves fresh cached details without contacting any provider", async () => {
+      const cache = createTestCache();
+      cache.putSummary(
+        makeSummary(99999, {
+          title: {
+            english: "Cached Anime",
+            romaji: "Cached Romaji",
+            native: null,
+          },
+          episodes: 12,
+        }),
+      );
 
-      // Simulate open circuit breaker (suspended AniList)
-      const cb = new CircuitBreaker();
-      cb.trip();
+      const circuitBreaker = new CircuitBreaker();
+      circuitBreaker.trip();
 
-      const failingFetch = vi.fn().mockRejectedValue(new Error("Network dead"));
-      const anilistClient = new AniListClient({
-        fetchImpl: failingFetch as unknown as typeof fetch,
-        circuitBreaker: cb,
+      const fetchMock = vi.fn(async () => {
+        throw new Error("network must not be used");
+      });
+      const kitsuFetch = vi.fn(async () => {
+        throw new Error("Kitsu must not be used");
       });
 
-      const catalog = new CatalogService({
-        anilistClient,
-        metadataCache: cache,
+      const { catalog } = createCatalog({
+        cache,
+        circuitBreaker,
+        fetchImpl: fetchMock,
+        kitsuFetch,
       });
 
-      // Single item resolution
       const details = await catalog.getAnimeById(99999);
-      expect(details).not.toBeNull();
       expect(details?.id).toBe(99999);
       expect(details?.title.english).toBe("Cached Anime");
       expect(details?.episodes).toBe(12);
 
-      // Batch resolution for library
-      const batchMap = await catalog.getAnimeByIds([99999]);
-      expect(batchMap.get(99999)?.title.english).toBe("Cached Anime");
+      const batch = await catalog.getAnimeByIds([99999]);
+      expect(batch.get(99999)?.title.english).toBe("Cached Anime");
 
-      // Verify no network calls were attempted
-      expect(failingFetch).not.toHaveBeenCalled();
+      expect(fetchMock).not.toHaveBeenCalled();
+      expect(kitsuFetch).not.toHaveBeenCalled();
+      expect(catalog.getStatus().activeProvider).toBe("cache");
+      expect(catalog.getStatus().degraded).toBe(true);
     });
-  });
 
-  describe("5. Cache miss with secondary provider (Kitsu) fallback", () => {
-    it("resolves un-cached anime via Kitsu with AniList ID cross-mapping", async () => {
-      const cache = new MetadataCache({ cacheDir: undefined });
+    it("serves stale cached data as a flagged fallback during an outage", async () => {
+      let now = 1_000_000;
+      const cache = createTestCache({ now: () => now });
+      cache.putSummary(makeSummary(7));
 
-      const cb = new CircuitBreaker();
-      cb.trip(); // AniList suspended
+      // Move past the 12h fresh window but stay inside the 30-day retention.
+      now += 13 * HOUR;
 
-      const anilistClient = new AniListClient({
-        fetchImpl: vi.fn() as unknown as typeof fetch,
-        circuitBreaker: cb,
+      const circuitBreaker = new CircuitBreaker();
+      circuitBreaker.trip();
+
+      const { catalog } = createCatalog({
+        cache,
+        circuitBreaker,
+        now: () => now,
       });
 
-      // Mock Kitsu returning mapped entry for AniList ID 154587
-      const kitsuFetchMock = vi.fn().mockImplementation(async (url: string) => {
-        if (url.includes("mappings")) {
-          return new Response(
-            JSON.stringify({
-              data: [
-                {
-                  id: "mapping-1",
-                  relationships: {
-                    item: {
-                      data: { type: "anime", id: "46892" },
-                    },
-                  },
-                },
-              ],
-            }),
-            { status: 200, headers: { "content-type": "application/json" } },
-          );
-        }
-        if (url.includes("/anime/46892")) {
-          return new Response(
-            JSON.stringify({
-              data: {
-                id: "46892",
-                attributes: {
-                  canonicalTitle: "Sousou no Frieren",
-                  titles: {
-                    en: "Frieren: Beyond Journey's End",
-                    ja_jp: "葬送のフリーレン",
-                  },
-                  posterImage: {
-                    large: "https://kitsu.io/frieren-large.jpg",
-                    medium: "https://kitsu.io/frieren-med.jpg",
-                  },
-                  subtype: "tv",
-                  episodeCount: 28,
-                  averageRating: "91.2",
-                  startDate: "2023-09-29",
-                  status: "finished",
-                },
-              },
-            }),
-            { status: 200, headers: { "content-type": "application/json" } },
-          );
-        }
-        return new Response("Not found", { status: 404 });
+      expect(cache.getSummary(7)).toBeNull();
+      expect(cache.getSummary(7, { allowStale: true })?.isStale).toBe(true);
+
+      const anime = await catalog.getAnimeById(7);
+      expect(anime?.id).toBe(7);
+      expect(catalog.getStatus().activeProvider).toBe("cache");
+    });
+
+    it("drops expired cache entries and reports unavailability", async () => {
+      let now = 1_000_000;
+      const cache = createTestCache({ now: () => now });
+      cache.putSummary(makeSummary(8));
+      now += 12 * HOUR + 30 * 24 * HOUR + 1;
+
+      const circuitBreaker = new CircuitBreaker();
+      circuitBreaker.trip();
+
+      const { catalog } = createCatalog({
+        cache,
+        circuitBreaker,
+        now: () => now,
       });
 
-      const kitsuClient = new KitsuClient({
-        fetchImpl: kitsuFetchMock as unknown as typeof fetch,
+      await expect(catalog.getAnimeById(8)).rejects.toBeInstanceOf(
+        CatalogUnavailableError,
+      );
+      expect(catalog.getStatus().activeProvider).toBe("unavailable");
+    });
+
+    it("falls back to Kitsu only with a verified AniList mapping", async () => {
+      const cache = createTestCache();
+      const kitsuFetch = vi.fn(async () =>
+        kitsuMappingResponse(154587, { kitsuId: "46474" }),
+      );
+
+      const circuitBreaker = new CircuitBreaker();
+      circuitBreaker.trip();
+
+      const { catalog } = createCatalog({
+        cache,
+        circuitBreaker,
+        kitsuFetch,
       });
 
-      const catalog = new CatalogService({
-        anilistClient,
-        metadataCache: cache,
-        kitsuClient,
+      const anime = await catalog.getAnimeById(154587);
+
+      expect(anime?.id).toBe(154587);
+      expect(anime?.title.english).toBe("Kitsu English 154587");
+      expect(anime?.episodes).toBe(24);
+      expect(catalog.getStatus().activeProvider).toBe("kitsu");
+      expect(cache.getSummary(154587)?.data.id).toBe(154587);
+    });
+
+    it("does not invent a result when Kitsu has no mapping", async () => {
+      const cache = createTestCache();
+      const circuitBreaker = new CircuitBreaker();
+      circuitBreaker.trip();
+
+      const { catalog } = createCatalog({
+        cache,
+        circuitBreaker,
+        kitsuFetch: emptyKitsu(),
       });
 
-      const result = await catalog.getAnimeById(154587);
-      expect(result).not.toBeNull();
-      // AniList ID MUST be preserved as canonical ID
-      expect(result?.id).toBe(154587);
-      expect(result?.title.english).toBe("Frieren: Beyond Journey's End");
-      expect(result?.episodes).toBe(28);
+      await expect(catalog.getAnimeById(154587)).rejects.toBeInstanceOf(
+        CatalogUnavailableError,
+      );
+      expect(cache.getSummary(154587)).toBeNull();
+    });
 
-      // Verify resolved data was stored in cache for future calls
-      expect(cache.getSummary(154587)?.data.title.english).toBe(
-        "Frieren: Beyond Journey's End",
+    it("distinguishes a missing anime from unavailable metadata", async () => {
+      const fetchMock = vi.fn(async () =>
+        jsonResponse({ data: { Media: null } }),
+      );
+      const kitsuFetch = emptyKitsu();
+
+      const { catalog } = createCatalog({
+        fetchImpl: fetchMock,
+        kitsuFetch,
+      });
+
+      await expect(catalog.getAnimeById(4242)).resolves.toBeNull();
+      expect(kitsuFetch).not.toHaveBeenCalled();
+      expect(catalog.getStatus().activeProvider).toBe("anilist");
+    });
+
+    it("throws unavailable instead of returning null when details cannot be loaded", async () => {
+      const circuitBreaker = new CircuitBreaker({
+        failureThreshold: 1,
+        cooldownMs: 5000,
+      });
+      const fetchMock = vi.fn(async () =>
+        jsonResponse({ errors: [{ message: "boom" }] }, 500),
+      );
+
+      const { catalog } = createCatalog({
+        circuitBreaker,
+        fetchImpl: fetchMock,
+        kitsuFetch: emptyKitsu(),
+      });
+
+      await expect(catalog.getAnimeById(1)).rejects.toBeInstanceOf(
+        CatalogUnavailableError,
       );
     });
   });
 
-  describe("6. Existing library entries with unavailable metadata", () => {
-    it("preserves user progress, status, and episodes when metadata is missing", () => {
+  describe("Search", () => {
+    it("returns a genuine empty page when AniList is healthy", async () => {
+      const { catalog } = createCatalog({
+        fetchImpl: vi.fn(async () => anilistPageResponse([])),
+      });
+
+      const page = await catalog.searchAnime({ query: "no such title" });
+
+      expect(page.items).toEqual([]);
+      expect(page.pageInfo.total).toBe(0);
+      expect(catalog.getStatus().activeProvider).toBe("anilist");
+    });
+
+    it("throws an unavailable error on outage instead of faking an empty search", async () => {
+      const circuitBreaker = new CircuitBreaker();
+      circuitBreaker.trip();
+
+      const { catalog } = createCatalog({
+        cache: createTestCache(),
+        circuitBreaker,
+        kitsuFetch: emptyKitsu(),
+      });
+
+      await expect(
+        catalog.searchAnime({ query: "NonexistentAnimexyz" }),
+      ).rejects.toBeInstanceOf(CatalogUnavailableError);
+    });
+
+    it("uses Kitsu search results with verified AniList IDs during an outage", async () => {
+      const circuitBreaker = new CircuitBreaker();
+      circuitBreaker.trip();
+      const kitsuFetch = vi.fn(async () =>
+        kitsuSearchResponse([
+          { anilistId: 100, kitsuId: "7001" },
+          { anilistId: 101, kitsuId: "7002" },
+        ]),
+      );
+
+      const { catalog } = createCatalog({
+        circuitBreaker,
+        kitsuFetch,
+      });
+
+      const page = await catalog.searchAnime({ query: "frieren" });
+
+      expect(page.items.map((item) => item.id)).toEqual([100, 101]);
+      expect(page.pageInfo.total).toBe(2);
+      expect(catalog.getStatus().activeProvider).toBe("kitsu");
+    });
+
+    it("falls back to local cached titles when Kitsu has no matches", async () => {
+      const cache = createTestCache();
+      cache.putSummary(
+        makeSummary(300, {
+          title: {
+            english: "Frieren: Beyond Journey's End",
+            romaji: "Sousou no Frieren",
+            native: null,
+          },
+        }),
+      );
+
+      const circuitBreaker = new CircuitBreaker();
+      circuitBreaker.trip();
+
+      const { catalog } = createCatalog({
+        cache,
+        circuitBreaker,
+        kitsuFetch: emptyKitsu(),
+      });
+
+      const page = await catalog.searchAnime({ query: "frieren" });
+
+      expect(page.items.map((item) => item.id)).toEqual([300]);
+      expect(catalog.getStatus().activeProvider).toBe("cache");
+    });
+
+    it("falls back to cached popular titles for an empty browse query", async () => {
+      const cache = createTestCache();
+      cache.putPopular([makeSummary(1), makeSummary(2)]);
+
+      const circuitBreaker = new CircuitBreaker();
+      circuitBreaker.trip();
+
+      const { catalog } = createCatalog({ cache, circuitBreaker });
+
+      const page = await catalog.searchAnime({});
+
+      expect(page.items.map((item) => item.id)).toEqual([1, 2]);
+      expect(catalog.getStatus().activeProvider).toBe("cache");
+    });
+  });
+
+  describe("Collections", () => {
+    it("serves cached seasonal results during an outage", async () => {
+      const cache = createTestCache();
+      cache.putSeasonal("FALL", 2026, [makeSummary(1), makeSummary(2)]);
+
+      const circuitBreaker = new CircuitBreaker();
+      circuitBreaker.trip();
+
+      const { catalog } = createCatalog({ cache, circuitBreaker });
+
+      const page = await catalog.getSeasonalAnime("FALL", 2026, {
+        perPage: 12,
+      });
+
+      expect(page.items).toHaveLength(2);
+      expect(page.pageInfo.total).toBe(2);
+      expect(catalog.getStatus().activeProvider).toBe("cache");
+    });
+
+    it("does not relabel the popular list as seasonal data", async () => {
+      const cache = createTestCache();
+      cache.putPopular([makeSummary(9)]);
+
+      const circuitBreaker = new CircuitBreaker();
+      circuitBreaker.trip();
+
+      const { catalog } = createCatalog({ cache, circuitBreaker });
+
+      await expect(
+        catalog.getSeasonalAnime("FALL", 2026),
+      ).rejects.toBeInstanceOf(CatalogUnavailableError);
+    });
+
+    it("does not relabel the popular list as trending data", async () => {
+      const cache = createTestCache();
+      cache.putPopular([makeSummary(9)]);
+
+      const circuitBreaker = new CircuitBreaker();
+      circuitBreaker.trip();
+
+      const { catalog } = createCatalog({ cache, circuitBreaker });
+
+      await expect(catalog.getTrendingAnime()).rejects.toBeInstanceOf(
+        CatalogUnavailableError,
+      );
+    });
+
+    it("serves cached popular results with pagination applied", async () => {
+      const cache = createTestCache();
+      cache.putPopular([1, 2, 3, 4, 5].map((id) => makeSummary(id)));
+
+      const circuitBreaker = new CircuitBreaker();
+      circuitBreaker.trip();
+
+      const { catalog } = createCatalog({ cache, circuitBreaker });
+
+      const page = await catalog.getPopularAnime({ page: 2, perPage: 2 });
+      expect(page.items.map((item) => item.id)).toEqual([3, 4]);
+      expect(page.pageInfo.hasNextPage).toBe(true);
+      expect(page.pageInfo.lastPage).toBe(3);
+    });
+  });
+
+  describe("Library hydration", () => {
+    it("resolves what it can and omits unavailable entries", async () => {
+      const cache = createTestCache();
+      cache.putSummary(makeSummary(1));
+
+      const circuitBreaker = new CircuitBreaker();
+      circuitBreaker.trip();
+
+      const { catalog } = createCatalog({
+        cache,
+        circuitBreaker,
+        kitsuFetch: emptyKitsu(),
+      });
+
+      const map = await catalog.getAnimeByIds([1, 2]);
+
+      expect(map.get(1)?.id).toBe(1);
+      expect(map.has(2)).toBe(false);
+    });
+
+    it("preserves user-owned fields when metadata is unavailable", async () => {
       const entry: LibraryEntry = {
         id: "entry-abc",
         userId: "user-123",
-        anilistId: 777777, // Uncached & unavailable ID
+        anilistId: 777777,
         status: "watching",
         progress: 14,
         score: 9,
@@ -290,93 +532,158 @@ describe("Phase 6: Catalog Outage Resilience & Verification", () => {
         updatedAt: "2026-01-15T00:00:00Z",
       };
 
-      const watchedEpisodes = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14];
+      const circuitBreaker = new CircuitBreaker();
+      circuitBreaker.trip();
 
-      // Simulate library item with missing metadata (anime: null)
-      const libraryItem = {
+      const { catalog } = createCatalog({
+        circuitBreaker,
+        kitsuFetch: emptyKitsu(),
+      });
+
+      const resolved = await catalog.getAnimeByIds([entry.anilistId]);
+      const item = {
         entry,
-        anime: null,
-        watchedEpisodes,
+        anime: resolved.get(entry.anilistId) ?? null,
+        watchedEpisodes: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14],
       };
 
-      // Progress, score, notes, and watched episodes MUST NOT be lost
-      expect(libraryItem.entry.progress).toBe(14);
-      expect(libraryItem.entry.score).toBe(9);
-      expect(libraryItem.entry.status).toBe("watching");
-      expect(libraryItem.watchedEpisodes).toHaveLength(14);
-      expect(libraryItem.entry.anilistId).toBe(777777);
-      expect(libraryItem.entry.completedAt).toBeNull(); // Must NOT infer completed
-    });
-  });
-
-  describe("7. Search and schedule errors versus empty results", () => {
-    it("throws clean outage error on search when upstream and fallback fail, preventing false empty results", async () => {
-      const cache = new MetadataCache({ cacheDir: undefined });
-      cache.clear();
-
-      const cb = new CircuitBreaker();
-      cb.trip();
-
-      const kitsuFailingFetch = vi.fn().mockRejectedValue(new Error("Kitsu down"));
-      const kitsuClient = new KitsuClient({
-        fetchImpl: kitsuFailingFetch as unknown as typeof fetch,
-      });
-
-      const catalog = new CatalogService({
-        anilistClient: new AniListClient({ circuitBreaker: cb }),
-        metadataCache: cache,
-        kitsuClient,
-      });
-
-      // Must throw AniListSuspendedError, NOT return an empty list { items: [] }
-      await expect(
-        catalog.searchAnime({ query: "NonexistentAnimexyz" }),
-      ).rejects.toThrow(AniListSuspendedError);
+      expect(item.anime).toBeNull();
+      expect(item.entry.progress).toBe(14);
+      expect(item.entry.score).toBe(9);
+      expect(item.entry.status).toBe("watching");
+      expect(item.entry.notes).toBe("Loved episode 12");
+      expect(item.entry.completedAt).toBeNull();
+      expect(item.watchedEpisodes).toHaveLength(14);
     });
 
-    it("throws clean outage error on schedule when AniList is suspended", async () => {
-      const cb = new CircuitBreaker();
-      cb.trip();
+    it("bounds Kitsu fallback fan-out and caches negative mappings", async () => {
+      const ids = [10, 11, 12, 13, 14, 15, 16, 17];
+      const kitsuFetch = emptyKitsu();
+      const circuitBreaker = new CircuitBreaker();
+      circuitBreaker.trip();
 
-      const catalog = new CatalogService({
-        anilistClient: new AniListClient({ circuitBreaker: cb }),
+      const { catalog } = createCatalog({
+        cache: createTestCache(),
+        circuitBreaker,
+        kitsuFetch,
       });
 
-      await expect(
-        catalog.getAiringSchedule({ airingAtGreater: 0, airingAtLesser: 100 }),
-      ).rejects.toThrow(AniListSuspendedError);
+      const first = await catalog.getAnimeByIds(ids);
+      expect(first.size).toBe(0);
+      expect(kitsuFetch).toHaveBeenCalledTimes(ids.length);
+
+      // Known-missing mappings are negatively cached for ten minutes.
+      const second = await catalog.getAnimeByIds(ids);
+      expect(second.size).toBe(0);
+      expect(kitsuFetch).toHaveBeenCalledTimes(ids.length);
     });
-  });
 
-  describe("8. Episode tracking resilience", () => {
-    it("resolves episode count from cache without network when catalogue is down", async () => {
-      const cache = new MetadataCache({ cacheDir: undefined });
-      cache.putSummary({
-        id: 154587,
-        title: {
-          english: "Frieren: Beyond Journey's End",
-          romaji: null,
-          native: null,
-        },
-        coverImage: { extraLarge: null, large: null, color: null },
-        format: "TV",
-        episodes: 28,
-        averageScore: 91,
-        seasonYear: 2023,
-        status: "FINISHED",
-        genres: [],
-      });
+    it("serves known episode totals from stale cache for episode tracking", async () => {
+      let now = 1_000_000;
+      const cache = createTestCache({ now: () => now });
+      cache.putSummary(makeSummary(154587, { episodes: 28 }));
+      now += 13 * HOUR;
 
-      const cb = new CircuitBreaker();
-      cb.trip();
+      const circuitBreaker = new CircuitBreaker();
+      circuitBreaker.trip();
 
-      const catalog = new CatalogService({
-        anilistClient: new AniListClient({ circuitBreaker: cb }),
-        metadataCache: cache,
+      const { catalog } = createCatalog({
+        cache,
+        circuitBreaker,
+        now: () => now,
       });
 
       const anime = await catalog.getAnimeById(154587);
       expect(anime?.episodes).toBe(28);
+    });
+  });
+
+  describe("Airing schedule", () => {
+    it("reports unavailability instead of an empty schedule", async () => {
+      const circuitBreaker = new CircuitBreaker();
+      circuitBreaker.trip();
+
+      const { catalog } = createCatalog({ circuitBreaker });
+
+      await expect(
+        catalog.getAiringSchedule({ airingAtGreater: 0, airingAtLesser: 100 }),
+      ).rejects.toBeInstanceOf(CatalogUnavailableError);
+      expect(catalog.getStatus().activeProvider).toBe("unavailable");
+    });
+
+    it("returns schedule entries when AniList is healthy", async () => {
+      const fetchMock = vi.fn(async () =>
+        jsonResponse({
+          data: {
+            Page: {
+              pageInfo: { hasNextPage: false },
+              airingSchedules: [],
+            },
+          },
+        }),
+      );
+
+      const { catalog } = createCatalog({ fetchImpl: fetchMock });
+
+      await expect(
+        catalog.getAiringSchedule({ airingAtGreater: 0, airingAtLesser: 100 }),
+      ).resolves.toEqual([]);
+      expect(catalog.getStatus().activeProvider).toBe("anilist");
+    });
+  });
+
+  describe("Details fallback provenance", () => {
+    it("marks cached details as cache-sourced, not AniList", async () => {
+      const cache = createTestCache();
+      cache.putSummary(makeSummary(500));
+
+      const circuitBreaker = new CircuitBreaker();
+      circuitBreaker.trip();
+
+      const { catalog } = createCatalog({ cache, circuitBreaker });
+
+      await catalog.getAnimeById(500);
+      const status = catalog.getStatus();
+
+      expect(status.activeProvider).toBe("cache");
+      expect(status.lastProvider).toBe("cache");
+      expect(status.degraded).toBe(true);
+      expect(status.cachedTitlesCount).toBeGreaterThan(0);
+    });
+
+    it("clears the confirmed-suspension flag after a healthy response", async () => {
+      let now = 0;
+      const circuitBreaker = new CircuitBreaker({
+        cooldownMs: 1000,
+        failureThreshold: 1,
+        now: () => now,
+      });
+      let calls = 0;
+      const fetchMock = vi.fn(async () => {
+        calls += 1;
+        return calls === 1 ? suspensionResponse() : anilistDetailsResponse(1);
+      });
+
+      const { catalog } = createCatalog({
+        circuitBreaker,
+        fetchImpl: fetchMock,
+        kitsuFetch: emptyKitsu(),
+        now: () => now,
+      });
+
+      await expect(catalog.getAnimeById(1)).rejects.toBeInstanceOf(
+        CatalogUnavailableError,
+      );
+      expect(catalog.getStatus().isSuspended).toBe(true);
+
+      // After the cooldown, a healthy probe confirms recovery.
+      now += 1000;
+      const anime = await catalog.getAnimeById(1);
+
+      expect(anime?.id).toBe(1);
+      expect(catalog.getStatus().isSuspended).toBe(false);
+      expect(catalog.getStatus().activeProvider).toBe("anilist");
+      expect(catalog.getStatus().degraded).toBe(false);
     });
   });
 });

@@ -65,7 +65,7 @@ export function DiscoverBrowser({
   const [error, setError] = useState<string | null>(
     initialPage
       ? null
-      : "We could not reach AniList. Check your connection and try again.",
+      : "The anime catalogue is temporarily unavailable. Your library and progress are unaffected.",
   );
   const [retryNonce, setRetryNonce] = useState(0);
 
@@ -259,7 +259,7 @@ export function DiscoverBrowser({
       ) : isEmpty ? (
         status === "error" ? (
           <ErrorState
-            title="AniList is unreachable"
+            title="Catalogue temporarily unavailable"
             message={error ?? "The anime catalogue could not be loaded."}
             onRetry={() => setRetryNonce((value) => value + 1)}
           />

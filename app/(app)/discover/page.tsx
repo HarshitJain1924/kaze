@@ -56,7 +56,10 @@ export default async function DiscoverPage({
       toAnimeSearchParams(input),
     );
   } catch (error) {
-    console.error("[discover] initial catalogue search failed", error);
+    console.error(
+      "[discover] initial catalogue search failed:",
+      error instanceof Error ? error.message : "unknown error",
+    );
   }
 
   const initialFilters: AnimeFilterState = {

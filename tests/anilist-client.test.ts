@@ -1,7 +1,12 @@
 import { describe, expect, it, vi } from "vitest";
 
 import { AniListClient } from "@/services/anilist/client";
-import { AniListError } from "@/services/anilist/errors";
+import { CircuitBreaker } from "@/services/anilist/circuit-breaker";
+import {
+  AniListError,
+  AniListSuspendedError,
+  CircuitBreakerOpenError,
+} from "@/services/anilist/errors";
 
 const media = {
   id: 1,
@@ -238,6 +243,164 @@ describe("AniListClient", () => {
     const { client } = createClient(fetchMock);
 
     await expect(client.getAnimeById(1)).rejects.toBeInstanceOf(AniListError);
+  });
+
+  it("honours an HTTP-date Retry-After header exactly", async () => {
+    const nowMs = Date.parse("2026-01-01T00:00:00Z");
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(
+        new Response("", {
+          status: 429,
+          headers: {
+            "retry-after": new Date(nowMs + 3000).toUTCString(),
+          },
+        }),
+      )
+      .mockResolvedValueOnce(pageResponse());
+    const sleeps: number[] = [];
+    const client = new AniListClient({
+      fetchImpl: fetchMock as unknown as typeof fetch,
+      sleep: async (ms) => {
+        sleeps.push(ms);
+      },
+      now: () => nowMs,
+      random: () => 0,
+      baseBackoffMs: 10,
+      maxBackoffMs: 5000,
+    });
+
+    await client.searchAnime({ query: "date-retry" });
+
+    expect(sleeps).toEqual([3000]);
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+  });
+
+  it("returns a rate-limit error instead of waiting longer than the budget", async () => {
+    const fetchMock = vi.fn(
+      async () =>
+        new Response("", {
+          status: 429,
+          headers: { "retry-after": "120" },
+        }),
+    );
+    const sleeps: number[] = [];
+    const client = new AniListClient({
+      fetchImpl: fetchMock as unknown as typeof fetch,
+      sleep: async (ms) => {
+        sleeps.push(ms);
+      },
+      maxRetryAfterMs: 5000,
+      maxRetries: 2,
+    });
+
+    await expect(client.searchAnime({ query: "slow-down" })).rejects.toMatchObject(
+      { status: 429, retryAfterMs: 120_000 },
+    );
+
+    // Never retry earlier than the server asked for.
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(sleeps).toEqual([]);
+  });
+
+  it("stops retrying once the total sleeping budget would be exceeded", async () => {
+    const fetchMock = vi.fn(
+      async () =>
+        new Response("", {
+          status: 429,
+          headers: { "retry-after": "5" },
+        }),
+    );
+    const sleeps: number[] = [];
+    const client = new AniListClient({
+      fetchImpl: fetchMock as unknown as typeof fetch,
+      sleep: async (ms) => {
+        sleeps.push(ms);
+      },
+      maxRetries: 2,
+      maxRetryAfterMs: 10_000,
+      retryBudgetMs: 8_000,
+    });
+
+    await expect(client.searchAnime({ query: "budget" })).rejects.toBeInstanceOf(
+      AniListError,
+    );
+    expect(sleeps).toEqual([5000]);
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+  });
+
+  it("records one failure per suspended request, not per retry", async () => {
+    const circuitBreaker = new CircuitBreaker({ failureThreshold: 3 });
+    const fetchMock = vi.fn(async () =>
+      jsonResponse(
+        {
+          errors: [
+            {
+              message:
+                "The AniList API has been temporarily disabled due to severe stability issues.",
+            },
+          ],
+          data: null,
+        },
+        403,
+      ),
+    );
+    const client = new AniListClient({
+      fetchImpl: fetchMock as unknown as typeof fetch,
+      circuitBreaker,
+      maxRetries: 3,
+    });
+
+    await expect(client.getAnimeById(154587)).rejects.toBeInstanceOf(
+      AniListSuspendedError,
+    );
+
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(circuitBreaker.getState().consecutiveFailures).toBe(1);
+    expect(circuitBreaker.getState().state).toBe("OPEN");
+  });
+
+  it("permits only one half-open probe under concurrent load", async () => {
+    let now = 0;
+    const circuitBreaker = new CircuitBreaker({
+      failureThreshold: 1,
+      cooldownMs: 1000,
+      now: () => now,
+    });
+    circuitBreaker.recordFailure(new Error("boom"));
+    now += 1000;
+
+    let resolveProbe: ((value: Response) => void) | undefined;
+    const fetchMock = vi.fn(
+      () =>
+        new Promise<Response>((resolve) => {
+          resolveProbe = resolve;
+        }),
+    );
+    const client = new AniListClient({
+      fetchImpl: fetchMock as unknown as typeof fetch,
+      circuitBreaker,
+      maxRetries: 0,
+      now: () => now,
+    });
+
+    const requests = [1, 2, 3, 4, 5].map((index) =>
+      client.searchAnime({ query: `probe-${index}` }),
+    );
+
+    // Only the probe reaches the network; the rest are rejected immediately.
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    resolveProbe?.(pageResponse());
+
+    const settled = await Promise.allSettled(requests);
+    const rejected = settled.filter((result) => result.status === "rejected");
+    expect(rejected).toHaveLength(4);
+    for (const result of rejected) {
+      expect(
+        (result as PromiseRejectedResult).reason,
+      ).toBeInstanceOf(CircuitBreakerOpenError);
+    }
+    expect(circuitBreaker.getState().state).toBe("CLOSED");
   });
 
   it("hydrates library entries in chunks of fifty", async () => {
