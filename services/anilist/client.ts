@@ -9,7 +9,12 @@ import type {
   AnimeSummary,
 } from "@/types/anime";
 
-import { AniListError } from "./errors";
+import { CircuitBreaker } from "./circuit-breaker";
+import {
+  AniListError,
+  AniListSuspendedError,
+  CircuitBreakerOpenError,
+} from "./errors";
 import {
   mapAiringScheduleList,
   mapAnime,
@@ -22,6 +27,11 @@ import {
   ANIME_DETAILS_QUERY,
   SEARCH_ANIME_QUERY,
 } from "./queries";
+import {
+  MetadataCache,
+  getMetadataCache,
+} from "@/services/catalog/metadata-cache";
+import { KitsuClient } from "@/services/catalog/kitsu-client";
 
 const ANILIST_ENDPOINT = "https://graphql.anilist.co";
 
@@ -50,10 +60,25 @@ export interface AniListClientOptions {
   maxBackoffMs?: number;
   sleep?: (ms: number) => Promise<void>;
   random?: () => number;
+  circuitBreaker?: CircuitBreaker;
+  metadataCache?: MetadataCache;
+  kitsuClient?: KitsuClient;
 }
 
 interface CallOptions {
   ttlMs?: number;
+}
+
+function isSuspensionMessage(msg?: string): boolean {
+  if (!msg) return false;
+  const lower = msg.toLowerCase();
+  return (
+    lower.includes("temporarily disabled") ||
+    lower.includes("severe stability issues") ||
+    lower.includes("stability issues") ||
+    lower.includes("service suspension") ||
+    lower.includes("api has been disabled")
+  );
 }
 
 function stableKey(query: string, variables: Record<string, unknown>): string {
@@ -109,6 +134,9 @@ export class AniListClient {
   private readonly maxBackoffMs: number;
   private readonly sleep: (ms: number) => Promise<void>;
   private readonly random: () => number;
+  readonly circuitBreaker: CircuitBreaker;
+  private readonly metadataCache: MetadataCache;
+  private readonly kitsuClient: KitsuClient;
 
   constructor(options: AniListClientOptions = {}) {
     this.endpoint = options.endpoint ?? ANILIST_ENDPOINT;
@@ -121,6 +149,28 @@ export class AniListClient {
     this.maxBackoffMs = options.maxBackoffMs ?? 8_000;
     this.sleep = options.sleep ?? defaultSleep;
     this.random = options.random ?? Math.random.bind(Math);
+
+    this.circuitBreaker =
+      options.circuitBreaker ??
+      new CircuitBreaker({
+        serviceName: "AniList",
+        failureThreshold: 3,
+        cooldownMs: 30_000,
+        tripImmediatelyOn: (err) =>
+          err instanceof AniListSuspendedError ||
+          (err instanceof AniListError &&
+            (err.isSuspended || err.status === 403)),
+      });
+    this.metadataCache =
+      options.metadataCache ??
+      (options.fetchImpl
+        ? new MetadataCache({ cacheDir: "" })
+        : getMetadataCache());
+    this.kitsuClient =
+      options.kitsuClient ??
+      new KitsuClient({
+        fetchImpl: this.fetchImpl,
+      });
   }
 
   private backoffDelay(attempt: number): number {
@@ -168,6 +218,13 @@ export class AniListClient {
     query: string,
     variables: Record<string, unknown>,
   ): Promise<unknown> {
+    if (this.circuitBreaker.isOpen()) {
+      throw new CircuitBreakerOpenError(
+        this.circuitBreaker.serviceName,
+        this.circuitBreaker.getState().nextProbeAt ?? Date.now(),
+      );
+    }
+
     let lastError: AniListError | null = null;
 
     for (let attempt = 0; attempt <= this.maxRetries; attempt += 1) {
@@ -182,6 +239,14 @@ export class AniListClient {
           signal: AbortSignal.timeout(this.timeoutMs),
           cache: "no-store",
         });
+
+        // Upstream suspension check: HTTP 403
+        if (response.status === 403) {
+          const errMsg = await readErrorMessage(response);
+          const suspendedErr = new AniListSuspendedError(errMsg);
+          this.circuitBreaker.recordFailure(suspendedErr);
+          throw suspendedErr;
+        }
 
         if (response.status === 429 || response.status >= 500) {
           const retryAfter = parseRetryAfter(
@@ -203,41 +268,61 @@ export class AniListClient {
             );
             continue;
           }
+          this.circuitBreaker.recordFailure(lastError);
           throw lastError;
         }
 
         if (!response.ok) {
-          throw new AniListError(await readErrorMessage(response), {
+          const errMsg = await readErrorMessage(response);
+          if (isSuspensionMessage(errMsg)) {
+            const suspendedErr = new AniListSuspendedError(errMsg);
+            this.circuitBreaker.recordFailure(suspendedErr);
+            throw suspendedErr;
+          }
+          const err = new AniListError(errMsg, {
             status: response.status,
           });
+          this.circuitBreaker.recordFailure(err);
+          throw err;
         }
 
         let payload: GraphQLPayload;
         try {
           payload = (await response.json()) as GraphQLPayload;
         } catch (error) {
-          throw new AniListError("AniList returned invalid JSON", {
+          const err = new AniListError("AniList returned invalid JSON", {
             status: response.status,
             cause: error,
           });
+          this.circuitBreaker.recordFailure(err);
+          throw err;
         }
 
         const errors = payload.errors ?? [];
         if (errors.length > 0 && payload.data == null) {
-          throw new AniListError(
-            errors[0]?.message ?? "AniList rejected the request",
-            { status: response.status },
-          );
+          const firstMsg = errors[0]?.message ?? "AniList rejected the request";
+          if (isSuspensionMessage(firstMsg)) {
+            const suspendedErr = new AniListSuspendedError(firstMsg);
+            this.circuitBreaker.recordFailure(suspendedErr);
+            throw suspendedErr;
+          }
+          const err = new AniListError(firstMsg, { status: response.status });
+          this.circuitBreaker.recordFailure(err);
+          throw err;
         }
         if (payload.data == null) {
-          throw new AniListError("AniList returned no data", {
+          const err = new AniListError("AniList returned no data", {
             status: response.status,
           });
+          this.circuitBreaker.recordFailure(err);
+          throw err;
         }
 
+        this.circuitBreaker.recordSuccess();
         return payload.data;
       } catch (error) {
         if (error instanceof AniListError && !this.isRetryable(error)) {
+          this.circuitBreaker.recordFailure(error);
           throw error;
         }
         lastError =
@@ -246,6 +331,7 @@ export class AniListClient {
             : new AniListError("Could not reach AniList", { cause: error });
 
         if (attempt >= this.maxRetries) {
+          this.circuitBreaker.recordFailure(lastError);
           throw lastError;
         }
         await this.sleep(
@@ -257,10 +343,16 @@ export class AniListClient {
       }
     }
 
+    if (lastError) {
+      this.circuitBreaker.recordFailure(lastError);
+    }
     throw lastError ?? new AniListError("AniList request failed");
   }
 
   private isRetryable(error: AniListError): boolean {
+    if (error.isSuspended || error.status === 403) {
+      return false; // NEVER RETRY A SUSPENDED SERVICE!
+    }
     if (error.status === null) {
       return true;
     }
@@ -279,6 +371,41 @@ export class AniListClient {
     );
     const search = params.query?.trim();
 
+    // Outage resilience: check circuit breaker
+    if (this.circuitBreaker.isOpen()) {
+      if (search) {
+        const kitsuItems = await this.kitsuClient.searchAnime(search, perPage);
+        if (kitsuItems.length > 0) {
+          this.metadataCache.putSummaries(kitsuItems);
+          return {
+            pageInfo: {
+              currentPage: page,
+              lastPage: 1,
+              hasNextPage: false,
+              total: kitsuItems.length,
+            },
+            items: kitsuItems,
+          };
+        }
+        const localMatches = this.metadataCache.searchLocal(search, perPage);
+        if (localMatches.length > 0) {
+          return {
+            pageInfo: {
+              currentPage: page,
+              lastPage: 1,
+              hasNextPage: false,
+              total: localMatches.length,
+            },
+            items: localMatches,
+          };
+        }
+      }
+      throw new CircuitBreakerOpenError(
+        this.circuitBreaker.serviceName,
+        this.circuitBreaker.getState().nextProbeAt ?? Date.now(),
+      );
+    }
+
     const variables = {
       page,
       perPage,
@@ -296,7 +423,9 @@ export class AniListClient {
       options.ttlMs ?? TTL.search,
     );
 
-    return mapAnimePage(data.Page, page);
+    const mapped = mapAnimePage(data.Page, page);
+    this.metadataCache.putSummaries(mapped.items);
+    return mapped;
   }
 
   async getAnimeById(
@@ -315,8 +444,6 @@ export class AniListClient {
         options.ttlMs ?? TTL.details,
       );
     } catch (error) {
-      // AniList reports a removed or nonexistent media id as "Not Found."
-      // rather than returning `Media: null`.
       if (
         error instanceof AniListError &&
         (error.status === 404 ||
@@ -335,6 +462,8 @@ export class AniListClient {
     if (!anime) {
       throw new AniListError("AniList returned unreadable anime details");
     }
+    this.metadataCache.putDetails(anime);
+    this.metadataCache.putSummary(anime);
     return anime;
   }
 
@@ -358,6 +487,7 @@ export class AniListClient {
       for (const summary of summaries) {
         result.set(summary.id, summary);
       }
+      this.metadataCache.putSummaries(summaries);
     }
 
     return result;

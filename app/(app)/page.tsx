@@ -8,7 +8,7 @@ import { ContinueWatching } from "@/features/library/continue-watching";
 import { getViewer } from "@/lib/auth";
 import { getWeekRange, toIsoDateString } from "@/lib/schedule";
 import { getCurrentSeason, seasonLabel } from "@/lib/season";
-import { getAniListClient } from "@/services/anilist/client";
+import { getCatalogService } from "@/services/catalog/catalog-service";
 import type { AiringScheduleEntry, AnimePage } from "@/types/anime";
 
 async function safeLoad(
@@ -37,7 +37,7 @@ async function safeLoadSchedule(
 export default async function HomePage() {
   const viewer = await getViewer();
   const { season, year } = getCurrentSeason();
-  const client = getAniListClient();
+  const client = getCatalogService();
   const now = new Date();
   const currentWeek = getWeekRange(now);
 

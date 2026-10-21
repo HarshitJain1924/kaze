@@ -19,8 +19,8 @@ vi.mock("@/repositories/library", () => ({
   }),
 }));
 
-vi.mock("@/services/anilist/client", () => ({
-  getAniListClient: vi.fn().mockReturnValue({
+vi.mock("@/services/catalog/catalog-service", () => ({
+  getCatalogService: vi.fn().mockReturnValue({
     getAnimeByIds: (ids: number[]) => mockGetAnimeByIds(ids),
   }),
 }));

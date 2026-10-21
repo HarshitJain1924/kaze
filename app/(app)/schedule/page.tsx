@@ -6,7 +6,7 @@ import { ScheduleBrowser } from "@/features/schedule/schedule-browser";
 import { loadLibraryItems } from "@/features/library/load-library";
 import { getViewer } from "@/lib/auth";
 import { getWeekRange, groupScheduleByDay } from "@/lib/schedule";
-import { getAniListClient } from "@/services/anilist/client";
+import { getCatalogService } from "@/services/catalog/catalog-service";
 import type { AiringScheduleEntry } from "@/types/anime";
 
 export const metadata: Metadata = {
@@ -43,7 +43,7 @@ export default async function SchedulePage({
   let loadError = false;
 
   try {
-    entries = await getAniListClient().getAiringSchedule({
+    entries = await getCatalogService().getAiringSchedule({
       airingAtGreater: week.queryAiringAtGreater,
       airingAtLesser: week.queryAiringAtLesser,
     });

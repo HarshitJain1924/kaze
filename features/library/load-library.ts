@@ -2,7 +2,7 @@ import "server-only";
 
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { createLibraryRepository } from "@/repositories/library";
-import { getAniListClient } from "@/services/anilist/client";
+import { getCatalogService } from "@/services/catalog/catalog-service";
 import type { AnimeSummary } from "@/types/anime";
 import type { LibraryItem } from "@/types/library";
 
@@ -65,13 +65,13 @@ export async function loadLibraryItems(
 
   let animeById = new Map<number, AnimeSummary>();
   try {
-    animeById = await getAniListClient().getAnimeByIds(
+    animeById = await getCatalogService().getAnimeByIds(
       entries.map((entry) => entry.anilistId),
     );
   } catch (error) {
     console.error(
       "[library] could not hydrate anime metadata; entries kept without metadata",
-      error instanceof Error ? error.message : "AniList request error",
+      error instanceof Error ? error.message : "Catalog request error",
     );
   }
 

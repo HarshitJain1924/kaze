@@ -4,7 +4,7 @@ import type { LibraryStatusFilter } from "@/components/library-toolbar";
 import { LibraryBrowser } from "@/features/library/library-browser";
 import { requireViewer } from "@/lib/auth";
 import { getCurrentSeason } from "@/lib/season";
-import { getAniListClient } from "@/services/anilist/client";
+import { getCatalogService } from "@/services/catalog/catalog-service";
 import { isWatchStatus } from "@/types/library";
 import type { AnimeSummary } from "@/types/anime";
 
@@ -22,7 +22,7 @@ function parseStatus(value: string | string[] | undefined): LibraryStatusFilter 
 async function loadSeasonPicks(): Promise<AnimeSummary[]> {
   try {
     const { season, year } = getCurrentSeason();
-    const page = await getAniListClient().getSeasonalAnime(season, year, {
+    const page = await getCatalogService().getSeasonalAnime(season, year, {
       perPage: 4,
     });
     return page.items;

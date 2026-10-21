@@ -16,7 +16,7 @@ import {
   formatRelationType,
   getDisplayTitle,
 } from "@/lib/utils";
-import { getAniListClient } from "@/services/anilist/client";
+import { getCatalogService } from "@/services/catalog/catalog-service";
 import type { Anime, RelatedAnime } from "@/types/anime";
 
 interface PageProps {
@@ -38,7 +38,7 @@ export async function generateMetadata({
   }
 
   try {
-    const anime = await getAniListClient().getAnimeById(numericId);
+    const anime = await getCatalogService().getAnimeById(numericId);
     if (!anime) {
       return { title: "Anime not found" };
     }
@@ -78,8 +78,9 @@ export default async function AnimeDetailsPage({ params }: PageProps) {
   }
 
   let anime: Anime | null = null;
+  const catalogStatus = getCatalogService().getStatus();
   try {
-    anime = await getAniListClient().getAnimeById(numericId);
+    anime = await getCatalogService().getAnimeById(numericId);
   } catch (error) {
     console.error("[anime] could not load details", numericId, error);
     return (
@@ -94,7 +95,7 @@ export default async function AnimeDetailsPage({ params }: PageProps) {
         <ErrorState
           className="mt-6"
           title="Could not load this anime"
-          message="AniList did not respond. Your library and progress are safe."
+          message="Upstream catalogue did not respond. Your library and progress are safe."
           action={<RetryButton />}
         />
       </div>
@@ -146,6 +147,14 @@ export default async function AnimeDetailsPage({ params }: PageProps) {
       </div>
 
       <div className="mx-auto max-w-[1560px] px-4 sm:px-6 lg:px-10">
+        {catalogStatus.isSuspended ? (
+          <div className="mt-3 flex flex-wrap items-center justify-between gap-2 rounded-xl border border-amber-500/25 bg-amber-950/40 px-3.5 py-2 text-xs text-amber-200 backdrop-blur-sm">
+            <span>
+              Offline resilience mode: Serving cached anime details. AniList is temporarily unavailable upstream.
+            </span>
+            <span className="font-semibold text-amber-400">Library tracking operational</span>
+          </div>
+        ) : null}
         <div className="-mt-20 flex flex-col gap-5 sm:-mt-24 sm:flex-row sm:gap-7">
           <div className="relative aspect-[2/3] w-28 shrink-0 overflow-hidden rounded-xl border border-white/10 bg-surface-2 poster-shadow sm:w-44 lg:w-48">
             {cover ? (

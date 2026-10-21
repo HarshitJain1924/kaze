@@ -7,7 +7,7 @@ import {
   toAnimeSearchParams,
   type AnimeSearchInput,
 } from "@/lib/validation/anime";
-import { getAniListClient } from "@/services/anilist/client";
+import { getCatalogService } from "@/services/catalog/catalog-service";
 import type { AnimePage } from "@/types/anime";
 
 export const metadata: Metadata = {
@@ -52,11 +52,11 @@ export default async function DiscoverPage({
 
   let initialPage: AnimePage | null = null;
   try {
-    initialPage = await getAniListClient().searchAnime(
+    initialPage = await getCatalogService().searchAnime(
       toAnimeSearchParams(input),
     );
   } catch (error) {
-    console.error("[discover] initial AniList search failed", error);
+    console.error("[discover] initial catalogue search failed", error);
   }
 
   const initialFilters: AnimeFilterState = {
