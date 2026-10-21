@@ -46,10 +46,12 @@ export default async function SchedulePage({
   let loadError = false;
 
   try {
-    entries = await getCatalogService().getAiringSchedule({
-      airingAtGreater: week.queryAiringAtGreater,
-      airingAtLesser: week.queryAiringAtLesser,
-    });
+    entries = (
+      await getCatalogService().getAiringSchedule({
+        airingAtGreater: week.queryAiringAtGreater,
+        airingAtLesser: week.queryAiringAtLesser,
+      })
+    ).data;
   } catch (error) {
     console.error(
       "[schedule] could not load airing schedule:",

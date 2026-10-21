@@ -2,9 +2,11 @@ import { describe, expect, it, vi } from "vitest";
 
 vi.mock("server-only", () => ({}));
 
-import type {
-  CatalogPersistence,
-  PersistedCacheRecord,
+import {
+  createCatalogPersistence,
+  SupabaseCatalogPersistence,
+  type CatalogPersistence,
+  type PersistedCacheRecord,
 } from "@/services/catalog/cache-store";
 import { createTestCache, makeAnime, makeSummary } from "./helpers/catalog-fixtures";
 
@@ -299,6 +301,43 @@ describe("MetadataCache", () => {
       ]);
     });
     expect(cache.size).toBe(0);
+  });
+
+  it("falls back to the in-memory cache when durable credentials are missing", () => {
+    expect(createCatalogPersistence({})).toBeNull();
+    expect(
+      createCatalogPersistence({
+        NEXT_PUBLIC_SUPABASE_URL: "https://example.supabase.co",
+      }),
+    ).toBeNull();
+    expect(
+      createCatalogPersistence({ SUPABASE_SERVICE_ROLE_KEY: "service-key" }),
+    ).toBeNull();
+  });
+
+  it("rejects unusable Supabase URLs without throwing", () => {
+    expect(
+      createCatalogPersistence({
+        NEXT_PUBLIC_SUPABASE_URL: "not a url",
+        SUPABASE_SERVICE_ROLE_KEY: "service-key",
+      }),
+    ).toBeNull();
+    expect(
+      createCatalogPersistence({
+        NEXT_PUBLIC_SUPABASE_URL: "ftp://example.com",
+        SUPABASE_SERVICE_ROLE_KEY: "service-key",
+      }),
+    ).toBeNull();
+  });
+
+  it("constructs the durable adapter only with server-side credentials", () => {
+    const persistence = createCatalogPersistence({
+      NEXT_PUBLIC_SUPABASE_URL: "https://example.supabase.co",
+      SUPABASE_SERVICE_ROLE_KEY: "service-key",
+    });
+
+    expect(persistence).toBeInstanceOf(SupabaseCatalogPersistence);
+    expect(persistence?.name).toBe("supabase");
   });
 
   it("never persists user-shaped fields that were not in the cached payload", () => {

@@ -28,27 +28,38 @@ import type {
   AnimeSummary,
 } from "@/types/anime";
 
-/** Provider that actually answered the most recent catalogue operation. */
+/** Provider that actually answered one catalogue operation. */
 export type CatalogProvider = "anilist" | "kitsu" | "cache" | "unavailable";
 
-export interface CatalogProviderStatus {
-  /**
-   * True only when AniList itself confirmed a suspension (HTTP 403 or an
-   * explicit "API disabled" message). An open circuit breaker caused by
-   * transient 5xx/network failures is *not* a confirmed suspension.
-   */
+/**
+ * Diagnostic view of upstream health for a single server instance. This is
+ * intentionally separate from the provider that served a response: an open
+ * circuit does not mean Kitsu (or anything else) answered.
+ */
+export interface CatalogHealth {
+  circuitBreakerState: CircuitState;
+  /** True only after a confirmed AniList suspension (403 / disabled message). */
   isSuspended: boolean;
   suspensionConfirmedAt: number | null;
-  circuitBreakerState: CircuitState;
-  /**
-   * Provider used by the most recent operation handled by this server
-   * instance. It is diagnostic only and never inferred from breaker state.
-   */
-  activeProvider: CatalogProvider;
-  lastProvider: CatalogProvider | null;
-  /** True when the last operation was served by cache, Kitsu or nothing. */
-  degraded: boolean;
   cachedTitlesCount: number;
+}
+
+export interface CatalogResultMeta {
+  /** Provider that produced this response. Never inferred from breaker state. */
+  provider: CatalogProvider;
+  /** True when the response was not served live by AniList. */
+  degraded: boolean;
+  /** True when stale cached metadata was served during an outage. */
+  stale: boolean;
+  /** Cache timestamp for cache-served data, otherwise `null`. */
+  cachedAt: number | null;
+  /** Upstream health at the time of the operation (diagnostic only). */
+  health: CatalogHealth;
+}
+
+export interface CatalogResult<T> {
+  data: T;
+  meta: CatalogResultMeta;
 }
 
 export interface CatalogServiceOptions {
@@ -64,6 +75,21 @@ const KITSU_MISS_TTL_MS = 10 * 60_000;
 const KITSU_WARNING_INTERVAL_MS = 60_000;
 const FALLBACK_SEARCH_TTL_MS = 60_000;
 const FALLBACK_SEARCH_CACHE_ENTRIES = 50;
+
+interface OutageSignal {
+  /** True once any upstream read for this operation failed. */
+  failed: boolean;
+  suspended: boolean;
+  rateLimited: boolean;
+  retryAfterMs: number | null;
+}
+
+interface FallbackPage {
+  page: AnimePage;
+  provider: CatalogProvider;
+  stale: boolean;
+  cachedAt: number | null;
+}
 
 function toSummary(anime: Anime): AnimeSummary {
   return {
@@ -108,8 +134,10 @@ function cachedPage(
  * 4. Kitsu, but only with a verified AniList ID mapping.
  * 5. A clear unavailable error — never a pretend-empty result set.
  *
- * Only public provider metadata is cached. User-owned library and
- * episode-tracking records never enter this cache.
+ * Every read returns a {@link CatalogResult} carrying the provider that
+ * actually served it plus freshness metadata, so concurrent requests cannot
+ * relabel each other's responses. Only public provider metadata is cached;
+ * user-owned library and episode-tracking records never enter this cache.
  */
 export class CatalogService {
   readonly anilistClient: AniListClient;
@@ -118,10 +146,12 @@ export class CatalogService {
 
   private readonly now: () => number;
 
-  private lastProvider: CatalogProvider | null = null;
+  /**
+   * Diagnostic only: set when AniList itself confirms a suspension and
+   * cleared on the next healthy response. Never used to label a response's
+   * provider.
+   */
   private suspensionConfirmedAt: number | null = null;
-  private rateLimitedAt: number | null = null;
-  private lastRetryAfterMs: number | null = null;
 
   private readonly kitsuInFlight = new Map<
     number,
@@ -131,10 +161,13 @@ export class CatalogService {
   private readonly kitsuMisses = new Map<number, number>();
   private lastKitsuWarningAt = 0;
   /** Short-lived cache for degraded search results to avoid fallback storms. */
-  private readonly fallbackSearches = new TtlCache<AnimePage>(
+  private readonly fallbackSearches = new TtlCache<FallbackPage>(
     FALLBACK_SEARCH_CACHE_ENTRIES,
   );
-  private readonly fallbackSearchesInFlight = new Map<string, Promise<AnimePage>>();
+  private readonly fallbackSearchesInFlight = new Map<
+    string,
+    Promise<FallbackPage>
+  >();
 
   constructor(options: CatalogServiceOptions = {}) {
     this.anilistClient = options.anilistClient ?? getAniListClient();
@@ -143,18 +176,13 @@ export class CatalogService {
     this.now = options.now ?? Date.now.bind(Date);
   }
 
-  getStatus(): CatalogProviderStatus {
+  /** Diagnostic upstream health; contains no per-response provider field. */
+  getHealth(): CatalogHealth {
     const breaker = this.anilistClient.circuitBreaker.getState();
-    const last = this.lastProvider;
     return {
+      circuitBreakerState: breaker.state,
       isSuspended: this.suspensionConfirmedAt !== null,
       suspensionConfirmedAt: this.suspensionConfirmedAt,
-      circuitBreakerState: breaker.state,
-      activeProvider:
-        last ??
-        (breaker.state === "CLOSED" ? "anilist" : "unavailable"),
-      lastProvider: last,
-      degraded: last !== null && last !== "anilist",
       cachedTitlesCount: this.metadataCache.size,
     };
   }
@@ -167,12 +195,13 @@ export class CatalogService {
   // Single anime
   // -------------------------------------------------------------------
 
-  async getAnimeById(id: number): Promise<Anime | null> {
+  async getAnimeById(id: number): Promise<CatalogResult<Anime | null>> {
     if (!Number.isInteger(id) || id <= 0) {
       throw new AniListError("Invalid anime id");
     }
 
     await this.metadataCache.ready();
+    const signal = this.newOutageSignal();
 
     if (!this.isUpstreamBlocked()) {
       try {
@@ -181,61 +210,64 @@ export class CatalogService {
 
         if (!anime) {
           // A genuine "this anime does not exist" answer from a healthy API.
-          this.noteProvider("anilist");
-          return null;
+          return this.result(null, "anilist");
         }
 
         this.metadataCache.putDetails(anime);
         this.metadataCache.putSummary(toSummary(anime));
-        this.noteProvider("anilist");
-        return anime;
+        return this.result(anime, "anilist");
       } catch (error) {
         if (this.isMissingError(error)) {
           this.noteAniListSuccess();
-          this.noteProvider("anilist");
-          return null;
+          return this.result(null, "anilist");
         }
         if (!this.isOutageError(error)) {
           throw error;
         }
-        this.recordOutage(error);
+        this.recordOutage(error, signal);
       }
     }
 
     const freshDetails = this.metadataCache.getDetails(id);
     if (freshDetails) {
-      this.noteProvider("cache");
-      return freshDetails.data;
+      return this.result(freshDetails.data, "cache", {
+        stale: freshDetails.isStale,
+        cachedAt: freshDetails.cachedAt,
+      });
     }
     const freshSummary = this.metadataCache.getSummary(id);
     if (freshSummary) {
-      this.noteProvider("cache");
-      return this.summaryToDetailedAnime(freshSummary.data);
+      return this.result(this.summaryToDetailedAnime(freshSummary.data), "cache", {
+        stale: freshSummary.isStale,
+        cachedAt: freshSummary.cachedAt,
+      });
     }
     const staleDetails = this.metadataCache.getDetails(id, {
       allowStale: true,
     });
     if (staleDetails) {
-      this.noteProvider("cache");
-      return staleDetails.data;
+      return this.result(staleDetails.data, "cache", {
+        stale: staleDetails.isStale,
+        cachedAt: staleDetails.cachedAt,
+      });
     }
     const staleSummary = this.metadataCache.getSummary(id, {
       allowStale: true,
     });
     if (staleSummary) {
-      this.noteProvider("cache");
-      return this.summaryToDetailedAnime(staleSummary.data);
+      return this.result(this.summaryToDetailedAnime(staleSummary.data), "cache", {
+        stale: staleSummary.isStale,
+        cachedAt: staleSummary.cachedAt,
+      });
     }
 
     const kitsu = await this.lookupKitsu(id);
     if (kitsu?.kind === "found") {
       this.metadataCache.putSummary(kitsu.summary);
-      this.noteProvider("kitsu");
-      return this.summaryToDetailedAnime(kitsu.summary);
+      return this.result(this.summaryToDetailedAnime(kitsu.summary), "kitsu");
     }
 
-    this.noteProvider("unavailable");
-    throw this.unavailable("Anime details are temporarily unavailable");
+    throw this.unavailable("Anime details are temporarily unavailable", signal);
   }
 
   // -------------------------------------------------------------------
@@ -247,29 +279,44 @@ export class CatalogService {
    * simply absent from the returned map, so callers keep the user's entry,
    * progress, rating and notes with `anime: null`.
    */
-  async getAnimeByIds(ids: number[]): Promise<Map<number, AnimeSummary>> {
+  async getAnimeByIds(
+    ids: number[],
+  ): Promise<CatalogResult<Map<number, AnimeSummary>>> {
     const unique = [
       ...new Set(ids.filter((id) => Number.isInteger(id) && id > 0)),
     ];
     if (unique.length === 0) {
-      return new Map();
+      return this.result(new Map<number, AnimeSummary>(), "unavailable");
     }
 
     await this.metadataCache.ready();
+    const signal = this.newOutageSignal();
 
     const result = new Map<number, AnimeSummary>();
     let usedAniList = false;
     let usedCache = false;
     let usedKitsu = false;
+    let liveAttempted = false;
+    let stale = false;
+    let cachedAt: number | null = null;
+
+    const markCached = (hit: { isStale: boolean; cachedAt: number }) => {
+      usedCache = true;
+      stale = stale || hit.isStale;
+      cachedAt =
+        cachedAt === null ? hit.cachedAt : Math.min(cachedAt, hit.cachedAt);
+    };
 
     const fresh = this.metadataCache.getSummaries(unique);
     for (const [id, hit] of fresh.hits) {
       result.set(id, hit.data);
-      usedCache = true;
+      markCached(hit);
     }
 
+    const blocked = this.isUpstreamBlocked();
     const needsRefresh = unique.filter((id) => !result.has(id));
-    if (needsRefresh.length > 0 && !this.isUpstreamBlocked()) {
+    if (needsRefresh.length > 0 && !blocked) {
+      liveAttempted = true;
       try {
         const live = await this.anilistClient.getAnimeByIds(needsRefresh);
         for (const [id, summary] of live) {
@@ -284,25 +331,28 @@ export class CatalogService {
         if (!this.isOutageError(error)) {
           throw error;
         }
-        this.recordOutage(error);
+        this.recordOutage(error, signal);
       }
     }
 
-    // Stale metadata is the next fallback during an outage.
+    // Stale data and Kitsu are outage fallbacks only. If AniList answered
+    // successfully, an omitted ID is genuinely missing and must not be
+    // backfilled with stale metadata.
+    const primaryUnavailable = blocked || signal.failed;
     const missingAfterLive = unique.filter((id) => !result.has(id));
-    if (missingAfterLive.length > 0) {
-      const stale = this.metadataCache.getSummaries(missingAfterLive, {
+    if (primaryUnavailable && missingAfterLive.length > 0) {
+      const staleHits = this.metadataCache.getSummaries(missingAfterLive, {
         allowStale: true,
       });
-      for (const [id, hit] of stale.hits) {
+      for (const [id, hit] of staleHits.hits) {
         result.set(id, hit.data);
-        usedCache = true;
+        markCached(hit);
       }
     }
 
     // Only then ask Kitsu, with verified AniList mappings and bounded fan-out.
     const stillMissing = unique.filter((id) => !result.has(id));
-    if (stillMissing.length > 0) {
+    if (primaryUnavailable && stillMissing.length > 0) {
       const fromKitsu = await this.lookupKitsuBatch(stillMissing);
       for (const [id, summary] of fromKitsu) {
         result.set(id, summary);
@@ -310,46 +360,62 @@ export class CatalogService {
       }
     }
 
-    if (result.size === 0) {
-      this.noteProvider("unavailable");
-    } else if (usedKitsu) {
-      this.noteProvider("kitsu");
-    } else if (usedCache) {
-      this.noteProvider("cache");
-    } else if (usedAniList) {
-      this.noteProvider("anilist");
-    }
+    const primarySucceeded = liveAttempted && !signal.failed;
+    const provider: CatalogProvider =
+      result.size === 0
+        ? primarySucceeded
+          ? "anilist"
+          : "unavailable"
+        : usedKitsu
+          ? "kitsu"
+          : usedCache
+            ? "cache"
+            : usedAniList
+              ? "anilist"
+              : "unavailable";
 
-    return result;
+    return this.result(result, provider, { stale, cachedAt });
   }
 
   // -------------------------------------------------------------------
   // Search
   // -------------------------------------------------------------------
 
-  async searchAnime(params: AnimeSearchParams = {}): Promise<AnimePage> {
+  async searchAnime(
+    params: AnimeSearchParams = {},
+  ): Promise<CatalogResult<AnimePage>> {
     const page = Math.max(1, Math.trunc(params.page ?? 1));
     const perPage = Math.max(1, Math.min(50, Math.trunc(params.perPage ?? 24)));
 
     await this.metadataCache.ready();
+    const signal = this.newOutageSignal();
 
     if (!this.isUpstreamBlocked()) {
       try {
         const pageResult = await this.anilistClient.searchAnime(params);
         this.metadataCache.putSummaries(pageResult.items);
         this.noteAniListSuccess();
-        this.noteProvider("anilist");
         // An empty page from a healthy API is a genuine zero-result search.
-        return pageResult;
+        return this.result(pageResult, "anilist");
       } catch (error) {
         if (!this.isOutageError(error)) {
           throw error;
         }
-        this.recordOutage(error);
+        this.recordOutage(error, signal);
       }
     }
 
-    return this.fallbackSearchCached(params.query?.trim(), page, perPage);
+    const fallback = await this.fallbackSearchCached(
+      params.query?.trim(),
+      page,
+      perPage,
+      signal,
+    );
+
+    return this.result(fallback.page, fallback.provider, {
+      stale: fallback.stale,
+      cachedAt: fallback.cachedAt,
+    });
   }
 
   /**
@@ -360,7 +426,8 @@ export class CatalogService {
     search: string | undefined,
     page: number,
     perPage: number,
-  ): Promise<AnimePage> {
+    signal: OutageSignal,
+  ): Promise<FallbackPage> {
     const key = `${search ?? ""}::${page}::${perPage}`;
     const cached = this.fallbackSearches.get(key);
     if (cached) {
@@ -372,7 +439,7 @@ export class CatalogService {
       return existing;
     }
 
-    const request = this.fallbackSearch(search, page, perPage)
+    const request = this.fallbackSearch(search, page, perPage, signal)
       .then((result) => {
         this.fallbackSearches.set(key, result, FALLBACK_SEARCH_TTL_MS);
         return result;
@@ -389,7 +456,8 @@ export class CatalogService {
     search: string | undefined,
     page: number,
     perPage: number,
-  ): Promise<AnimePage> {
+    signal: OutageSignal,
+  ): Promise<FallbackPage> {
     if (search) {
       const kitsu = await this.kitsuClient.searchAnime(
         search,
@@ -401,29 +469,47 @@ export class CatalogService {
         this.warnKitsu(kitsu.error.message);
       } else if (kitsu.items.length > 0) {
         this.metadataCache.putSummaries(kitsu.items);
-        this.noteProvider("kitsu");
         const lastPage =
           kitsu.total !== null
             ? Math.max(1, Math.ceil(kitsu.total / perPage))
             : null;
         return {
-          items: kitsu.items,
-          pageInfo: {
-            currentPage: page,
-            lastPage,
-            hasNextPage:
-              lastPage !== null ? page < lastPage : kitsu.items.length >= perPage,
-            total: kitsu.total,
+          page: {
+            items: kitsu.items,
+            pageInfo: {
+              currentPage: page,
+              lastPage,
+              hasNextPage:
+                lastPage !== null
+                  ? page < lastPage
+                  : kitsu.items.length >= perPage,
+              total: kitsu.total,
+            },
           },
+          provider: "kitsu",
+          stale: false,
+          cachedAt: null,
         };
       }
 
-      const local = this.metadataCache.searchLocal(search, perPage * page, {
-        allowStale: true,
-      });
-      if (local.length > 0) {
-        this.noteProvider("cache");
-        return cachedPage(local, page, perPage);
+      const localHits = this.metadataCache.searchLocalHits(
+        search,
+        perPage * page,
+        { allowStale: true },
+      );
+      if (localHits.length > 0) {
+        const stale = localHits.some((hit) => hit.isStale);
+        const cachedAt = Math.min(...localHits.map((hit) => hit.cachedAt));
+        return {
+          page: cachedPage(
+            localHits.map((hit) => hit.data),
+            page,
+            perPage,
+          ),
+          provider: "cache",
+          stale,
+          cachedAt,
+        };
       }
     } else {
       // Browsing with no query: cached popular is the only safe fallback.
@@ -432,14 +518,18 @@ export class CatalogService {
         this.metadataCache.getPopular() ??
         this.metadataCache.getPopular({ allowStale: true });
       if (popular && popular.data.length > 0) {
-        this.noteProvider("cache");
-        return cachedPage(popular.data, page, perPage);
+        return {
+          page: cachedPage(popular.data, page, perPage),
+          provider: "cache",
+          stale: popular.isStale,
+          cachedAt: popular.cachedAt,
+        };
       }
     }
 
-    this.noteProvider("unavailable");
     throw this.unavailable(
       "The anime catalogue cannot answer this search right now",
+      signal,
     );
   }
 
@@ -449,110 +539,97 @@ export class CatalogService {
 
   async getPopularAnime(
     options: { page?: number; perPage?: number } = {},
-  ): Promise<AnimePage> {
-    const page = Math.max(1, Math.trunc(options.page ?? 1));
-    const perPage = Math.max(1, Math.min(50, Math.trunc(options.perPage ?? 12)));
-
-    await this.metadataCache.ready();
-
-    if (!this.isUpstreamBlocked()) {
-      try {
-        const pageResult = await this.anilistClient.getPopularAnime(options);
-        this.metadataCache.putPopular(pageResult.items);
-        this.metadataCache.putSummaries(pageResult.items);
-        this.noteAniListSuccess();
-        this.noteProvider("anilist");
-        return pageResult;
-      } catch (error) {
-        if (!this.isOutageError(error)) throw error;
-        this.recordOutage(error);
-      }
-    }
-
-    const cached =
-      this.metadataCache.getPopular() ??
-      this.metadataCache.getPopular({ allowStale: true });
-    if (cached && cached.data.length > 0) {
-      this.noteProvider("cache");
-      return cachedPage(cached.data, page, perPage);
-    }
-
-    this.noteProvider("unavailable");
-    throw this.unavailable("Popular anime are unavailable");
+  ): Promise<CatalogResult<AnimePage>> {
+    return this.getCollectionPage("popular", options);
   }
 
   async getTrendingAnime(
     options: { page?: number; perPage?: number } = {},
-  ): Promise<AnimePage> {
-    const page = Math.max(1, Math.trunc(options.page ?? 1));
-    const perPage = Math.max(1, Math.min(50, Math.trunc(options.perPage ?? 12)));
-
-    await this.metadataCache.ready();
-
-    if (!this.isUpstreamBlocked()) {
-      try {
-        const pageResult = await this.anilistClient.getTrendingAnime(options);
-        this.metadataCache.putTrending(pageResult.items);
-        this.metadataCache.putSummaries(pageResult.items);
-        this.noteAniListSuccess();
-        this.noteProvider("anilist");
-        return pageResult;
-      } catch (error) {
-        if (!this.isOutageError(error)) throw error;
-        this.recordOutage(error);
-      }
-    }
-
-    const cached =
-      this.metadataCache.getTrending() ??
-      this.metadataCache.getTrending({ allowStale: true });
-    if (cached && cached.data.length > 0) {
-      this.noteProvider("cache");
-      return cachedPage(cached.data, page, perPage);
-    }
-
-    this.noteProvider("unavailable");
-    throw this.unavailable("Trending anime are unavailable");
+  ): Promise<CatalogResult<AnimePage>> {
+    return this.getCollectionPage("trending", options);
   }
 
   async getSeasonalAnime(
     season: AnimeSeason,
     seasonYear: number,
     options: { page?: number; perPage?: number } = {},
-  ): Promise<AnimePage> {
+  ): Promise<CatalogResult<AnimePage>> {
+    return this.getCollectionPage("seasonal", options, { season, seasonYear });
+  }
+
+  private async getCollectionPage(
+    kind: "popular" | "trending" | "seasonal",
+    options: { page?: number; perPage?: number },
+    seasonal?: { season: AnimeSeason; seasonYear: number },
+  ): Promise<CatalogResult<AnimePage>> {
     const page = Math.max(1, Math.trunc(options.page ?? 1));
     const perPage = Math.max(1, Math.min(50, Math.trunc(options.perPage ?? 12)));
 
     await this.metadataCache.ready();
+    const signal = this.newOutageSignal();
 
     if (!this.isUpstreamBlocked()) {
       try {
-        const pageResult = await this.anilistClient.getSeasonalAnime(
-          season,
-          seasonYear,
-          options,
-        );
-        this.metadataCache.putSeasonal(season, seasonYear, pageResult.items);
+        const pageResult = seasonal
+          ? await this.anilistClient.getSeasonalAnime(
+              seasonal.season,
+              seasonal.seasonYear,
+              options,
+            )
+          : kind === "popular"
+            ? await this.anilistClient.getPopularAnime(options)
+            : await this.anilistClient.getTrendingAnime(options);
+
+        if (seasonal) {
+          this.metadataCache.putSeasonal(
+            seasonal.season,
+            seasonal.seasonYear,
+            pageResult.items,
+          );
+        } else if (kind === "popular") {
+          this.metadataCache.putPopular(pageResult.items);
+        } else {
+          this.metadataCache.putTrending(pageResult.items);
+        }
         this.metadataCache.putSummaries(pageResult.items);
         this.noteAniListSuccess();
-        this.noteProvider("anilist");
-        return pageResult;
+        return this.result(pageResult, "anilist");
       } catch (error) {
         if (!this.isOutageError(error)) throw error;
-        this.recordOutage(error);
+        this.recordOutage(error, signal);
       }
     }
 
-    const cached =
-      this.metadataCache.getSeasonal(season, seasonYear) ??
-      this.metadataCache.getSeasonal(season, seasonYear, { allowStale: true });
+    const cached = seasonal
+      ? (this.metadataCache.getSeasonal(
+          seasonal.season,
+          seasonal.seasonYear,
+        ) ??
+        this.metadataCache.getSeasonal(
+          seasonal.season,
+          seasonal.seasonYear,
+          { allowStale: true },
+        ))
+      : kind === "popular"
+        ? (this.metadataCache.getPopular() ??
+          this.metadataCache.getPopular({ allowStale: true }))
+        : (this.metadataCache.getTrending() ??
+          this.metadataCache.getTrending({ allowStale: true }));
+
     if (cached && cached.data.length > 0) {
-      this.noteProvider("cache");
-      return cachedPage(cached.data, page, perPage);
+      return this.result(cachedPage(cached.data, page, perPage), "cache", {
+        stale: cached.isStale,
+        cachedAt: cached.cachedAt,
+      });
     }
 
-    this.noteProvider("unavailable");
-    throw this.unavailable("Seasonal anime are unavailable");
+    const label =
+      kind === "popular"
+        ? "Popular anime are unavailable"
+        : kind === "trending"
+          ? "Trending anime are unavailable"
+          : "Seasonal anime are unavailable";
+    throw this.unavailable(label, signal);
   }
 
   // -------------------------------------------------------------------
@@ -564,24 +641,27 @@ export class CatalogService {
     airingAtLesser: number;
     mediaIds?: number[];
     perPage?: number;
-  }): Promise<AiringScheduleEntry[]> {
+  }): Promise<CatalogResult<AiringScheduleEntry[]>> {
+    const signal = this.newOutageSignal();
+
     if (this.isUpstreamBlocked()) {
-      this.noteProvider("unavailable");
       throw this.unavailable(
         "The airing schedule is unavailable while AniList is offline",
+        signal,
       );
     }
 
     try {
       const entries = await this.anilistClient.getAiringSchedule(params);
       this.noteAniListSuccess();
-      this.noteProvider("anilist");
-      return entries;
+      return this.result(entries, "anilist");
     } catch (error) {
       if (!this.isOutageError(error)) throw error;
-      this.recordOutage(error);
-      this.noteProvider("unavailable");
-      throw this.unavailable("The airing schedule is temporarily unavailable");
+      this.recordOutage(error, signal);
+      throw this.unavailable(
+        "The airing schedule is temporarily unavailable",
+        signal,
+      );
     }
   }
 
@@ -589,33 +669,37 @@ export class CatalogService {
   // Internals
   // -------------------------------------------------------------------
 
+  private newOutageSignal(): OutageSignal {
+    // Seed the failure reason from diagnostics without touching provider
+    // attribution; the provider is decided per operation.
+    return {
+      failed: false,
+      suspended: this.suspensionConfirmedAt !== null,
+      rateLimited: false,
+      retryAfterMs: null,
+    };
+  }
+
   private isUpstreamBlocked(): boolean {
     return this.anilistClient.circuitBreaker.isBlocked();
   }
 
-  private noteProvider(provider: CatalogProvider): void {
-    this.lastProvider = provider;
-  }
-
   private noteAniListSuccess(): void {
     this.suspensionConfirmedAt = null;
-    this.rateLimitedAt = null;
-    this.lastRetryAfterMs = null;
   }
 
-  private recordOutage(error: unknown): void {
-    if (
-      error instanceof AniListSuspendedError ||
-      (error instanceof AniListError &&
-        (error.isSuspended || error.status === 403))
-    ) {
+  private recordOutage(error: unknown, signal: OutageSignal): void {
+    signal.failed = true;
+
+    if (this.isConfirmedSuspension(error)) {
+      signal.suspended = true;
       this.suspensionConfirmedAt = this.now();
       return;
     }
 
     if (error instanceof AniListError && error.status === 429) {
-      this.rateLimitedAt = this.now();
-      this.lastRetryAfterMs = error.retryAfterMs;
+      signal.rateLimited = true;
+      signal.retryAfterMs = error.retryAfterMs;
       return;
     }
 
@@ -625,21 +709,46 @@ export class CatalogService {
     }
   }
 
-  private unavailableReason():
-    | "upstream_suspended"
-    | "upstream_unavailable"
-    | "rate_limited" {
-    if (this.suspensionConfirmedAt !== null) return "upstream_suspended";
-    if (this.rateLimitedAt !== null) return "rate_limited";
-    return "upstream_unavailable";
+  private isConfirmedSuspension(error: unknown): boolean {
+    return (
+      error instanceof AniListSuspendedError ||
+      (error instanceof AniListError &&
+        (error.isSuspended || error.status === 403))
+    );
   }
 
   /** Builds a safe, actionable unavailable error for the API layer. */
-  private unavailable(message: string): CatalogUnavailableError {
+  private unavailable(
+    message: string,
+    signal: OutageSignal,
+  ): CatalogUnavailableError {
+    const reason = signal.suspended
+      ? "upstream_suspended"
+      : signal.rateLimited
+        ? "rate_limited"
+        : "upstream_unavailable";
+
     return new CatalogUnavailableError(message, {
-      reason: this.unavailableReason(),
-      retryAfterMs: this.lastRetryAfterMs,
+      reason,
+      retryAfterMs: signal.rateLimited ? signal.retryAfterMs : null,
     });
+  }
+
+  private result<T>(
+    data: T,
+    provider: CatalogProvider,
+    options: { stale?: boolean; cachedAt?: number | null } = {},
+  ): CatalogResult<T> {
+    return {
+      data,
+      meta: {
+        provider,
+        degraded: provider !== "anilist",
+        stale: options.stale ?? false,
+        cachedAt: options.cachedAt ?? null,
+        health: this.getHealth(),
+      },
+    };
   }
 
   private isMissingError(error: unknown): boolean {

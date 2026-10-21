@@ -179,7 +179,13 @@ reported as if it came from AniList.
 - **AniList** is the primary provider while its circuit is closed.
 - **Fresh cache** is served without a provider request when it is still valid.
 - **Stale cache** is served only during an outage and is always flagged as a
-  fallback (`CatalogProviderStatus.degraded`), never presented as live data.
+  fallback (`CatalogResult.meta.stale` / `.degraded`), never presented as live
+  data.
+- Every read returns a `CatalogResult` whose `meta.provider` records the
+  source that actually answered that operation (AniList, Kitsu, cache or
+  unavailable). Provider attribution is request-scoped, so concurrent requests
+  cannot relabel each other's responses; upstream health is reported separately
+  through `CatalogService.getHealth()`.
 - **Kitsu** is used only when a verified `anilist/anime` mapping exists. A
   missing or ambiguous mapping never produces a guessed AniList ID, and Kitsu
   IDs are never stored in library records.
@@ -229,7 +235,7 @@ Limitations to be explicit about:
 
 The browser never calls AniList directly for search: `/api/anime/search`
 validates filters with Zod, applies caching headers, and converts failures into
-useful 400/429/502 responses. Details and home sections are rendered on the
+useful 400/429/503 responses. Details and home sections are rendered on the
 server through the same client.
 
 Current season is calculated at request time from the UTC calendar quarter
@@ -292,6 +298,26 @@ watch time, streaks or historical trends.
 5. Deploy. `next build` is the build command; no separate backend is required.
 
 No cache directory or writable volume is required on Vercel.
+
+### Verifying the catalogue cache in production
+
+These checks require project access and are not performed automatically:
+
+- [ ] Both migrations are applied, including
+  `20261021000000_create_catalog_cache.sql`.
+- [ ] `select relrowsecurity, relforcerowsecurity from pg_class where relname = 'catalog_cache';`
+  returns `true, true`.
+- [ ] `select * from pg_policies where tablename = 'catalog_cache';` returns no
+  rows (service role only).
+- [ ] A request to `/rest/v1/catalog_cache?select=key` using the publishable key
+  is rejected, while the service role can read the table.
+- [ ] `SUPABASE_SERVICE_ROLE_KEY` is set for server runtimes only, is not a
+  `NEXT_PUBLIC_*` variable, and does not appear in client bundles or logs.
+- [ ] After a warm catalogue request, `catalog_cache` contains rows whose
+  `payload` only has public metadata fields (no user id, rating, notes or
+  progress).
+- [ ] Removing `SUPABASE_SERVICE_ROLE_KEY` keeps the catalogue working with
+  per-instance in-memory caching.
 6. Verify `/manifest.webmanifest`, `/icons/*`, sign-in, and a library update in
    the deployed environment.
 

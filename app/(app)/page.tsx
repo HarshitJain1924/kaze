@@ -8,15 +8,18 @@ import { ContinueWatching } from "@/features/library/continue-watching";
 import { getViewer } from "@/lib/auth";
 import { getWeekRange, toIsoDateString } from "@/lib/schedule";
 import { getCurrentSeason, seasonLabel } from "@/lib/season";
-import { getCatalogService } from "@/services/catalog/catalog-service";
+import {
+  getCatalogService,
+  type CatalogResult,
+} from "@/services/catalog/catalog-service";
 import type { AiringScheduleEntry, AnimePage } from "@/types/anime";
 
 async function safeLoad(
   label: string,
-  load: () => Promise<AnimePage>,
+  load: () => Promise<CatalogResult<AnimePage>>,
 ): Promise<AnimePage | null> {
   try {
-    return await load();
+    return (await load()).data;
   } catch (error) {
     console.error(
       `[home] could not load ${label}:`,
@@ -27,10 +30,10 @@ async function safeLoad(
 }
 
 async function safeLoadSchedule(
-  load: () => Promise<AiringScheduleEntry[]>,
+  load: () => Promise<CatalogResult<AiringScheduleEntry[]>>,
 ): Promise<AiringScheduleEntry[] | null> {
   try {
-    return await load();
+    return (await load()).data;
   } catch (error) {
     console.error(
       "[home] could not load airing schedule:",

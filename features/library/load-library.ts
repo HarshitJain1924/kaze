@@ -65,9 +65,10 @@ export async function loadLibraryItems(
 
   let animeById = new Map<number, AnimeSummary>();
   try {
-    animeById = await getCatalogService().getAnimeByIds(
+    const hydrated = await getCatalogService().getAnimeByIds(
       entries.map((entry) => entry.anilistId),
     );
+    animeById = hydrated.data;
   } catch (error) {
     console.error(
       "[library] could not hydrate anime metadata; entries kept without metadata",

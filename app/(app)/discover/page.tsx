@@ -52,9 +52,10 @@ export default async function DiscoverPage({
 
   let initialPage: AnimePage | null = null;
   try {
-    initialPage = await getCatalogService().searchAnime(
+    const result = await getCatalogService().searchAnime(
       toAnimeSearchParams(input),
     );
+    initialPage = result.data;
   } catch (error) {
     console.error(
       "[discover] initial catalogue search failed:",

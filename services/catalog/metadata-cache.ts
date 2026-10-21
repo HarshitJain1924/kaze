@@ -483,16 +483,19 @@ export class MetadataCache {
     this.putCollection(seasonalKey(season, year), items, "seasonal", options);
   }
 
-  /** Local title lookup used only when the provider is unreachable. */
-  searchLocal(
+  /**
+   * Local title lookup with freshness metadata, used by the catalogue service
+   * to label degraded responses accurately.
+   */
+  searchLocalHits(
     query: string,
     limit = 20,
     options: CacheReadOptions = {},
-  ): AnimeSummary[] {
+  ): CacheHit<AnimeSummary>[] {
     const needle = query.trim().toLowerCase();
     if (!needle || limit <= 0) return [];
 
-    const matches: AnimeSummary[] = [];
+    const matches: CacheHit<AnimeSummary>[] = [];
     for (const entry of this.summaries.values()) {
       const hit = this.read(entry, options);
       if (!hit) continue;
@@ -502,11 +505,20 @@ export class MetadataCache {
         hit.data.title.native,
       ].filter((value): value is string => Boolean(value));
       if (candidates.some((value) => value.toLowerCase().includes(needle))) {
-        matches.push(hit.data);
+        matches.push(hit);
         if (matches.length >= limit) break;
       }
     }
     return matches;
+  }
+
+  /** Local title lookup used only when the provider is unreachable. */
+  searchLocal(
+    query: string,
+    limit = 20,
+    options: CacheReadOptions = {},
+  ): AnimeSummary[] {
+    return this.searchLocalHits(query, limit, options).map((hit) => hit.data);
   }
 
   // ---------------------------------------------------------------------

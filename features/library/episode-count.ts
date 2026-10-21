@@ -11,7 +11,7 @@ export async function resolveEpisodeCount(
   anilistId: number,
 ): Promise<number | null> {
   try {
-    const anime = await getCatalogService().getAnimeById(anilistId);
+    const { data: anime } = await getCatalogService().getAnimeById(anilistId);
     return anime?.episodes ?? null;
   } catch (error) {
     console.warn(

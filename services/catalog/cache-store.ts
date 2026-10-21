@@ -49,8 +49,14 @@ const MAX_HYDRATED_RECORDS = 1_500;
  * the table has no policies for `anon` or `authenticated`, so browser clients
  * cannot read or write it.
  */
+export interface CatalogPersistenceEnv {
+  NEXT_PUBLIC_SUPABASE_URL?: string;
+  SUPABASE_SERVICE_ROLE_KEY?: string;
+  [key: string]: string | undefined;
+}
+
 export function createCatalogPersistence(
-  env: NodeJS.ProcessEnv = process.env,
+  env: CatalogPersistenceEnv = process.env,
 ): CatalogPersistence | null {
   const url = env.NEXT_PUBLIC_SUPABASE_URL?.trim();
   const serviceRoleKey = env.SUPABASE_SERVICE_ROLE_KEY?.trim();

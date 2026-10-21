@@ -22,10 +22,10 @@ function parseStatus(value: string | string[] | undefined): LibraryStatusFilter 
 async function loadSeasonPicks(): Promise<AnimeSummary[]> {
   try {
     const { season, year } = getCurrentSeason();
-    const page = await getCatalogService().getSeasonalAnime(season, year, {
+    const { data } = await getCatalogService().getSeasonalAnime(season, year, {
       perPage: 4,
     });
-    return page.items;
+    return data.items;
   } catch (error) {
     console.error(
       "[library] could not load seasonal suggestions:",

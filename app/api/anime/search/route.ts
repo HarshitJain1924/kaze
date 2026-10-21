@@ -24,21 +24,26 @@ export async function GET(request: Request) {
     const url = new URL(request.url);
     const input = parseAnimeSearchParams(url.searchParams);
     const catalog = getCatalogService();
-    const page = await catalog.searchAnime(toAnimeSearchParams(input));
+    // Provider and degraded state come from this operation only, so
+    // concurrent requests cannot relabel each other's responses.
+    const result = await catalog.searchAnime(toAnimeSearchParams(input));
+    const { provider, degraded, stale } = result.meta;
 
-    const status = catalog.getStatus();
     const headers: Record<string, string> = {
-      "x-catalog-provider": status.activeProvider,
+      "x-catalog-provider": provider,
     };
-    if (status.degraded) {
+    if (degraded) {
       headers["x-catalog-degraded"] = "1";
       headers["cache-control"] = "private, max-age=0, must-revalidate";
     } else {
       headers["cache-control"] =
         "public, s-maxage=60, stale-while-revalidate=300";
     }
+    if (stale) {
+      headers["x-catalog-stale"] = "1";
+    }
 
-    return NextResponse.json(page, { headers });
+    return NextResponse.json(result.data, { headers });
   } catch (error) {
     if (error instanceof ZodError) {
       return NextResponse.json(

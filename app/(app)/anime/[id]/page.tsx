@@ -16,7 +16,10 @@ import {
   formatRelationType,
   getDisplayTitle,
 } from "@/lib/utils";
-import { getCatalogService } from "@/services/catalog/catalog-service";
+import {
+  getCatalogService,
+  type CatalogResult,
+} from "@/services/catalog/catalog-service";
 import type { Anime, RelatedAnime } from "@/types/anime";
 
 interface PageProps {
@@ -38,7 +41,7 @@ export async function generateMetadata({
   }
 
   try {
-    const anime = await getCatalogService().getAnimeById(numericId);
+    const { data: anime } = await getCatalogService().getAnimeById(numericId);
     if (!anime) {
       return { title: "Anime not found" };
     }
@@ -77,10 +80,10 @@ export default async function AnimeDetailsPage({ params }: PageProps) {
     notFound();
   }
 
-  let anime: Anime | null = null;
   const catalog = getCatalogService();
+  let result: CatalogResult<Anime | null>;
   try {
-    anime = await catalog.getAnimeById(numericId);
+    result = await catalog.getAnimeById(numericId);
   } catch (error) {
     console.error(
       "[anime] could not load details",
@@ -106,13 +109,13 @@ export default async function AnimeDetailsPage({ params }: PageProps) {
     );
   }
 
-  if (!anime) {
+  if (!result.data) {
     notFound();
   }
 
-  // Read status after the lookup so the banner describes the source that
-  // actually answered this request.
-  const catalogStatus = catalog.getStatus();
+  const anime = result.data;
+  // Banner metadata is scoped to this request's result, never shared state.
+  const catalogMeta = result.meta;
   const cover = anime.coverImage.extraLarge ?? anime.coverImage.large;
   const startDate = formatAnimeDate(anime.startDate);
   const endDate = formatAnimeDate(anime.endDate);
@@ -154,10 +157,10 @@ export default async function AnimeDetailsPage({ params }: PageProps) {
       </div>
 
       <div className="mx-auto max-w-[1560px] px-4 sm:px-6 lg:px-10">
-        {catalogStatus.degraded ? (
+        {catalogMeta.degraded ? (
           <div className="mt-3 flex flex-wrap items-center justify-between gap-2 rounded-xl border border-amber-500/25 bg-amber-950/40 px-3.5 py-2 text-xs text-amber-200 backdrop-blur-sm">
             <span>
-              {catalogStatus.isSuspended
+              {catalogMeta.health.isSuspended
                 ? "Offline resilience mode: AniList is temporarily suspended upstream. Showing the metadata that is still available."
                 : "Offline resilience mode: AniList is unavailable right now. Showing the metadata that is still available."}
             </span>

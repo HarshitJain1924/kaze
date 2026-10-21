@@ -65,7 +65,7 @@ describe("loadLibraryItems error resilience", () => {
         createdAt: "2026-01-01T00:00:00Z",
       },
     ]);
-    mockGetAnimeByIds.mockResolvedValue(new Map());
+    mockGetAnimeByIds.mockResolvedValue({ data: new Map() });
 
     const items = await loadLibraryItems("u1");
     expect(items).toHaveLength(1);
@@ -89,7 +89,7 @@ describe("loadLibraryItems error resilience", () => {
     mockList.mockResolvedValue([entry]);
     mockListEpisodes.mockResolvedValue([]);
     // Catalogue outage: no summaries resolve at all.
-    mockGetAnimeByIds.mockResolvedValue(new Map());
+    mockGetAnimeByIds.mockResolvedValue({ data: new Map() });
 
     const items = await loadLibraryItems("u1");
 
@@ -144,7 +144,7 @@ describe("loadLibraryItems error resilience", () => {
     mockList.mockResolvedValue([entry]);
     // Simulate database query failure when loading episode history
     mockListEpisodes.mockRejectedValue(new Error("Supabase connection timeout"));
-    mockGetAnimeByIds.mockResolvedValue(new Map());
+    mockGetAnimeByIds.mockResolvedValue({ data: new Map() });
 
     const items = await loadLibraryItems("u1");
     expect(items).toHaveLength(1);
