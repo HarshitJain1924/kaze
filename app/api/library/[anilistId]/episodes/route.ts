@@ -10,7 +10,10 @@ import {
   bulkEpisodeSchema,
   toggleEpisodeSchema,
 } from "@/lib/validation/library";
-import { resolveEpisodeCount } from "@/features/library/episode-count";
+import {
+  resolveEpisodeCount,
+  resolveEpisodeTotal,
+} from "@/features/library/episode-count";
 import { createLibraryRepository } from "@/repositories/library";
 
 interface RouteContext {
@@ -117,9 +120,10 @@ export async function POST(request: Request, context: RouteContext) {
   }
 
   try {
-    const totalEpisodes =
-      toggleParsed.data.totalEpisodes ??
-      (await resolveEpisodeCount(animeId));
+    const totalEpisodes = await resolveEpisodeTotal(
+      toggleParsed.data.totalEpisodes,
+      animeId,
+    );
 
     const repository = createLibraryRepository(auth.context.supabase);
     const result = await repository.toggleEpisode(

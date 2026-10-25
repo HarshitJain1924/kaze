@@ -8,6 +8,7 @@ import {
 import {
   addToLibrarySchema,
   entryPatchSchema,
+  entryUpdateRequestSchema,
   progressSchema,
   scoreSchema,
 } from "@/lib/validation/library";
@@ -139,6 +140,21 @@ describe("library input schemas", () => {
   it("rejects notes longer than the limit", () => {
     expect(
       entryPatchSchema.safeParse({ notes: "x".repeat(5001) }).success,
+    ).toBe(false);
+  });
+
+  it("accepts a client-provided episode total alongside a real change", () => {
+    const parsed = entryUpdateRequestSchema.parse({
+      status: "completed",
+      totalEpisodes: 12,
+    });
+
+    expect(parsed.totalEpisodes).toBe(12);
+    expect(parsed.status).toBe("completed");
+
+    // A total alone is not a library change.
+    expect(
+      entryUpdateRequestSchema.safeParse({ totalEpisodes: 12 }).success,
     ).toBe(false);
   });
 });

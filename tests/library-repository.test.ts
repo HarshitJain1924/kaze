@@ -137,6 +137,18 @@ class MemoryStore implements LibraryStore {
   }
 }
 
+class CountingStore extends MemoryStore {
+  findCalls = 0;
+
+  override async find(
+    userId: string,
+    anilistId: number,
+  ): Promise<LibraryEntry | null> {
+    this.findCalls += 1;
+    return super.find(userId, anilistId);
+  }
+}
+
 class RacingStore extends MemoryStore {
   private findCalls = 0;
 
@@ -283,6 +295,17 @@ describe("LibraryRepository", () => {
     await repository.remove("user-1", 808);
 
     expect(await repository.list("user-1")).toHaveLength(0);
+  });
+
+  it("reads the entry once per episode toggle", async () => {
+    const store = new CountingStore();
+    const repository = new LibraryRepository(store);
+    await repository.add("user-1", { anilistId: 906, status: "watching" });
+    store.findCalls = 0;
+
+    await repository.toggleEpisode("user-1", 906, 1, true, 12);
+
+    expect(store.findCalls).toBe(1);
   });
 
   it("tracks individual watched episodes with non-sequential support", async () => {

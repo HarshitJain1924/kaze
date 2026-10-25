@@ -403,6 +403,21 @@ export class LibraryRepository {
       throw new LibraryEntryNotFoundError(anilistId);
     }
 
+    return this.commit(userId, anilistId, current, patch, episodes);
+  }
+
+  /**
+   * Applies a patch to an entry that was already read during this request.
+   * Avoids re-reading the row, which would add a database round trip to every
+   * episode toggle on the update path.
+   */
+  private async commit(
+    userId: string,
+    anilistId: number,
+    current: LibraryEntry,
+    patch: LibraryEntryPatch,
+    episodes: number | null,
+  ): Promise<LibraryEntry> {
     const applied = applyLibraryEntryUpdate(current, patch, episodes);
     const updated = await this.store.update(userId, anilistId, applied);
     if (!updated) {
@@ -475,9 +490,10 @@ export class LibraryRepository {
       patch.completedAt = null;
     }
 
-    const updatedEntry = await this.update(
+    const updatedEntry = await this.commit(
       userId,
       anilistId,
+      current,
       patch,
       totalEpisodes,
     );
@@ -506,9 +522,10 @@ export class LibraryRepository {
     );
     await this.store.bulkRecordEpisodes(userId, anilistId, episodeNumbers);
 
-    const updatedEntry = await this.update(
+    const updatedEntry = await this.commit(
       userId,
       anilistId,
+      current,
       {
         progress: totalEpisodes,
         status: "completed",
@@ -538,9 +555,10 @@ export class LibraryRepository {
       patch.completedAt = null;
     }
 
-    const updatedEntry = await this.update(
+    const updatedEntry = await this.commit(
       userId,
       anilistId,
+      current,
       patch,
       totalEpisodes,
     );

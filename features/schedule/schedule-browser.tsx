@@ -377,10 +377,17 @@ function ScheduleReleaseCard({
       className={cn(
         "group relative flex gap-3 rounded-2xl border p-3 transition-colors",
         inWatching
-          ? "border-accent/40 bg-surface shadow-sm hover:border-accent"
+          ? "border-accent/45 bg-accent-soft shadow-sm hover:border-accent"
           : "border-border-subtle bg-surface hover:border-border",
       )}
     >
+      {/* Accent rail: makes watchlist releases scannable in a long list. */}
+      {inWatching ? (
+        <span
+          aria-hidden="true"
+          className="absolute inset-y-3 left-0 w-[3px] rounded-full bg-accent-strong"
+        />
+      ) : null}
       {/* Poster */}
       <Link
         href={`/anime/${anime.id}`}
@@ -406,7 +413,13 @@ function ScheduleReleaseCard({
           </span>
           {anime.format ? <span>{formatFormat(anime.format)}</span> : null}
           {inWatching ? (
-            <span className="ml-auto text-[11px] text-muted">Watching</span>
+            <span className="ml-auto inline-flex items-center gap-1 rounded-full border border-accent/40 bg-accent/15 px-2 py-0.5 text-[10px] font-semibold text-accent-strong">
+              <span
+                aria-hidden="true"
+                className="h-1 w-1 rounded-full bg-accent-strong"
+              />
+              Watching
+            </span>
           ) : libraryEntry ? (
             <span className="ml-auto">
               <StatusBadge status={libraryEntry.status} />

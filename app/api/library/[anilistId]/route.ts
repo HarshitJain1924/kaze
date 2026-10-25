@@ -7,9 +7,9 @@ import {
 } from "@/lib/api/helpers";
 import {
   anilistIdSchema,
-  entryPatchSchema,
+  entryUpdateRequestSchema,
 } from "@/lib/validation/library";
-import { resolveEpisodeCount } from "@/features/library/episode-count";
+import { resolveEpisodeTotal } from "@/features/library/episode-count";
 import { createLibraryRepository } from "@/repositories/library";
 
 interface RouteContext {
@@ -36,7 +36,7 @@ export async function PATCH(request: Request, context: RouteContext) {
     );
   }
 
-  const parsed = entryPatchSchema.safeParse(await readJsonBody(request));
+  const parsed = entryUpdateRequestSchema.safeParse(await readJsonBody(request));
   if (!parsed.success) {
     return NextResponse.json(
       {
@@ -48,16 +48,17 @@ export async function PATCH(request: Request, context: RouteContext) {
   }
 
   try {
+    const { totalEpisodes, ...patch } = parsed.data;
     const episodes =
-      parsed.data.status !== undefined || parsed.data.progress !== undefined
-        ? await resolveEpisodeCount(animeId)
+      patch.status !== undefined || patch.progress !== undefined
+        ? await resolveEpisodeTotal(totalEpisodes, animeId)
         : null;
 
     const repository = createLibraryRepository(auth.context.supabase);
     const entry = await repository.update(
       auth.context.viewer.id,
       animeId,
-      parsed.data,
+      patch,
       episodes,
     );
     return NextResponse.json({ entry });

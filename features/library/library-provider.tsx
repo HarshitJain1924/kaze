@@ -278,7 +278,8 @@ export function LibraryProvider({
         return false;
       }
 
-      const episodes = animeMap.get(anilistId)?.episodes ?? null;
+      const anime = animeMap.get(anilistId);
+      const episodes = anime?.episodes ?? null;
 
       let optimisticEntry: LibraryEntry;
       try {
@@ -311,7 +312,12 @@ export function LibraryProvider({
           `/api/library/${anilistId}`,
           {
             method: "PATCH",
-            body: JSON.stringify(patch),
+            body: JSON.stringify({
+              ...patch,
+              // Pass the episode total the page already rendered so the API
+              // does not have to re-query the catalogue provider.
+              ...(anime ? { totalEpisodes: anime.episodes } : {}),
+            }),
           },
         );
         setItems((current) =>

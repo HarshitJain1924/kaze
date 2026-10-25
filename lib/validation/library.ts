@@ -65,6 +65,17 @@ export const entryPatchSchema = entryFieldsSchema.refine(hasEntryChange, {
   message: "No changes were provided",
 });
 
+/**
+ * Entry update request body. `totalEpisodes` lets the client pass on the
+ * episode count it already rendered, so the API does not have to ask the
+ * catalogue provider again on every status or progress change.
+ */
+export const entryUpdateRequestSchema = entryFieldsSchema
+  .extend({
+    totalEpisodes: z.number().int().positive().nullable().optional(),
+  })
+  .refine(hasEntryChange, { message: "No changes were provided" });
+
 export const updateEntrySchema = entryFieldsSchema
   .extend({ anilistId: anilistIdSchema })
   .refine(hasEntryChange, { message: "No changes were provided" });

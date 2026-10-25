@@ -21,3 +21,20 @@ export async function resolveEpisodeCount(
     return null;
   }
 }
+
+/**
+ * Uses the episode total the client already has, including an explicit `null`
+ * ("provider reports no total"), and only consults the catalogue when the
+ * client omitted it. Episode toggles then avoid a provider round trip, which
+ * is what made checking an episode occasionally take seconds while AniList
+ * was slow or rate limited.
+ */
+export async function resolveEpisodeTotal(
+  provided: number | null | undefined,
+  anilistId: number,
+): Promise<number | null> {
+  if (provided !== undefined) {
+    return provided;
+  }
+  return resolveEpisodeCount(anilistId);
+}
