@@ -419,4 +419,52 @@ describe("AniListClient", () => {
     expect(body.variables.ids).toHaveLength(50);
     expect(body.variables.perPage).toBe(50);
   });
+
+  it("pages through the whole airing schedule instead of stopping after three pages", async () => {
+    const scheduleEntry = (id: number) => ({
+      id,
+      airingAt: 1_700_000_000 + id * 3600,
+      timeUntilAiring: 3600,
+      episode: id,
+      mediaId: 1000 + id,
+      media: { ...media, id: 1000 + id },
+    });
+    const totalPages = 4;
+
+    const fetchMock = vi.fn(async (_input: unknown, init?: RequestInit) => {
+      const body = JSON.parse(String(init?.body)) as {
+        variables: { page: number };
+      };
+      const page = body.variables.page;
+      const firstId = (page - 1) * 2 + 1;
+      return jsonResponse({
+        data: {
+          Page: {
+            pageInfo: {
+              currentPage: page,
+              lastPage: totalPages,
+              hasNextPage: page < totalPages,
+              total: totalPages * 2,
+            },
+            airingSchedules: [
+              scheduleEntry(firstId),
+              scheduleEntry(firstId + 1),
+            ],
+          },
+        },
+      });
+    });
+    const { client } = createClient(fetchMock);
+
+    const entries = await client.getAiringSchedule({
+      airingAtGreater: 0,
+      airingAtLesser: 10,
+      perPage: 2,
+    });
+
+    expect(fetchMock).toHaveBeenCalledTimes(4);
+    expect(entries.map((entry) => entry.id)).toEqual([
+      1, 2, 3, 4, 5, 6, 7, 8,
+    ]);
+  });
 });

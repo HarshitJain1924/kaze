@@ -38,6 +38,7 @@ const TTL = {
 } as const;
 
 const MAX_PER_PAGE = 50;
+const MAX_SCHEDULE_PAGES = 20;
 
 interface GraphQLPayload {
   data?: unknown;
@@ -596,7 +597,10 @@ export class AniListClient {
     let page = 1;
     const perPage = params.perPage ?? 50;
 
-    while (page <= 3) {
+    // A week of releases spans several pages (50 entries each). Keep paging
+    // until AniList reports the last page, otherwise the tail of the week is
+    // silently dropped. The cap is a safety net well above a realistic week.
+    while (page <= MAX_SCHEDULE_PAGES) {
       const data = await this.execute<{ Page?: unknown }>(
         AIRING_SCHEDULE_QUERY,
         {
