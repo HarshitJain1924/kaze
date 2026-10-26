@@ -12,11 +12,13 @@ import {
 } from "@/components/icons";
 import { EmptyState } from "@/components/empty-state";
 import { SectionHeader } from "@/components/section-header";
-import { usePreferences } from "@/components/providers/preferences-provider";
+import { useActiveTimeZone, usePreferences } from "@/components/providers/preferences-provider";
+import { TimezoneSelector } from "@/components/timezone-selector";
 import { useLibrary } from "@/features/library/library-provider";
 import {
   formatAiringRelative,
   formatAiringTime,
+  getTimeZoneAbbr,
   groupScheduleByDay,
   toIsoDateString,
   type WeekRange,
@@ -45,6 +47,7 @@ function formatDayHeading(isoDate: string): string {
 
 export function HomeSchedule({ week, initialEntries }: HomeScheduleProps) {
   const { preferences } = usePreferences();
+  const { activeTimeZone } = useActiveTimeZone();
   const {
     items,
     canWrite,
@@ -64,16 +67,6 @@ export function HomeSchedule({ week, initialEntries }: HomeScheduleProps) {
 
   const watchingSet = useMemo(() => new Set(watchingIds), [watchingIds]);
 
-  // Default active day is today if within this week, otherwise first day
-  const initialDate = useMemo(() => {
-    const localTodayIso = toIsoDateString(new Date());
-    const match = week.days.find((d) => d.date === localTodayIso);
-    return match ? match.date : (week.days[0]?.date ?? "");
-  }, [week.days]);
-
-  const [selectedDate, setSelectedDate] = useState<string>(initialDate);
-  const [filterMode, setFilterMode] = useState<"all" | "watching">("all");
-
   const days = useMemo(() => {
     if (!initialEntries) {
       return week.days.map((day) => ({
@@ -81,8 +74,18 @@ export function HomeSchedule({ week, initialEntries }: HomeScheduleProps) {
         entries: [],
       }));
     }
-    return groupScheduleByDay(initialEntries, week.days);
-  }, [initialEntries, week.days]);
+    return groupScheduleByDay(initialEntries, week.days, activeTimeZone);
+  }, [initialEntries, week.days, activeTimeZone]);
+
+  // Default active day is today in active timezone if within this week, otherwise first day
+  const initialDate = useMemo(() => {
+    const localTodayIso = toIsoDateString(new Date(), activeTimeZone);
+    const match = days.find((d) => d.date === localTodayIso);
+    return match ? match.date : (days[0]?.date ?? "");
+  }, [days, activeTimeZone]);
+
+  const [selectedDate, setSelectedDate] = useState<string>(initialDate);
+  const [filterMode, setFilterMode] = useState<"all" | "watching">("all");
 
   const activeDay = useMemo(() => {
     return days.find((d) => d.date === selectedDate) ?? days[0] ?? null;
@@ -117,7 +120,14 @@ export function HomeSchedule({ week, initialEntries }: HomeScheduleProps) {
       <section aria-label="Airing this week" className="space-y-4">
         <SectionHeader
           title="Airing this week"
-          description={`Broadcast releases in your local timezone · ${week.weekLabel}`}
+          description={
+            <span className="inline-flex flex-wrap items-center gap-1.5">
+              <span>Broadcast releases in</span>
+              <TimezoneSelector />
+              <span className="text-faint">·</span>
+              <span>{week.weekLabel}</span>
+            </span>
+          }
           action="Full schedule"
           actionHref="/schedule"
         />
@@ -147,7 +157,14 @@ export function HomeSchedule({ week, initialEntries }: HomeScheduleProps) {
     <section aria-label="Airing this week" className="space-y-4">
       <SectionHeader
         title="Airing this week"
-        description={`Broadcast releases in your local timezone · ${week.weekLabel}`}
+        description={
+          <span className="inline-flex flex-wrap items-center gap-1.5">
+            <span>Broadcast releases in</span>
+            <TimezoneSelector />
+            <span className="text-faint">·</span>
+            <span>{week.weekLabel}</span>
+          </span>
+        }
         action="Full schedule"
         actionHref="/schedule"
       />
@@ -171,34 +188,34 @@ export function HomeSchedule({ week, initialEntries }: HomeScheduleProps) {
                 "group flex min-w-[70px] shrink-0 flex-col items-center justify-center rounded-xl border p-2.5 text-center transition-all sm:min-w-0 sm:shrink",
                 day.isToday
                   ? isSelected
-                    ? "border-accent bg-[#261545] text-white shadow-[0_0_20px_rgba(124,58,237,0.3)] ring-1 ring-accent"
-                    : "border-accent/70 bg-[#1d1238] text-white shadow-[0_0_14px_rgba(124,58,237,0.2)]"
+                    ? "border-accent bg-accent/15 text-fg ring-1 ring-accent/50"
+                    : "border-accent/70 bg-accent/10 text-fg"
                   : isSelected
-                    ? "border-white/25 bg-[#181829] text-white ring-1 ring-white/15"
-                    : "border-white/10 bg-[#0d0d17] hover:border-white/20 hover:bg-[#141423]",
+                    ? "border-border bg-surface-3 text-fg ring-1 ring-border"
+                    : "border-border-subtle bg-surface hover:border-border hover:bg-surface-2",
               )}
             >
               <span
                 className={cn(
                   "text-xs font-medium tracking-wide",
                   day.isToday
-                    ? "text-[#c084fc] font-semibold"
+                    ? "font-semibold text-accent-strong"
                     : isSelected
-                      ? "text-white"
-                      : "text-white/60 group-hover:text-white/80",
+                      ? "text-fg"
+                      : "text-faint group-hover:text-muted",
                 )}
               >
                 {day.isToday ? "Today" : day.dayShort}
               </span>
-              <span className="mt-1 font-display text-xl font-bold tabular-nums text-white">
+              <span className="mt-1 font-display text-xl font-bold tabular-nums text-fg">
                 {day.dayNumber}
               </span>
-              <span className="mt-1 flex items-center justify-center gap-1 text-[11px] tabular-nums text-white/50">
+              <span className="mt-1 flex items-center justify-center gap-1 text-[11px] tabular-nums text-muted">
                 <span>{day.entries.length} eps</span>
                 {dayWatchingCount > 0 ? (
                   <span
                     title={`${dayWatchingCount} from your library`}
-                    className="h-1.5 w-1.5 rounded-full bg-accent-strong shadow-[0_0_4px_rgba(185,164,255,0.8)]"
+                    className="h-1.5 w-1.5 rounded-full bg-accent-strong"
                   />
                 ) : null}
               </span>
@@ -295,6 +312,7 @@ export function HomeSchedule({ week, initialEntries }: HomeScheduleProps) {
               <HomeScheduleCard
                 key={entry.id}
                 entry={entry}
+                timeZone={activeTimeZone}
                 titleLanguage={preferences.titleLanguage}
                 inWatching={watchingSet.has(entry.mediaId)}
                 canWrite={canWrite}
@@ -323,6 +341,7 @@ export function HomeSchedule({ week, initialEntries }: HomeScheduleProps) {
 
 interface HomeScheduleCardProps {
   entry: AiringScheduleEntry;
+  timeZone?: string;
   titleLanguage: "english" | "romaji";
   inWatching: boolean;
   canWrite: boolean;
@@ -338,6 +357,7 @@ interface HomeScheduleCardProps {
 
 function HomeScheduleCard({
   entry,
+  timeZone,
   titleLanguage,
   inWatching,
   canWrite,
@@ -350,7 +370,8 @@ function HomeScheduleCard({
   const title = getDisplayTitle(anime.title, titleLanguage === "english");
   const cover = anime.coverImage.extraLarge ?? anime.coverImage.large;
 
-  const airingTimeStr = formatAiringTime(entry.airingAt);
+  const airingTimeStr = formatAiringTime(entry.airingAt, timeZone);
+  const tzAbbr = getTimeZoneAbbr(entry.airingAt, timeZone);
   const relative = formatAiringRelative(entry.airingAt);
 
   // Individual watched records are the source of truth when present.
@@ -374,10 +395,17 @@ function HomeScheduleCard({
       className={cn(
         "group relative flex items-center gap-3 rounded-2xl border p-3 transition-colors",
         inWatching
-          ? "border-accent/40 bg-surface shadow-sm hover:border-accent"
+          ? "border-accent/45 bg-accent-soft hover:border-accent"
           : "border-border-subtle bg-surface hover:border-border",
       )}
     >
+      {inWatching ? (
+        <span
+          aria-hidden="true"
+          className="absolute inset-y-3 left-0 w-[3px] rounded-full bg-accent-strong"
+        />
+      ) : null}
+
       {/* Poster */}
       <Link
         href={`/anime/${anime.id}`}
@@ -406,10 +434,10 @@ function HomeScheduleCard({
             </span>
             {anime.format ? <span>{formatFormat(anime.format)}</span> : null}
             {inWatching ? (
-              <span className="ml-auto inline-flex items-center gap-1.5 text-[11px] text-muted">
+              <span className="ml-auto inline-flex items-center gap-1 rounded-full border border-accent/40 bg-accent/15 px-2 py-0.5 text-[10px] font-semibold text-accent-strong">
                 <span
                   aria-hidden="true"
-                  className="h-1.5 w-1.5 rounded-full bg-accent-strong"
+                  className="h-1 w-1 rounded-full bg-accent-strong"
                 />
                 Watching
               </span>
@@ -425,8 +453,14 @@ function HomeScheduleCard({
           </Link>
 
           <div className="mt-0.5 flex items-center gap-1.5 text-xs text-muted">
-            <span className="font-semibold tabular-nums text-fg">
-              {airingTimeStr}
+            <span
+              suppressHydrationWarning
+              className="font-mono font-semibold tabular-nums text-fg inline-flex items-baseline gap-1"
+            >
+              <span>{airingTimeStr}</span>
+              <span className="text-[10px] font-sans font-medium text-muted">
+                {tzAbbr}
+              </span>
             </span>
             <span className="text-faint">·</span>
             <span
@@ -467,7 +501,9 @@ function HomeScheduleCard({
                 <span>{toggling ? "Saving…" : `Mark Ep ${entry.episode} watched`}</span>
               </button>
             ) : (
-              <span className="text-xs text-faint">Airs {airingTimeStr}</span>
+              <span suppressHydrationWarning className="text-xs text-faint">
+                Airs {airingTimeStr} {tzAbbr}
+              </span>
             )
           ) : (
             <Link

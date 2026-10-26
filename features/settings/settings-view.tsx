@@ -14,19 +14,44 @@ import {
 import { usePreferences } from "@/components/providers/preferences-provider";
 import {
   useTheme,
+  type DesignDirection,
   type ThemeMode,
 } from "@/components/providers/theme-provider";
 import { useToast } from "@/components/providers/toast-provider";
 import { Button } from "@/components/ui/button";
 import { Select } from "@/components/ui/field";
+import { TimezoneSelector } from "@/components/timezone-selector";
 import { useLibrary } from "@/features/library/library-provider";
 import { getSupabaseBrowserClient } from "@/lib/supabase/client";
 import {
+  cn,
   formatIsoDate,
   getDisplayTitle,
 } from "@/lib/utils";
 import type { LibraryView } from "@/types/library";
 import type { Viewer } from "@/types/viewer";
+
+const DESIGN_OPTIONS: Array<{
+  value: DesignDirection;
+  label: string;
+  description: string;
+}> = [
+  {
+    value: "broadcast",
+    label: "Midnight Violet",
+    description: "Kaze signature: Obsidian dark with electric violet & lavender glow",
+  },
+  {
+    value: "editorial",
+    label: "Cyber Neon",
+    description: "Tokyo night: Deep oceanic slate with electric cyan & teal",
+  },
+  {
+    value: "shelf",
+    label: "Sakura Bloom",
+    description: "Cherry blossom: Velvety dark with vibrant sakura rose & crimson",
+  },
+];
 
 const THEME_OPTIONS: Array<{
   value: ThemeMode;
@@ -84,7 +109,7 @@ function Section({
 export function SettingsView({ viewer }: { viewer: Viewer }) {
   const router = useRouter();
   const { toast } = useToast();
-  const { mode, setMode } = useTheme();
+  const { mode, resolved, design, setMode, setDesign } = useTheme();
   const { preferences, setPreference } = usePreferences();
   const { items } = useLibrary();
   const supabase = useMemo(() => getSupabaseBrowserClient(), []);
@@ -268,7 +293,68 @@ export function SettingsView({ viewer }: { viewer: Viewer }) {
         title="Appearance"
         description="How Kaze looks and how titles are labelled on this device. Changes save immediately."
       >
-        <div className="grid gap-6 lg:grid-cols-2">
+        <div className="space-y-6">
+          <div>
+            <p className="text-xs font-medium text-muted">Design</p>
+            <div
+              role="group"
+              aria-label="Design direction"
+              className="mt-1.5 grid gap-2 sm:grid-cols-3"
+            >
+              {DESIGN_OPTIONS.map((option) => {
+                const active = design === option.value;
+                return (
+                  <button
+                    key={option.value}
+                    type="button"
+                    aria-pressed={active}
+                    onClick={() => {
+                      setDesign(option.value);
+                      markSaved();
+                    }}
+                    className={cn(
+                      "rounded-xl border p-2 text-left transition-colors",
+                      active
+                        ? "border-accent/60 ring-1 ring-accent/30"
+                        : "border-border-subtle hover:border-border",
+                    )}
+                  >
+                    {/* The preview carries its own direction tokens, so it shows
+                        that design in the appearance currently in use. */}
+                    <div
+                      data-design={option.value}
+                      className={cn(
+                        "rounded-lg border border-border-subtle bg-bg p-2.5",
+                        resolved === "light" && "light",
+                      )}
+                    >
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="font-display text-base font-semibold leading-none text-fg">
+                          Aa
+                        </span>
+                        <span className="font-mono text-[10px] tabular-nums text-muted">
+                          21:30
+                        </span>
+                      </div>
+                      <div className="mt-2 flex gap-1">
+                        <span className="h-5 flex-1 rounded-md border border-border-subtle bg-surface" />
+                        <span className="h-5 flex-1 rounded-md bg-surface-3" />
+                        <span className="h-5 flex-1 rounded-md bg-accent" />
+                      </div>
+                    </div>
+                    <span className="mt-2 block text-xs font-semibold text-fg">
+                      {option.label}
+                    </span>
+                    <span className="mt-0.5 block text-[11px] leading-snug text-faint">
+                      {option.description}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          <div className="grid gap-6 lg:grid-cols-2">
           <div>
             <p className="text-xs font-medium text-muted">Theme</p>
             <div
@@ -345,6 +431,17 @@ export function SettingsView({ viewer }: { viewer: Viewer }) {
                 <option value="list">Compact list</option>
               </Select>
             </label>
+
+            <div className="space-y-1.5">
+              <span className="text-xs font-medium text-muted">
+                Schedule & broadcast timezone
+              </span>
+              <TimezoneSelector variant="select" onSelect={() => markSaved()} />
+              <p className="text-[11px] leading-relaxed text-faint">
+                Episode release times on the weekly schedule and home dashboard are converted to this timezone.
+              </p>
+            </div>
+          </div>
           </div>
         </div>
       </Section>

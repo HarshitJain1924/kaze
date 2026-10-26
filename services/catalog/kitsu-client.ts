@@ -54,7 +54,12 @@ export class KitsuError extends Error {
  * not turn either into an invented AniList ID.
  */
 export type KitsuLookupResult =
-  | { kind: "found"; summary: AnimeSummary; kitsuId: number }
+  | {
+      kind: "found";
+      summary: AnimeSummary;
+      kitsuId: number;
+      bannerImage: string | null;
+    }
   | {
       kind: "not_mapped";
       reason: "no_mapping" | "incomplete_mapping";
@@ -403,7 +408,15 @@ export class KitsuClient {
         return { kind: "not_mapped", reason: "incomplete_mapping" };
       }
 
-      return { kind: "found", summary, kitsuId };
+      const attrs = attributesOf(resource);
+      const cover = isRecord(attrs.coverImage) ? attrs.coverImage : {};
+      const bannerImage =
+        readString(cover.original) ??
+        readString(cover.large) ??
+        readString(cover.small) ??
+        null;
+
+      return { kind: "found", summary, kitsuId, bannerImage };
     } catch (error) {
       return { kind: "error", error: toKitsuError(error) };
     }

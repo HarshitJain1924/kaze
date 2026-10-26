@@ -12,6 +12,16 @@ const nextConfig: NextConfig = {
         hostname: "s4.anilist.co",
         pathname: "/file/**",
       },
+      {
+        protocol: "https",
+        hostname: "media.kitsu.app",
+        pathname: "/**",
+      },
+      {
+        protocol: "https",
+        hostname: "media.kitsu.io",
+        pathname: "/**",
+      },
     ],
     formats: ["image/avif", "image/webp"],
   },

@@ -13,10 +13,14 @@ import {
   ListIcon,
   PlayIcon,
 } from "@/components/icons";
-import { usePreferences } from "@/components/providers/preferences-provider";
+import { useActiveTimeZone, usePreferences } from "@/components/providers/preferences-provider";
 import { calculateStats } from "@/features/stats/calculate-stats";
 import { useLibrary } from "@/features/library/library-provider";
-import { formatAiringTime, toIsoDateString } from "@/lib/schedule";
+import {
+  formatAiringTime,
+  getTimeZoneAbbr,
+  toIsoDateString,
+} from "@/lib/schedule";
 import { getDisplayTitle, isHttpUrl } from "@/lib/utils";
 import type { AiringScheduleEntry, AnimeSummary } from "@/types/anime";
 
@@ -47,6 +51,7 @@ export function HomeSidebar({
 }: HomeSidebarProps) {
   const { items, canWrite } = useLibrary();
   const { preferences } = usePreferences();
+  const { activeTimeZone } = useActiveTimeZone();
   const stats = calculateStats(items);
 
   const isScheduleError = todayEntries === null;
@@ -56,18 +61,21 @@ export function HomeSidebar({
     return new Set(items.map((i) => i.entry.anilistId));
   }, [items]);
 
-  // Only the viewer's own titles that air today
+  // Only the viewer's own titles that air today in user's timezone
   const libraryToday = useMemo(() => {
     if (!todayEntries) return [];
-    const todayIso = toIsoDateString(new Date());
+    const todayIso = toIsoDateString(new Date(), activeTimeZone);
     return todayEntries
       .filter((entry) => {
-        const entryIso = toIsoDateString(new Date(entry.airingAt * 1000));
+        const entryIso = toIsoDateString(
+          new Date(entry.airingAt * 1000),
+          activeTimeZone,
+        );
         return entryIso === todayIso && librarySet.has(entry.mediaId);
       })
       .sort((a, b) => a.airingAt - b.airingAt)
       .slice(0, 5);
-  }, [todayEntries, librarySet]);
+  }, [todayEntries, librarySet, activeTimeZone]);
 
   // Genuine recent library activity sorted by real updatedAt timestamp
   const recentActivity = useMemo(() => {
@@ -93,19 +101,19 @@ export function HomeSidebar({
       {/* 1. Your library (2x2 Stats Grid or Sign in prompt) */}
       <section
         aria-label="Your library statistics"
-        className="rounded-2xl border border-white/10 bg-[#0d0d17] p-4 shadow-xl"
+        className="rounded-2xl border border-border-subtle bg-surface p-4 shadow-sm"
       >
         <div className="flex items-center justify-between pb-3">
-          <h2 className="font-display text-sm font-bold text-white">
+          <h2 className="font-display text-sm font-bold text-fg">
             Your library
           </h2>
           {canWrite ? (
             <Link
               href="/stats"
-              className="group inline-flex items-center gap-0.5 text-xs font-medium text-white/60 transition-colors hover:text-white"
+              className="group inline-flex items-center gap-0.5 text-xs font-medium text-muted transition-colors hover:text-fg"
             >
               <span>Full stats</span>
-              <ChevronRightIcon className="h-3 w-3 text-white/40 transition-transform group-hover:translate-x-0.5" />
+              <ChevronRightIcon className="h-3 w-3 text-faint transition-transform group-hover:translate-x-0.5" />
             </Link>
           ) : null}
         </div>
@@ -115,75 +123,75 @@ export function HomeSidebar({
             {/* Tracked */}
             <Link
               href="/library"
-              className="group flex flex-col justify-between rounded-xl border border-white/5 bg-[#141423] p-3 transition-colors hover:border-white/15 hover:bg-[#19192c]"
+              className="group flex flex-col justify-between rounded-xl border border-border-subtle bg-surface-2 p-3 transition-colors hover:border-border hover:bg-surface-3"
             >
               <div className="flex items-center justify-between">
                 <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-accent-soft text-accent-strong">
                   <LibraryIcon className="h-4 w-4" />
                 </span>
-                <span className="font-display text-xl font-bold tabular-nums text-white">
+                <span className="font-display text-xl font-bold tabular-nums text-fg">
                   {stats.total}
                 </span>
               </div>
-              <p className="mt-2 text-xs font-medium text-white/55">Tracked</p>
+              <p className="mt-2 text-xs font-medium text-muted">Tracked</p>
             </Link>
 
             {/* Watching */}
             <Link
               href="/library?status=watching"
-              className="group flex flex-col justify-between rounded-xl border border-white/5 bg-[#141423] p-3 transition-colors hover:border-white/15 hover:bg-[#19192c]"
+              className="group flex flex-col justify-between rounded-xl border border-border-subtle bg-surface-2 p-3 transition-colors hover:border-border hover:bg-surface-3"
             >
               <div className="flex items-center justify-between">
-                <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-[#6329db]/30 text-accent-strong">
+                <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-accent-soft text-accent-strong">
                   <PlayIcon className="h-3.5 w-3.5 fill-current" />
                 </span>
-                <span className="font-display text-xl font-bold tabular-nums text-white">
+                <span className="font-display text-xl font-bold tabular-nums text-fg">
                   {stats.statusCounts.watching}
                 </span>
               </div>
-              <p className="mt-2 text-xs font-medium text-white/55">Watching</p>
+              <p className="mt-2 text-xs font-medium text-muted">Watching</p>
             </Link>
 
             {/* Completed */}
             <Link
               href="/library?status=completed"
-              className="group flex flex-col justify-between rounded-xl border border-white/5 bg-[#141423] p-3 transition-colors hover:border-white/15 hover:bg-[#19192c]"
+              className="group flex flex-col justify-between rounded-xl border border-border-subtle bg-surface-2 p-3 transition-colors hover:border-border hover:bg-surface-3"
             >
               <div className="flex items-center justify-between">
-                <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-emerald-500/20 text-emerald-400">
+                <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-success/15 text-success">
                   <CheckIcon className="h-4 w-4" />
                 </span>
-                <span className="font-display text-xl font-bold tabular-nums text-white">
+                <span className="font-display text-xl font-bold tabular-nums text-fg">
                   {stats.statusCounts.completed}
                 </span>
               </div>
-              <p className="mt-2 text-xs font-medium text-white/55">Completed</p>
+              <p className="mt-2 text-xs font-medium text-muted">Completed</p>
             </Link>
 
             {/* Episodes */}
             <Link
               href="/stats"
-              className="group flex flex-col justify-between rounded-xl border border-white/5 bg-[#141423] p-3 transition-colors hover:border-white/15 hover:bg-[#19192c]"
+              className="group flex flex-col justify-between rounded-xl border border-border-subtle bg-surface-2 p-3 transition-colors hover:border-border hover:bg-surface-3"
             >
               <div className="flex items-center justify-between">
-                <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-amber-500/20 text-amber-400">
+                <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-warning/15 text-warning">
                   <ListIcon className="h-4 w-4" />
                 </span>
-                <span className="font-display text-xl font-bold tabular-nums text-white">
+                <span className="font-display text-xl font-bold tabular-nums text-fg">
                   {stats.episodesWatched}
                 </span>
               </div>
-              <p className="mt-2 text-xs font-medium text-white/55">Episodes</p>
+              <p className="mt-2 text-xs font-medium text-muted">Episodes</p>
             </Link>
           </div>
         ) : (
           <div className="space-y-3 pt-1">
-            <p className="text-xs text-white/60 leading-relaxed">
+            <p className="text-xs text-muted leading-relaxed">
               Sign in to track what you watch, record episodes and view your library statistics.
             </p>
             <Link
               href="/login"
-              className="inline-flex h-9 w-full items-center justify-center rounded-xl bg-accent text-xs font-semibold text-white transition-colors hover:bg-accent-strong"
+              className="inline-flex h-9 w-full items-center justify-center rounded-xl bg-accent text-xs font-semibold text-accent-contrast transition-colors hover:bg-accent-hover"
             >
               Sign in to track
             </Link>
@@ -195,30 +203,30 @@ export function HomeSidebar({
       {canWrite ? (
         <section
           aria-label="Today from your library"
-          className="rounded-2xl border border-white/10 bg-[#0d0d17] p-4 shadow-xl"
+          className="rounded-2xl border border-border-subtle bg-surface p-4 shadow-sm"
         >
           <div className="flex items-center justify-between pb-3">
             <div className="flex items-center gap-1.5">
-              <CalendarIcon className="h-4 w-4 text-white/50" />
-              <h2 className="font-display text-sm font-bold text-white">
+              <CalendarIcon className="h-4 w-4 text-muted" />
+              <h2 className="font-display text-sm font-bold text-fg">
                 From your library today
               </h2>
             </div>
             <Link
               href="/schedule"
-              className="group inline-flex items-center gap-0.5 text-xs font-medium text-white/60 transition-colors hover:text-white"
+              className="group inline-flex items-center gap-0.5 text-xs font-medium text-muted transition-colors hover:text-fg"
             >
               <span>Week</span>
-              <ChevronRightIcon className="h-3 w-3 text-white/40 transition-transform group-hover:translate-x-0.5" />
+              <ChevronRightIcon className="h-3 w-3 text-faint transition-transform group-hover:translate-x-0.5" />
             </Link>
           </div>
 
           {isScheduleError ? (
-            <p className="py-2 text-xs text-white/50">
+            <p className="py-2 text-xs text-muted">
               Could not load today&apos;s schedule.
             </p>
           ) : libraryToday.length === 0 ? (
-            <p className="py-2 text-xs leading-relaxed text-white/50">
+            <p className="py-2 text-xs leading-relaxed text-muted">
               {items.length === 0
                 ? "Add titles to see their airing episodes here."
                 : "None of your tracked anime air today."}
@@ -238,9 +246,9 @@ export function HomeSidebar({
                   <Link
                     key={entry.id}
                     href={`/anime/${entry.mediaId}`}
-                    className="group flex items-center gap-2.5 rounded-xl border border-white/5 bg-[#141423] p-2 transition-all hover:border-white/15 hover:bg-[#19192c]"
+                    className="group flex items-center gap-2.5 rounded-xl border border-border-subtle bg-surface-2 p-2 transition-all hover:border-border hover:bg-surface-3"
                   >
-                    <div className="relative aspect-[2/3] w-9 shrink-0 overflow-hidden rounded-lg border border-white/10 bg-[#1e1d2c]">
+                    <div className="relative aspect-[2/3] w-9 shrink-0 overflow-hidden rounded-lg border border-border-subtle bg-surface-3">
                       {cover && isHttpUrl(cover) ? (
                         <Image
                           src={cover}
@@ -257,7 +265,7 @@ export function HomeSidebar({
                         Episode {entry.episode}
                       </span>
                       <p
-                        className="line-clamp-1 text-[13px] font-medium text-white group-hover:text-accent-strong transition-colors"
+                        className="line-clamp-1 text-[13px] font-medium text-fg group-hover:text-accent-strong transition-colors"
                         title={title}
                       >
                         {title}
@@ -265,8 +273,14 @@ export function HomeSidebar({
                     </div>
 
                     <div className="shrink-0 text-right">
-                      <span className="text-[11px] font-medium tabular-nums text-white/50">
-                        {formatAiringTime(entry.airingAt)}
+                      <span
+                        suppressHydrationWarning
+                        className="text-[11px] font-medium tabular-nums text-muted inline-flex items-baseline gap-1"
+                      >
+                        <span>{formatAiringTime(entry.airingAt, activeTimeZone)}</span>
+                        <span className="text-[10px] text-faint">
+                          {getTimeZoneAbbr(entry.airingAt, activeTimeZone)}
+                        </span>
                       </span>
                     </div>
                   </Link>
@@ -281,21 +295,21 @@ export function HomeSidebar({
       {recentActivity.length > 0 ? (
         <section
           aria-label="Recently updated"
-          className="rounded-2xl border border-white/10 bg-[#0d0d17] p-4 shadow-xl"
+          className="rounded-2xl border border-border-subtle bg-surface p-4 shadow-sm"
         >
           <div className="flex items-center justify-between pb-3">
             <div className="flex items-center gap-1.5">
-              <ClockIcon className="h-4 w-4 text-white/50" />
-              <h2 className="font-display text-sm font-bold text-white">
+              <ClockIcon className="h-4 w-4 text-muted" />
+              <h2 className="font-display text-sm font-bold text-fg">
                 Recently updated
               </h2>
             </div>
             <Link
               href="/library"
-              className="group inline-flex items-center gap-0.5 text-xs font-medium text-white/60 transition-colors hover:text-white"
+              className="group inline-flex items-center gap-0.5 text-xs font-medium text-muted transition-colors hover:text-fg"
             >
               <span>Library</span>
-              <ChevronRightIcon className="h-3 w-3 text-white/40 transition-transform group-hover:translate-x-0.5" />
+              <ChevronRightIcon className="h-3 w-3 text-faint transition-transform group-hover:translate-x-0.5" />
             </Link>
           </div>
 
@@ -313,9 +327,9 @@ export function HomeSidebar({
                 <Link
                   key={entry.id}
                   href={`/anime/${anime.id}`}
-                  className="group flex items-center gap-2.5 rounded-xl border border-white/5 bg-[#141423] p-2 transition-all hover:border-white/15 hover:bg-[#19192c]"
+                  className="group flex items-center gap-2.5 rounded-xl border border-border-subtle bg-surface-2 p-2 transition-all hover:border-border hover:bg-surface-3"
                 >
-                  <div className="relative aspect-[2/3] w-9 shrink-0 overflow-hidden rounded-lg border border-white/10 bg-[#1e1d2c]">
+                  <div className="relative aspect-[2/3] w-9 shrink-0 overflow-hidden rounded-lg border border-border-subtle bg-surface-3">
                     {cover && isHttpUrl(cover) ? (
                       <Image
                         src={cover}
@@ -329,12 +343,12 @@ export function HomeSidebar({
 
                   <div className="min-w-0 flex-1">
                     <p
-                      className="line-clamp-1 text-[13px] font-medium text-white group-hover:text-accent-strong transition-colors"
+                      className="line-clamp-1 text-[13px] font-medium text-fg group-hover:text-accent-strong transition-colors"
                       title={title}
                     >
                       {title}
                     </p>
-                    <p className="text-[11px] text-white/50">
+                    <p className="text-[11px] text-muted">
                       {entry.status === "completed"
                         ? "Completed"
                         : `Episode ${entry.progress}`}
@@ -342,7 +356,7 @@ export function HomeSidebar({
                   </div>
 
                   <div className="shrink-0 text-right">
-                    <span className="text-[11px] font-medium tabular-nums text-white/40">
+                    <span className="text-[11px] font-medium tabular-nums text-faint">
                       {formatRelativeTime(entry.updatedAt)}
                     </span>
                   </div>

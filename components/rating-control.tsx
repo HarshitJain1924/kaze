@@ -38,7 +38,7 @@ export function RatingControl({
         <span className="text-xs font-medium text-muted">Your rating</span>
         <span className="text-xs text-faint">
           {displayScore ? (
-            <span className="text-amber-300 font-medium">
+            <span className="text-warning font-medium">
               {displayScore} / {MAX_SCORE} · {SCORE_LABELS[displayScore]}
             </span>
           ) : (
@@ -68,7 +68,7 @@ export function RatingControl({
               onClick={() => onChange(score === value ? null : value)}
               className={cn(
                 "flex h-8 w-7 items-center justify-center rounded-lg transition-transform duration-150 hover:scale-110 disabled:opacity-50",
-                active ? "text-amber-400" : "text-faint hover:text-amber-400/80",
+                active ? "text-warning" : "text-faint hover:text-warning/80",
               )}
             >
               <StarIcon

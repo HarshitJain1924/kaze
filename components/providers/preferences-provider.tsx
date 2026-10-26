@@ -4,7 +4,9 @@ import {
   createContext,
   useCallback,
   useContext,
+  useEffect,
   useMemo,
+  useState,
   useSyncExternalStore,
 } from "react";
 import type { ReactNode } from "react";
@@ -16,11 +18,13 @@ export type TitleLanguage = "english" | "romaji";
 export interface DisplayPreferences {
   titleLanguage: TitleLanguage;
   libraryView: LibraryView;
+  timeZone: string; // "auto" or IANA timezone identifier e.g. "Asia/Kolkata", "Asia/Tokyo"
 }
 
 const DEFAULT_PREFERENCES: DisplayPreferences = {
   titleLanguage: "english",
   libraryView: "grid",
+  timeZone: "auto",
 };
 
 export const PREFERENCES_STORAGE_KEY = "kaze-preferences";
@@ -48,6 +52,10 @@ function parsePreferences(raw: string | null | undefined): DisplayPreferences {
       titleLanguage:
         parsed.titleLanguage === "romaji" ? "romaji" : "english",
       libraryView: parsed.libraryView === "list" ? "list" : "grid",
+      timeZone:
+        typeof parsed.timeZone === "string" && parsed.timeZone.trim()
+          ? parsed.timeZone.trim()
+          : "auto",
     };
   } catch {
     return DEFAULT_PREFERENCES;
@@ -119,4 +127,45 @@ export function usePreferences(): PreferencesContextValue {
     throw new Error("usePreferences must be used inside PreferencesProvider");
   }
   return context;
+}
+
+export function useActiveTimeZone() {
+  const { preferences, setPreference } = usePreferences();
+  const [deviceTimeZone, setDeviceTimeZone] = useState<string>("UTC");
+  const [mounted, setMounted] = useState<boolean>(false);
+
+  useEffect(() => {
+    setMounted(true);
+    try {
+      const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+      if (tz) {
+        setDeviceTimeZone(tz);
+      }
+    } catch {
+      // Keep UTC fallback
+    }
+  }, []);
+
+  const activeTimeZone = useMemo(() => {
+    if (preferences.timeZone && preferences.timeZone !== "auto") {
+      return preferences.timeZone;
+    }
+    return deviceTimeZone;
+  }, [preferences.timeZone, deviceTimeZone]);
+
+  const setTimeZone = useCallback(
+    (tz: string) => {
+      setPreference("timeZone", tz);
+    },
+    [setPreference],
+  );
+
+  return {
+    activeTimeZone,
+    preference: preferences.timeZone ?? "auto",
+    isAuto: !preferences.timeZone || preferences.timeZone === "auto",
+    deviceTimeZone,
+    mounted,
+    setTimeZone,
+  };
 }

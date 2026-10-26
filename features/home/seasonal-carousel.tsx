@@ -46,11 +46,11 @@ export function SeasonalCarousel({
       {/* Header */}
       <div className="flex items-end justify-between">
         <div>
-          <h2 className="font-display text-base font-bold tracking-tight text-white sm:text-lg">
+          <h2 className="font-display text-base font-bold tracking-tight text-fg sm:text-lg">
             {title}
           </h2>
           {description ? (
-            <p className="mt-0.5 text-xs text-white/60">{description}</p>
+            <p className="mt-0.5 text-xs text-muted">{description}</p>
           ) : null}
         </div>
 
@@ -58,10 +58,10 @@ export function SeasonalCarousel({
           {actionHref ? (
             <Link
               href={actionHref}
-              className="group inline-flex items-center gap-0.5 text-xs font-medium text-white/60 transition-colors hover:text-white"
+              className="group inline-flex items-center gap-0.5 text-xs font-medium text-muted transition-colors hover:text-fg"
             >
               <span>View all</span>
-              <ChevronRightIcon className="h-3 w-3 text-white/40 transition-transform group-hover:translate-x-0.5" />
+              <ChevronRightIcon className="h-3 w-3 text-faint transition-transform group-hover:translate-x-0.5" />
             </Link>
           ) : null}
 
@@ -71,7 +71,7 @@ export function SeasonalCarousel({
               type="button"
               onClick={() => handleScroll("left")}
               aria-label="Scroll left"
-              className="flex h-7 w-7 items-center justify-center rounded-full border border-white/10 bg-[#161625] text-white/70 transition-colors hover:border-white/20 hover:bg-[#202035] hover:text-white active:scale-95"
+              className="flex h-7 w-7 items-center justify-center rounded-full border border-border bg-surface-2 text-muted transition-colors hover:border-border hover:bg-surface-3 hover:text-fg active:scale-95"
             >
               <ChevronLeftIcon className="h-3.5 w-3.5" />
             </button>
@@ -79,7 +79,7 @@ export function SeasonalCarousel({
               type="button"
               onClick={() => handleScroll("right")}
               aria-label="Scroll right"
-              className="flex h-7 w-7 items-center justify-center rounded-full border border-white/10 bg-[#161625] text-white/70 transition-colors hover:border-white/20 hover:bg-[#202035] hover:text-white active:scale-95"
+              className="flex h-7 w-7 items-center justify-center rounded-full border border-border bg-surface-2 text-muted transition-colors hover:border-border hover:bg-surface-3 hover:text-fg active:scale-95"
             >
               <ChevronRightIcon className="h-3.5 w-3.5" />
             </button>
@@ -109,7 +109,7 @@ export function SeasonalCarousel({
           return (
             <article
               key={anime.id}
-              className="group relative aspect-[2/3] w-[140px] shrink-0 overflow-hidden rounded-xl border border-white/10 bg-[#141422] shadow-md transition-all duration-200 hover:border-white/25 hover:shadow-xl sm:w-[155px]"
+              className="group relative aspect-[2/3] w-[140px] shrink-0 overflow-hidden rounded-xl border border-border-subtle bg-surface-2 shadow-sm transition-all duration-200 hover:border-border sm:w-[155px]"
             >
               {cover && isHttpUrl(cover) ? (
                 <Image
@@ -120,15 +120,15 @@ export function SeasonalCarousel({
                   className="object-cover transition-transform duration-300 group-hover:scale-105"
                 />
               ) : (
-                <div className="absolute inset-0 bg-[#1a1928]" />
+                <div className="absolute inset-0 bg-surface-3" />
               )}
 
               {/* Gradient overlays */}
-              <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/95 via-black/40 to-transparent" />
+              <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/90 via-black/35 to-transparent" />
 
               {/* Top-left score badge */}
               {score ? (
-                <span className="pointer-events-none absolute left-2 top-2 z-10 inline-flex items-center gap-1 rounded-md border border-white/15 bg-black/75 px-1.5 py-0.5 text-[11px] font-bold text-amber-300 tabular-nums shadow-sm backdrop-blur-md">
+                <span className="pointer-events-none absolute left-2 top-2 z-10 inline-flex items-center gap-1 rounded-md border border-white/15 bg-black/75 px-1.5 py-0.5 text-[11px] font-bold text-warning tabular-nums shadow-sm backdrop-blur-md">
                   <StarIcon className="h-2.5 w-2.5 fill-amber-400 text-amber-400" />
                   {score}
                 </span>
@@ -143,7 +143,7 @@ export function SeasonalCarousel({
                   {displayTitle}
                 </h3>
                 {meta ? (
-                  <p className="mt-0.5 text-[10px] font-medium text-white/60">
+                  <p className="mt-0.5 text-[10px] font-medium text-white/70">
                     {meta}
                   </p>
                 ) : null}

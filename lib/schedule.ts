@@ -82,7 +82,10 @@ export function parseDateInput(input?: Date | string | null): Date {
 /**
  * Returns Monday-Sunday boundaries and 7 daily metadata entries for any reference date.
  */
-export function getWeekRange(referenceDate: Date | string = new Date()): WeekRange {
+export function getWeekRange(
+  referenceDate: Date | string = new Date(),
+  timeZone?: string,
+): WeekRange {
   const d = parseDateInput(referenceDate);
   const dayOfWeek = d.getDay();
   const diffToMonday = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
@@ -107,7 +110,7 @@ export function getWeekRange(referenceDate: Date | string = new Date()): WeekRan
     999,
   );
 
-  const todayStr = toIsoDateString(new Date());
+  const todayStr = toIsoDateString(new Date(), timeZone);
 
   const days: WeekRange["days"] = [];
   for (let i = 0; i < 7; i += 1) {
@@ -210,19 +213,100 @@ export function groupScheduleByDay(
   });
 }
 
+export interface TimeZoneOption {
+  value: string;
+  label: string;
+  region: string;
+}
+
+export const COMMON_TIMEZONES: TimeZoneOption[] = [
+  { value: "auto", label: "Device Local (Auto-detect)", region: "Automatic" },
+  { value: "Asia/Tokyo", label: "Japan Standard Time (JST) · Original broadcast", region: "Asia & Pacific" },
+  { value: "Asia/Kolkata", label: "India Standard Time (IST)", region: "Asia & Pacific" },
+  { value: "Asia/Singapore", label: "Singapore / Malaysia (SGT)", region: "Asia & Pacific" },
+  { value: "Asia/Seoul", label: "Korea Standard Time (KST)", region: "Asia & Pacific" },
+  { value: "Asia/Shanghai", label: "China Standard Time (CST)", region: "Asia & Pacific" },
+  { value: "Asia/Bangkok", label: "Indochina Time (ICT)", region: "Asia & Pacific" },
+  { value: "Asia/Dubai", label: "Gulf Standard Time (GST)", region: "Asia & Pacific" },
+  { value: "Australia/Sydney", label: "Australian Eastern Time (AEST/AEDT)", region: "Asia & Pacific" },
+  { value: "America/New_York", label: "Eastern Time (ET - New York, Toronto)", region: "Americas" },
+  { value: "America/Chicago", label: "Central Time (CT - Chicago, Dallas)", region: "Americas" },
+  { value: "America/Denver", label: "Mountain Time (MT - Denver)", region: "Americas" },
+  { value: "America/Los_Angeles", label: "Pacific Time (PT - Los Angeles, SF)", region: "Americas" },
+  { value: "America/Sao_Paulo", label: "Brasília Time (BRT - São Paulo)", region: "Americas" },
+  { value: "Europe/London", label: "UK / Ireland (GMT / BST - London)", region: "Europe" },
+  { value: "Europe/Paris", label: "Central European Time (CET / CEST - Paris, Berlin)", region: "Europe" },
+  { value: "Europe/Athens", label: "Eastern European Time (EET - Athens)", region: "Europe" },
+  { value: "UTC", label: "Coordinated Universal Time (UTC)", region: "Universal" },
+];
+
+/**
+ * Resolves short timezone abbreviation (e.g. "IST", "JST", "EDT", "UTC").
+ */
+export function getTimeZoneAbbr(
+  airingAtOrDate?: number | Date,
+  timeZone?: string,
+): string {
+  try {
+    const d =
+      typeof airingAtOrDate === "number"
+        ? new Date(airingAtOrDate * 1000)
+        : airingAtOrDate instanceof Date
+          ? airingAtOrDate
+          : new Date();
+    const options: Intl.DateTimeFormatOptions = {
+      timeZoneName: "short",
+    };
+    if (timeZone && timeZone !== "auto") {
+      options.timeZone = timeZone;
+    }
+    const parts = new Intl.DateTimeFormat("en-US", options).formatToParts(d);
+    return parts.find((p) => p.type === "timeZoneName")?.value ?? (timeZone || "UTC");
+  } catch {
+    return timeZone || "UTC";
+  }
+}
+
+/**
+ * Returns a human-friendly label for a timezone, e.g. "Asia/Kolkata (IST)".
+ */
+export function getTimeZoneDisplayName(
+  timeZone?: string,
+  deviceTz?: string,
+): string {
+  if (!timeZone || timeZone === "auto") {
+    const resolved =
+      deviceTz ||
+      (typeof window !== "undefined"
+        ? Intl.DateTimeFormat().resolvedOptions().timeZone
+        : "UTC");
+    const abbr = getTimeZoneAbbr(undefined, resolved);
+    return abbr && abbr !== resolved ? `${resolved} (${abbr})` : resolved;
+  }
+  const abbr = getTimeZoneAbbr(undefined, timeZone);
+  return abbr && abbr !== timeZone ? `${timeZone} (${abbr})` : timeZone;
+}
+
 /**
  * Formats a Unix timestamp into a user-friendly local time string (e.g. "8:30 PM").
  */
-export function formatAiringTime(airingAt: number, timeZone?: string): string {
+export function formatAiringTime(
+  airingAt: number,
+  timeZone?: string,
+  options?: { includeZone?: boolean },
+): string {
   const date = new Date(airingAt * 1000);
-  const options: Intl.DateTimeFormatOptions = {
+  const formatOptions: Intl.DateTimeFormatOptions = {
     hour: "numeric",
     minute: "2-digit",
   };
-  if (timeZone) {
-    options.timeZone = timeZone;
+  if (timeZone && timeZone !== "auto") {
+    formatOptions.timeZone = timeZone;
   }
-  return new Intl.DateTimeFormat("en-US", options).format(date);
+  if (options?.includeZone) {
+    formatOptions.timeZoneName = "short";
+  }
+  return new Intl.DateTimeFormat("en-US", formatOptions).format(date);
 }
 
 /**

@@ -12,7 +12,7 @@ import {
   getCatalogService,
   type CatalogResult,
 } from "@/services/catalog/catalog-service";
-import type { AiringScheduleEntry, AnimePage } from "@/types/anime";
+import type { AiringScheduleEntry, AnimePage, AnimeSummary } from "@/types/anime";
 
 async function safeLoad(
   label: string,
@@ -71,6 +71,19 @@ export default async function HomePage() {
   const seasonQuery = `season=${season}&year=${year}`;
   const seasonalItems = seasonal?.items ?? [];
   const popularItems = popular?.items ?? [];
+  const trendingItems = trending?.items ?? [];
+
+  // Candidate pool of top popular, trending and seasonal anime for quick-tracking
+  const quickAddPool = [
+    ...popularItems,
+    ...trendingItems,
+    ...seasonalItems,
+  ].reduce<AnimeSummary[]>((acc, item) => {
+    if (!acc.some((x) => x.id === item.id)) {
+      acc.push(item);
+    }
+    return acc;
+  }, []);
 
   // Airing count for today
   const todayIso = toIsoDateString(now);
@@ -102,11 +115,7 @@ export default async function HomePage() {
         {/* Main Column */}
         <div className="min-w-0 space-y-6 sm:space-y-7">
           {/* Inline anime search & quick-add panel */}
-          <HomeSearch
-            popularAnime={
-              popularItems.length >= 4 ? popularItems.slice(0, 4) : seasonalItems.slice(0, 4)
-            }
-          />
+          <HomeSearch popularAnime={quickAddPool} />
 
           {/* Continue Watching - large landscape cards centerpiece */}
           {viewer ? <ContinueWatching /> : null}

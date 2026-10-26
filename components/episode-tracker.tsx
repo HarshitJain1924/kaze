@@ -170,8 +170,8 @@ export function EpisodeTracker({
 
       {/* Skipped Episodes Notice */}
       {skippedEpisodes.length > 0 ? (
-        <div className="mt-3 flex items-center gap-2 rounded-xl border border-amber-500/20 bg-amber-500/10 px-3 py-2 text-xs text-amber-300">
-          <SparkIcon className="h-4 w-4 shrink-0 text-amber-400" />
+        <div className="mt-3 flex items-center gap-2 rounded-xl border border-warning/25 bg-warning/10 px-3 py-2 text-xs text-warning">
+          <SparkIcon className="h-4 w-4 shrink-0 text-warning" />
           <span>
             Skipped {skippedEpisodes.length === 1 ? "episode" : "episodes"}:{" "}
             {skippedEpisodes.map((ep) => `Ep ${ep}`).join(", ")}

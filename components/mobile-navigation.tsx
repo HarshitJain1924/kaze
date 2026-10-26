@@ -41,26 +41,26 @@ function isActive(pathname: string, item: MobileNavItem): boolean {
 
 export function MobileHeader({ viewer }: { viewer: Viewer | null }) {
   return (
-    <header className="sticky top-0 z-40 border-b border-border-subtle bg-bg lg:hidden">
+    <header className="sticky top-0 z-40 border-b border-white/10 bg-bg/75 backdrop-blur-2xl backdrop-saturate-[180%] lg:hidden">
       <div className="flex h-14 items-center justify-between px-4">
         <Logo compact />
         <div className="flex items-center gap-1">
           <Link
             href="/discover"
             aria-label="Search anime"
-            className="flex h-9 w-9 items-center justify-center rounded-lg text-muted transition-colors hover:bg-surface-2 hover:text-fg"
+            className="flex h-9 w-9 items-center justify-center rounded-xl liquid-glass-interactive text-muted hover:text-fg"
           >
             <SearchIcon className="h-[18px] w-[18px]" />
           </Link>
           <Link
             href={viewer ? "/settings" : "/login"}
             aria-label={viewer ? "Account settings" : "Sign in"}
-            className="flex h-9 items-center justify-center rounded-lg px-1.5 transition-colors hover:bg-surface-2"
+            className="flex h-9 items-center justify-center rounded-xl px-1.5 transition-colors hover:bg-white/[0.08]"
           >
             {viewer ? (
               <UserAvatar email={viewer.email} size="sm" />
             ) : (
-              <span className="rounded-lg bg-accent px-2.5 py-1.5 text-xs font-semibold text-accent-contrast">
+              <span className="rounded-xl bg-accent px-3 py-1.5 text-xs font-semibold text-accent-contrast shadow-[inset_0_1px_1px_rgba(255,255,255,0.3)]">
                 Sign in
               </span>
             )}
@@ -77,7 +77,7 @@ export function MobileBottomNavigation() {
   return (
     <nav
       aria-label="Primary"
-      className="safe-bottom fixed inset-x-0 bottom-0 z-40 border-t border-border-subtle bg-bg-soft lg:hidden"
+      className="safe-bottom fixed inset-x-0 bottom-0 z-40 border-t border-white/10 bg-bg-soft/75 backdrop-blur-2xl backdrop-saturate-[180%] shadow-[inset_0_1px_1px_rgba(255,255,255,0.08)] lg:hidden"
     >
       <div className="grid grid-cols-5 py-0.5">
         {ITEMS.map((item) => {

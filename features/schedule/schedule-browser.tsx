@@ -14,11 +14,14 @@ import {
 import { EmptyState } from "@/components/empty-state";
 import { Button } from "@/components/ui/button";
 import { StatusBadge } from "@/components/ui/badge";
-import { usePreferences } from "@/components/providers/preferences-provider";
+import { useActiveTimeZone, usePreferences } from "@/components/providers/preferences-provider";
+import { TimezoneSelector } from "@/components/timezone-selector";
 import { useLibrary } from "@/features/library/library-provider";
 import {
   formatAiringRelative,
   formatAiringTime,
+  getTimeZoneAbbr,
+  groupScheduleByDay,
   toIsoDateString,
   type WeekRange,
 } from "@/lib/schedule";
@@ -42,6 +45,7 @@ function formatDayHeading(isoDate: string): string {
 interface ScheduleBrowserProps {
   week: WeekRange;
   days: WeeklyScheduleDay[];
+  entries?: AiringScheduleEntry[];
   watchingIds: number[];
   /** A `?date=` deep link selects that day, not just its week. */
   initialDate?: string;
@@ -50,11 +54,13 @@ interface ScheduleBrowserProps {
 export function ScheduleBrowser({
   week,
   days,
+  entries,
   watchingIds,
   initialDate,
 }: ScheduleBrowserProps) {
   const router = useRouter();
   const { preferences } = usePreferences();
+  const { activeTimeZone } = useActiveTimeZone();
   const {
     canWrite,
     entryFor,
@@ -65,22 +71,33 @@ export function ScheduleBrowser({
 
   const watchingSet = useMemo(() => new Set(watchingIds), [watchingIds]);
 
-  // Default active day is today if within this week, otherwise Monday (first day)
-  const todayIso = useMemo(() => toIsoDateString(new Date()), []);
+  // Flatten entries if provided or pull from initial days
+  const allEntries = useMemo(() => {
+    if (entries && entries.length > 0) return entries;
+    return days.flatMap((d) => d.entries);
+  }, [entries, days]);
+
+  // Group entries dynamically according to active timezone
+  const localDays = useMemo(() => {
+    return groupScheduleByDay(allEntries, week.days, activeTimeZone);
+  }, [allEntries, week.days, activeTimeZone]);
+
+  // Default active day is today in the selected timezone if within this week
+  const todayIso = useMemo(() => toIsoDateString(new Date(), activeTimeZone), [activeTimeZone]);
   const initialDayDate = useMemo(() => {
     if (initialDate && week.days.some((day) => day.date === initialDate)) {
       return initialDate;
     }
-    const todayMatch = week.days.find((d) => d.date === todayIso);
-    return todayMatch ? todayMatch.date : (week.days[0]?.date ?? todayIso);
-  }, [initialDate, todayIso, week.days]);
+    const todayMatch = localDays.find((d) => d.date === todayIso);
+    return todayMatch ? todayMatch.date : (localDays[0]?.date ?? todayIso);
+  }, [initialDate, todayIso, localDays, week.days]);
 
   const [selectedDate, setSelectedDate] = useState<string>(initialDayDate);
   const [filterMode, setFilterMode] = useState<"all" | "watching">("all");
 
   const activeDay = useMemo(() => {
-    return days.find((d) => d.date === selectedDate) ?? days[0] ?? null;
-  }, [days, selectedDate]);
+    return localDays.find((d) => d.date === selectedDate) ?? localDays[0] ?? null;
+  }, [localDays, selectedDate]);
 
   // Filter entries for the active day
   const filteredEntries = useMemo(() => {
@@ -94,7 +111,7 @@ export function ScheduleBrowser({
   // Total watching releases this entire week
   const totalWatchingInWeek = useMemo(() => {
     let count = 0;
-    for (const d of days) {
+    for (const d of localDays) {
       for (const entry of d.entries) {
         if (watchingSet.has(entry.mediaId)) {
           count += 1;
@@ -102,7 +119,7 @@ export function ScheduleBrowser({
       }
     }
     return count;
-  }, [days, watchingSet]);
+  }, [localDays, watchingSet]);
 
   const handlePrevWeek = () => {
     router.push(`/schedule?date=${week.prevWeekDate}`);
@@ -125,9 +142,12 @@ export function ScheduleBrowser({
           <h1 className="font-display text-2xl font-semibold tracking-tight text-fg sm:text-[28px]">
             Weekly schedule
           </h1>
-          <p className="mt-1 text-[13px] text-muted">
-            Expected releases in your local timezone · {week.weekLabel}
-          </p>
+          <div className="mt-1 flex flex-wrap items-center gap-2 text-[13px] text-muted">
+            <span>Releases in</span>
+            <TimezoneSelector />
+            <span className="text-faint">·</span>
+            <span>{week.weekLabel}</span>
+          </div>
         </div>
 
         {/* Week navigation buttons */}
@@ -203,7 +223,7 @@ export function ScheduleBrowser({
 
       {/* Horizontal Day Selector (Mon - Sun) */}
       <div className="no-scrollbar -mx-2 flex gap-1.5 overflow-x-auto px-2 py-0.5 sm:grid sm:grid-cols-7">
-        {days.map((day) => {
+        {localDays.map((day) => {
           const isSelected = day.date === selectedDate;
           const dayWatchingCount = day.entries.filter((e) =>
             watchingSet.has(e.mediaId),
@@ -309,6 +329,7 @@ export function ScheduleBrowser({
               <ScheduleReleaseCard
                 key={entry.id}
                 entry={entry}
+                timeZone={activeTimeZone}
                 titleLanguage={preferences.titleLanguage}
                 inWatching={watchingSet.has(entry.mediaId)}
                 canWrite={canWrite}
@@ -327,6 +348,7 @@ export function ScheduleBrowser({
 
 interface ScheduleReleaseCardProps {
   entry: AiringScheduleEntry;
+  timeZone?: string;
   titleLanguage: "english" | "romaji";
   inWatching: boolean;
   canWrite: boolean;
@@ -342,6 +364,7 @@ interface ScheduleReleaseCardProps {
 
 function ScheduleReleaseCard({
   entry,
+  timeZone,
   titleLanguage,
   inWatching,
   canWrite,
@@ -354,7 +377,8 @@ function ScheduleReleaseCard({
   const title = getDisplayTitle(anime.title, titleLanguage === "english");
   const cover = anime.coverImage.extraLarge ?? anime.coverImage.large;
 
-  const airingTimeStr = formatAiringTime(entry.airingAt);
+  const airingTimeStr = formatAiringTime(entry.airingAt, timeZone);
+  const tzAbbr = getTimeZoneAbbr(entry.airingAt, timeZone);
   const relative = formatAiringRelative(entry.airingAt);
 
   // Check if this specific episode has been watched. Individual records are the source of truth when present.
@@ -436,7 +460,15 @@ function ScheduleReleaseCard({
 
         {/* Airing Timestamp & Countdown */}
         <div className="mt-1 flex items-center gap-1.5 text-xs text-muted">
-          <span className="font-semibold text-fg tabular-nums">{airingTimeStr}</span>
+          <span
+            suppressHydrationWarning
+            className="font-mono font-semibold tabular-nums text-fg inline-flex items-baseline gap-1"
+          >
+            <span>{airingTimeStr}</span>
+            <span className="text-[10px] font-sans font-medium text-muted">
+              {tzAbbr}
+            </span>
+          </span>
           <span className="text-faint">·</span>
           <span className={cn(relative.hasAired ? "text-muted" : "font-medium text-accent-strong")}>
             {relative.label}
@@ -467,7 +499,9 @@ function ScheduleReleaseCard({
                 {toggling ? "Saving…" : `Mark Ep ${entry.episode} watched`}
               </Button>
             ) : (
-              <span className="text-xs text-faint">Airs {airingTimeStr}</span>
+              <span suppressHydrationWarning className="text-xs text-faint">
+                Airs {airingTimeStr} {tzAbbr}
+              </span>
             )
           ) : (
             <Link

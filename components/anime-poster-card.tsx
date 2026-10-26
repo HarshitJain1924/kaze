@@ -29,13 +29,13 @@ function PosterFallback({ color }: { color: string | null }) {
       className="absolute inset-0 flex items-center justify-center"
       style={{
         background: isHexColor(color)
-          ? `radial-gradient(120% 90% at 20% 0%, ${color}55 0%, #12121a 65%)`
-          : "radial-gradient(120% 90% at 20% 0%, #2a2140 0%, #12121a 70%)",
+          ? `radial-gradient(120% 90% at 20% 0%, ${color}55 0%, var(--surface-3) 65%)`
+          : "radial-gradient(120% 90% at 20% 0%, var(--surface-3) 0%, var(--surface-2) 70%)",
       }}
     >
       <svg
         viewBox="0 0 24 24"
-        className="h-10 w-10 text-white/15"
+        className="h-10 w-10 text-faint"
         fill="none"
         stroke="currentColor"
         strokeWidth={1.2}
@@ -127,8 +127,8 @@ export function AnimePosterCard({
         />
 
         {score ? (
-          <span className="pointer-events-none absolute left-2 top-2 z-20 inline-flex items-center gap-1 rounded-md border border-white/10 bg-black/75 px-1.5 py-0.5 text-[11px] font-semibold text-amber-300 tabular-nums shadow-sm">
-            <StarIcon className="h-3 w-3 fill-amber-400 text-amber-400" />
+          <span className="pointer-events-none absolute left-2 top-2 z-20 inline-flex items-center gap-1 rounded-md border border-white/10 bg-black/75 px-1.5 py-0.5 text-[11px] font-semibold text-warning tabular-nums shadow-sm">
+            <StarIcon className="h-3 w-3 fill-warning text-warning" />
             {score}
           </span>
         ) : null}

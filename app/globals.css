@@ -1,71 +1,240 @@
 @import "tailwindcss";
 
-:root {
-  color-scheme: dark;
-  /* Ground and surfaces are a single family. Depth comes from a tone step,
-     not from borders or shadows stacked on top of each other. */
-  --bg: #08080c;
-  --bg-soft: #0b0b11;
-  --surface: #101017;
-  --surface-2: #16161f;
-  --surface-3: #1d1d29;
-  --border: #2a2938;
-  --border-subtle: #1e1d29;
-  --fg: #f5f4f9;
-  --muted: #b0adc0;
-  --faint: #918da4;
-  /* Violet is Kaze's brand hue, kept for state and the one primary action.
-     Darkened so white labels on it clear 4.5:1. */
-  --accent: #7c3aed;
-  --accent-strong: #b9a4ff;
-  --accent-soft: rgba(124, 58, 237, 0.18);
-  --accent-contrast: #ffffff;
-  --danger: #fca5a5;
-  --danger-soft: rgba(248, 113, 113, 0.12);
-  --success: #6ee7a0;
-  --warning: #fcd34d;
-  --shadow-card: 0 18px 40px -24px rgba(0, 0, 0, 0.9);
+/* ---------------------------------------------------------------------------
+   Design directions
 
-  --status-watching: #a5b4fc;
-  --status-completed: #6ee7a0;
-  --status-planning: #7dd3fc;
-  --status-on-hold: #fcd34d;
-  --status-dropped: #fca5a5;
+   Three replaceable visual worlds that share one token contract, so components
+   never need to know which direction is active. The document root carries
+   `data-design` (broadcast | editorial | shelf) and `.light` for appearance.
+   Every direction is a first-class light and dark design.
+   --------------------------------------------------------------------------- */
+
+:root,
+[data-design="broadcast"] {
+  color-scheme: dark;
+  /* Midnight Violet (Kaze Signature): Deep obsidian with electric violet & lavender glow. */
+  --bg: #090a10;
+  --bg-soft: #0d0f18;
+  --surface: #121520;
+  --surface-2: #181c2b;
+  --surface-3: #22273d;
+  --border: #283049;
+  --border-subtle: #191f30;
+  --fg: #f4f6fb;
+  --muted: #9ba7be;
+  --faint: #6e7a92;
+  --accent: #8b5cf6;
+  --accent-strong: #a78bfa;
+  --accent-hover: #7c3aed;
+  --accent-soft: rgba(139, 92, 246, 0.16);
+  --accent-contrast: #ffffff;
+  --danger: #f87171;
+  --danger-soft: rgba(248, 113, 113, 0.14);
+  --success: #34d399;
+  --warning: #fbbf24;
+  --shadow-card: 0 18px 40px -20px rgba(0, 0, 0, 0.85);
+
+  --status-watching: #a78bfa;
+  --status-completed: #34d399;
+  --status-planning: #38bdf8;
+  --status-on-hold: #fbbf24;
+  --status-dropped: #f87171;
+
+  --ui-body: var(--font-inter), ui-sans-serif, system-ui, -apple-system,
+    "Segoe UI", sans-serif;
+  --ui-display: var(--font-space-grotesk), var(--font-inter), ui-sans-serif,
+    system-ui, sans-serif;
+  --ui-mono: var(--font-plex-mono), ui-monospace, SFMono-Regular, Menlo,
+    monospace;
+  --ui-r-sm: 6px;
+  --ui-r-md: 8px;
+  --ui-r-lg: 10px;
+  --ui-r-xl: 14px;
+  --ui-r-2xl: 18px;
+  --radius-card: var(--ui-r-xl);
 
   --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
   --ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
 }
 
-.light {
+[data-design="editorial"] {
+  color-scheme: dark;
+  /* Cyber Neon (Tokyo Night): Deep oceanic midnight with electric cyan & neon teal. */
+  --bg: #060911;
+  --bg-soft: #0a0f1b;
+  --surface: #0e1526;
+  --surface-2: #141e34;
+  --surface-3: #1c2a47;
+  --border: #223759;
+  --border-subtle: #142237;
+  --fg: #f0f7ff;
+  --muted: #8ea5c4;
+  --faint: #607693;
+  --accent: #06b6d4;
+  --accent-strong: #22d3ee;
+  --accent-hover: #0891b2;
+  --accent-soft: rgba(6, 182, 212, 0.16);
+  --accent-contrast: #021a24;
+  --danger: #fb7185;
+  --danger-soft: rgba(251, 113, 133, 0.14);
+  --success: #10b981;
+  --warning: #f59e0b;
+  --shadow-card: 0 18px 40px -20px rgba(0, 0, 0, 0.88);
+
+  --status-watching: #22d3ee;
+  --status-completed: #10b981;
+  --status-planning: #60a5fa;
+  --status-on-hold: #f59e0b;
+  --status-dropped: #fb7185;
+
+  --ui-body: var(--font-inter), ui-sans-serif, system-ui, -apple-system,
+    "Segoe UI", sans-serif;
+  --ui-display: var(--font-space-grotesk), var(--font-inter), ui-sans-serif,
+    system-ui, sans-serif;
+  --ui-mono: var(--font-plex-mono), ui-monospace, SFMono-Regular, Menlo,
+    monospace;
+  --ui-r-sm: 6px;
+  --ui-r-md: 8px;
+  --ui-r-lg: 10px;
+  --ui-r-xl: 12px;
+  --ui-r-2xl: 16px;
+  --radius-card: var(--ui-r-xl);
+}
+
+[data-design="shelf"] {
+  color-scheme: dark;
+  /* Sakura Bloom (Cherry Blossom): Velvety dark with vibrant sakura rose & crimson. */
+  --bg: #0d080c;
+  --bg-soft: #120b11;
+  --surface: #180f16;
+  --surface-2: #221620;
+  --surface-3: #2d1d2b;
+  --border: #3f263c;
+  --border-subtle: #271626;
+  --fg: #fdf4f8;
+  --muted: #c29bb6;
+  --faint: #8d6b83;
+  --accent: #f43f5e;
+  --accent-strong: #fb7185;
+  --accent-hover: #e11d48;
+  --accent-soft: rgba(244, 63, 94, 0.16);
+  --accent-contrast: #ffffff;
+  --danger: #f87171;
+  --danger-soft: rgba(248, 113, 113, 0.14);
+  --success: #34d399;
+  --warning: #fbbf24;
+  --shadow-card: 0 18px 40px -20px rgba(0, 0, 0, 0.85);
+
+  --status-watching: #fb7185;
+  --status-completed: #34d399;
+  --status-planning: #a78bfa;
+  --status-on-hold: #fbbf24;
+  --status-dropped: #f87171;
+
+  --ui-body: var(--font-inter), ui-sans-serif, system-ui, -apple-system,
+    "Segoe UI", sans-serif;
+  --ui-display: var(--font-space-grotesk), var(--font-inter), ui-sans-serif,
+    system-ui, sans-serif;
+  --ui-mono: var(--font-plex-mono), ui-monospace, SFMono-Regular, Menlo,
+    monospace;
+  --ui-r-sm: 6px;
+  --ui-r-md: 8px;
+  --ui-r-lg: 10px;
+  --ui-r-xl: 14px;
+  --ui-r-2xl: 18px;
+  --radius-card: var(--ui-r-xl);
+}
+
+/* Light appearance: Clean, luminous, and refined. */
+:root.light,
+[data-design="broadcast"].light {
   color-scheme: light;
-  --bg: #f7f6fb;
-  --bg-soft: #f2f0f8;
+  --bg: #f8fafc;
+  --bg-soft: #f1f5f9;
   --surface: #ffffff;
-  --surface-2: #f4f2fa;
-  --surface-3: #ebe8f4;
-  --border: #dcd7e8;
-  --border-subtle: #e7e3f0;
-  --fg: #17131f;
-  --muted: #5f5a70;
-  --faint: #6b6678;
-  --accent: #6d28d9;
-  --accent-strong: #5b21b6;
+  --surface-2: #f1f5f9;
+  --surface-3: #e2e8f0;
+  --border: #cbd5e1;
+  --border-subtle: #e2e8f0;
+  --fg: #0f172a;
+  --muted: #475569;
+  --faint: #64748b;
+  --accent: #7c3aed;
+  --accent-strong: #6d28d9;
+  --accent-hover: #5b21b6;
   --accent-soft: rgba(124, 58, 237, 0.1);
   --accent-contrast: #ffffff;
-  --danger: #b91c1c;
+  --danger: #dc2626;
   --danger-soft: rgba(220, 38, 38, 0.08);
-  --success: #15803d;
-  --warning: #a16207;
-  --shadow-card: 0 20px 45px -30px rgba(30, 20, 60, 0.35);
+  --success: #16a34a;
+  --warning: #d97706;
+  --shadow-card: 0 12px 30px -15px rgba(15, 23, 42, 0.12);
 
   --status-watching: #4f46e5;
-  --status-completed: #15803d;
-  --status-planning: #0369a1;
-  --status-on-hold: #a16207;
-  --status-dropped: #b91c1c;
+  --status-completed: #16a34a;
+  --status-planning: #0284c7;
+  --status-on-hold: #d97706;
+  --status-dropped: #dc2626;
+}
 
-  --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
-  --ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
+[data-design="editorial"].light {
+  color-scheme: light;
+  --bg: #f0f9ff;
+  --bg-soft: #e0f2fe;
+  --surface: #ffffff;
+  --surface-2: #e0f2fe;
+  --surface-3: #bae6fd;
+  --border: #7dd3fc;
+  --border-subtle: #e0f2fe;
+  --fg: #082f49;
+  --muted: #0369a1;
+  --faint: #0284c7;
+  --accent: #0284c7;
+  --accent-strong: #0369a1;
+  --accent-hover: #075985;
+  --accent-soft: rgba(2, 132, 199, 0.12);
+  --accent-contrast: #ffffff;
+  --danger: #dc2626;
+  --danger-soft: rgba(220, 38, 38, 0.08);
+  --success: #16a34a;
+  --warning: #d97706;
+  --shadow-card: 0 12px 30px -15px rgba(8, 47, 73, 0.12);
+
+  --status-watching: #0284c7;
+  --status-completed: #16a34a;
+  --status-planning: #2563eb;
+  --status-on-hold: #d97706;
+  --status-dropped: #dc2626;
+}
+
+[data-design="shelf"].light {
+  color-scheme: light;
+  --bg: #fff1f2;
+  --bg-soft: #ffe4e6;
+  --surface: #ffffff;
+  --surface-2: #ffe4e6;
+  --surface-3: #fecdd3;
+  --border: #fda4af;
+  --border-subtle: #ffe4e6;
+  --fg: #4c0519;
+  --muted: #9f1239;
+  --faint: #be123c;
+  --accent: #e11d48;
+  --accent-strong: #be123c;
+  --accent-hover: #9f1239;
+  --accent-soft: rgba(225, 29, 72, 0.1);
+  --accent-contrast: #ffffff;
+  --danger: #dc2626;
+  --danger-soft: rgba(220, 38, 38, 0.08);
+  --success: #16a34a;
+  --warning: #d97706;
+  --shadow-card: 0 12px 30px -15px rgba(76, 5, 25, 0.12);
+
+  --status-watching: #e11d48;
+  --status-completed: #16a34a;
+  --status-planning: #7c3aed;
+  --status-on-hold: #d97706;
+  --status-dropped: #dc2626;
 }
 
 @theme inline {
@@ -81,6 +250,7 @@
   --color-faint: var(--faint);
   --color-accent: var(--accent);
   --color-accent-strong: var(--accent-strong);
+  --color-accent-hover: var(--accent-hover);
   --color-accent-soft: var(--accent-soft);
   --color-accent-contrast: var(--accent-contrast);
   --color-danger: var(--danger);
@@ -88,12 +258,17 @@
   --color-success: var(--success);
   --color-warning: var(--warning);
 
-  --font-sans: var(--font-inter), ui-sans-serif, system-ui, -apple-system,
-    "Segoe UI", sans-serif;
-  --font-display: var(--font-sora), var(--font-inter), ui-sans-serif,
-    system-ui, sans-serif;
+  --font-sans: var(--ui-body), ui-sans-serif, system-ui, sans-serif;
+  --font-display: var(--ui-display), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--ui-mono), ui-monospace, SFMono-Regular, Menlo, monospace;
 
-  --radius-card: 1rem;
+  --radius-sm: var(--ui-r-sm);
+  --radius-md: var(--ui-r-md);
+  --radius-lg: var(--ui-r-lg);
+  --radius-xl: var(--ui-r-xl);
+  --radius-2xl: var(--ui-r-2xl);
+
+  --radius-card: var(--ui-r-xl);
   --shadow-poster: var(--shadow-card);
 }
 
@@ -173,6 +348,16 @@
     overflow: hidden;
   }
 
+  /* Hero artwork is a texture behind token surfaces, never a fixed dark slab. */
+  .hero-art {
+    opacity: 0.5;
+  }
+
+  .light .hero-art {
+    opacity: 0.16;
+    filter: saturate(0.65);
+  }
+
   /* A settled surface: one tone step above the ground and a hairline edge.
      Used by panels that do not float. */
   .surface-card {
@@ -223,6 +408,99 @@
 
   .animate-fade {
     animation: fade 0.2s ease both;
+  }
+
+  /* -------------------------------------------------------------------------
+     Liquid Glass UI System
+     Frosted fluid glass with multi-layer specular light reflection,
+     ambient chromatic vibrancy, and tactile fluid hover feedback.
+     ------------------------------------------------------------------------- */
+  .liquid-glass {
+    background: linear-gradient(
+      135deg,
+      rgba(255, 255, 255, 0.08) 0%,
+      rgba(255, 255, 255, 0.02) 100%
+    );
+    background-color: rgba(18, 21, 32, 0.65);
+    backdrop-filter: blur(24px) saturate(200%);
+    -webkit-backdrop-filter: blur(24px) saturate(200%);
+    border: 1px solid rgba(255, 255, 255, 0.14);
+    box-shadow: 
+      inset 0 1px 1px 0 rgba(255, 255, 255, 0.25),
+      inset 0 -1px 1px 0 rgba(0, 0, 0, 0.2),
+      0 12px 36px -8px rgba(0, 0, 0, 0.5);
+  }
+
+  .liquid-glass-subtle {
+    background: linear-gradient(
+      135deg,
+      rgba(255, 255, 255, 0.06) 0%,
+      rgba(255, 255, 255, 0.015) 100%
+    );
+    background-color: rgba(18, 21, 32, 0.45);
+    backdrop-filter: blur(16px) saturate(190%);
+    -webkit-backdrop-filter: blur(16px) saturate(190%);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    box-shadow: 
+      inset 0 1px 1px 0 rgba(255, 255, 255, 0.18),
+      0 8px 24px -6px rgba(0, 0, 0, 0.35);
+  }
+
+  .liquid-glass-pill {
+    background: linear-gradient(
+      135deg,
+      rgba(255, 255, 255, 0.09) 0%,
+      rgba(255, 255, 255, 0.02) 100%
+    );
+    background-color: rgba(24, 28, 43, 0.55);
+    backdrop-filter: blur(16px) saturate(180%);
+    -webkit-backdrop-filter: blur(16px) saturate(180%);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    box-shadow: 
+      inset 0 1px 0 0 rgba(255, 255, 255, 0.22),
+      0 4px 14px -2px rgba(0, 0, 0, 0.3);
+  }
+
+  .liquid-glass-interactive {
+    background: linear-gradient(
+      135deg,
+      rgba(255, 255, 255, 0.08) 0%,
+      rgba(255, 255, 255, 0.02) 100%
+    );
+    background-color: rgba(18, 21, 32, 0.55);
+    backdrop-filter: blur(18px) saturate(190%);
+    -webkit-backdrop-filter: blur(18px) saturate(190%);
+    border: 1px solid rgba(255, 255, 255, 0.14);
+    box-shadow: 
+      inset 0 1px 1px 0 rgba(255, 255, 255, 0.2),
+      0 6px 20px -4px rgba(0, 0, 0, 0.4);
+    transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  .liquid-glass-interactive:hover {
+    background: linear-gradient(
+      135deg,
+      rgba(255, 255, 255, 0.14) 0%,
+      rgba(255, 255, 255, 0.04) 100%
+    );
+    background-color: rgba(24, 28, 43, 0.7);
+    border-color: rgba(255, 255, 255, 0.28);
+    box-shadow: 
+      inset 0 1px 2px 0 rgba(255, 255, 255, 0.35),
+      0 12px 32px -6px rgba(0, 0, 0, 0.55);
+    transform: translateY(-1px);
+  }
+
+  .light .liquid-glass {
+    background: linear-gradient(
+      135deg,
+      rgba(255, 255, 255, 0.85) 0%,
+      rgba(255, 255, 255, 0.65) 100%
+    );
+    border: 1px solid rgba(0, 0, 0, 0.08);
+    box-shadow: 
+      inset 0 1px 1px 0 rgba(255, 255, 255, 0.9),
+      0 10px 30px -10px rgba(0, 0, 0, 0.1);
   }
 }
 

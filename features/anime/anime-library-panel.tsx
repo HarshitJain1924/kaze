@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useState } from "react";
 
-import { ExternalIcon, TrashIcon } from "@/components/icons";
+import { CheckIcon, ExternalIcon, PlusIcon, TrashIcon } from "@/components/icons";
 import { RatingControl } from "@/components/rating-control";
 import { StatusBadge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -55,9 +55,9 @@ export function AnimeLibraryPanel({ anime }: { anime: Anime }) {
   return (
     <section
       aria-label="Your library actions"
-      className="rounded-2xl border border-border-subtle bg-surface p-5"
+      className="liquid-glass rounded-3xl p-6 border border-white/15 shadow-2xl backdrop-blur-2xl"
     >
-      <div className="flex items-center justify-between gap-3 border-b border-border-subtle pb-3.5">
+      <div className="flex items-center justify-between gap-3 border-b border-white/10 pb-4">
         <div className="flex items-center gap-2">
           <span className="h-2 w-2 rounded-full bg-accent" />
           <h2 className="font-display text-base font-semibold text-fg">
@@ -119,6 +119,55 @@ export function AnimeLibraryPanel({ anime }: { anime: Anime }) {
             disabled={pending}
             id="entry-status"
           />
+
+          {/* Quick Log Next Episode Action */}
+          {entry.status === "watching" &&
+          anime.episodes !== null &&
+          entry.progress < anime.episodes ? (
+            <Button
+              variant="primary"
+              className="w-full justify-center gap-1.5 shadow-xs"
+              onClick={() =>
+                void updateEntry(anime.id, { progress: entry.progress + 1 })
+              }
+              disabled={pending}
+            >
+              <PlusIcon className="h-4 w-4" />
+              <span>Mark Ep {entry.progress + 1} Watched</span>
+            </Button>
+          ) : null}
+
+          {/* Visual Progress Bar with Percentage */}
+          {anime.episodes && anime.episodes > 0 ? (
+            <div className="space-y-1.5 rounded-xl border border-border-subtle bg-surface-2/60 p-3">
+              <div className="flex items-center justify-between text-xs">
+                <span className="font-medium text-fg">Watch progress</span>
+                <span className="font-semibold tabular-nums text-accent-strong">
+                  {Math.round((entry.progress / anime.episodes) * 100)}%
+                  <span className="ml-1 font-normal text-muted">
+                    ({entry.progress}/{anime.episodes} eps)
+                  </span>
+                </span>
+              </div>
+              <div className="h-2 w-full overflow-hidden rounded-full bg-surface-3">
+                <div
+                  className="h-full rounded-full bg-accent transition-all duration-300"
+                  style={{
+                    width: `${Math.min(
+                      100,
+                      (entry.progress / anime.episodes) * 100,
+                    )}%`,
+                  }}
+                />
+              </div>
+              {entry.progress >= anime.episodes ? (
+                <p className="flex items-center gap-1 pt-0.5 text-[11px] font-medium text-success">
+                  <CheckIcon className="h-3.5 w-3.5" />
+                  All episodes completed
+                </p>
+              ) : null}
+            </div>
+          ) : null}
 
           <WatchProgressControl
             progress={entry.progress}

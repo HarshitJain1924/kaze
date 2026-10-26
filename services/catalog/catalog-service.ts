@@ -213,6 +213,24 @@ export class CatalogService {
           return this.result(null, "anilist");
         }
 
+        // Opportunistically upgrade banner & poster images with high-resolution Kitsu assets
+        try {
+          const kitsu = await this.lookupKitsu(id);
+          if (kitsu?.kind === "found") {
+            if (kitsu.bannerImage) {
+              anime.bannerImage = kitsu.bannerImage;
+            }
+            if (kitsu.summary.coverImage.extraLarge) {
+              anime.coverImage = {
+                ...anime.coverImage,
+                extraLarge: kitsu.summary.coverImage.extraLarge,
+              };
+            }
+          }
+        } catch {
+          // Any Kitsu failure is completely non-fatal to live details delivery
+        }
+
         this.metadataCache.putDetails(anime);
         this.metadataCache.putSummary(toSummary(anime));
         return this.result(anime, "anilist");
@@ -264,7 +282,11 @@ export class CatalogService {
     const kitsu = await this.lookupKitsu(id);
     if (kitsu?.kind === "found") {
       this.metadataCache.putSummary(kitsu.summary);
-      return this.result(this.summaryToDetailedAnime(kitsu.summary), "kitsu");
+      const detailed = this.summaryToDetailedAnime(kitsu.summary);
+      if (kitsu.bannerImage) {
+        detailed.bannerImage = kitsu.bannerImage;
+      }
+      return this.result(detailed, "kitsu");
     }
 
     throw this.unavailable("Anime details are temporarily unavailable", signal);

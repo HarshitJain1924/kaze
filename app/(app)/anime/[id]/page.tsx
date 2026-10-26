@@ -8,11 +8,14 @@ import { AnimePosterCard } from "@/components/anime-poster-card";
 import { ArrowLeftIcon, ExternalIcon } from "@/components/icons";
 import { ErrorState } from "@/components/error-state";
 import { RetryButton } from "@/components/retry-button";
+import { AnimeDetailsTabs } from "@/features/anime/anime-details-tabs";
 import { AnimeEpisodeSection } from "@/features/anime/anime-episode-section";
+import { AnimeFranchiseSection } from "@/features/anime/anime-franchise-section";
 import { AnimeLibraryPanel } from "@/features/anime/anime-library-panel";
 import { seasonLabel } from "@/lib/season";
 import {
   formatAnimeDate,
+  formatFormat,
   formatRelationType,
   getDisplayTitle,
 } from "@/lib/utils";
@@ -120,45 +123,98 @@ export default async function AnimeDetailsPage({ params }: PageProps) {
   const startDate = formatAnimeDate(anime.startDate);
   const endDate = formatAnimeDate(anime.endDate);
   const relationGroups = groupRelations(anime.relations);
+  const displayTitle = getDisplayTitle(anime.title, true);
+  const heroImage = anime.bannerImage ?? cover;
 
   return (
-    <div className="-mx-4 -mt-5 sm:-mx-6 lg:-mx-10 lg:-mt-8">
-      <div className="relative h-44 overflow-hidden bg-surface-2 sm:h-60 lg:h-72">
+    <div className="relative -mx-4 -mt-5 sm:-mx-6 lg:-mx-10 lg:-mt-8">
+      {/* Ambient Hero Backdrop (Full-bleed, seamless organic blend into page background) */}
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-x-0 top-0 h-[480px] sm:h-[540px] lg:h-[580px] overflow-hidden select-none -z-10"
+      >
+        {/* Ambient atmospheric aura (diffused saturated color bleeding into surroundings) */}
+        {heroImage ? (
+          <div className="absolute inset-0 scale-125 blur-[90px] saturate-[2] brightness-110 opacity-50 dark:opacity-40">
+            <Image
+              src={heroImage}
+              alt=""
+              fill
+              priority
+              sizes="100vw"
+              className="object-cover"
+            />
+          </div>
+        ) : null}
+
+        {/* Hero banner artwork */}
         {anime.bannerImage ? (
-          <Image
-            src={anime.bannerImage}
-            alt=""
-            fill
-            priority
-            sizes="100vw"
-            className="object-cover"
-          />
+          <div className="relative h-full w-full">
+            <Image
+              src={anime.bannerImage}
+              alt=""
+              fill
+              priority
+              unoptimized
+              className="object-cover object-center opacity-90"
+            />
+          </div>
         ) : cover ? (
-          <Image
-            src={cover}
-            alt=""
-            fill
-            priority
-            sizes="100vw"
-            className="scale-110 object-cover opacity-40 blur-xl"
-          />
+          <div className="relative h-full w-full">
+            <Image
+              src={cover}
+              alt=""
+              fill
+              priority
+              unoptimized
+              className="scale-105 object-cover object-center opacity-40 blur-lg"
+            />
+          </div>
         ) : (
           <div className="absolute inset-0 bg-[radial-gradient(80%_140%_at_20%_0%,var(--accent-soft),transparent_70%)]" />
         )}
-        <div className="absolute inset-0 bg-gradient-to-t from-bg via-bg/50 to-black/40" />
 
-        <Link
-          href="/discover"
-          className="absolute left-4 top-4 z-10 inline-flex items-center gap-1.5 rounded-lg border border-white/15 bg-black/40 px-2.5 py-1.5 text-xs font-medium text-white/90 backdrop-blur-sm transition-colors hover:bg-black/60 sm:left-6"
-        >
-          <ArrowLeftIcon className="h-3.5 w-3.5" />
-          Discover
-        </Link>
+        {/* Seamless multi-directional gradient blending into surroundings */}
+        {/* Soft horizontal wash so centered artwork shines while text has liquid-glass backing */}
+        <div className="absolute inset-0 bg-gradient-to-r from-bg/90 via-bg/50 via-30% via-transparent to-transparent" />
+
+        {/* Smooth top scrim for breadcrumb visibility */}
+        <div className="absolute inset-x-0 top-0 h-24 bg-gradient-to-b from-black/60 via-black/20 to-transparent" />
+
+        {/* Smooth organic bottom fade that dissolves into page body without hard lines */}
+        <div className="absolute inset-0 bg-gradient-to-t from-bg via-bg/80 via-25% via-transparent to-transparent" />
       </div>
 
-      <div className="mx-auto max-w-[1560px] px-4 sm:px-6 lg:px-10">
+      {/* Hero Foreground Content */}
+      <div className="relative z-10 mx-auto max-w-[1560px] px-4 pt-4 sm:px-6 sm:pt-6 lg:px-10 lg:pt-6">
+        {/* Liquid Glass Breadcrumb Navigation Bar */}
+        <nav
+          aria-label="Breadcrumbs"
+          className="inline-flex items-center gap-2 rounded-2xl liquid-glass-interactive px-3.5 py-1.5 text-xs font-medium text-white/95"
+        >
+          <Link
+            href="/discover"
+            className="flex items-center gap-1.5 transition-colors hover:text-white"
+          >
+            <ArrowLeftIcon className="h-3.5 w-3.5" />
+            <span>Discover</span>
+          </Link>
+          <span className="text-white/40">/</span>
+          <span className="max-w-[140px] truncate text-white/70 sm:max-w-[240px]">
+            {displayTitle}
+          </span>
+          {anime.format ? (
+            <>
+              <span className="text-white/40">/</span>
+              <span className="rounded bg-white/20 px-1.5 py-0.5 text-[10px] font-semibold uppercase text-white shadow-xs">
+                {formatFormat(anime.format)}
+              </span>
+            </>
+          ) : null}
+        </nav>
+
         {catalogMeta.degraded ? (
-          <div className="mt-3 flex flex-wrap items-center justify-between gap-2 rounded-xl border border-amber-500/25 bg-amber-950/40 px-3.5 py-2 text-xs text-amber-200 backdrop-blur-sm">
+          <div className="mt-3 flex flex-wrap items-center justify-between gap-2 rounded-2xl border border-amber-500/25 bg-amber-950/40 px-3.5 py-2 text-xs text-amber-200 backdrop-blur-md">
             <span>
               {catalogMeta.health.isSuspended
                 ? "Offline resilience mode: AniList is temporarily suspended upstream. Showing the metadata that is still available."
@@ -169,15 +225,17 @@ export default async function AnimeDetailsPage({ params }: PageProps) {
             </span>
           </div>
         ) : null}
-        <div className="-mt-20 flex flex-col gap-5 sm:-mt-24 sm:flex-row sm:gap-7">
-          <div className="relative aspect-[2/3] w-28 shrink-0 overflow-hidden rounded-xl border border-white/10 bg-surface-2 poster-shadow sm:w-44 lg:w-48">
+
+        {/* Hero Poster + Liquid Glass Header Info Card */}
+        <div className="mt-5 flex flex-col gap-6 sm:mt-7 sm:flex-row sm:gap-8 lg:gap-10">
+          <div className="relative aspect-[2/3] w-32 shrink-0 overflow-hidden rounded-2xl border border-white/20 bg-surface-2 shadow-[0_20px_50px_rgba(0,0,0,0.7),inset_0_1px_1px_rgba(255,255,255,0.35)] ring-1 ring-white/15 sm:w-44 lg:w-48">
             {cover ? (
               <Image
                 src={cover}
                 alt={`${getDisplayTitle(anime.title, true)} cover art`}
                 fill
                 priority
-                sizes="(max-width: 640px) 112px, 192px"
+                unoptimized
                 className="object-cover"
               />
             ) : (
@@ -185,157 +243,159 @@ export default async function AnimeDetailsPage({ params }: PageProps) {
             )}
           </div>
 
-          <div className="min-w-0 flex-1 sm:pb-2 sm:pt-20 lg:pt-24">
-            <AnimeDetailsHeader anime={anime} />
+          <div className="min-w-0 flex-1 sm:pt-1">
+            <div className="liquid-glass rounded-3xl p-5 sm:p-7 border border-white/15">
+              <AnimeDetailsHeader anime={anime} />
+            </div>
           </div>
         </div>
 
         <div className="mt-8 grid gap-8 lg:grid-cols-[minmax(0,1fr)_360px] lg:gap-10">
-          <div className="min-w-0 space-y-9">
-            <section aria-labelledby="synopsis-heading">
-              <div className="flex items-center justify-between gap-3">
-                <h2
-                  id="synopsis-heading"
-                  className="font-display text-lg font-semibold text-fg"
-                >
-                  Synopsis
-                </h2>
-                <a
-                  href={`https://anilist.co/anime/${anime.id}`}
-                  target="_blank"
-                  rel="noreferrer noopener"
-                  className="inline-flex items-center gap-1.5 text-xs text-faint transition-colors hover:text-fg"
-                >
-                  AniList page
-                  <ExternalIcon className="h-3 w-3" />
-                </a>
-              </div>
-              <p className="mt-3 max-w-[68ch] whitespace-pre-line text-sm leading-[1.65] text-muted sm:text-[15px]">
-                {anime.synopsis ??
-                  "No synopsis has been provided for this title."}
-              </p>
-
-              {anime.genres.length > 0 ? (
-                <div className="mt-5 flex flex-wrap gap-1.5">
-                  {anime.genres.map((genre) => (
-                    <Link
-                      key={genre}
-                      href={`/discover?genre=${encodeURIComponent(genre)}`}
-                      className="rounded-full border border-border bg-surface-2 px-2.5 py-1 text-[11px] font-medium text-muted transition-colors hover:border-accent/40 hover:text-fg"
+          <div className="min-w-0">
+            <AnimeDetailsTabs
+              synopsisContent={
+                <section aria-labelledby="synopsis-heading">
+                  <div className="flex items-center justify-between gap-3">
+                    <h2
+                      id="synopsis-heading"
+                      className="font-display text-lg font-semibold text-fg"
                     >
-                      {genre}
-                    </Link>
-                  ))}
-                </div>
-              ) : null}
-
-              {anime.tags.length > 0 ? (
-                <div className="mt-5">
-                  <h3 className="text-[13px] font-semibold text-fg">Tags</h3>
-                  <p className="mt-2 text-xs leading-relaxed text-muted">
-                    {anime.tags.slice(0, 12).join(" · ")}
+                      Synopsis
+                    </h2>
+                    <a
+                      href={`https://anilist.co/anime/${anime.id}`}
+                      target="_blank"
+                      rel="noreferrer noopener"
+                      className="inline-flex items-center gap-1.5 text-xs text-faint transition-colors hover:text-fg"
+                    >
+                      AniList page
+                      <ExternalIcon className="h-3 w-3" />
+                    </a>
+                  </div>
+                  <p className="mt-3 max-w-[68ch] whitespace-pre-line text-sm leading-[1.65] text-muted sm:text-[15px]">
+                    {anime.synopsis ??
+                      "No synopsis has been provided for this title."}
                   </p>
-                </div>
-              ) : null}
-            </section>
 
-            <AnimeEpisodeSection anime={anime} />
+                  {anime.genres.length > 0 ? (
+                    <div className="mt-5 flex flex-wrap gap-1.5">
+                      {anime.genres.map((genre) => (
+                        <Link
+                          key={genre}
+                          href={`/discover?genre=${encodeURIComponent(genre)}`}
+                          className="rounded-full border border-border bg-surface-2 px-2.5 py-1 text-[11px] font-medium text-muted transition-colors hover:border-accent/40 hover:text-fg"
+                        >
+                          {genre}
+                        </Link>
+                      ))}
+                    </div>
+                  ) : null}
 
-            <section aria-labelledby="details-heading">
-              <h2
-                id="details-heading"
-                className="font-display text-lg font-semibold text-fg"
-              >
-                Details
-              </h2>
-              <dl className="mt-3 grid grid-cols-2 gap-x-6 gap-y-4 rounded-xl border border-border-subtle bg-surface/60 p-4 sm:grid-cols-3">
-                <div>
-                  <dt className="text-xs text-faint">
-                    Format
-                  </dt>
-                  <dd className="mt-1 text-sm text-fg">
-                    {anime.format ?? "Unknown"}
-                  </dd>
-                </div>
-                <div>
-                  <dt className="text-xs text-faint">
-                    Episodes
-                  </dt>
-                  <dd className="mt-1 text-sm text-fg">
-                    {anime.episodes ?? "Unknown"}
-                  </dd>
-                </div>
-                <div>
-                  <dt className="text-xs text-faint">
-                    Season
-                  </dt>
-                  <dd className="mt-1 text-sm text-fg">
-                    {anime.season && anime.seasonYear
-                      ? `${seasonLabel(anime.season)} ${anime.seasonYear}`
-                      : (anime.seasonYear?.toString() ?? "Unknown")}
-                  </dd>
-                </div>
-                <div>
-                  <dt className="text-xs text-faint">
-                    Aired
-                  </dt>
-                  <dd className="mt-1 text-sm text-fg">
-                    {startDate
-                      ? endDate && endDate !== startDate
-                        ? `${startDate} – ${endDate}`
-                        : startDate
-                      : "Unknown"}
-                  </dd>
-                </div>
-                <div>
-                  <dt className="text-xs text-faint">
-                    Release status
-                  </dt>
-                  <dd className="mt-1 text-sm text-fg">
-                    {anime.status
-                      ? anime.status.replaceAll("_", " ").toLowerCase()
-                      : "Unknown"}
-                  </dd>
-                </div>
-                <div>
-                  <dt className="text-xs text-faint">
-                    Episode length
-                  </dt>
-                  <dd className="mt-1 text-sm text-fg">
-                    {anime.duration ? `${anime.duration} min` : "Unknown"}
-                  </dd>
-                </div>
-              </dl>
-            </section>
+                  {anime.tags.length > 0 ? (
+                    <div className="mt-5">
+                      <h3 className="text-[13px] font-semibold text-fg">Tags</h3>
+                      <p className="mt-2 text-xs leading-relaxed text-muted">
+                        {anime.tags.slice(0, 12).join(" · ")}
+                      </p>
+                    </div>
+                  ) : null}
+                </section>
+              }
+              franchiseContent={
+                <AnimeFranchiseSection currentAnime={anime} />
+              }
+              episodesContent={<AnimeEpisodeSection anime={anime} />}
+              detailsContent={
+                <div className="space-y-6">
+                  <section aria-labelledby="details-heading">
+                    <h2
+                      id="details-heading"
+                      className="font-display text-lg font-semibold text-fg"
+                    >
+                      Technical Details
+                    </h2>
+                    <dl className="mt-3 grid grid-cols-2 gap-x-6 gap-y-4 rounded-xl border border-border-subtle bg-surface/60 p-4 sm:grid-cols-3">
+                      <div>
+                        <dt className="text-xs text-faint">Format</dt>
+                        <dd className="mt-1 text-sm text-fg">
+                          {anime.format ?? "Unknown"}
+                        </dd>
+                      </div>
+                      <div>
+                        <dt className="text-xs text-faint">Episodes</dt>
+                        <dd className="mt-1 text-sm text-fg">
+                          {anime.episodes ?? "Unknown"}
+                        </dd>
+                      </div>
+                      <div>
+                        <dt className="text-xs text-faint">Season</dt>
+                        <dd className="mt-1 text-sm text-fg">
+                          {anime.season && anime.seasonYear
+                            ? `${seasonLabel(anime.season)} ${anime.seasonYear}`
+                            : (anime.seasonYear?.toString() ?? "Unknown")}
+                        </dd>
+                      </div>
+                      <div>
+                        <dt className="text-xs text-faint">Aired</dt>
+                        <dd className="mt-1 text-sm text-fg">
+                          {startDate
+                            ? endDate && endDate !== startDate
+                              ? `${startDate} – ${endDate}`
+                              : startDate
+                            : "Unknown"}
+                        </dd>
+                      </div>
+                      <div>
+                        <dt className="text-xs text-faint">Release status</dt>
+                        <dd className="mt-1 text-sm text-fg">
+                          {anime.status
+                            ? anime.status.replaceAll("_", " ").toLowerCase()
+                            : "Unknown"}
+                        </dd>
+                      </div>
+                      <div>
+                        <dt className="text-xs text-faint">Episode length</dt>
+                        <dd className="mt-1 text-sm text-fg">
+                          {anime.duration ? `${anime.duration} min` : "Unknown"}
+                        </dd>
+                      </div>
+                    </dl>
+                  </section>
 
-            {relationGroups.length > 0 ? (
-              <section aria-labelledby="related-heading">
-                <h2
-                  id="related-heading"
-                  className="font-display text-lg font-semibold text-fg"
-                >
-                  Related anime
-                </h2>
-                <div className="mt-4 space-y-6">
-                  {relationGroups.map(([label, items]) => (
-                    <div key={label}>
-                      <h3 className="mb-2.5 text-[13px] font-medium text-muted">
-                        {label}
-                      </h3>
-                      <div className="grid grid-cols-2 gap-x-3 gap-y-5 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
-                        {items.map((relation) => (
-                          <AnimePosterCard
-                            key={relation.id}
-                            anime={relation}
-                            showQuickAdd={false}
-                          />
+                  {relationGroups.length > 0 ? (
+                    <section aria-labelledby="related-heading">
+                      <h2
+                        id="related-heading"
+                        className="font-display text-lg font-semibold text-fg"
+                      >
+                        All Connected Releases
+                      </h2>
+                      <div className="mt-4 space-y-6">
+                        {relationGroups.map(([label, items]) => (
+                          <div key={label}>
+                            <h3 className="mb-2.5 text-[13px] font-medium text-muted">
+                              {label}
+                            </h3>
+                            <div className="grid grid-cols-2 gap-x-3 gap-y-5 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
+                              {items.map((relation) => (
+                                <AnimePosterCard
+                                  key={relation.id}
+                                  anime={relation}
+                                  showQuickAdd={false}
+                                />
+                              ))}
+                            </div>
+                          </div>
                         ))}
                       </div>
-                    </div>
-                  ))}
+                    </section>
+                  ) : null}
                 </div>
-              </section>
-            ) : null}
+              }
+              hasFranchise={anime.relations.length > 0}
+              franchiseCount={anime.relations.length + 1}
+              episodesCount={anime.episodes}
+            />
           </div>
 
           <aside className="lg:sticky lg:top-6 lg:self-start">

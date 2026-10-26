@@ -1,7 +1,14 @@
 import type { Metadata, Viewport } from "next";
-import { Inter, Sora } from "next/font/google";
+import {
+  Fraunces,
+  IBM_Plex_Mono,
+  Inter,
+  Newsreader,
+  Space_Grotesk,
+} from "next/font/google";
 
 import { PreferencesProvider } from "@/components/providers/preferences-provider";
+import { SidebarProvider } from "@/components/providers/sidebar-provider";
 import { ThemeProvider } from "@/components/providers/theme-provider";
 import { ToastProvider } from "@/components/providers/toast-provider";
 import { PwaRegister } from "@/components/pwa-register";
@@ -14,10 +21,31 @@ const inter = Inter({
   display: "swap",
 });
 
-const sora = Sora({
+// One family per design direction. Files are only fetched when a direction
+// actually renders them; the variable names are what the token layer switches.
+const spaceGrotesk = Space_Grotesk({
   subsets: ["latin"],
-  variable: "--font-sora",
+  variable: "--font-space-grotesk",
   weight: ["400", "500", "600", "700"],
+  display: "swap",
+});
+
+const fraunces = Fraunces({
+  subsets: ["latin"],
+  variable: "--font-fraunces",
+  display: "swap",
+});
+
+const newsreader = Newsreader({
+  subsets: ["latin"],
+  variable: "--font-newsreader",
+  display: "swap",
+});
+
+const plexMono = IBM_Plex_Mono({
+  subsets: ["latin"],
+  variable: "--font-plex-mono",
+  weight: ["400", "500", "600"],
   display: "swap",
 });
 
@@ -60,23 +88,31 @@ export const viewport: Viewport = {
   initialScale: 1,
   viewportFit: "cover",
   themeColor: [
-    { media: "(prefers-color-scheme: dark)", color: "#08080c" },
-    { media: "(prefers-color-scheme: light)", color: "#f7f6fb" },
+    { media: "(prefers-color-scheme: dark)", color: "#090a10" },
+    { media: "(prefers-color-scheme: light)", color: "#f8fafc" },
   ],
 };
 
-const themeScript = `(function(){try{var stored=localStorage.getItem('kaze-theme');var mode=stored==='light'||stored==='dark'||stored==='system'?stored:'dark';var resolved=mode==='system'?(window.matchMedia('(prefers-color-scheme: light)').matches?'light':'dark'):mode;var root=document.documentElement;root.classList.toggle('light',resolved==='light');root.dataset.theme=resolved;root.style.colorScheme=resolved;}catch(error){}})();`;
+const themeScript = `(function(){try{var stored=localStorage.getItem('kaze-theme');var mode=stored==='light'||stored==='dark'||stored==='system'?stored:'dark';var resolved=mode==='system'?(window.matchMedia('(prefers-color-scheme: light)').matches?'light':'dark'):mode;var design=localStorage.getItem('kaze-design');if(design!=='broadcast'&&design!=='editorial'&&design!=='shelf'){design='broadcast';}var root=document.documentElement;root.dataset.design=design;root.classList.toggle('light',resolved==='light');root.dataset.theme=resolved;root.style.colorScheme=resolved;}catch(error){}})();`;
 
 export default function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="en" suppressHydrationWarning>
-      <body className={`${inter.variable} ${sora.variable} antialiased`}>
+    <html
+      lang="en"
+      // Font variables live on the root so the direction blocks can resolve
+      // their font stacks at the same element that carries `data-design`.
+      className={`${inter.variable} ${spaceGrotesk.variable} ${fraunces.variable} ${newsreader.variable} ${plexMono.variable}`}
+      suppressHydrationWarning
+    >
+      <body className="antialiased">
         <script dangerouslySetInnerHTML={{ __html: themeScript }} />
         <ThemeProvider>
           <PreferencesProvider>
-            <ToastProvider>{children}</ToastProvider>
+            <SidebarProvider>
+              <ToastProvider>{children}</ToastProvider>
+            </SidebarProvider>
           </PreferencesProvider>
         </ThemeProvider>
         <PwaRegister />

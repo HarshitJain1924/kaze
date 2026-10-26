@@ -390,19 +390,29 @@ const lightTheme = JSON.parse(
       document.documentElement.scrollWidth - window.innerWidth,
     );
     const rootStyle = getComputedStyle(document.documentElement);
+    // Resolve the design token rather than pinning one palette, so every
+    // design direction can be checked in light appearance.
+    const probe = document.createElement('span');
+    probe.style.color = rootStyle.getPropertyValue('--bg').trim();
+    document.body.appendChild(probe);
+    const rootBgRgb = getComputedStyle(probe).color;
+    probe.remove();
     return JSON.stringify({
       background,
       color,
       overflow,
       hasClass: document.documentElement.classList.contains('light'),
       rootBg: rootStyle.getPropertyValue('--bg').trim(),
+      rootBgRgb,
       colorScheme: rootStyle.colorScheme,
     });
   })()`),
 );
 record(
   "light theme applies and keeps the layout within the viewport",
-  lightTheme.background === "rgb(247, 246, 251)" && lightTheme.overflow <= 1,
+  lightTheme.hasClass === true &&
+    lightTheme.background === lightTheme.rootBgRgb &&
+    lightTheme.overflow <= 1,
   `background=${lightTheme.background} hasClass=${lightTheme.hasClass} rootBg=${lightTheme.rootBg} colorScheme=${lightTheme.colorScheme} overflow=${lightTheme.overflow}`,
 );
 

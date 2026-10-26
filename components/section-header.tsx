@@ -9,7 +9,7 @@ export function SectionHeader({
   actionHref,
 }: {
   title: string;
-  description?: string;
+  description?: React.ReactNode;
   action?: string;
   actionHref?: string;
 }) {

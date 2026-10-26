@@ -272,7 +272,10 @@ watch time, streaks or historical trends.
   management and body scroll locking.
 - Consistent focus-visible styling, labelled icon buttons, `aria-live` result
   and toast regions, `prefers-reduced-motion` support, and AA-oriented contrast.
-- Light and dark themes are both designed, with a system-following option.
+- Three selectable design directions (**Broadcast**, **Editorial**, **Shelf**)
+  share one token contract; each is designed in light and dark, with a
+  system-following appearance option. The choice is stored per device and
+  applied before first paint.
 
 ## PWA
 
@@ -354,7 +357,7 @@ against a running production build. It verified, with live AniList data:
   failing silently.
 - Anime details render community metadata, related anime and a sign-in action
   linking back to the same title.
-- The light theme variables apply (content background `#f7f6fb`) and keep the
+- The light appearance resolves through the design tokens and keeps the
   layout inside the viewport.
 
 The script retries once after an AniList rate-limit window and reports

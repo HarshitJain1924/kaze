@@ -78,6 +78,7 @@ export default async function SchedulePage({
     <ScheduleBrowser
       week={week}
       days={days}
+      entries={entries}
       watchingIds={watchingIds}
       initialDate={date}
     />

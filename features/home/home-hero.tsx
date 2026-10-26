@@ -86,7 +86,7 @@ export function HomeHero({
   return (
     <header
       aria-label="Home banner"
-      className="relative overflow-hidden rounded-2xl border border-white/10 bg-[#090912] shadow-2xl"
+      className="relative overflow-hidden rounded-2xl border border-border-subtle bg-surface shadow-sm"
     >
       {/* Background artwork */}
       <div className="pointer-events-none absolute inset-0 select-none">
@@ -96,31 +96,28 @@ export function HomeHero({
           fill
           priority
           sizes="(max-width: 1024px) 100vw, 1400px"
-          className="object-cover object-[75%_35%] sm:object-[68%_35%]"
+          className="hero-art object-cover object-[75%_35%] sm:object-[68%_35%]"
         />
         {/* Contrast overlays: keep left text crisp while letting right atmospheric moon artwork shine through */}
-        <div className="absolute inset-0 bg-gradient-to-r from-[#08080c] via-[#08080c]/85 to-transparent sm:w-[65%]" />
-        <div className="absolute inset-0 bg-gradient-to-t from-[#08080c]/80 via-transparent to-transparent" />
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_70%_20%,rgba(168,85,247,0.12),transparent_50%)]" />
+        <div className="absolute inset-0 bg-gradient-to-r from-bg via-bg/85 to-transparent sm:w-[65%]" />
+        <div className="absolute inset-0 bg-gradient-to-t from-bg/80 via-transparent to-transparent" />
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_70%_20%,var(--accent-soft),transparent_55%)]" />
       </div>
 
       {/* Content wrapper */}
       <div className="relative z-10 flex flex-col justify-between gap-5 p-6 sm:flex-row sm:items-center sm:p-7 lg:px-8 lg:py-7">
         <div className="max-w-2xl min-w-0">
           {todayLabel ? (
-            <p className="text-xs font-medium tracking-wide text-white/60">
+            <p className="text-xs font-medium tracking-wide text-muted">
               {todayLabel}
             </p>
           ) : null}
 
-          <h1 className="mt-1 font-display text-2xl font-bold tracking-tight text-white sm:text-3xl lg:text-[34px]">
-            Good{" "}
-            <span className="text-[#c084fc] drop-shadow-[0_0_16px_rgba(192,132,252,0.45)]">
-              {greetingWord}
-            </span>
+          <h1 className="mt-1 font-display text-2xl font-bold tracking-tight text-fg sm:text-3xl lg:text-[34px]">
+            Good <span className="text-accent-strong">{greetingWord}</span>
           </h1>
 
-          <p className="mt-1.5 text-xs leading-relaxed text-white/75 sm:text-[13px]">
+          <p className="mt-1.5 text-xs leading-relaxed text-muted sm:text-[13px]">
             {summaryText}
           </p>
         </div>
@@ -128,11 +125,11 @@ export function HomeHero({
         <div className="shrink-0">
           <Link
             href="/schedule"
-            className="inline-flex h-9 items-center gap-2 rounded-xl border border-white/15 bg-black/45 px-3.5 text-xs font-semibold text-white shadow-sm backdrop-blur-md transition-all hover:border-white/30 hover:bg-black/65 active:scale-[0.98]"
+            className="inline-flex h-9 items-center gap-2 rounded-xl border border-border bg-surface-2/70 px-3.5 text-xs font-semibold text-fg shadow-sm backdrop-blur-md transition-all hover:border-accent/50 hover:bg-surface-3 active:scale-[0.98]"
           >
-            <CalendarIcon className="h-3.5 w-3.5 text-white/80" />
+            <CalendarIcon className="h-3.5 w-3.5 text-muted" />
             <span>Weekly schedule</span>
-            <ChevronRightIcon className="h-3 w-3 text-white/60" />
+            <ChevronRightIcon className="h-3 w-3 text-faint" />
           </Link>
         </div>
       </div>
