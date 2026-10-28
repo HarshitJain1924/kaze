@@ -101,7 +101,7 @@ export function HomeSidebar({
       {/* 1. Your library (2x2 Stats Grid or Sign in prompt) */}
       <section
         aria-label="Your library statistics"
-        className="rounded-2xl border border-border-subtle bg-surface p-4 shadow-sm"
+        className="rounded-[20px] border border-border/80 bg-surface p-4 shadow-[0_16px_40px_-32px_rgba(0,0,0,0.9)]"
       >
         <div className="flex items-center justify-between pb-3">
           <h2 className="font-display text-sm font-bold text-fg">
@@ -123,7 +123,7 @@ export function HomeSidebar({
             {/* Tracked */}
             <Link
               href="/library"
-              className="group flex flex-col justify-between rounded-xl border border-border-subtle bg-surface-2 p-3 transition-colors hover:border-border hover:bg-surface-3"
+              className="group flex flex-col justify-between rounded-xl border border-border-subtle/80 bg-surface-2 p-3 transition-colors hover:border-border hover:bg-surface-3"
             >
               <div className="flex items-center justify-between">
                 <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-accent-soft text-accent-strong">
@@ -246,7 +246,7 @@ export function HomeSidebar({
                   <Link
                     key={entry.id}
                     href={`/anime/${entry.mediaId}`}
-                    className="group flex items-center gap-2.5 rounded-xl border border-border-subtle bg-surface-2 p-2 transition-all hover:border-border hover:bg-surface-3"
+                    className="group flex items-center gap-2.5 rounded-xl border border-border-subtle/80 bg-surface-2 p-2 transition-colors hover:border-border hover:bg-surface-3"
                   >
                     <div className="relative aspect-[2/3] w-9 shrink-0 overflow-hidden rounded-lg border border-border-subtle bg-surface-3">
                       {cover && isHttpUrl(cover) ? (
