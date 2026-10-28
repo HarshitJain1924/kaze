@@ -110,13 +110,13 @@ export function FeaturedAngularCard({
   return (
     <article
       aria-label={`Featured: ${title}`}
-      className="group relative overflow-hidden rounded-2xl border border-border-subtle bg-surface"
+      className="group relative overflow-hidden rounded-[22px] border border-border/80 bg-[radial-gradient(ellipse_at_88%_0%,var(--accent-soft),transparent_44%),var(--surface)] shadow-[0_20px_55px_-38px_rgba(0,0,0,0.95)]"
     >
       <div className="flex flex-col gap-4 p-3 sm:flex-row sm:gap-5 sm:p-4">
         {/* Poster */}
         <Link
           href={`/anime/${anime.id}`}
-          className="relative aspect-[2/3] w-full max-w-[190px] shrink-0 self-start overflow-hidden rounded-xl border border-border-subtle bg-surface-2 sm:w-32 md:w-36"
+          className="relative aspect-[2/3] w-full max-w-[190px] shrink-0 self-start overflow-hidden rounded-xl border border-border/80 bg-surface-2 shadow-[0_12px_28px_-16px_rgba(0,0,0,0.8)] sm:w-32 md:w-36"
           aria-label={`Open ${title}`}
         >
           {cover && isHttpUrl(cover) ? (
@@ -261,7 +261,7 @@ export function FeaturedAngularCard({
               </span>
             </div>
 
-            <div className="mt-2 h-2 w-full overflow-hidden rounded-full bg-surface-3">
+            <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-surface-3 ring-1 ring-inset ring-border-subtle">
               <div
                 className="h-full rounded-full bg-accent transition-[width] duration-300"
                 style={{ width: `${percent ?? 0}%` }}
