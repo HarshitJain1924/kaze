@@ -224,7 +224,7 @@ export function HomeSearch({ popularAnime }: HomeSearchProps) {
   return (
     <div
       ref={containerRef}
-      className="relative z-30 space-y-4 rounded-2xl border border-border-subtle bg-surface p-4 shadow-sm transition-all sm:p-5"
+      className="relative z-30 space-y-4 rounded-[22px] border border-border/80 bg-surface p-4 shadow-[0_18px_48px_-34px_rgba(0,0,0,0.9)] transition-colors sm:p-5"
     >
       {/* Header with clear purpose & catalog link */}
       <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border-subtle/70 pb-3">
@@ -501,12 +501,12 @@ export function HomeSearch({ popularAnime }: HomeSearchProps) {
                 return (
                   <div
                     key={anime.id}
-                    className="group relative flex items-center gap-3 rounded-xl border border-border-subtle bg-surface-2/60 p-2.5 transition-all duration-200 hover:border-accent/40 hover:bg-surface-2 hover:shadow-xs"
+                    className="group relative flex min-w-0 items-center gap-3 rounded-xl border border-border-subtle bg-surface-2/70 p-2.5 transition-colors duration-200 hover:border-accent/40 hover:bg-surface-2"
                   >
                     {/* Poster Thumbnail */}
                     <Link
                       href={`/anime/${anime.id}`}
-                      className="relative aspect-[2/3] w-12 shrink-0 overflow-hidden rounded-lg border border-border-subtle bg-surface-3 transition-transform duration-200 group-hover:scale-102"
+                      className="relative aspect-[2/3] w-12 shrink-0 overflow-hidden rounded-lg border border-border-subtle bg-surface-3"
                       title={`View ${title}`}
                     >
                       {cover && isHttpUrl(cover) ? (

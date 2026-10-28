@@ -86,7 +86,7 @@ export function HomeHero({
   return (
     <header
       aria-label="Home banner"
-      className="relative overflow-hidden rounded-2xl border border-border-subtle bg-surface shadow-sm"
+      className="relative isolate overflow-hidden rounded-[22px] border border-border/70 bg-surface shadow-[0_18px_48px_-30px_rgba(0,0,0,0.9)]"
     >
       {/* Background artwork */}
       <div className="pointer-events-none absolute inset-0 select-none">
@@ -99,13 +99,13 @@ export function HomeHero({
           className="hero-art object-cover object-[75%_35%] sm:object-[68%_35%]"
         />
         {/* Contrast overlays: keep left text crisp while letting right atmospheric moon artwork shine through */}
-        <div className="absolute inset-0 bg-gradient-to-r from-bg via-bg/85 to-transparent sm:w-[65%]" />
-        <div className="absolute inset-0 bg-gradient-to-t from-bg/80 via-transparent to-transparent" />
+        <div className="absolute inset-0 bg-gradient-to-r from-bg via-bg/80 to-transparent sm:w-[62%]" />
+        <div className="absolute inset-0 bg-gradient-to-t from-bg/65 via-bg/10 to-transparent" />
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_70%_20%,var(--accent-soft),transparent_55%)]" />
       </div>
 
       {/* Content wrapper */}
-      <div className="relative z-10 flex flex-col justify-between gap-5 p-6 sm:flex-row sm:items-center sm:p-7 lg:px-8 lg:py-7">
+      <div className="relative z-10 flex min-h-[148px] flex-col justify-between gap-5 p-6 sm:min-h-[160px] sm:flex-row sm:items-center sm:p-7 lg:px-8 lg:py-7">
         <div className="max-w-2xl min-w-0">
           {todayLabel ? (
             <p className="text-xs font-medium tracking-wide text-muted">
