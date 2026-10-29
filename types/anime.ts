@@ -46,6 +46,7 @@ export interface AnimeSummary {
   id: number;
   title: AnimeTitles;
   coverImage: AnimeCoverImage;
+  bannerImage?: string | null;
   format: AnimeFormat | null;
   episodes: number | null;
   averageScore: number | null;

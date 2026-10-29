@@ -16,12 +16,14 @@ import type { LibraryView } from "@/types/library";
 export type TitleLanguage = "english" | "romaji";
 
 export interface DisplayPreferences {
+  nickname?: string;
   titleLanguage: TitleLanguage;
   libraryView: LibraryView;
   timeZone: string; // "auto" or IANA timezone identifier e.g. "Asia/Kolkata", "Asia/Tokyo"
 }
 
 const DEFAULT_PREFERENCES: DisplayPreferences = {
+  nickname: undefined,
   titleLanguage: "english",
   libraryView: "grid",
   timeZone: "auto",
@@ -49,6 +51,10 @@ function parsePreferences(raw: string | null | undefined): DisplayPreferences {
   try {
     const parsed = JSON.parse(raw) as Partial<DisplayPreferences>;
     return {
+      nickname:
+        typeof parsed.nickname === "string" && parsed.nickname.trim()
+          ? parsed.nickname.trim()
+          : undefined,
       titleLanguage:
         parsed.titleLanguage === "romaji" ? "romaji" : "english",
       libraryView: parsed.libraryView === "list" ? "list" : "grid",

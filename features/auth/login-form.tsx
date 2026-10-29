@@ -3,7 +3,17 @@
 import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
 
-import { AlertIcon, CheckIcon, LoaderIcon } from "@/components/icons";
+import {
+  AlertIcon,
+  CheckIcon,
+  CompassIcon,
+  EyeIcon,
+  EyeOffIcon,
+  LoaderIcon,
+  LockIcon,
+  MailIcon,
+  ShieldCheckIcon,
+} from "@/components/icons";
 import { Button } from "@/components/ui/button";
 import { Field, Input } from "@/components/ui/field";
 import { LinkButton } from "@/components/ui/link-button";
@@ -86,19 +96,19 @@ export function LoginForm({
 
   const title =
     notice
-      ? "Check your email"
+      ? "Check your inbox"
       : mode === "signin"
         ? "Welcome back"
         : mode === "signup"
-          ? "Create your account"
+          ? "Create your vault"
           : "Reset your password";
 
   const subtitle =
     mode === "signin"
-      ? "Sign in to sync your anime library across devices."
+      ? "Sign in to synchronize your anime watch progress across devices."
       : mode === "signup"
-        ? "Start tracking episodes, ratings and notes in one private library."
-        : "We will email you a secure link to choose a new password.";
+        ? "Start tracking series, log episode milestones, and unlock analytics."
+        : "We will email you a secure one-time link to configure a new password.";
 
   const switchMode = (next: AuthMode) => {
     setMode(next);
@@ -176,7 +186,7 @@ export function LoginForm({
 
         setNotice({
           title: "Confirm your email",
-          body: `We sent a confirmation link to ${cleanEmail}. Open it to finish creating your account, then sign in.`,
+          body: `We sent a secure activation link to ${cleanEmail}. Open it to verify your account and jump into Kaze.`,
         });
         return;
       }
@@ -190,8 +200,8 @@ export function LoginForm({
         throw resetError;
       }
       setNotice({
-        title: "Check your email",
-        body: `If an account exists for ${cleanEmail}, a password reset link is on its way. The link expires shortly.`,
+        title: "Check your inbox",
+        body: `If an account is associated with ${cleanEmail}, a secure password reset link has been dispatched.`,
       });
     } catch (submitError) {
       setError(mapAuthError(submitError));
@@ -202,37 +212,43 @@ export function LoginForm({
 
   if (!configured) {
     return (
-      <div className="w-full max-w-md">
-        <div className="rounded-2xl border border-border-subtle bg-surface p-5 sm:p-7">
-          <span className="flex h-10 w-10 items-center justify-center rounded-xl border border-warning/30 bg-warning/10 text-warning">
+      <div className="relative w-full max-w-md">
+        <div className="pointer-events-none absolute -inset-1 rounded-3xl bg-amber-500/10 blur-xl" />
+        <div className="relative rounded-3xl border border-white/[0.12] bg-surface/90 p-6 sm:p-8 shadow-2xl backdrop-blur-2xl ring-1 ring-white/10">
+          <span className="flex h-11 w-11 items-center justify-center rounded-2xl border border-warning/30 bg-warning/10 text-warning shadow-inner">
             <AlertIcon className="h-5 w-5" />
           </span>
-          <h1 className="mt-4 font-display text-xl font-bold text-fg">
+          <h1 className="mt-4 font-display text-xl font-bold text-fg sm:text-2xl">
             Connect Supabase to enable accounts
           </h1>
-          <p className="mt-2 text-sm leading-relaxed text-muted">
-            Discovery and anime details already work with the public AniList
-            API. Sign-in and your personal library need a Supabase project.
+          <p className="mt-2 text-xs leading-relaxed text-muted sm:text-sm">
+            Discovery and anime details already operate live with the public AniList
+            GraphQL API. Cloud authentication and your personal encrypted library require a Supabase project.
           </p>
-          <div className="mt-4 rounded-lg border border-border-subtle bg-surface-2 p-3">
+          <div className="mt-4 rounded-xl border border-white/[0.08] bg-surface-2/80 p-3.5 backdrop-blur-md">
             <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-faint">
               Required environment variables
             </p>
             <ul className="mt-2 space-y-1 font-mono text-[11px] text-muted">
               {SUPABASE_ENV_VARS.map((name) => (
-                <li key={name}>{name}</li>
+                <li key={name} className="flex items-center gap-1.5">
+                  <span className="h-1.5 w-1.5 rounded-full bg-accent/60" />
+                  <span>{name}</span>
+                </li>
               ))}
             </ul>
           </div>
           <p className="mt-4 text-xs leading-relaxed text-faint">
-            Copy <code className="text-muted">.env.example</code> to{" "}
-            <code className="text-muted">.env.local</code>, add your project
-            URL and publishable key, then apply the migration in{" "}
-            <code className="text-muted">supabase/migrations</code>. See the
-            README for the full setup.
+            Copy <code className="text-white/80">.env.example</code> to{" "}
+            <code className="text-white/80">.env.local</code> and set your project
+            credentials.
           </p>
-          <div className="mt-5">
-            <LinkButton href="/discover" variant="primary" className="w-full">
+          <div className="mt-6">
+            <LinkButton
+              href="/discover"
+              variant="primary"
+              className="h-11 w-full rounded-xl bg-accent font-semibold text-accent-contrast shadow-lg shadow-accent/25 hover:bg-accent-hover"
+            >
               Browse anime while you set up
             </LinkButton>
           </div>
@@ -243,26 +259,31 @@ export function LoginForm({
 
   if (notice) {
     return (
-      <div className="w-full max-w-md">
-        <div className="rounded-2xl border border-border-subtle bg-surface p-5 sm:p-7">
-          <span className="flex h-10 w-10 items-center justify-center rounded-xl border border-success/30 bg-success/10 text-success">
-            <CheckIcon className="h-5 w-5" />
+      <div className="relative w-full max-w-md">
+        <div className="pointer-events-none absolute -inset-1 rounded-3xl bg-emerald-500/15 blur-xl" />
+        <div className="relative rounded-3xl border border-white/[0.12] bg-surface/90 p-6 sm:p-8 shadow-2xl backdrop-blur-2xl ring-1 ring-white/10">
+          <span className="flex h-12 w-12 items-center justify-center rounded-2xl border border-emerald-500/30 bg-emerald-500/15 text-emerald-400 shadow-inner">
+            <CheckIcon className="h-6 w-6" />
           </span>
-          <h1 className="mt-4 font-display text-xl font-bold text-fg">
+          <h1 className="mt-5 font-display text-2xl font-bold tracking-tight text-white">
             {notice.title}
           </h1>
           <p className="mt-2 text-sm leading-relaxed text-muted">
             {notice.body}
           </p>
-          <div className="mt-5 flex flex-col gap-2">
+          <div className="mt-6 flex flex-col gap-2.5">
             <Button
               variant="primary"
               onClick={() => switchMode("signin")}
-              className="w-full"
+              className="h-11 w-full rounded-xl bg-accent font-semibold text-accent-contrast shadow-lg shadow-accent/25 hover:bg-accent-hover"
             >
               Back to sign in
             </Button>
-            <LinkButton href="/discover" variant="ghost" className="w-full">
+            <LinkButton
+              href="/discover"
+              variant="ghost"
+              className="h-11 w-full rounded-xl border border-white/[0.08] hover:bg-white/[0.05]"
+            >
               Keep browsing
             </LinkButton>
           </div>
@@ -272,64 +293,79 @@ export function LoginForm({
   }
 
   return (
-    <div className="w-full max-w-md">
-      <div className="rounded-2xl border border-border-subtle bg-surface p-5 sm:p-7">
-        <h1 className="font-display text-2xl font-bold tracking-tight text-fg">
-          {title}
-        </h1>
-        <p className="mt-2 text-sm leading-relaxed text-muted">{subtitle}</p>
+    <div className="relative w-full max-w-md">
+      {/* Dynamic ambient halo behind login card */}
+      <div className="pointer-events-none absolute -inset-1.5 rounded-3xl bg-gradient-to-tr from-accent/25 via-purple-500/10 to-accent/20 opacity-75 blur-2xl transition-all duration-500" />
 
+      {/* Main Liquid-Glass Container */}
+      <div className="relative rounded-3xl border border-white/[0.12] bg-surface/90 p-6 sm:p-8 shadow-2xl backdrop-blur-2xl ring-1 ring-white/5">
+        {/* Card Header */}
+        <div className="space-y-1.5">
+          <h2 className="font-display text-2xl font-bold tracking-tight text-white sm:text-3xl">
+            {title}
+          </h2>
+          <p className="text-xs leading-relaxed text-muted sm:text-sm">{subtitle}</p>
+        </div>
+
+        {/* Tab Switcher */}
         {mode !== "forgot" ? (
           <div
             role="tablist"
             aria-label="Authentication mode"
-            className="mt-5 grid grid-cols-2 gap-1 rounded-xl border border-border bg-surface-2/60 p-1"
+            className="mt-6 grid grid-cols-2 gap-1 rounded-2xl border border-white/[0.08] bg-surface-2/70 p-1 backdrop-blur-md"
           >
             <button
               type="button"
               role="tab"
               aria-selected={mode === "signin"}
               onClick={() => switchMode("signin")}
-              className={`h-9 rounded-lg text-sm font-medium transition-colors ${
+              className={`h-10 rounded-xl text-xs sm:text-sm font-semibold transition-all duration-200 ${
                 mode === "signin"
-                  ? "bg-surface-3 text-fg"
-                  : "text-faint hover:text-muted"
+                  ? "bg-surface-3 text-white shadow-md border border-white/[0.12]"
+                  : "text-muted hover:text-white hover:bg-white/[0.04]"
               }`}
             >
-              Sign in
+              Sign In
             </button>
             <button
               type="button"
               role="tab"
               aria-selected={mode === "signup"}
               onClick={() => switchMode("signup")}
-              className={`h-9 rounded-lg text-sm font-medium transition-colors ${
+              className={`h-10 rounded-xl text-xs sm:text-sm font-semibold transition-all duration-200 ${
                 mode === "signup"
-                  ? "bg-surface-3 text-fg"
-                  : "text-faint hover:text-muted"
+                  ? "bg-surface-3 text-white shadow-md border border-white/[0.12]"
+                  : "text-muted hover:text-white hover:bg-white/[0.04]"
               }`}
             >
-              Create account
+              Create Account
             </button>
           </div>
         ) : null}
 
-        <form onSubmit={handleSubmit} className="mt-5 space-y-4" noValidate>
-          <Field label="Email" htmlFor="auth-email">
-            <Input
-              id="auth-email"
-              name="email"
-              type="email"
-              inputMode="email"
-              autoComplete="email"
-              autoCapitalize="none"
-              spellCheck={false}
-              placeholder="you@example.com"
-              value={email}
-              onChange={(event) => setEmail(event.target.value)}
-              disabled={busy}
-              required
-            />
+        {/* Form Fields */}
+        <form onSubmit={handleSubmit} className="mt-6 space-y-4" noValidate>
+          <Field label="Email address" htmlFor="auth-email">
+            <div className="relative">
+              <span className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-faint">
+                <MailIcon className="h-4 w-4" />
+              </span>
+              <Input
+                id="auth-email"
+                name="email"
+                type="email"
+                inputMode="email"
+                autoComplete="email"
+                autoCapitalize="none"
+                spellCheck={false}
+                placeholder="you@example.com"
+                value={email}
+                onChange={(event) => setEmail(event.target.value)}
+                disabled={busy}
+                required
+                className="h-11 sm:h-12 pl-10 rounded-xl border-white/[0.1] bg-surface-2/80 text-sm focus:border-accent focus:ring-2 focus:ring-accent/20"
+              />
+            </div>
           </Field>
 
           {mode !== "forgot" ? (
@@ -338,11 +374,14 @@ export function LoginForm({
               htmlFor="auth-password"
               hint={
                 mode === "signup"
-                  ? `At least ${MIN_PASSWORD_LENGTH} characters.`
+                  ? `Minimum ${MIN_PASSWORD_LENGTH} characters.`
                   : undefined
               }
             >
               <div className="relative">
+                <span className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-faint">
+                  <LockIcon className="h-4 w-4" />
+                </span>
                 <Input
                   id="auth-password"
                   name="password"
@@ -353,20 +392,25 @@ export function LoginForm({
                   placeholder={
                     mode === "signup"
                       ? `At least ${MIN_PASSWORD_LENGTH} characters`
-                      : "Your password"
+                      : "Enter your password"
                   }
                   value={password}
                   onChange={(event) => setPassword(event.target.value)}
                   disabled={busy}
-                  className="pr-16"
+                  className="h-11 sm:h-12 pl-10 pr-12 rounded-xl border-white/[0.1] bg-surface-2/80 text-sm focus:border-accent focus:ring-2 focus:ring-accent/20"
                   required
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword((value) => !value)}
-                  className="absolute right-2 top-1/2 -translate-y-1/2 rounded-md px-2 py-1 text-[11px] font-medium text-faint transition-colors hover:bg-surface-3 hover:text-fg"
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 rounded-lg p-1.5 text-faint transition-colors hover:bg-white/[0.08] hover:text-white"
+                  aria-label={showPassword ? "Hide password" : "Show password"}
                 >
-                  {showPassword ? "Hide" : "Show"}
+                  {showPassword ? (
+                    <EyeOffIcon className="h-4 w-4" />
+                  ) : (
+                    <EyeIcon className="h-4 w-4" />
+                  )}
                 </button>
               </div>
             </Field>
@@ -374,56 +418,64 @@ export function LoginForm({
 
           {mode === "signup" ? (
             <Field label="Confirm password" htmlFor="auth-confirm">
-              <Input
-                id="auth-confirm"
-                name="confirm-password"
-                type={showPassword ? "text" : "password"}
-                autoComplete="new-password"
-                placeholder="Repeat your password"
-                value={confirmPassword}
-                onChange={(event) => setConfirmPassword(event.target.value)}
-                disabled={busy}
-                required
-              />
+              <div className="relative">
+                <span className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-faint">
+                  <LockIcon className="h-4 w-4" />
+                </span>
+                <Input
+                  id="auth-confirm"
+                  name="confirm-password"
+                  type={showPassword ? "text" : "password"}
+                  autoComplete="new-password"
+                  placeholder="Repeat your password"
+                  value={confirmPassword}
+                  onChange={(event) => setConfirmPassword(event.target.value)}
+                  disabled={busy}
+                  className="h-11 sm:h-12 pl-10 rounded-xl border-white/[0.1] bg-surface-2/80 text-sm focus:border-accent focus:ring-2 focus:ring-accent/20"
+                  required
+                />
+              </div>
             </Field>
           ) : null}
 
           {error ? (
-            <p
+            <div
               role="alert"
-              className="rounded-lg border border-danger/25 bg-danger-soft px-3 py-2 text-xs leading-relaxed text-danger"
+              className="flex items-start gap-2.5 rounded-xl border border-danger/30 bg-danger/10 p-3 text-xs leading-relaxed text-danger"
             >
-              {error}
-            </p>
+              <AlertIcon className="mt-0.5 h-4 w-4 shrink-0" />
+              <span>{error}</span>
+            </div>
           ) : null}
 
           <Button
             type="submit"
             variant="primary"
-            className="w-full"
+            className="h-12 w-full rounded-xl bg-accent font-semibold text-accent-contrast shadow-lg shadow-accent/25 hover:bg-accent-hover active:scale-[0.98] transition-all"
             disabled={busy}
           >
             {busy ? (
-              <>
+              <span className="flex items-center justify-center gap-2">
                 <LoaderIcon className="h-4 w-4 animate-spin" />
-                Working…
-              </>
+                <span>Authenticating…</span>
+              </span>
             ) : mode === "signin" ? (
-              "Sign in"
+              "Sign In to Kaze"
             ) : mode === "signup" ? (
-              "Create account"
+              "Create Account"
             ) : (
-              "Send reset link"
+              "Send Reset Link"
             )}
           </Button>
         </form>
 
-        <div className="mt-4 flex flex-wrap items-center justify-between gap-2 text-xs">
+        {/* Footer Navigation */}
+        <div className="mt-5 flex flex-wrap items-center justify-between gap-2 border-t border-white/[0.06] pt-4 text-xs">
           {mode === "signin" ? (
             <button
               type="button"
               onClick={() => switchMode("forgot")}
-              className="text-muted underline-offset-2 transition-colors hover:text-fg hover:underline"
+              className="text-muted transition-colors hover:text-white"
             >
               Forgot your password?
             </button>
@@ -431,20 +483,25 @@ export function LoginForm({
             <button
               type="button"
               onClick={() => switchMode("signin")}
-              className="text-muted underline-offset-2 transition-colors hover:text-fg hover:underline"
+              className="text-muted transition-colors hover:text-white"
             >
               Back to sign in
             </button>
           )}
-          <LinkButton href="/discover" variant="ghost" size="sm">
-            Keep browsing
+          <LinkButton
+            href="/discover"
+            variant="ghost"
+            size="sm"
+            className="flex items-center gap-1.5 text-xs text-muted hover:text-white"
+          >
+            <CompassIcon className="h-3.5 w-3.5" />
+            <span>Keep browsing</span>
           </LinkButton>
         </div>
       </div>
 
       <p className="mt-4 text-center text-[11px] leading-relaxed text-faint">
-        Your library is private to your account. Kaze never posts publicly or
-        shares your notes.
+        Your library and episode progress are encrypted and private to your account.
       </p>
     </div>
   );

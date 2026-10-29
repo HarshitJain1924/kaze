@@ -8,12 +8,19 @@ import {
   CheckIcon,
   ChevronRightIcon,
   CloseIcon,
+  FlameIcon,
+  HeartIcon,
   LoaderIcon,
   PlusIcon,
   RefreshIcon,
   SearchIcon,
   SparkIcon,
+  SparklesIcon,
   StarIcon,
+  SwordsIcon,
+  TrophyIcon,
+  WandIcon,
+  ZapIcon,
 } from "@/components/icons";
 import { usePreferences } from "@/components/providers/preferences-provider";
 import { useToast } from "@/components/providers/toast-provider";
@@ -21,6 +28,7 @@ import { StatusBadge } from "@/components/ui/badge";
 import { useLibrary } from "@/features/library/library-provider";
 import {
   cn,
+  formatEpisodeCount,
   formatFormat,
   formatScore,
   getDisplayTitle,
@@ -33,6 +41,22 @@ interface HomeSearchProps {
 }
 
 const PAGE_SIZE = 4;
+
+interface QuickDiscoveryTag {
+  label: string;
+  href: string;
+  icon: React.ComponentType<{ className?: string }>;
+}
+
+const QUICK_DISCOVERY_TAGS: QuickDiscoveryTag[] = [
+  { label: "Trending", href: "/discover?sort=TRENDING_DESC", icon: FlameIcon },
+  { label: "Top Rated", href: "/discover?sort=SCORE_DESC", icon: TrophyIcon },
+  { label: "Action", href: "/discover?genre=Action", icon: SwordsIcon },
+  { label: "Romance", href: "/discover?genre=Romance", icon: HeartIcon },
+  { label: "Fantasy", href: "/discover?genre=Fantasy", icon: WandIcon },
+  { label: "Isekai", href: "/discover?genre=Isekai", icon: SparklesIcon },
+  { label: "Airing Today", href: "/schedule", icon: ZapIcon },
+];
 
 export function HomeSearch({ popularAnime }: HomeSearchProps) {
   const { preferences } = usePreferences();
@@ -188,7 +212,6 @@ export function HomeSearch({ popularAnime }: HomeSearchProps) {
 
   // Smart Untracked Recommendations Pool:
   // Dynamically prioritize anime not yet tracked in the user's library.
-  // If the user tracks an anime, untracked candidates update and the next untracked titles rotate in.
   const untrackedAnime = useMemo(() => {
     return popularAnime.filter((anime) => !entryFor(anime.id));
   }, [popularAnime, entryFor]);
@@ -226,7 +249,7 @@ export function HomeSearch({ popularAnime }: HomeSearchProps) {
       ref={containerRef}
       className="relative z-30 space-y-4 rounded-2xl border border-border-subtle bg-surface p-4 shadow-sm transition-all sm:p-5"
     >
-      {/* Header with clear purpose & catalog link */}
+      {/* Header with authentic Japanese anime flavor & quick catalog access */}
       <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border-subtle/70 pb-3">
         <div className="flex items-center gap-2.5">
           <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-accent-soft text-accent-strong shadow-xs">
@@ -237,7 +260,7 @@ export function HomeSearch({ popularAnime }: HomeSearchProps) {
               Quick Find & Track
             </h2>
             <p className="text-xs text-muted">
-              Search AniList or 1-click track popular series without leaving home
+              Instant AniList search or 1-tap track trending anime without leaving home
             </p>
           </div>
         </div>
@@ -261,7 +284,7 @@ export function HomeSearch({ popularAnime }: HomeSearchProps) {
         </div>
       </div>
 
-      {/* Full-width interactive search bar */}
+      {/* Full-width interactive anime search bar */}
       <div className="relative">
         <div className="relative flex items-center">
           <SearchIcon className="pointer-events-none absolute left-3.5 h-4 w-4 text-faint" />
@@ -282,10 +305,10 @@ export function HomeSearch({ popularAnime }: HomeSearchProps) {
               }
             }}
             onKeyDown={handleKeyDown}
-            placeholder="Search anime to track (e.g. Frieren, Solo Leveling, Bleach)..."
+            placeholder="Search anime to track (e.g. Frieren, Solo Leveling, Bleach, Jujutsu Kaisen)..."
             autoComplete="off"
             spellCheck={false}
-            className="h-11 w-full rounded-xl border border-border bg-surface-2 pl-10 pr-24 text-sm font-normal text-fg placeholder:text-faint transition-all focus:border-accent focus:bg-surface-3 focus:outline-none focus:ring-2 focus:ring-accent/25 [&::-webkit-search-cancel-button]:appearance-none"
+            className="h-11 w-full rounded-xl border border-border bg-surface-2 pl-10 pr-24 text-sm font-normal text-fg placeholder:text-faint transition-all focus:border-accent focus:bg-surface-3 focus:outline-none focus:ring-2 focus:ring-accent/25 [&::-webkit-search-cancel-button]:appearance-none [&::-webkit-search-cancel-button]:hidden [&::-webkit-search-decoration]:appearance-none"
           />
 
           <div className="absolute right-3 flex items-center gap-1.5">
@@ -313,13 +336,33 @@ export function HomeSearch({ popularAnime }: HomeSearchProps) {
           </div>
         </div>
 
+        {/* Quick Genre & Category Discovery Tag Pills */}
+        <div className="no-scrollbar mt-2.5 flex items-center gap-1.5 overflow-x-auto pb-0.5">
+          <span className="shrink-0 text-[11px] font-medium text-faint mr-1">
+            Browse:
+          </span>
+          {QUICK_DISCOVERY_TAGS.map((tag) => {
+            const Icon = tag.icon;
+            return (
+              <Link
+                key={tag.label}
+                href={tag.href}
+                className="inline-flex shrink-0 items-center gap-1.5 rounded-lg border border-border-subtle bg-surface-2 px-2.5 py-1 text-[11px] font-medium text-muted transition-colors hover:border-accent/40 hover:bg-surface-3 hover:text-fg active:scale-95"
+              >
+                <Icon className="h-3 w-3 text-accent-strong" />
+                <span>{tag.label}</span>
+              </Link>
+            );
+          })}
+        </div>
+
         {/* Search results popover anchored cleanly underneath the input */}
         {isOpen && debouncedQuery ? (
           <div className="absolute left-0 right-0 top-full z-50 mt-2 max-h-[380px] overflow-y-auto rounded-2xl border border-border bg-surface p-2 shadow-2xl">
             {loading && results.length === 0 ? (
               <div className="flex items-center justify-center gap-2 py-8 text-xs text-muted">
                 <LoaderIcon className="h-4 w-4 animate-spin text-accent-strong" />
-                <span>Searching AniList...</span>
+                <span>Searching AniList catalog...</span>
               </div>
             ) : error ? (
               <div className="py-6 text-center text-xs text-danger">{error}</div>
@@ -334,6 +377,7 @@ export function HomeSearch({ popularAnime }: HomeSearchProps) {
                     anime.title,
                     preferences.titleLanguage === "english",
                   );
+                  const nativeTitle = anime.title.native;
                   const cover =
                     anime.coverImage.extraLarge ?? anime.coverImage.large;
                   const isTracked = !!entryFor(anime.id);
@@ -356,7 +400,7 @@ export function HomeSearch({ popularAnime }: HomeSearchProps) {
                         <Link
                           href={`/anime/${anime.id}`}
                           onClick={() => setIsOpen(false)}
-                          className="relative aspect-[2/3] w-10 shrink-0 overflow-hidden rounded-lg border border-border-subtle bg-surface-3"
+                          className="relative aspect-[2/3] w-10 shrink-0 overflow-hidden rounded-lg border border-border-subtle bg-surface-3 shadow-xs"
                         >
                           {cover && isHttpUrl(cover) ? (
                             <Image
@@ -379,7 +423,7 @@ export function HomeSearch({ popularAnime }: HomeSearchProps) {
                             {title}
                           </Link>
 
-                          <div className="flex items-center gap-1.5 text-[11px] text-muted">
+                          <div className="mt-0.5 flex items-center gap-1.5 text-[11px] text-muted">
                             {score ? (
                               <span className="flex items-center gap-0.5 font-medium text-warning">
                                 <StarIcon className="h-3 w-3 fill-warning text-warning" />
@@ -390,12 +434,6 @@ export function HomeSearch({ popularAnime }: HomeSearchProps) {
                               <>
                                 <span>·</span>
                                 <span>{formatFormat(anime.format)}</span>
-                              </>
-                            ) : null}
-                            {anime.seasonYear ? (
-                              <>
-                                <span>·</span>
-                                <span>{anime.seasonYear}</span>
                               </>
                             ) : null}
                             {anime.episodes ? (
@@ -433,7 +471,7 @@ export function HomeSearch({ popularAnime }: HomeSearchProps) {
                               <PlusIcon className="h-3 w-3" />
                             )}
                             <span>
-                              {isCurrentlyAdding ? "Adding…" : "Add to library"}
+                              {isCurrentlyAdding ? "Adding…" : "+ Track"}
                             </span>
                           </button>
                         )}
@@ -454,7 +492,7 @@ export function HomeSearch({ popularAnime }: HomeSearchProps) {
             <div className="flex items-center gap-2">
               <span className="text-[11px] font-semibold uppercase tracking-wider text-faint">
                 {untrackedAnime.length > 0
-                  ? "Recommended for you · Untracked series"
+                  ? "Recommended for you · Untracked anime"
                   : "Trending Quick-Track"}
               </span>
               {popularAnime.length > PAGE_SIZE ? (
@@ -494,19 +532,21 @@ export function HomeSearch({ popularAnime }: HomeSearchProps) {
                   anime.title,
                   preferences.titleLanguage === "english",
                 );
+                const nativeTitle = anime.title.native;
                 const isTracked = !!entryFor(anime.id);
                 const isAdding = addingId === anime.id;
                 const score = formatScore(anime.averageScore);
+                const formatLabel = formatFormat(anime.format);
 
                 return (
                   <div
                     key={anime.id}
                     className="group relative flex items-center gap-3 rounded-xl border border-border-subtle bg-surface-2/60 p-2.5 transition-all duration-200 hover:border-accent/40 hover:bg-surface-2 hover:shadow-xs"
                   >
-                    {/* Poster Thumbnail */}
+                    {/* Poster Thumbnail with hover zoom & subtle border */}
                     <Link
                       href={`/anime/${anime.id}`}
-                      className="relative aspect-[2/3] w-12 shrink-0 overflow-hidden rounded-lg border border-border-subtle bg-surface-3 transition-transform duration-200 group-hover:scale-102"
+                      className="relative aspect-[2/3] w-12 shrink-0 overflow-hidden rounded-lg border border-border-subtle bg-surface-3 transition-transform duration-200 group-hover:scale-105 shadow-xs"
                       title={`View ${title}`}
                     >
                       {cover && isHttpUrl(cover) ? (
@@ -532,20 +572,29 @@ export function HomeSearch({ popularAnime }: HomeSearchProps) {
                         {title}
                       </Link>
 
-                      <div className="mt-0.5 flex items-center gap-2 text-[11px] text-muted">
+                      <div className="mt-0.5 flex items-center gap-1.5 text-[11px] text-muted">
                         {score ? (
                           <span className="flex items-center gap-0.5 font-medium text-warning">
                             <StarIcon className="h-3 w-3 fill-warning text-warning" />
                             {score}
                           </span>
                         ) : null}
-                        {anime.format ? (
-                          <span>{formatFormat(anime.format)}</span>
+                        {formatLabel ? (
+                          <>
+                            <span>·</span>
+                            <span>{formatLabel}</span>
+                          </>
+                        ) : null}
+                        {anime.episodes ? (
+                          <>
+                            <span>·</span>
+                            <span>{anime.episodes} ep</span>
+                          </>
                         ) : null}
                       </div>
 
                       {/* Action button */}
-                      <div className="mt-2">
+                      <div className="mt-1.5">
                         {isTracked ? (
                           <span className="inline-flex items-center gap-1 rounded-md border border-accent/30 bg-accent-soft px-2 py-0.5 text-[11px] font-medium text-accent-strong">
                             <CheckIcon className="h-3 w-3" />

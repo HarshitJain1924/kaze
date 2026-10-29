@@ -2,7 +2,7 @@ import { AnimeSection } from "@/features/home/anime-section";
 import { HomeHero } from "@/features/home/home-hero";
 import { HomeSchedule } from "@/features/home/home-schedule";
 import { HomeSearch } from "@/features/home/home-search";
-import { HomeSidebar } from "@/features/home/home-sidebar";
+import { HomeStatsStrip } from "@/features/home/home-stats-strip";
 import { SeasonalCarousel } from "@/features/home/seasonal-carousel";
 import { ContinueWatching } from "@/features/library/continue-watching";
 import { getViewer } from "@/lib/auth";
@@ -22,7 +22,7 @@ async function safeLoad(
     return (await load()).data;
   } catch (error) {
     console.error(
-      `[home] could not load ${label}:`,
+      `[dashboard] could not load ${label}:`,
       error instanceof Error ? error.message : "unknown error",
     );
     return null;
@@ -36,14 +36,14 @@ async function safeLoadSchedule(
     return (await load()).data;
   } catch (error) {
     console.error(
-      "[home] could not load airing schedule:",
+      "[dashboard] could not load airing schedule:",
       error instanceof Error ? error.message : "unknown error",
     );
     return null;
   }
 }
 
-export default async function HomePage() {
+export default async function DashboardPage() {
   const viewer = await getViewer();
   const { season, year } = getCurrentSeason();
   const client = getCatalogService();
@@ -85,7 +85,36 @@ export default async function HomePage() {
     return acc;
   }, []);
 
-  // Airing count for today
+  const heroCandidates = [
+    ...seasonalItems,
+    ...trendingItems,
+    ...popularItems,
+  ].reduce<AnimeSummary[]>((acc, item) => {
+    if (!acc.some((x) => x.id === item.id)) {
+      acc.push(item);
+    }
+    return acc;
+  }, []);
+
+  const bannerPriority = [
+    ...heroCandidates.filter((item) => Boolean(item.bannerImage)),
+    ...heroCandidates.filter((item) => !item.bannerImage),
+  ];
+
+  const blackCloverIndex = bannerPriority.findIndex(
+    (item) =>
+      item.id === 195604 ||
+      item.title.english?.toLowerCase().includes("black clover"),
+  );
+  if (blackCloverIndex > 0) {
+    const [blackClover] = bannerPriority.splice(blackCloverIndex, 1);
+    if (blackClover) {
+      bannerPriority.unshift(blackClover);
+    }
+  }
+
+  const heroSpotlightPosters = bannerPriority.slice(0, 5);
+
   const todayIso = toIsoDateString(now);
   const todayEntries = (scheduleEntries ?? []).filter(
     (entry) => toIsoDateString(new Date(entry.airingAt * 1000)) === todayIso,
@@ -99,61 +128,50 @@ export default async function HomePage() {
 
   return (
     <div className="space-y-5 sm:space-y-6">
-      {/* 1. Cinematic Hero Banner */}
+      {/* 1. Cinematic Hero Spotlight Banner */}
       <HomeHero
         viewer={viewer}
         season={season}
         year={year}
-        posters={seasonalItems}
+        posters={heroSpotlightPosters}
         todayCount={todayEntries.length}
         todayLabel={todayLabel}
         serverHour={now.getHours()}
       />
 
-      {/* 2. Main Dashboard Layout: Main column + Right sidebar */}
-      <div className="grid grid-cols-1 items-start gap-6 lg:grid-cols-[minmax(0,1fr)_318px] xl:grid-cols-[minmax(0,1fr)_348px]">
-        {/* Main Column */}
-        <div className="min-w-0 space-y-6 sm:space-y-7">
-          {/* Inline anime search & quick-add panel */}
-          <HomeSearch popularAnime={quickAddPool} />
+      {/* 2. Main Dashboard Stream */}
+      <div className="space-y-6 sm:space-y-7">
+        <HomeSearch popularAnime={quickAddPool} />
 
-          {/* Continue Watching - large landscape cards centerpiece */}
-          {viewer ? <ContinueWatching /> : null}
+        {viewer ? (
+          <HomeStatsStrip todayEntries={scheduleEntries} />
+        ) : null}
 
-          {/* Airing this week schedule */}
-          <HomeSchedule week={currentWeek} initialEntries={scheduleEntries} />
+        {viewer ? (
+          <ContinueWatching todayEntries={scheduleEntries} />
+        ) : null}
 
-          {/* Mobile / Tablet: Sidebar panels stack underneath */}
-          <div className="lg:hidden">
-            <HomeSidebar todayEntries={scheduleEntries} compact />
-          </div>
+        <HomeSchedule week={currentWeek} initialEntries={scheduleEntries} />
 
-          {/* Seasonal anime row with horizontal browsing */}
-          <SeasonalCarousel
-            title={`${seasonLabel(season)} ${year} anime`}
-            description="This season's most popular series, specials and films."
-            actionHref={`/discover?${seasonQuery}`}
-            items={seasonal?.items ?? null}
-            error={seasonal === null}
+        <SeasonalCarousel
+          title={`${seasonLabel(season)} ${year} anime`}
+          description="This season's most popular series, specials and films."
+          actionHref={`/discover?${seasonQuery}`}
+          items={seasonal?.items ?? null}
+          error={seasonal === null}
+        />
+
+        {trending?.items && trending.items.length > 0 ? (
+          <AnimeSection
+            title="Trending this week"
+            description="What is picking up momentum right now across the community."
+            actionHref="/discover?sort=TRENDING_DESC"
+            items={trending.items.slice(0, 6)}
+            error={trending === null}
           />
-
-          {/* Secondary rails if available */}
-          {trending?.items && trending.items.length > 0 ? (
-            <AnimeSection
-              title="Trending this week"
-              description="What is picking up momentum right now."
-              actionHref="/discover?sort=TRENDING_DESC"
-              items={trending.items.slice(0, 6)}
-              error={trending === null}
-            />
-          ) : null}
-        </div>
-
-        {/* Right Sidebar Rail on Desktop */}
-        <div className="hidden min-w-0 lg:block">
-          <HomeSidebar todayEntries={scheduleEntries} />
-        </div>
+        ) : null}
       </div>
     </div>
   );
 }
+

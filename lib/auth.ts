@@ -47,9 +47,19 @@ export async function getViewer(): Promise<Viewer | null> {
     return null;
   }
 
+  const nickname =
+    typeof data.user.user_metadata?.nickname === "string" &&
+    data.user.user_metadata.nickname.trim()
+      ? data.user.user_metadata.nickname.trim()
+      : typeof data.user.user_metadata?.display_name === "string" &&
+        data.user.user_metadata.display_name.trim()
+        ? data.user.user_metadata.display_name.trim()
+        : null;
+
   return {
     id: data.user.id,
     email: data.user.email ?? null,
+    nickname,
     createdAt: data.user.created_at ?? null,
   };
 }

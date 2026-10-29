@@ -17,6 +17,7 @@ const ANIME_SUMMARY_FRAGMENT = /* GraphQL */ `
       large
       color
     }
+    bannerImage
     format
     episodes
     averageScore

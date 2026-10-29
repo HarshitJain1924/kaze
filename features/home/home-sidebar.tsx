@@ -17,11 +17,12 @@ import { useActiveTimeZone, usePreferences } from "@/components/providers/prefer
 import { calculateStats } from "@/features/stats/calculate-stats";
 import { useLibrary } from "@/features/library/library-provider";
 import {
+  formatAiringRelative,
   formatAiringTime,
   getTimeZoneAbbr,
   toIsoDateString,
 } from "@/lib/schedule";
-import { getDisplayTitle, isHttpUrl } from "@/lib/utils";
+import { cn, getDisplayTitle, isHttpUrl } from "@/lib/utils";
 import type { AiringScheduleEntry, AnimeSummary } from "@/types/anime";
 
 interface HomeSidebarProps {
@@ -110,7 +111,7 @@ export function HomeSidebar({
           {canWrite ? (
             <Link
               href="/stats"
-              className="group inline-flex items-center gap-0.5 text-xs font-medium text-muted transition-colors hover:text-fg"
+              className="group inline-flex items-center gap-0.5 text-xs font-medium text-muted transition-colors hover:text-accent-strong"
             >
               <span>Full stats</span>
               <ChevronRightIcon className="h-3 w-3 text-faint transition-transform group-hover:translate-x-0.5" />
@@ -126,7 +127,7 @@ export function HomeSidebar({
               className="group flex flex-col justify-between rounded-xl border border-border-subtle bg-surface-2 p-3 transition-colors hover:border-border hover:bg-surface-3"
             >
               <div className="flex items-center justify-between">
-                <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-accent-soft text-accent-strong">
+                <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-accent-soft text-accent-strong shadow-xs">
                   <LibraryIcon className="h-4 w-4" />
                 </span>
                 <span className="font-display text-xl font-bold tabular-nums text-fg">
@@ -142,7 +143,7 @@ export function HomeSidebar({
               className="group flex flex-col justify-between rounded-xl border border-border-subtle bg-surface-2 p-3 transition-colors hover:border-border hover:bg-surface-3"
             >
               <div className="flex items-center justify-between">
-                <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-accent-soft text-accent-strong">
+                <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-accent/20 text-accent-strong shadow-xs">
                   <PlayIcon className="h-3.5 w-3.5 fill-current" />
                 </span>
                 <span className="font-display text-xl font-bold tabular-nums text-fg">
@@ -158,7 +159,7 @@ export function HomeSidebar({
               className="group flex flex-col justify-between rounded-xl border border-border-subtle bg-surface-2 p-3 transition-colors hover:border-border hover:bg-surface-3"
             >
               <div className="flex items-center justify-between">
-                <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-success/15 text-success">
+                <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-success/15 text-success shadow-xs">
                   <CheckIcon className="h-4 w-4" />
                 </span>
                 <span className="font-display text-xl font-bold tabular-nums text-fg">
@@ -174,7 +175,7 @@ export function HomeSidebar({
               className="group flex flex-col justify-between rounded-xl border border-border-subtle bg-surface-2 p-3 transition-colors hover:border-border hover:bg-surface-3"
             >
               <div className="flex items-center justify-between">
-                <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-warning/15 text-warning">
+                <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-warning/15 text-warning shadow-xs">
                   <ListIcon className="h-4 w-4" />
                 </span>
                 <span className="font-display text-xl font-bold tabular-nums text-fg">
@@ -207,14 +208,14 @@ export function HomeSidebar({
         >
           <div className="flex items-center justify-between pb-3">
             <div className="flex items-center gap-1.5">
-              <CalendarIcon className="h-4 w-4 text-muted" />
+              <CalendarIcon className="h-4 w-4 text-accent-strong" />
               <h2 className="font-display text-sm font-bold text-fg">
                 From your library today
               </h2>
             </div>
             <Link
               href="/schedule"
-              className="group inline-flex items-center gap-0.5 text-xs font-medium text-muted transition-colors hover:text-fg"
+              className="group inline-flex items-center gap-0.5 text-xs font-medium text-muted transition-colors hover:text-accent-strong"
             >
               <span>Week</span>
               <ChevronRightIcon className="h-3 w-3 text-faint transition-transform group-hover:translate-x-0.5" />
@@ -238,32 +239,47 @@ export function HomeSidebar({
                   entry.media.title,
                   preferences.titleLanguage === "english",
                 );
+                const nativeTitle = entry.media.title.native;
                 const cover =
                   entry.media.coverImage.extraLarge ??
                   entry.media.coverImage.large;
+                const relative = formatAiringRelative(entry.airingAt);
 
                 return (
                   <Link
                     key={entry.id}
                     href={`/anime/${entry.mediaId}`}
-                    className="group flex items-center gap-2.5 rounded-xl border border-border-subtle bg-surface-2 p-2 transition-all hover:border-border hover:bg-surface-3"
+                    className="group flex items-center gap-2.5 rounded-xl border border-border-subtle bg-surface-2 p-2 transition-all hover:border-accent/40 hover:bg-surface-3"
                   >
-                    <div className="relative aspect-[2/3] w-9 shrink-0 overflow-hidden rounded-lg border border-border-subtle bg-surface-3">
+                    <div className="relative aspect-[2/3] w-9 shrink-0 overflow-hidden rounded-lg border border-border-subtle bg-surface-3 shadow-xs">
                       {cover && isHttpUrl(cover) ? (
                         <Image
                           src={cover}
                           alt=""
                           fill
+                          unoptimized
                           sizes="36px"
                           className="object-cover"
                         />
-                      ) : null}
+                      ) : (
+                        <div className="absolute inset-0 bg-surface-3" />
+                      )}
                     </div>
 
                     <div className="min-w-0 flex-1">
-                      <span className="text-[11px] font-semibold text-accent-strong">
-                        Episode {entry.episode}
-                      </span>
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-[11px] font-semibold text-accent-strong">
+                          Episode {entry.episode}
+                        </span>
+                        <span
+                          className={cn(
+                            "text-[10px] font-medium",
+                            relative.hasAired ? "text-faint" : "text-accent-strong",
+                          )}
+                        >
+                          · {relative.label}
+                        </span>
+                      </div>
                       <p
                         className="line-clamp-1 text-[13px] font-medium text-fg group-hover:text-accent-strong transition-colors"
                         title={title}
@@ -306,7 +322,7 @@ export function HomeSidebar({
             </div>
             <Link
               href="/library"
-              className="group inline-flex items-center gap-0.5 text-xs font-medium text-muted transition-colors hover:text-fg"
+              className="group inline-flex items-center gap-0.5 text-xs font-medium text-muted transition-colors hover:text-accent-strong"
             >
               <span>Library</span>
               <ChevronRightIcon className="h-3 w-3 text-faint transition-transform group-hover:translate-x-0.5" />
@@ -320,6 +336,7 @@ export function HomeSidebar({
                 anime.title,
                 preferences.titleLanguage === "english",
               );
+              const nativeTitle = anime.title.native;
               const cover =
                 anime.coverImage.extraLarge ?? anime.coverImage.large;
 
@@ -327,18 +344,21 @@ export function HomeSidebar({
                 <Link
                   key={entry.id}
                   href={`/anime/${anime.id}`}
-                  className="group flex items-center gap-2.5 rounded-xl border border-border-subtle bg-surface-2 p-2 transition-all hover:border-border hover:bg-surface-3"
+                  className="group flex items-center gap-2.5 rounded-xl border border-border-subtle bg-surface-2 p-2 transition-all hover:border-accent/40 hover:bg-surface-3"
                 >
-                  <div className="relative aspect-[2/3] w-9 shrink-0 overflow-hidden rounded-lg border border-border-subtle bg-surface-3">
+                  <div className="relative aspect-[2/3] w-9 shrink-0 overflow-hidden rounded-lg border border-border-subtle bg-surface-3 shadow-xs">
                     {cover && isHttpUrl(cover) ? (
                       <Image
                         src={cover}
                         alt=""
                         fill
+                        unoptimized
                         sizes="36px"
                         className="object-cover"
                       />
-                    ) : null}
+                    ) : (
+                      <div className="absolute inset-0 bg-surface-3" />
+                    )}
                   </div>
 
                   <div className="min-w-0 flex-1">

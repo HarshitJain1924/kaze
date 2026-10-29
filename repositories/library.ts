@@ -469,8 +469,14 @@ export class LibraryRepository {
       .map((item) => item.episodeNumber)
       .sort((a, b) => a - b);
 
-    const newProgress =
+    const maxEpisodeWatched =
       watchedEpisodes.length > 0 ? Math.max(...watchedEpisodes) : 0;
+
+    // When marking an episode as watched, progress advances to at least that episode.
+    // When unmarking, progress reflects the highest remaining watched episode.
+    const newProgress = watched
+      ? Math.max(current.progress, episodeNumber, maxEpisodeWatched)
+      : (watchedEpisodes.length > 0 ? Math.max(...watchedEpisodes) : 0);
 
     const patch: LibraryEntryPatch = { progress: newProgress };
 

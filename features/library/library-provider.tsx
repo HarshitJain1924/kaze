@@ -63,7 +63,10 @@ export interface LibraryContextValue {
     anilistId: number,
     patch: LibraryMutationPatch,
   ) => Promise<boolean>;
-  incrementProgress: (anilistId: number) => Promise<boolean>;
+  incrementProgress: (
+    anilistId: number,
+    targetEpisode?: number,
+  ) => Promise<boolean>;
   removeEntry: (anilistId: number) => Promise<boolean>;
   watchedEpisodesFor: (anilistId: number) => number[];
   toggleEpisode: (
@@ -385,8 +388,10 @@ export function LibraryProvider({
         ? [...currentEpisodes, episodeNumber].sort((a, b) => a - b)
         : currentEpisodes.filter((n) => n !== episodeNumber);
 
-      const optimisticProgress =
-        nextEpisodes.length > 0 ? Math.max(...nextEpisodes) : 0;
+      const maxNext = nextEpisodes.length > 0 ? Math.max(...nextEpisodes) : 0;
+      const optimisticProgress = nextWatched
+        ? Math.max(existingEntry?.progress ?? 0, episodeNumber, maxNext)
+        : (nextEpisodes.length > 0 ? Math.max(...nextEpisodes) : 0);
 
       setItems((current) => {
         const itemExists = current.some((it) => it.entry.anilistId === anime.id);
@@ -622,7 +627,7 @@ export function LibraryProvider({
   );
 
   const incrementProgress = useCallback(
-    async (anilistId: number) => {
+    async (anilistId: number, targetEpisode?: number) => {
       const entry = entryMap.get(anilistId);
       if (!entry) {
         return false;
@@ -639,26 +644,18 @@ export function LibraryProvider({
 
       if (anime) {
         const watched = watchedEpisodesFor(anilistId);
-        const watchedSet = new Set(watched);
-        let nextEp = 1;
-        while (watchedSet.has(nextEp)) {
-          nextEp += 1;
-        }
-        if (watchedSet.size === 0 && entry.progress > 0) {
-          nextEp = entry.progress + 1;
-        }
-        if (episodes !== null && episodes > 0) {
-          const isFinished =
-            watched.length > 0
-              ? watched.length >= episodes || nextEp > episodes
-              : entry.progress >= episodes;
-          if (isFinished) {
-            toast({
-              title: "You are at the final episode",
-              description: `All ${episodes} episodes are marked as watched.`,
-            });
-            return false;
-          }
+        const highest = Math.max(
+          entry.progress,
+          watched.length > 0 ? Math.max(...watched) : 0,
+        );
+        const nextEp = targetEpisode ?? (highest + 1);
+
+        if (episodes !== null && episodes > 0 && highest >= episodes && !targetEpisode) {
+          toast({
+            title: "You are at the final episode",
+            description: `All ${episodes} episodes are marked as watched.`,
+          });
+          return false;
         }
         return toggleEpisode(anime, nextEp, true);
       }

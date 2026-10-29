@@ -1,15 +1,17 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { redirect } from "next/navigation";
 
-import { CheckIcon } from "@/components/icons";
 import { Logo } from "@/components/logo";
+import { IntroShowcase } from "@/features/auth/intro-showcase";
 import { LoginForm } from "@/features/auth/login-form";
+import { MiniPosterMarquee } from "@/features/auth/poster-marquee-wall";
 import { getViewer } from "@/lib/auth";
 import { getSupabaseConfig } from "@/lib/supabase/config";
 
 export const metadata: Metadata = {
-  title: "Sign in",
-  description: "Sign in to your personal Kaze anime library.",
+  title: "Sanctuary · Kaze Anime Platform",
+  description: "Enter your personal, encrypted anime sanctuary with one-tap progress tracking.",
 };
 
 export const dynamic = "force-dynamic";
@@ -39,61 +41,59 @@ export default async function LoginPage({
     : params.error;
 
   return (
-    <div className="grid min-h-dvh lg:grid-cols-[1.05fr_1fr]">
-      <aside className="relative hidden overflow-hidden border-r border-border-subtle bg-bg-soft p-10 lg:flex lg:flex-col lg:justify-between">
-        <div className="relative">
-          <Logo />
+    <div className="grid min-h-dvh lg:grid-cols-[1.15fr_1fr] bg-bg">
+      {/* Left Column: Interactive Cinematic Anime Showcase Deck */}
+      <div className="hidden lg:block">
+        <IntroShowcase />
+      </div>
+
+      {/* Right Column: Authentication Card & Fluid Form */}
+      <div className="relative flex min-h-dvh flex-col justify-between overflow-hidden px-5 py-6 sm:px-8 lg:px-12 bg-bg">
+        {/* Atmospheric Ambient Glows */}
+        <div className="pointer-events-none absolute -top-32 right-0 h-96 w-96 rounded-full bg-accent/15 blur-[120px]" />
+        <div className="pointer-events-none absolute -bottom-32 left-0 h-96 w-96 rounded-full bg-purple-500/10 blur-[120px]" />
+
+        {/* Mobile Header: Visible only on < lg screens */}
+        <div className="relative z-10 lg:hidden flex flex-col gap-4 pt-2 pb-4">
+          <div className="flex items-center justify-between">
+            <Logo />
+            <Link
+              href="/discover"
+              className="inline-flex items-center gap-1 text-xs font-semibold text-accent-strong hover:text-white transition-colors"
+            >
+              <span>Explore Discover</span>
+              <span>→</span>
+            </Link>
+          </div>
+
+          {/* Mobile Art Accent Card with Auto-scrolling Posters */}
+          <div className="relative overflow-hidden rounded-2xl border border-white/[0.1] bg-surface/80 p-5 shadow-lg backdrop-blur-xl">
+            <MiniPosterMarquee />
+            <div className="relative z-10 space-y-1.5">
+              <h2 className="font-display text-lg font-bold text-white">
+                Your anime journey, elevated to cinema.
+              </h2>
+              <p className="text-xs text-muted">
+                1-tap episode progress, live simulcast countdowns, and encrypted taste telemetry.
+              </p>
+            </div>
+          </div>
         </div>
 
-        <div className="relative max-w-md">
-          <h2 className="font-display text-[30px] font-semibold leading-[1.15] tracking-tight text-fg sm:text-[34px]">
-            A quieter way to keep up with anime.
-          </h2>
-          <p className="mt-4 text-sm leading-relaxed text-muted">
-            One place for your watchlist, episode progress, ratings and private
-            notes — designed around the artwork, not the clutter.
-          </p>
-
-          <ul className="mt-8 space-y-3">
-            {[
-              "Search thousands of titles from AniList",
-              "Update episode progress in one tap",
-              "Rate, take notes and see your own statistics",
-              "Private by default, synced across your devices",
-            ].map((item) => (
-              <li
-                key={item}
-                className="flex items-start gap-2.5 text-sm text-muted"
-              >
-                <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-accent-soft text-accent-strong">
-                  <CheckIcon className="h-3 w-3" />
-                </span>
-                {item}
-              </li>
-            ))}
-          </ul>
-        </div>
-
-        <p className="relative text-xs leading-relaxed text-faint">
-          Anime metadata provided by AniList. Personal library data stored
-          securely in Supabase.
-        </p>
-      </aside>
-
-      <div className="flex min-h-dvh flex-col bg-bg px-5 py-10 sm:px-8">
-        <div className="lg:hidden">
-          <Logo />
-        </div>
-        <div className="flex flex-1 items-center justify-center py-8">
+        {/* Authentication Card */}
+        <div className="relative z-10 my-auto flex w-full items-center justify-center py-4">
           <LoginForm
             configured={getSupabaseConfig() !== null}
             nextPath={nextPath}
             linkError={errorParam}
           />
         </div>
-        <p className="text-center text-xs text-faint lg:hidden">
-          Anime metadata by AniList · Library secured by Supabase
-        </p>
+
+        {/* Footer Security Footnote */}
+        <div className="relative z-10 flex flex-col sm:flex-row items-center justify-between gap-2 border-t border-white/[0.06] pt-4 text-[11px] text-faint">
+          <span>Row-Level Security (RLS) encrypted vault</span>
+          <span>Zero tracking · Edge-cached AniList metadata</span>
+        </div>
       </div>
     </div>
   );

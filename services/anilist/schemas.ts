@@ -84,6 +84,7 @@ export const animeSummarySchema = z.object({
   id: z.number().int().positive(),
   title: titlesSchema,
   coverImage: coverImageSchema,
+  bannerImage: stringOrNull.optional(),
   format: animeFormatSchema,
   episodes: intOrNull,
   averageScore: scoreOrNull,

@@ -96,6 +96,7 @@ function toSummary(anime: Anime): AnimeSummary {
     id: anime.id,
     title: anime.title,
     coverImage: anime.coverImage,
+    bannerImage: anime.bannerImage,
     format: anime.format,
     episodes: anime.episodes,
     averageScore: anime.averageScore,
@@ -883,7 +884,7 @@ export class CatalogService {
     // Degraded details: keep verified fields, never invent the missing ones.
     return {
       ...summary,
-      bannerImage: null,
+      bannerImage: summary.bannerImage ?? null,
       synopsis: null,
       tags: [],
       season: null,

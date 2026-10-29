@@ -64,6 +64,7 @@ function mapSummaryFields(raw: ValidatedAnimeSummary) {
       large: sanitizeImage(cover.large),
       color: cover.color,
     },
+    bannerImage: sanitizeImage(raw.bannerImage ?? null),
     format: raw.format,
     episodes:
       raw.episodes !== null && raw.episodes >= 0 ? raw.episodes : null,

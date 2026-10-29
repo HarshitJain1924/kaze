@@ -1,0 +1,107 @@
+[
+  {
+    "id": 1,
+    "title": "Cowboy Bebop",
+    "src": "/posters/1.jpg"
+  },
+  {
+    "id": 21,
+    "title": "ONE PIECE",
+    "src": "/posters/21.jpg"
+  },
+  {
+    "id": 30,
+    "title": "Neon Genesis Evangelion",
+    "src": "/posters/30.jpg"
+  },
+  {
+    "id": 199,
+    "title": "Spirited Away",
+    "src": "/posters/199.jpg"
+  },
+  {
+    "id": 1535,
+    "title": "Death Note",
+    "src": "/posters/1535.jpg"
+  },
+  {
+    "id": 5114,
+    "title": "Fullmetal Alchemist: Brotherhood",
+    "src": "/posters/5114.jpg"
+  },
+  {
+    "id": 9253,
+    "title": "Steins;Gate",
+    "src": "/posters/9253.jpg"
+  },
+  {
+    "id": 11061,
+    "title": "Hunter x Hunter (2011)",
+    "src": "/posters/11061.jpg"
+  },
+  {
+    "id": 16498,
+    "title": "Attack on Titan",
+    "src": "/posters/16498.jpg"
+  },
+  {
+    "id": 21459,
+    "title": "My Hero Academia",
+    "src": "/posters/21459.jpg"
+  },
+  {
+    "id": 101348,
+    "title": "Vinland Saga",
+    "src": "/posters/101348.jpg"
+  },
+  {
+    "id": 101922,
+    "title": "Demon Slayer: Kimetsu no Yaiba",
+    "src": "/posters/101922.jpg"
+  },
+  {
+    "id": 113415,
+    "title": "JUJUTSU KAISEN",
+    "src": "/posters/113415.jpg"
+  },
+  {
+    "id": 114446,
+    "title": "Higurashi: When They Cry - GOU",
+    "src": "/posters/114446.jpg"
+  },
+  {
+    "id": 114745,
+    "title": "Made in Abyss: The Golden City of the Scorching Sun",
+    "src": "/posters/114745.jpg"
+  },
+  {
+    "id": 120377,
+    "title": "Cyberpunk: Edgerunners",
+    "src": "/posters/120377.jpg"
+  },
+  {
+    "id": 130003,
+    "title": "BOCCHI THE ROCK!",
+    "src": "/posters/130003.jpg"
+  },
+  {
+    "id": 140960,
+    "title": "SPY x FAMILY",
+    "src": "/posters/140960.jpg"
+  },
+  {
+    "id": 150672,
+    "title": "OSHI NO KO",
+    "src": "/posters/150672.jpg"
+  },
+  {
+    "id": 151807,
+    "title": "Solo Leveling",
+    "src": "/posters/151807.jpg"
+  },
+  {
+    "id": 154587,
+    "title": "Frieren: Beyond Journey’s End",
+    "src": "/posters/154587.jpg"
+  }
+]

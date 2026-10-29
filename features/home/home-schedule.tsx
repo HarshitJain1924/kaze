@@ -54,6 +54,7 @@ export function HomeSchedule({ week, initialEntries }: HomeScheduleProps) {
     entryFor,
     watchedEpisodesFor,
     toggleEpisode,
+    requestAdd,
     pendingIds,
   } = useLibrary();
 
@@ -159,7 +160,7 @@ export function HomeSchedule({ week, initialEntries }: HomeScheduleProps) {
         title="Airing this week"
         description={
           <span className="inline-flex flex-wrap items-center gap-1.5">
-            <span>Broadcast releases in</span>
+            <span>Broadcast calendar in</span>
             <TimezoneSelector />
             <span className="text-faint">·</span>
             <span>{week.weekLabel}</span>
@@ -169,14 +170,13 @@ export function HomeSchedule({ week, initialEntries }: HomeScheduleProps) {
         actionHref="/schedule"
       />
 
-      {/* Week selector: 7 evenly sized day tiles */}
+      {/* Week selector: 7 evenly sized day tiles with Japanese Kanji accents */}
       <div className="no-scrollbar -mx-1 flex gap-2 overflow-x-auto px-1 py-1 sm:grid sm:grid-cols-7 sm:gap-2.5">
         {days.map((day) => {
           const isSelected = day.date === selectedDate;
           const dayWatchingCount = day.entries.filter((e) =>
             watchingSet.has(e.mediaId),
           ).length;
-
           return (
             <button
               key={day.date}
@@ -188,28 +188,38 @@ export function HomeSchedule({ week, initialEntries }: HomeScheduleProps) {
                 "group flex min-w-[70px] shrink-0 flex-col items-center justify-center rounded-xl border p-2.5 text-center transition-all sm:min-w-0 sm:shrink",
                 day.isToday
                   ? isSelected
-                    ? "border-accent bg-accent/15 text-fg ring-1 ring-accent/50"
-                    : "border-accent/70 bg-accent/10 text-fg"
+                    ? "border-accent bg-accent/20 text-fg ring-1 ring-accent"
+                    : "border-accent/60 bg-accent/10 text-fg hover:border-accent"
                   : isSelected
                     ? "border-border bg-surface-3 text-fg ring-1 ring-border"
                     : "border-border-subtle bg-surface hover:border-border hover:bg-surface-2",
               )}
             >
-              <span
-                className={cn(
-                  "text-xs font-medium tracking-wide",
-                  day.isToday
-                    ? "font-semibold text-accent-strong"
-                    : isSelected
-                      ? "text-fg"
-                      : "text-faint group-hover:text-muted",
-                )}
-              >
-                {day.isToday ? "Today" : day.dayShort}
-              </span>
+              {/* Day Header */}
+              <div className="flex items-center gap-1">
+                <span
+                  className={cn(
+                    "text-xs font-semibold tracking-wide",
+                    day.isToday
+                      ? "text-accent-strong"
+                      : isSelected
+                        ? "text-fg"
+                        : "text-faint group-hover:text-muted",
+                  )}
+                >
+                  {day.isToday ? "Today" : day.dayShort}
+                </span>
+                {day.isToday ? (
+                  <span className="h-1.5 w-1.5 rounded-full bg-accent-strong radar-live-dot" />
+                ) : null}
+              </div>
+
+              {/* Day Number */}
               <span className="mt-1 font-display text-xl font-bold tabular-nums text-fg">
                 {day.dayNumber}
               </span>
+
+              {/* Ep count & Library indicator */}
               <span className="mt-1 flex items-center justify-center gap-1 text-[11px] tabular-nums text-muted">
                 <span>{day.entries.length} eps</span>
                 {dayWatchingCount > 0 ? (
@@ -238,7 +248,7 @@ export function HomeSchedule({ week, initialEntries }: HomeScheduleProps) {
             className={cn(
               "inline-flex items-center gap-1.5 rounded-md px-2.5 py-1 text-xs font-medium transition-colors",
               filterMode === "all"
-                ? "bg-surface-3 text-fg"
+                ? "bg-surface-3 text-fg font-semibold shadow-xs"
                 : "text-muted hover:text-fg",
             )}
           >
@@ -256,7 +266,7 @@ export function HomeSchedule({ week, initialEntries }: HomeScheduleProps) {
             className={cn(
               "inline-flex items-center gap-1.5 rounded-md px-2.5 py-1 text-xs font-medium transition-colors",
               filterMode === "watching"
-                ? "bg-surface-3 text-fg"
+                ? "bg-surface-3 text-fg font-semibold shadow-xs"
                 : "text-muted hover:text-fg",
             )}
           >
@@ -307,7 +317,7 @@ export function HomeSchedule({ week, initialEntries }: HomeScheduleProps) {
         />
       ) : (
         <div className="space-y-2">
-          <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+          <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
             {visibleEntries.map((entry) => (
               <HomeScheduleCard
                 key={entry.id}
@@ -319,6 +329,7 @@ export function HomeSchedule({ week, initialEntries }: HomeScheduleProps) {
                 libraryEntry={entryFor(entry.mediaId)}
                 watchedEpisodes={watchedEpisodesFor(entry.mediaId)}
                 onToggleEpisode={toggleEpisode}
+                onRequestAdd={() => requestAdd(entry.media)}
                 isPending={pendingIds.has(entry.mediaId)}
               />
             ))}
@@ -327,7 +338,7 @@ export function HomeSchedule({ week, initialEntries }: HomeScheduleProps) {
           {hiddenCount > 0 && activeDay ? (
             <Link
               href={`/schedule?date=${activeDay.date}`}
-              className="inline-flex items-center gap-1 text-[13px] font-medium text-muted transition-colors hover:text-fg"
+              className="inline-flex items-center gap-1 text-[13px] font-medium text-muted transition-colors hover:text-accent-strong"
             >
               All {filteredEntries.length} releases on {activeDay.dayName}
               <ChevronRightIcon className="h-3.5 w-3.5" />
@@ -352,6 +363,7 @@ interface HomeScheduleCardProps {
     episodeNumber: number,
     watched?: boolean,
   ) => Promise<boolean>;
+  onRequestAdd: () => void;
   isPending: boolean;
 }
 
@@ -364,10 +376,12 @@ function HomeScheduleCard({
   libraryEntry,
   watchedEpisodes,
   onToggleEpisode,
+  onRequestAdd,
   isPending,
 }: HomeScheduleCardProps) {
   const anime = entry.media;
   const title = getDisplayTitle(anime.title, titleLanguage === "english");
+  const nativeTitle = anime.title.native;
   const cover = anime.coverImage.extraLarge ?? anime.coverImage.large;
 
   const airingTimeStr = formatAiringTime(entry.airingAt, timeZone);
@@ -375,7 +389,6 @@ function HomeScheduleCard({
   const relative = formatAiringRelative(entry.airingAt);
 
   // Individual watched records are the source of truth when present.
-  // Fall back to legacy progress only when no individual records exist.
   const isWatched =
     watchedEpisodes.length > 0
       ? watchedEpisodes.includes(entry.episode)
@@ -452,7 +465,7 @@ function HomeScheduleCard({
             {title}
           </Link>
 
-          <div className="mt-0.5 flex items-center gap-1.5 text-xs text-muted">
+          <div className="mt-1 flex items-center gap-2 text-xs text-muted">
             <span
               suppressHydrationWarning
               className="font-mono font-semibold tabular-nums text-fg inline-flex items-baseline gap-1"
@@ -465,19 +478,22 @@ function HomeScheduleCard({
             <span className="text-faint">·</span>
             <span
               className={cn(
+                "inline-flex items-center gap-1 rounded px-1.5 py-0.2 text-[10px] font-medium",
                 relative.hasAired
-                  ? "text-muted"
-                  : "font-medium text-accent-strong",
+                  ? "bg-surface-2 text-muted"
+                  : "bg-accent-soft text-accent-strong font-semibold border border-accent/20",
               )}
             >
-              {relative.label}
+              {!relative.hasAired ? (
+                <span className="h-1.5 w-1.5 rounded-full bg-accent-strong radar-live-dot" />
+              ) : null}
+              <span>{relative.label}</span>
             </span>
           </div>
         </div>
 
-        {/* One action. The poster and title already open the details page, so
-            the card does not repeat that link. */}
-        <div className="mt-2 flex items-center pt-1">
+        {/* Action Row */}
+        <div className="mt-2.5 flex items-center gap-2 pt-0.5">
           {canWrite ? (
             isWatched ? (
               <button
@@ -500,9 +516,18 @@ function HomeScheduleCard({
                 <PlusIcon className="h-3 w-3" />
                 <span>{toggling ? "Saving…" : `Mark Ep ${entry.episode} watched`}</span>
               </button>
+            ) : !libraryEntry ? (
+              <button
+                type="button"
+                onClick={onRequestAdd}
+                className="inline-flex h-8 items-center gap-1 rounded-lg border border-border-subtle bg-surface-2 px-2.5 text-xs font-semibold text-fg transition-colors hover:border-accent hover:bg-surface-3 active:scale-95"
+              >
+                <PlusIcon className="h-3 w-3" />
+                <span>Track</span>
+              </button>
             ) : (
-              <span suppressHydrationWarning className="text-xs text-faint">
-                Airs {airingTimeStr} {tzAbbr}
+              <span suppressHydrationWarning className="inline-flex items-center gap-1 text-xs text-faint">
+                <span>Airs {airingTimeStr}</span>
               </span>
             )
           ) : (
@@ -514,6 +539,14 @@ function HomeScheduleCard({
               <ChevronRightIcon className="h-3 w-3" />
             </Link>
           )}
+
+          <Link
+            href={`/anime/${anime.id}`}
+            className="ml-auto inline-flex items-center gap-0.5 text-[11px] font-medium text-faint transition-colors hover:text-muted"
+          >
+            <span>Details</span>
+            <ChevronRightIcon className="h-3 w-3" />
+          </Link>
         </div>
       </div>
     </div>

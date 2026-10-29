@@ -20,7 +20,7 @@ export function AnimeGrid({
       className={cn(
         /* Column counts divide the 6- and 12-item sections the app renders,
            so no section ends on an orphaned poster. */
-        "grid grid-cols-2 gap-x-3 gap-y-6 sm:grid-cols-3 sm:gap-x-5 lg:grid-cols-4 xl:grid-cols-6",
+        "grid grid-cols-2 gap-x-3 gap-y-4 sm:grid-cols-3 sm:gap-x-4 sm:gap-y-5 lg:grid-cols-4 xl:grid-cols-6",
         className,
       )}
     >

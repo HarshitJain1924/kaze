@@ -5,12 +5,21 @@ import Link from "next/link";
 import { useRef } from "react";
 
 import {
+  CheckIcon,
   ChevronLeftIcon,
   ChevronRightIcon,
+  PlusIcon,
   StarIcon,
 } from "@/components/icons";
 import { usePreferences } from "@/components/providers/preferences-provider";
-import { formatFormat, formatScore, getDisplayTitle, isHttpUrl } from "@/lib/utils";
+import { useLibrary } from "@/features/library/library-provider";
+import {
+  cn,
+  formatFormat,
+  formatScore,
+  getDisplayTitle,
+  isHttpUrl,
+} from "@/lib/utils";
 import type { AnimeSummary } from "@/types/anime";
 
 interface SeasonalCarouselProps {
@@ -29,6 +38,7 @@ export function SeasonalCarousel({
   error,
 }: SeasonalCarouselProps) {
   const { preferences } = usePreferences();
+  const { entryFor, requestAdd } = useLibrary();
   const scrollRef = useRef<HTMLDivElement>(null);
 
   const handleScroll = (direction: "left" | "right") => {
@@ -58,7 +68,7 @@ export function SeasonalCarousel({
           {actionHref ? (
             <Link
               href={actionHref}
-              className="group inline-flex items-center gap-0.5 text-xs font-medium text-muted transition-colors hover:text-fg"
+              className="group inline-flex items-center gap-0.5 text-xs font-medium text-muted transition-colors hover:text-accent-strong"
             >
               <span>View all</span>
               <ChevronRightIcon className="h-3 w-3 text-faint transition-transform group-hover:translate-x-0.5" />
@@ -90,71 +100,97 @@ export function SeasonalCarousel({
       {/* Horizontally scrollable carousel */}
       <div
         ref={scrollRef}
-        className="no-scrollbar -mx-4 flex gap-3 overflow-x-auto px-4 py-1 sm:-mx-1 sm:px-1"
+        className="no-scrollbar -mx-4 flex gap-3 overflow-x-auto px-4 py-1.5 sm:-mx-1 sm:px-1"
       >
         {items.map((anime) => {
           const displayTitle = getDisplayTitle(
             anime.title,
             preferences.titleLanguage === "english",
           );
+          const nativeTitle = anime.title.native;
           const cover = anime.coverImage.extraLarge ?? anime.coverImage.large;
           const score = formatScore(anime.averageScore);
-          const meta = [
-            anime.format ? formatFormat(anime.format) : null,
-            anime.seasonYear ? String(anime.seasonYear) : null,
-          ]
-            .filter(Boolean)
-            .join(" · ");
+          const formatLabel = formatFormat(anime.format);
+          const entry = entryFor(anime.id);
 
           return (
             <article
               key={anime.id}
-              className="group relative aspect-[2/3] w-[140px] shrink-0 overflow-hidden rounded-xl border border-border-subtle bg-surface-2 shadow-sm transition-all duration-200 hover:border-border sm:w-[155px]"
+              className="group relative aspect-[2/3] w-[145px] sm:w-[160px] shrink-0 overflow-hidden rounded-2xl border border-white/[0.08] bg-surface-2 shadow-sm transition-all duration-200 hover:-translate-y-1 hover:border-accent/40 hover:shadow-xl"
             >
               {cover && isHttpUrl(cover) ? (
                 <Image
                   src={cover}
                   alt=""
                   fill
-                  sizes="160px"
-                  className="object-cover transition-transform duration-300 group-hover:scale-105"
+                  unoptimized
+                  sizes="170px"
+                  className="object-cover transition-transform duration-300 ease-out group-hover:scale-105"
                 />
               ) : (
                 <div className="absolute inset-0 bg-surface-3" />
               )}
 
-              {/* Gradient overlays */}
-              <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/90 via-black/35 to-transparent" />
+              {/* Ambient Dark Scrim */}
+              <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/95 via-black/45 to-transparent" />
+
+              {/* Clickable Full Link */}
+              <Link
+                href={`/anime/${anime.id}`}
+                aria-label={`View details for ${displayTitle}`}
+                className="absolute inset-0 z-10 rounded-2xl focus:outline-none focus:ring-2 focus:ring-accent"
+              />
 
               {/* Top-left score badge */}
               {score ? (
-                <span className="pointer-events-none absolute left-2 top-2 z-10 inline-flex items-center gap-1 rounded-md border border-white/15 bg-black/75 px-1.5 py-0.5 text-[11px] font-bold text-warning tabular-nums shadow-sm backdrop-blur-md">
-                  <StarIcon className="h-2.5 w-2.5 fill-amber-400 text-amber-400" />
-                  {score}
+                <span className="pointer-events-none absolute left-2 top-2 z-20 inline-flex items-center gap-1 rounded-md border border-white/15 bg-black/80 px-1.5 py-0.5 text-[11px] font-bold text-amber-300 tabular-nums shadow-xs backdrop-blur-md">
+                  <StarIcon className="h-3 w-3 fill-amber-400 text-amber-400" />
+                  <span>{score}</span>
                 </span>
               ) : null}
 
-              {/* Bottom metadata */}
-              <div className="pointer-events-none absolute inset-x-0 bottom-0 z-10 p-2.5 pt-8">
+              {/* Top-right format badge or quick-track button */}
+              <div className="absolute right-2 top-2 z-20 flex items-center gap-1">
+                {entry ? (
+                  <span className="inline-flex items-center gap-0.5 rounded-md border border-accent/40 bg-accent/80 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-white backdrop-blur-md shadow-xs">
+                    <CheckIcon className="h-2.5 w-2.5" />
+                    <span className="capitalize">{entry.status}</span>
+                  </span>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      requestAdd(anime);
+                    }}
+                    aria-label={`Track ${displayTitle}`}
+                    className="flex h-7 w-7 items-center justify-center rounded-full border border-white/20 bg-black/80 text-white shadow-md opacity-90 transition-all hover:scale-110 hover:border-accent hover:bg-accent hover:text-accent-contrast active:scale-95 sm:opacity-0 sm:group-hover:opacity-100"
+                  >
+                    <PlusIcon className="h-3.5 w-3.5" />
+                  </button>
+                )}
+              </div>
+
+              {/* Bottom metadata overlaid inside the poster */}
+              <div className="pointer-events-none absolute inset-x-0 bottom-0 z-20 p-2.5 pt-8 space-y-0.5">
+                {formatLabel && !entry ? (
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-accent-strong">
+                    {formatLabel} {anime.episodes ? `· ${anime.episodes} eps` : ""}
+                  </span>
+                ) : null}
+
                 <h3
-                  className="line-clamp-1 font-display text-[13px] font-bold text-white transition-colors group-hover:text-accent-strong"
+                  className="line-clamp-2 font-display text-xs sm:text-[13px] font-bold leading-snug text-white transition-colors group-hover:text-accent-strong drop-shadow-sm"
                   title={displayTitle}
                 >
                   {displayTitle}
                 </h3>
-                {meta ? (
-                  <p className="mt-0.5 text-[10px] font-medium text-white/70">
-                    {meta}
-                  </p>
-                ) : null}
-              </div>
 
-              {/* Full link */}
-              <Link
-                href={`/anime/${anime.id}`}
-                aria-label={`View details for ${displayTitle}`}
-                className="absolute inset-0 z-20 rounded-xl"
-              />
+                <p className="text-[10px] font-medium text-white/70">
+                  {formatLabel} {anime.seasonYear ? `· ${anime.seasonYear}` : ""}
+                </p>
+              </div>
             </article>
           );
         })}

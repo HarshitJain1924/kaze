@@ -10,9 +10,12 @@ import {
   CompassIcon,
   HomeIcon,
   LibraryIcon,
+  MoonIcon,
   SearchIcon,
+  SunIcon,
 } from "@/components/icons";
 import { Logo } from "@/components/logo";
+import { useTheme } from "@/components/providers/theme-provider";
 import { UserAvatar } from "@/components/user-avatar";
 import { cn } from "@/lib/utils";
 import type { Viewer } from "@/types/viewer";
@@ -25,7 +28,7 @@ interface MobileNavItem {
 }
 
 const ITEMS: MobileNavItem[] = [
-  { href: "/", label: "Home", icon: HomeIcon, exact: true },
+  { href: "/dashboard", label: "Dashboard", icon: HomeIcon },
   { href: "/discover", label: "Discover", icon: CompassIcon },
   { href: "/schedule", label: "Schedule", icon: CalendarIcon },
   { href: "/library", label: "Library", icon: LibraryIcon },
@@ -40,15 +43,32 @@ function isActive(pathname: string, item: MobileNavItem): boolean {
 }
 
 export function MobileHeader({ viewer }: { viewer: Viewer | null }) {
+  const { resolved, setMode } = useTheme();
+
   return (
     <header className="sticky top-0 z-40 border-b border-white/10 bg-bg/75 backdrop-blur-2xl backdrop-saturate-[180%] lg:hidden">
       <div className="flex h-14 items-center justify-between px-4">
         <Logo compact />
-        <div className="flex items-center gap-1">
+        <div className="flex items-center gap-1.5">
+          {/* Quick 1-tap Theme Toggle Button */}
+          <button
+            type="button"
+            onClick={() => setMode(resolved === "dark" ? "light" : "dark")}
+            aria-label="Toggle dark/light theme"
+            title={`Switch to ${resolved === "dark" ? "light" : "dark"} mode`}
+            className="flex h-9 w-9 items-center justify-center rounded-xl liquid-glass-interactive text-muted hover:text-fg active:scale-95"
+          >
+            {resolved === "dark" ? (
+              <MoonIcon className="h-4 w-4 text-purple-300" />
+            ) : (
+              <SunIcon className="h-4 w-4 text-amber-400" />
+            )}
+          </button>
+
           <Link
             href="/discover"
             aria-label="Search anime"
-            className="flex h-9 w-9 items-center justify-center rounded-xl liquid-glass-interactive text-muted hover:text-fg"
+            className="flex h-9 w-9 items-center justify-center rounded-xl liquid-glass-interactive text-muted hover:text-fg active:scale-95"
           >
             <SearchIcon className="h-[18px] w-[18px]" />
           </Link>
@@ -96,15 +116,12 @@ export function MobileBottomNavigation() {
               <Icon
                 className={cn(
                   "h-5 w-5 transition-transform duration-200",
-                  active ? "text-accent-strong" : "text-faint",
+                  active ? "text-accent-strong scale-110" : "text-faint",
                 )}
               />
               <span>{item.label}</span>
               {active ? (
-                <span
-                  aria-hidden="true"
-                  className="absolute bottom-1 h-0.5 w-3.5 rounded-full bg-accent-strong"
-                />
+                <span className="absolute bottom-1 h-1 w-4 rounded-full bg-accent-strong shadow-[0_0_6px_currentColor]" />
               ) : null}
             </Link>
           );

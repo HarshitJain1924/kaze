@@ -33,7 +33,7 @@ export function AnimeSearch({
         spellCheck={false}
         className={cn(
           inputClass,
-          "h-11 pl-10 pr-20 [&::-webkit-search-cancel-button]:appearance-none",
+          "h-11 pl-10 pr-20 [&::-webkit-search-cancel-button]:appearance-none [&::-webkit-search-cancel-button]:hidden [&::-webkit-search-decoration]:appearance-none",
         )}
       />
       <div className="absolute right-2 top-1/2 flex -translate-y-1/2 items-center gap-1">
