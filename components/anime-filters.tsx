@@ -8,11 +8,20 @@ import { Dialog } from "@/components/ui/dialog";
 import { Select } from "@/components/ui/field";
 import { seasonLabel } from "@/lib/season";
 import { cn } from "@/lib/utils";
-import { ANIME_FORMATS, ANIME_SEASONS } from "@/types/anime";
+import {
+  ANIME_COUNTRIES,
+  ANIME_FORMATS,
+  ANIME_RELEASE_STATUSES,
+  ANIME_SEASONS,
+  ANIME_SOURCES,
+} from "@/types/anime";
 import type {
+  AnimeCountry,
   AnimeFormat,
+  AnimeReleaseStatus,
   AnimeSeason,
   AnimeSort,
+  AnimeSource,
 } from "@/types/anime";
 
 export const ANIME_GENRES = [
@@ -40,8 +49,11 @@ export const SORT_OPTIONS: Array<{ value: AnimeSort; label: string }> = [
   { value: "POPULARITY_DESC", label: "Most popular" },
   { value: "SCORE_DESC", label: "Highest rated" },
   { value: "TRENDING_DESC", label: "Trending now" },
+  { value: "FAVOURITES_DESC", label: "Most favourited" },
   { value: "START_DATE_DESC", label: "Newest releases" },
+  { value: "START_DATE", label: "Oldest releases" },
   { value: "TITLE_ROMAJI", label: "Title A–Z" },
+  { value: "TITLE_ROMAJI_DESC", label: "Title Z–A" },
 ];
 
 const FORMAT_LABELS: Record<AnimeFormat, string> = {
@@ -54,11 +66,40 @@ const FORMAT_LABELS: Record<AnimeFormat, string> = {
   MUSIC: "Music",
 };
 
+export const STATUS_LABELS: Record<AnimeReleaseStatus, string> = {
+  RELEASING: "Airing now",
+  FINISHED: "Finished",
+  NOT_YET_RELEASED: "Upcoming",
+  HIATUS: "On hiatus",
+  CANCELLED: "Cancelled",
+};
+
+export const SOURCE_LABELS: Record<AnimeSource, string> = {
+  ORIGINAL: "Original",
+  MANGA: "Manga",
+  LIGHT_NOVEL: "Light novel",
+  VISUAL_NOVEL: "Visual novel",
+  VIDEO_GAME: "Video game",
+  NOVEL: "Novel",
+  DOUJINSHI: "Doujinshi",
+  OTHER: "Other",
+};
+
+export const COUNTRY_LABELS: Record<AnimeCountry, string> = {
+  JP: "Japan",
+  KR: "South Korea",
+  CN: "China",
+  TW: "Taiwan",
+};
+
 export interface AnimeFilterState {
   genre?: string;
   format?: AnimeFormat;
+  status?: AnimeReleaseStatus;
   season?: AnimeSeason;
   year?: number;
+  source?: AnimeSource;
+  countryOfOrigin?: AnimeCountry;
   sort: AnimeSort;
 }
 
@@ -77,7 +118,7 @@ function FilterFields({
   }, []);
 
   return (
-    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-5">
+    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
       <div className="space-y-1.5">
         <label
           htmlFor={`${idPrefix}-genre`}
@@ -125,6 +166,34 @@ function FilterFields({
           {ANIME_FORMATS.map((format) => (
             <option key={format} value={format}>
               {FORMAT_LABELS[format]}
+            </option>
+          ))}
+        </Select>
+      </div>
+
+      <div className="space-y-1.5">
+        <label
+          htmlFor={`${idPrefix}-status`}
+          className="text-xs font-medium text-muted lg:sr-only"
+        >
+          Status
+        </label>
+        <Select
+          id={`${idPrefix}-status`}
+          aria-label="Filter by release status"
+          value={value.status ?? ""}
+          onChange={(event) =>
+            onChange({
+              status: (event.target.value || undefined) as
+                | AnimeReleaseStatus
+                | undefined,
+            })
+          }
+        >
+          <option value="">Any status</option>
+          {ANIME_RELEASE_STATUSES.map((status) => (
+            <option key={status} value={status}>
+              {STATUS_LABELS[status]}
             </option>
           ))}
         </Select>
@@ -188,6 +257,62 @@ function FilterFields({
 
       <div className="space-y-1.5">
         <label
+          htmlFor={`${idPrefix}-source`}
+          className="text-xs font-medium text-muted lg:sr-only"
+        >
+          Source
+        </label>
+        <Select
+          id={`${idPrefix}-source`}
+          aria-label="Filter by source material"
+          value={value.source ?? ""}
+          onChange={(event) =>
+            onChange({
+              source: (event.target.value || undefined) as
+                | AnimeSource
+                | undefined,
+            })
+          }
+        >
+          <option value="">Any source</option>
+          {ANIME_SOURCES.map((source) => (
+            <option key={source} value={source}>
+              {SOURCE_LABELS[source]}
+            </option>
+          ))}
+        </Select>
+      </div>
+
+      <div className="space-y-1.5">
+        <label
+          htmlFor={`${idPrefix}-country`}
+          className="text-xs font-medium text-muted lg:sr-only"
+        >
+          Country
+        </label>
+        <Select
+          id={`${idPrefix}-country`}
+          aria-label="Filter by country of origin"
+          value={value.countryOfOrigin ?? ""}
+          onChange={(event) =>
+            onChange({
+              countryOfOrigin: (event.target.value || undefined) as
+                | AnimeCountry
+                | undefined,
+            })
+          }
+        >
+          <option value="">Any country</option>
+          {ANIME_COUNTRIES.map((country) => (
+            <option key={country} value={country}>
+              {COUNTRY_LABELS[country]}
+            </option>
+          ))}
+        </Select>
+      </div>
+
+      <div className="space-y-1.5">
+        <label
           htmlFor={`${idPrefix}-sort`}
           className="text-xs font-medium text-muted lg:sr-only"
         >
@@ -230,8 +355,11 @@ export function AnimeFilters({
   const activeCount =
     (value.genre ? 1 : 0) +
     (value.format ? 1 : 0) +
+    (value.status ? 1 : 0) +
     (value.season ? 1 : 0) +
-    (value.year ? 1 : 0);
+    (value.year ? 1 : 0) +
+    (value.source ? 1 : 0) +
+    (value.countryOfOrigin ? 1 : 0);
 
   return (
     <div className={cn("space-y-3", className)}>
@@ -279,7 +407,7 @@ export function AnimeFilters({
         open={sheetOpen}
         onClose={() => setSheetOpen(false)}
         title="Filter anime"
-        description="Refine by genre, format, season and release year."
+        description="Refine by genre, format, release status, season, year, source material and country."
         mobileSheet
         footer={
           <>

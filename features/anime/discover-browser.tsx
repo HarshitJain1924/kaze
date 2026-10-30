@@ -2,15 +2,24 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
-import { AnimeFilters, SORT_OPTIONS } from "@/components/anime-filters";
+import {
+  AnimeFilters,
+  COUNTRY_LABELS,
+  SORT_OPTIONS,
+  SOURCE_LABELS,
+  STATUS_LABELS,
+} from "@/components/anime-filters";
 import type { AnimeFilterState } from "@/components/anime-filters";
 import { AnimeGrid } from "@/components/anime-grid";
 import {
+  BookmarkIcon,
+  CalendarIcon,
   CheckIcon,
   ChevronRightIcon,
   CloseIcon,
+  CrownIcon,
   FilmIcon,
   FlameIcon,
   GridIcon,
@@ -18,6 +27,7 @@ import {
   LeafIcon,
   ListIcon,
   LoaderIcon,
+  PlayIcon,
   PlusIcon,
   RocketIcon,
   SearchIcon,
@@ -28,6 +38,7 @@ import {
   SwordsIcon,
   TrophyIcon,
   WandIcon,
+  ZapIcon,
 } from "@/components/icons";
 import { EmptyState } from "@/components/empty-state";
 import { ErrorState } from "@/components/error-state";
@@ -45,7 +56,7 @@ import {
   getDisplayTitle,
   isHttpUrl,
 } from "@/lib/utils";
-import type { AnimeFormat, AnimePage, AnimeSeason, AnimeSort, AnimeSummary } from "@/types/anime";
+import type { AnimePage, AnimeSort, AnimeSummary } from "@/types/anime";
 
 type LoadStatus = "idle" | "loading" | "loadingMore" | "error";
 
@@ -60,8 +71,13 @@ const DISCOVERY_CHANNELS: DiscoveryChannel[] = [
   { id: "trending", label: "Trending Now", icon: FlameIcon, filters: { sort: "TRENDING_DESC" } },
   { id: "popular", label: "Most Popular", icon: SparklesIcon, filters: { sort: "POPULARITY_DESC" } },
   { id: "top-rated", label: "Top Rated", icon: TrophyIcon, filters: { sort: "SCORE_DESC" } },
+  { id: "favourites", label: "Fan Favourites", icon: CrownIcon, filters: { sort: "FAVOURITES_DESC" } },
+  { id: "airing", label: "Airing Now", icon: PlayIcon, filters: { status: "RELEASING" } },
+  { id: "upcoming", label: "Upcoming", icon: CalendarIcon, filters: { status: "NOT_YET_RELEASED" } },
   { id: "fall-2026", label: "Fall 2026", icon: LeafIcon, filters: { season: "FALL", year: 2026 } },
   { id: "movies", label: "Anime Movies", icon: FilmIcon, filters: { format: "MOVIE" } },
+  { id: "ova", label: "OVAs & Specials", icon: ZapIcon, filters: { format: "OVA" } },
+  { id: "light-novels", label: "Light Novels", icon: BookmarkIcon, filters: { source: "LIGHT_NOVEL" } },
   { id: "action", label: "Action", icon: SwordsIcon, filters: { genre: "Action" } },
   { id: "fantasy", label: "Fantasy", icon: WandIcon, filters: { genre: "Fantasy" } },
   { id: "romance", label: "Romance", icon: HeartIcon, filters: { genre: "Romance" } },
@@ -86,8 +102,13 @@ function buildQuery(
   if (query) params.set("q", query);
   if (filters.genre) params.set("genre", filters.genre);
   if (filters.format) params.set("format", filters.format);
+  if (filters.status) params.set("status", filters.status);
   if (filters.season) params.set("season", filters.season);
   if (filters.year) params.set("year", String(filters.year));
+  if (filters.source) params.set("source", filters.source);
+  if (filters.countryOfOrigin) {
+    params.set("country", filters.countryOfOrigin);
+  }
   if (filters.sort) params.set("sort", filters.sort);
   if (page > 1) params.set("page", String(page));
   return params.toString();
@@ -322,18 +343,27 @@ export function DiscoverBrowser({
     updateFilters({
       genre: undefined,
       format: undefined,
+      status: undefined,
       season: undefined,
       year: undefined,
+      source: undefined,
+      countryOfOrigin: undefined,
       ...channel.filters,
     });
   };
 
   const isChannelActive = (channel: DiscoveryChannel) => {
-    const { genre, format, season, year, sort } = channel.filters;
+    const { genre, format, status, season, year, source, countryOfOrigin, sort } =
+      channel.filters;
     if (genre && filters.genre !== genre) return false;
     if (format && filters.format !== format) return false;
+    if (status && filters.status !== status) return false;
     if (season && filters.season !== season) return false;
     if (year && filters.year !== year) return false;
+    if (source && filters.source !== source) return false;
+    if (countryOfOrigin && filters.countryOfOrigin !== countryOfOrigin) {
+      return false;
+    }
     if (sort && filters.sort !== sort) return false;
     return true;
   };
@@ -357,6 +387,13 @@ export function DiscoverBrowser({
       clear: () => updateFilters({ format: undefined }),
     });
   }
+  if (filters.status) {
+    activeChips.push({
+      key: "status",
+      label: `Status: ${STATUS_LABELS[filters.status]}`,
+      clear: () => updateFilters({ status: undefined }),
+    });
+  }
   if (filters.season) {
     activeChips.push({
       key: "season",
@@ -369,6 +406,20 @@ export function DiscoverBrowser({
       key: "year",
       label: `Year: ${filters.year}`,
       clear: () => updateFilters({ year: undefined }),
+    });
+  }
+  if (filters.source) {
+    activeChips.push({
+      key: "source",
+      label: `Source: ${SOURCE_LABELS[filters.source]}`,
+      clear: () => updateFilters({ source: undefined }),
+    });
+  }
+  if (filters.countryOfOrigin) {
+    activeChips.push({
+      key: "countryOfOrigin",
+      label: `Country: ${COUNTRY_LABELS[filters.countryOfOrigin]}`,
+      clear: () => updateFilters({ countryOfOrigin: undefined }),
     });
   }
 
@@ -435,7 +486,7 @@ export function DiscoverBrowser({
             </h1>
 
             <p className="mt-2 text-xs leading-relaxed text-white/75 sm:text-sm">
-              Explore seasonal releases, highest rated classics, trending anime, and hidden gems. Filter by genre, format, year, or search directly.
+              Explore seasonal releases, highest rated classics, trending anime, and hidden gems. Filter by genre, format, airing status, source material, country, or search directly.
             </p>
           </div>
 
@@ -497,7 +548,7 @@ export function DiscoverBrowser({
       </header>
 
       {/* 2. Quick Discovery Tag Pills (1-Tap Channels) */}
-      <div className="no-scrollbar -mx-4 flex gap-2 overflow-x-auto px-4 pb-1 sm:-mx-0 sm:px-0">
+      <div className="no-scrollbar -mx-4 flex gap-2 overflow-x-auto px-4 pb-1 sm:-mx-0 sm:flex-wrap sm:overflow-visible sm:px-0">
         {DISCOVERY_CHANNELS.map((channel) => {
           const isActive = isChannelActive(channel);
           const IconComponent = channel.icon;

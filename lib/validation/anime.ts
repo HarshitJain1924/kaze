@@ -1,8 +1,11 @@
 import { z } from "zod";
 
 import {
+  ANIME_COUNTRIES,
   ANIME_FORMATS,
+  ANIME_RELEASE_STATUSES,
   ANIME_SEASONS,
+  ANIME_SOURCES,
   type AnimeSearchParams,
   type AnimeSort,
 } from "@/types/anime";
@@ -11,8 +14,11 @@ export const ANIME_SORTS = [
   "POPULARITY_DESC",
   "SCORE_DESC",
   "TRENDING_DESC",
+  "FAVOURITES_DESC",
   "START_DATE_DESC",
+  "START_DATE",
   "TITLE_ROMAJI",
+  "TITLE_ROMAJI_DESC",
 ] as const satisfies readonly AnimeSort[];
 
 export const MAX_SEARCH_LENGTH = 120;
@@ -44,11 +50,14 @@ export const animeSearchParamsSchema = z.object({
   query: optionalText(MAX_SEARCH_LENGTH),
   genre: optionalText(40),
   format: optionalEnum(ANIME_FORMATS),
+  status: optionalEnum(ANIME_RELEASE_STATUSES),
   season: optionalEnum(ANIME_SEASONS),
   seasonYear: z.preprocess(
     blankToUndefined,
     z.coerce.number().int().min(1940).max(2100).optional(),
   ),
+  source: optionalEnum(ANIME_SOURCES),
+  countryOfOrigin: optionalEnum(ANIME_COUNTRIES),
   sort: optionalEnum(ANIME_SORTS),
   page: z.preprocess(
     blankToUndefined,
@@ -83,8 +92,11 @@ export function parseAnimeSearchParams(
     query: get("q"),
     genre: get("genre"),
     format: get("format"),
+    status: get("status"),
     season: get("season"),
     seasonYear: get("year"),
+    source: get("source"),
+    countryOfOrigin: get("country"),
     sort: get("sort"),
     page: get("page"),
     perPage: get("perPage"),
@@ -98,8 +110,11 @@ export function toAnimeSearchParams(
     query: input.query || undefined,
     genre: input.genre || undefined,
     format: input.format,
+    status: input.status,
     season: input.season,
     seasonYear: input.seasonYear,
+    source: input.source,
+    countryOfOrigin: input.countryOfOrigin,
     sort: input.sort,
     page: input.page,
     perPage: input.perPage,
@@ -115,8 +130,11 @@ export function serializeAnimeSearchParams(
   if (input.query) params.set("q", input.query);
   if (input.genre) params.set("genre", input.genre);
   if (input.format) params.set("format", input.format);
+  if (input.status) params.set("status", input.status);
   if (input.season) params.set("season", input.season);
   if (input.seasonYear) params.set("year", String(input.seasonYear));
+  if (input.source) params.set("source", input.source);
+  if (input.countryOfOrigin) params.set("country", input.countryOfOrigin);
   if (input.sort) params.set("sort", input.sort);
   if (options.includePaging) {
     if (input.page > 1) params.set("page", String(input.page));

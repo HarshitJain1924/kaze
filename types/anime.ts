@@ -14,6 +14,25 @@ export const ANIME_SEASONS = ["WINTER", "SPRING", "SUMMER", "FALL"] as const;
 
 export type AnimeSeason = (typeof ANIME_SEASONS)[number];
 
+/** AniList `MediaSource` values offered by the discover filters. */
+export const ANIME_SOURCES = [
+  "ORIGINAL",
+  "MANGA",
+  "LIGHT_NOVEL",
+  "VISUAL_NOVEL",
+  "VIDEO_GAME",
+  "NOVEL",
+  "DOUJINSHI",
+  "OTHER",
+] as const;
+
+export type AnimeSource = (typeof ANIME_SOURCES)[number];
+
+/** AniList `CountryCode` values offered by the discover filters. */
+export const ANIME_COUNTRIES = ["JP", "KR", "CN", "TW"] as const;
+
+export type AnimeCountry = (typeof ANIME_COUNTRIES)[number];
+
 export const ANIME_RELEASE_STATUSES = [
   "FINISHED",
   "RELEASING",
@@ -86,15 +105,21 @@ export type AnimeSort =
   | "POPULARITY_DESC"
   | "SCORE_DESC"
   | "TRENDING_DESC"
+  | "FAVOURITES_DESC"
   | "START_DATE_DESC"
-  | "TITLE_ROMAJI";
+  | "START_DATE"
+  | "TITLE_ROMAJI"
+  | "TITLE_ROMAJI_DESC";
 
 export interface AnimeSearchParams {
   query?: string;
   genre?: string;
   format?: AnimeFormat;
+  status?: AnimeReleaseStatus;
   season?: AnimeSeason;
   seasonYear?: number;
+  source?: AnimeSource;
+  countryOfOrigin?: AnimeCountry;
   sort?: AnimeSort;
   page?: number;
   perPage?: number;

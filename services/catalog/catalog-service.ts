@@ -429,7 +429,7 @@ export class CatalogService {
     }
 
     const fallback = await this.fallbackSearchCached(
-      params.query?.trim(),
+      params,
       page,
       perPage,
       signal,
@@ -446,12 +446,27 @@ export class CatalogService {
    * an outage cannot turn search-as-you-type into a Kitsu request storm.
    */
   private async fallbackSearchCached(
-    search: string | undefined,
+    params: AnimeSearchParams,
     page: number,
     perPage: number,
     signal: OutageSignal,
   ): Promise<FallbackPage> {
-    const key = `${search ?? ""}::${page}::${perPage}`;
+    // Filters are part of the key so a degraded search never serves results
+    // that were requested with a different filter set.
+    const filterKey = [
+      params.genre,
+      params.format,
+      params.status,
+      params.season,
+      params.seasonYear,
+      params.source,
+      params.countryOfOrigin,
+      params.sort,
+    ]
+      .map((value) => value ?? "")
+      .join("~");
+    const search = params.query?.trim();
+    const key = `${search ?? ""}::${filterKey}::${page}::${perPage}`;
     const cached = this.fallbackSearches.get(key);
     if (cached) {
       return cached;

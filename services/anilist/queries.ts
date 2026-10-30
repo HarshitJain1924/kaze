@@ -34,8 +34,11 @@ export const SEARCH_ANIME_QUERY = /* GraphQL */ `
     $search: String
     $genre: String
     $format: MediaFormat
+    $status: MediaStatus
     $season: MediaSeason
     $seasonYear: Int
+    $source: MediaSource
+    $countryOfOrigin: CountryCode
     $sort: [MediaSort]
   ) {
     Page(page: $page, perPage: $perPage) {
@@ -51,8 +54,11 @@ export const SEARCH_ANIME_QUERY = /* GraphQL */ `
         search: $search
         genre: $genre
         format: $format
+        status: $status
         season: $season
         seasonYear: $seasonYear
+        source: $source
+        countryOfOrigin: $countryOfOrigin
         sort: $sort
       ) {
         ...AnimeSummary

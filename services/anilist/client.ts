@@ -458,8 +458,11 @@ export class AniListClient {
       search: search ? search.slice(0, 120) : undefined,
       genre: params.genre || undefined,
       format: params.format || undefined,
+      status: params.status || undefined,
       season: params.season || undefined,
       seasonYear: params.seasonYear,
+      source: params.source || undefined,
+      countryOfOrigin: params.countryOfOrigin || undefined,
       sort: [params.sort ?? "POPULARITY_DESC"],
     };
 
