@@ -33,6 +33,7 @@ function readInput(
     seasonYear: pick("year"),
     source: pick("source"),
     countryOfOrigin: pick("country"),
+    adult: pick("adult"),
     sort: pick("sort"),
     page: 1,
     perPage: 24,
@@ -74,6 +75,7 @@ export default async function DiscoverPage({
     year: input.seasonYear,
     source: input.source,
     countryOfOrigin: input.countryOfOrigin,
+    adultContent: input.adult,
     sort: input.sort ?? "POPULARITY_DESC",
   };
 

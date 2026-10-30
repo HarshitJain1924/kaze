@@ -9,6 +9,7 @@ import { Select } from "@/components/ui/field";
 import { seasonLabel } from "@/lib/season";
 import { cn } from "@/lib/utils";
 import {
+  ANIME_ADULT_FILTERS,
   ANIME_COUNTRIES,
   ANIME_FORMATS,
   ANIME_RELEASE_STATUSES,
@@ -16,6 +17,7 @@ import {
   ANIME_SOURCES,
 } from "@/types/anime";
 import type {
+  AnimeAdultFilter,
   AnimeCountry,
   AnimeFormat,
   AnimeReleaseStatus,
@@ -43,6 +45,7 @@ export const ANIME_GENRES = [
   "Sports",
   "Supernatural",
   "Thriller",
+  "Hentai",
 ] as const;
 
 export const SORT_OPTIONS: Array<{ value: AnimeSort; label: string }> = [
@@ -92,6 +95,12 @@ export const COUNTRY_LABELS: Record<AnimeCountry, string> = {
   TW: "Taiwan",
 };
 
+export const ADULT_LABELS: Record<AnimeAdultFilter, string> = {
+  filtered: "Hide adult",
+  include: "Include adult",
+  only: "Only adult",
+};
+
 export interface AnimeFilterState {
   genre?: string;
   format?: AnimeFormat;
@@ -100,6 +109,7 @@ export interface AnimeFilterState {
   year?: number;
   source?: AnimeSource;
   countryOfOrigin?: AnimeCountry;
+  adultContent?: AnimeAdultFilter;
   sort: AnimeSort;
 }
 
@@ -130,9 +140,16 @@ function FilterFields({
           id={`${idPrefix}-genre`}
           aria-label="Filter by genre"
           value={value.genre ?? ""}
-          onChange={(event) =>
-            onChange({ genre: event.target.value || undefined })
-          }
+          onChange={(event) => {
+            const genre = event.target.value || undefined;
+            // Hentai is 18+ only, so requesting it without adult titles would
+            // always return an empty page.
+            if (genre === "Hentai" && !value.adultContent) {
+              onChange({ genre, adultContent: "only" });
+              return;
+            }
+            onChange({ genre });
+          }}
         >
           <option value="">All genres</option>
           {ANIME_GENRES.map((genre) => (
@@ -313,6 +330,38 @@ function FilterFields({
 
       <div className="space-y-1.5">
         <label
+          htmlFor={`${idPrefix}-adult`}
+          className="text-xs font-medium text-muted lg:sr-only"
+        >
+          Adult content
+        </label>
+        <Select
+          id={`${idPrefix}-adult`}
+          aria-label="Filter by adult content"
+          value={
+            value.adultContent === "filtered" ? "" : (value.adultContent ?? "")
+          }
+          onChange={(event) =>
+            onChange({
+              adultContent: (event.target.value || undefined) as
+                | AnimeAdultFilter
+                | undefined,
+            })
+          }
+        >
+          <option value="">Hide adult</option>
+          {ANIME_ADULT_FILTERS.filter((option) => option !== "filtered").map(
+            (option) => (
+              <option key={option} value={option}>
+                {ADULT_LABELS[option]}
+              </option>
+            ),
+          )}
+        </Select>
+      </div>
+
+      <div className="space-y-1.5">
+        <label
           htmlFor={`${idPrefix}-sort`}
           className="text-xs font-medium text-muted lg:sr-only"
         >
@@ -359,7 +408,8 @@ export function AnimeFilters({
     (value.season ? 1 : 0) +
     (value.year ? 1 : 0) +
     (value.source ? 1 : 0) +
-    (value.countryOfOrigin ? 1 : 0);
+    (value.countryOfOrigin ? 1 : 0) +
+    (value.adultContent && value.adultContent !== "filtered" ? 1 : 0);
 
   return (
     <div className={cn("space-y-3", className)}>
@@ -407,7 +457,7 @@ export function AnimeFilters({
         open={sheetOpen}
         onClose={() => setSheetOpen(false)}
         title="Filter anime"
-        description="Refine by genre, format, release status, season, year, source material and country."
+        description="Refine by genre, format, release status, season, year, source material, country and adult content."
         mobileSheet
         footer={
           <>

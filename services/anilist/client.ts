@@ -25,6 +25,7 @@ import {
   AIRING_SCHEDULE_QUERY,
   ANIME_BY_IDS_QUERY,
   ANIME_DETAILS_QUERY,
+  SEARCH_ANIME_INCLUDING_ADULT_QUERY,
   SEARCH_ANIME_QUERY,
 } from "./queries";
 
@@ -451,6 +452,8 @@ export class AniListClient {
       MAX_PER_PAGE,
     );
     const search = params.query?.trim();
+    const adultContent = params.adultContent ?? "filtered";
+    const includeAdult = adultContent === "include";
 
     const variables = {
       page,
@@ -463,11 +466,14 @@ export class AniListClient {
       seasonYear: params.seasonYear,
       source: params.source || undefined,
       countryOfOrigin: params.countryOfOrigin || undefined,
+      // Omitted entirely for adult-inclusive searches, whose document has no
+      // `isAdult` argument (an explicit null matches nothing on AniList).
+      isAdult: includeAdult ? undefined : adultContent === "only",
       sort: [params.sort ?? "POPULARITY_DESC"],
     };
 
     const data = await this.execute<{ Page?: unknown }>(
-      SEARCH_ANIME_QUERY,
+      includeAdult ? SEARCH_ANIME_INCLUDING_ADULT_QUERY : SEARCH_ANIME_QUERY,
       variables,
       options.ttlMs ?? TTL.search,
     );

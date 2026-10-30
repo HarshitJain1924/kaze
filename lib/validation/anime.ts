@@ -1,6 +1,7 @@
 import { z } from "zod";
 
 import {
+  ANIME_ADULT_FILTERS,
   ANIME_COUNTRIES,
   ANIME_FORMATS,
   ANIME_RELEASE_STATUSES,
@@ -58,6 +59,7 @@ export const animeSearchParamsSchema = z.object({
   ),
   source: optionalEnum(ANIME_SOURCES),
   countryOfOrigin: optionalEnum(ANIME_COUNTRIES),
+  adult: optionalEnum(ANIME_ADULT_FILTERS),
   sort: optionalEnum(ANIME_SORTS),
   page: z.preprocess(
     blankToUndefined,
@@ -97,6 +99,7 @@ export function parseAnimeSearchParams(
     seasonYear: get("year"),
     source: get("source"),
     countryOfOrigin: get("country"),
+    adult: get("adult"),
     sort: get("sort"),
     page: get("page"),
     perPage: get("perPage"),
@@ -115,6 +118,7 @@ export function toAnimeSearchParams(
     seasonYear: input.seasonYear,
     source: input.source,
     countryOfOrigin: input.countryOfOrigin,
+    adultContent: input.adult,
     sort: input.sort,
     page: input.page,
     perPage: input.perPage,
@@ -135,6 +139,9 @@ export function serializeAnimeSearchParams(
   if (input.seasonYear) params.set("year", String(input.seasonYear));
   if (input.source) params.set("source", input.source);
   if (input.countryOfOrigin) params.set("country", input.countryOfOrigin);
+  if (input.adult && input.adult !== "filtered") {
+    params.set("adult", input.adult);
+  }
   if (input.sort) params.set("sort", input.sort);
   if (options.includePaging) {
     if (input.page > 1) params.set("page", String(input.page));

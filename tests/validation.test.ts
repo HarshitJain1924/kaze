@@ -80,18 +80,21 @@ describe("animeSearchParamsSchema", () => {
       status: "RELEASING",
       source: "LIGHT_NOVEL",
       countryOfOrigin: "JP",
+      adult: "only",
       sort: "FAVOURITES_DESC",
     });
 
     expect(result.status).toBe("RELEASING");
     expect(result.source).toBe("LIGHT_NOVEL");
     expect(result.countryOfOrigin).toBe("JP");
+    expect(result.adult).toBe("only");
     expect(result.sort).toBe("FAVOURITES_DESC");
 
     const serialized = serializeAnimeSearchParams(result);
     expect(serialized.get("status")).toBe("RELEASING");
     expect(serialized.get("source")).toBe("LIGHT_NOVEL");
     expect(serialized.get("country")).toBe("JP");
+    expect(serialized.get("adult")).toBe("only");
     expect(serialized.get("sort")).toBe("FAVOURITES_DESC");
 
     // The client reads the same keys back from the URL.
@@ -99,6 +102,12 @@ describe("animeSearchParamsSchema", () => {
     expect(parsed.status).toBe("RELEASING");
     expect(parsed.source).toBe("LIGHT_NOVEL");
     expect(parsed.countryOfOrigin).toBe("JP");
+    expect(parsed.adult).toBe("only");
+
+    // No adult selection means filtered, which is never written to the URL.
+    const filtered = animeSearchParamsSchema.parse({});
+    expect(filtered.adult).toBeUndefined();
+    expect(serializeAnimeSearchParams(filtered).has("adult")).toBe(false);
   });
 
   it("parses URLSearchParams and serializes non-default filters", () => {

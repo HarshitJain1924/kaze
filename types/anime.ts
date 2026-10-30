@@ -33,6 +33,11 @@ export const ANIME_COUNTRIES = ["JP", "KR", "CN", "TW"] as const;
 
 export type AnimeCountry = (typeof ANIME_COUNTRIES)[number];
 
+export const ANIME_ADULT_FILTERS = ["filtered", "include", "only"] as const;
+
+/** `filtered` hides adult titles; `include` keeps both; `only` shows 18+ only. */
+export type AnimeAdultFilter = (typeof ANIME_ADULT_FILTERS)[number];
+
 export const ANIME_RELEASE_STATUSES = [
   "FINISHED",
   "RELEASING",
@@ -120,6 +125,8 @@ export interface AnimeSearchParams {
   seasonYear?: number;
   source?: AnimeSource;
   countryOfOrigin?: AnimeCountry;
+  /** Defaults to `filtered`; only used by catalogue search. */
+  adultContent?: AnimeAdultFilter;
   sort?: AnimeSort;
   page?: number;
   perPage?: number;

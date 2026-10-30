@@ -27,7 +27,16 @@ const ANIME_SUMMARY_FRAGMENT = /* GraphQL */ `
   }
 `;
 
-export const SEARCH_ANIME_QUERY = /* GraphQL */ `
+/**
+ * AniList treats an explicit `isAdult: null` as "match nothing", and GraphQL
+ * cannot omit a single argument through a variable, so adult-inclusive
+ * searches use a separate document without the `isAdult` argument.
+ */
+function buildSearchAnimeQuery(filterAdult: boolean): string {
+  const adultVariable = filterAdult ? "\n    $isAdult: Boolean" : "";
+  const adultArgument = filterAdult ? "\n        isAdult: $isAdult" : "";
+
+  return `
   query SearchAnime(
     $page: Int
     $perPage: Int
@@ -39,7 +48,7 @@ export const SEARCH_ANIME_QUERY = /* GraphQL */ `
     $seasonYear: Int
     $source: MediaSource
     $countryOfOrigin: CountryCode
-    $sort: [MediaSort]
+    $sort: [MediaSort]${adultVariable}
   ) {
     Page(page: $page, perPage: $perPage) {
       pageInfo {
@@ -49,8 +58,7 @@ export const SEARCH_ANIME_QUERY = /* GraphQL */ `
         total
       }
       media(
-        type: ANIME
-        isAdult: false
+        type: ANIME${adultArgument}
         search: $search
         genre: $genre
         format: $format
@@ -67,6 +75,13 @@ export const SEARCH_ANIME_QUERY = /* GraphQL */ `
   }
   ${ANIME_SUMMARY_FRAGMENT}
 `;
+}
+
+/** Default search document: adult titles are excluded. */
+export const SEARCH_ANIME_QUERY = buildSearchAnimeQuery(true);
+
+/** Adult titles are allowed; the document has no `isAdult` argument. */
+export const SEARCH_ANIME_INCLUDING_ADULT_QUERY = buildSearchAnimeQuery(false);
 
 export const ANIME_DETAILS_QUERY = /* GraphQL */ `
   query AnimeDetails($id: Int) {

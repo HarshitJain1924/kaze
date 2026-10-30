@@ -135,6 +135,44 @@ describe("AniListClient", () => {
     });
   });
 
+  it("forwards adult-content filters without sending null to AniList", async () => {
+    const fetchMock = vi.fn<typeof fetch>(async () => pageResponse());
+    const { client } = createClient(fetchMock);
+
+    await client.searchAnime({
+      status: "RELEASING",
+      source: "MANGA",
+      countryOfOrigin: "JP",
+      adultContent: "only",
+    });
+
+    const only = JSON.parse(
+      String((fetchMock.mock.calls[0]?.[1] as RequestInit).body),
+    ) as { query: string; variables: Record<string, unknown> };
+    expect(only.variables).toMatchObject({
+      status: "RELEASING",
+      source: "MANGA",
+      countryOfOrigin: "JP",
+      isAdult: true,
+    });
+    expect(only.query).toContain("isAdult");
+
+    await client.searchAnime({ adultContent: "include" });
+    const included = JSON.parse(
+      String((fetchMock.mock.calls[1]?.[1] as RequestInit).body),
+    ) as { query: string; variables: Record<string, unknown> };
+    // AniList treats an explicit null as "match nothing", so the argument is
+    // absent from both the document and the variables.
+    expect(included.query).not.toContain("isAdult");
+    expect(included.variables.isAdult).toBeUndefined();
+
+    await client.searchAnime({});
+    const filtered = JSON.parse(
+      String((fetchMock.mock.calls[2]?.[1] as RequestInit).body),
+    ) as { variables: Record<string, unknown> };
+    expect(filtered.variables.isAdult).toBe(false);
+  });
+
   it("retries HTTP 429 using the Retry-After header", async () => {
     const fetchMock = vi
       .fn()

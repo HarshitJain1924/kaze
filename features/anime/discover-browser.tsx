@@ -14,12 +14,14 @@ import {
 import type { AnimeFilterState } from "@/components/anime-filters";
 import { AnimeGrid } from "@/components/anime-grid";
 import {
+  AlertIcon,
   BookmarkIcon,
   CalendarIcon,
   CheckIcon,
   ChevronRightIcon,
   CloseIcon,
   CrownIcon,
+  EyeIcon,
   FilmIcon,
   FlameIcon,
   GridIcon,
@@ -27,14 +29,17 @@ import {
   LeafIcon,
   ListIcon,
   LoaderIcon,
+  LockIcon,
   PlayIcon,
   PlusIcon,
   RocketIcon,
   SearchIcon,
+  SettingsIcon,
   SlidersIcon,
   SmileIcon,
   SparklesIcon,
   StarIcon,
+  SunIcon,
   SwordsIcon,
   TrophyIcon,
   WandIcon,
@@ -83,6 +88,11 @@ const DISCOVERY_CHANNELS: DiscoveryChannel[] = [
   { id: "romance", label: "Romance", icon: HeartIcon, filters: { genre: "Romance" } },
   { id: "comedy", label: "Comedy", icon: SmileIcon, filters: { genre: "Comedy" } },
   { id: "scifi", label: "Sci-Fi", icon: RocketIcon, filters: { genre: "Sci-Fi" } },
+  { id: "horror", label: "Horror", icon: AlertIcon, filters: { genre: "Horror" } },
+  { id: "mecha", label: "Mecha", icon: SettingsIcon, filters: { genre: "Mecha" } },
+  { id: "mystery", label: "Mystery", icon: EyeIcon, filters: { genre: "Mystery" } },
+  { id: "slice-of-life", label: "Slice of Life", icon: SunIcon, filters: { genre: "Slice of Life" } },
+  { id: "adult", label: "18+", icon: LockIcon, filters: { adultContent: "only" } },
 ];
 
 function mergeUnique(
@@ -108,6 +118,9 @@ function buildQuery(
   if (filters.source) params.set("source", filters.source);
   if (filters.countryOfOrigin) {
     params.set("country", filters.countryOfOrigin);
+  }
+  if (filters.adultContent && filters.adultContent !== "filtered") {
+    params.set("adult", filters.adultContent);
   }
   if (filters.sort) params.set("sort", filters.sort);
   if (page > 1) params.set("page", String(page));
@@ -348,13 +361,23 @@ export function DiscoverBrowser({
       year: undefined,
       source: undefined,
       countryOfOrigin: undefined,
+      adultContent: undefined,
       ...channel.filters,
     });
   };
 
   const isChannelActive = (channel: DiscoveryChannel) => {
-    const { genre, format, status, season, year, source, countryOfOrigin, sort } =
-      channel.filters;
+    const {
+      genre,
+      format,
+      status,
+      season,
+      year,
+      source,
+      countryOfOrigin,
+      adultContent,
+      sort,
+    } = channel.filters;
     if (genre && filters.genre !== genre) return false;
     if (format && filters.format !== format) return false;
     if (status && filters.status !== status) return false;
@@ -364,6 +387,7 @@ export function DiscoverBrowser({
     if (countryOfOrigin && filters.countryOfOrigin !== countryOfOrigin) {
       return false;
     }
+    if (adultContent && filters.adultContent !== adultContent) return false;
     if (sort && filters.sort !== sort) return false;
     return true;
   };
@@ -420,6 +444,16 @@ export function DiscoverBrowser({
       key: "countryOfOrigin",
       label: `Country: ${COUNTRY_LABELS[filters.countryOfOrigin]}`,
       clear: () => updateFilters({ countryOfOrigin: undefined }),
+    });
+  }
+  if (filters.adultContent && filters.adultContent !== "filtered") {
+    activeChips.push({
+      key: "adultContent",
+      label:
+        filters.adultContent === "only"
+          ? "Adult: 18+ only"
+          : "Adult: included",
+      clear: () => updateFilters({ adultContent: undefined }),
     });
   }
 
@@ -486,7 +520,7 @@ export function DiscoverBrowser({
             </h1>
 
             <p className="mt-2 text-xs leading-relaxed text-white/75 sm:text-sm">
-              Explore seasonal releases, highest rated classics, trending anime, and hidden gems. Filter by genre, format, airing status, source material, country, or search directly.
+              Explore seasonal releases, highest rated classics, trending anime, and hidden gems. Filter by genre, format, airing status, source material, country, adult content, or search directly.
             </p>
           </div>
 

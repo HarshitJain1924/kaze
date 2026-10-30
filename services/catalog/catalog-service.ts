@@ -461,6 +461,7 @@ export class CatalogService {
       params.seasonYear,
       params.source,
       params.countryOfOrigin,
+      params.adultContent,
       params.sort,
     ]
       .map((value) => value ?? "")
