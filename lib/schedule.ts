@@ -29,6 +29,8 @@ export interface WeekRange {
   prevWeekDate: string; // "YYYY-MM-DD"
   nextWeekDate: string; // "YYYY-MM-DD"
   weekLabel: string; // e.g. "Oct 19 – Oct 25, 2026"
+  /** Request time, used as the stable clock for relative labels. */
+  generatedAtMs: number;
 }
 
 export function toIsoDateString(d: Date, timeZone?: string): string {
@@ -86,6 +88,7 @@ export function getWeekRange(
   referenceDate: Date | string = new Date(),
   timeZone?: string,
 ): WeekRange {
+  const generatedAtMs = Date.now();
   const d = parseDateInput(referenceDate);
   const dayOfWeek = d.getDay();
   const diffToMonday = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
@@ -176,6 +179,7 @@ export function getWeekRange(
     prevWeekDate: toIsoDateString(prevMonday),
     nextWeekDate: toIsoDateString(nextMonday),
     weekLabel,
+    generatedAtMs,
   };
 }
 

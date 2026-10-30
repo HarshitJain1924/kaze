@@ -209,9 +209,9 @@ for (const viewport of VIEWPORTS) {
 
     const metrics = JSON.parse(await evaluate(EVALUATE));
 
-    // The login screen sits outside the app shell and intentionally has no
-    // sidebar or bottom navigation.
-    const inAppShell = path !== "/login";
+    // The marketing landing page and the login screen sit outside the app
+    // shell and intentionally have no sidebar or bottom navigation.
+    const inAppShell = path !== "/login" && path !== "/";
     const expectedSidebar = inAppShell && viewport.width >= 1024;
     const expectedBottomNav = inAppShell && viewport.width < 1024;
     const navOk =
@@ -349,7 +349,11 @@ const detail = JSON.parse(
     path: location.pathname,
     textLength: document.body.innerText.length,
     hasCommunity: document.body.innerText.toLowerCase().includes('community'),
-    hasRelated: document.body.innerText.includes('Related anime'),
+    hasRelated: Boolean(
+      document.querySelector(
+        'section[aria-labelledby="franchise-heading"], section[aria-labelledby="related-heading"]',
+      ),
+    ),
     signInHref: (() => {
       const panel = document.querySelector(
         'section[aria-label="Your library actions"]',

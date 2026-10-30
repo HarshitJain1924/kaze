@@ -46,9 +46,9 @@ const COMPARISON_ROWS: CompareRow[] = [
   },
   {
     feature: "Database Security Architecture",
-    traditional: "Publicly visible profiles without row encryption",
+    traditional: "Publicly visible profiles without row-level access control",
     traditionalPass: false,
-    kaze: "PostgreSQL Row-Level Security (RLS) encrypted vault",
+    kaze: "PostgreSQL Row-Level Security (RLS) private vault",
     kazePass: true,
   },
 ];

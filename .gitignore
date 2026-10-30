@@ -42,3 +42,8 @@ supabase/.temp/
 # local cache
 /.cache/
 .taste-skill/
+
+# local QA artifacts and dev server logs
+/.qa/
+.dev-server.log
+.dev-server.pid

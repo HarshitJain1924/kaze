@@ -1,6 +1,7 @@
 import "server-only";
 
 import { redirect } from "next/navigation";
+import { cache } from "react";
 
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import type { Viewer } from "@/types/viewer";
@@ -13,7 +14,11 @@ export type { Viewer };
  * ALLOW_LOCAL_PREVIEW is set in the environment, protecting real identities and
  * preventing preview mechanisms from running in production.
  */
-export async function getViewer(): Promise<Viewer | null> {
+/**
+ * Memoized per request: the app layout, the page and API helpers can all ask
+ * for the viewer without repeating the Supabase Auth round trip.
+ */
+export const getViewer = cache(async (): Promise<Viewer | null> => {
   const supabase = await createSupabaseServerClient();
   if (!supabase) {
     if (
@@ -62,7 +67,7 @@ export async function getViewer(): Promise<Viewer | null> {
     nickname,
     createdAt: data.user.created_at ?? null,
   };
-}
+});
 
 /** Requires a signed-in viewer, redirecting to the login screen otherwise. */
 export async function requireViewer(returnTo: string): Promise<Viewer> {

@@ -151,7 +151,11 @@ export default async function DashboardPage() {
           <ContinueWatching todayEntries={scheduleEntries} />
         ) : null}
 
-        <HomeSchedule week={currentWeek} initialEntries={scheduleEntries} />
+        <HomeSchedule
+          week={currentWeek}
+          initialEntries={scheduleEntries}
+          initialNow={currentWeek.generatedAtMs}
+        />
 
         <SeasonalCarousel
           title={`${seasonLabel(season)} ${year} anime`}

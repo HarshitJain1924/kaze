@@ -5,7 +5,6 @@ import { useState } from "react";
 
 import { CloseIcon, ListIcon, SparklesIcon } from "@/components/icons";
 import { Logo } from "@/components/logo";
-import { cn } from "@/lib/utils";
 import type { Viewer } from "@/types/viewer";
 
 export function LandingNavbar({ viewer }: { viewer: Viewer | null }) {
@@ -13,14 +12,12 @@ export function LandingNavbar({ viewer }: { viewer: Viewer | null }) {
 
   return (
     <header className="sticky top-4 z-50 mx-auto w-full max-w-6xl px-4 sm:px-6">
-      <div className="relative flex items-center justify-between rounded-full border border-white/[0.12] bg-[#07080e]/80 px-4 py-2.5 shadow-2xl backdrop-blur-2xl ring-1 ring-white/5 transition-all">
-        {/* Brand Logo */}
-        <Link href="/" className="flex items-center gap-2 select-none group">
-          <Logo />
-        </Link>
+      <div className="relative flex items-center justify-between gap-3 rounded-full border border-white/[0.12] bg-[#07080e]/80 px-4 py-2.5 shadow-2xl backdrop-blur-2xl ring-1 ring-white/5 transition-all">
+        {/* Brand Logo (Logo already renders its own home link) */}
+        <Logo className="select-none" />
 
         {/* Center Desktop Navigation Links */}
-        <nav className="hidden md:flex items-center gap-1 rounded-full border border-white/[0.06] bg-white/[0.03] px-3 py-1 text-xs font-semibold text-muted">
+        <nav className="hidden lg:flex items-center gap-1 rounded-full border border-white/[0.06] bg-white/[0.03] px-2 py-1 text-xs font-semibold text-muted">
           <a
             href="#features"
             className="rounded-full px-3 py-1 hover:text-white hover:bg-white/[0.06] transition-colors"
@@ -54,9 +51,9 @@ export function LandingNavbar({ viewer }: { viewer: Viewer | null }) {
         </nav>
 
         {/* Right CTA Actions */}
-        <div className="flex items-center gap-3">
+        <div className="flex shrink-0 items-center gap-2 sm:gap-3">
           {/* Live AniList Pipeline Indicator */}
-          <div className="hidden sm:inline-flex items-center gap-1.5 rounded-full border border-emerald-500/30 bg-emerald-950/40 px-3 py-1 text-[11px] font-semibold text-emerald-300">
+          <div className="hidden xl:inline-flex items-center gap-1.5 rounded-full border border-emerald-500/30 bg-emerald-950/40 px-3 py-1 text-[11px] font-semibold text-emerald-300">
             <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 radar-live-dot" />
             <span>AniList GraphQL Live</span>
           </div>
@@ -64,25 +61,28 @@ export function LandingNavbar({ viewer }: { viewer: Viewer | null }) {
           {viewer ? (
             <Link
               href="/dashboard"
-              className="inline-flex items-center gap-1.5 rounded-full bg-accent px-4 py-1.5 text-xs font-bold text-accent-contrast shadow-lg shadow-accent/25 hover:bg-accent-hover transition-all active:scale-95"
+              className="inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full bg-accent px-3 py-1.5 text-xs font-bold text-accent-contrast shadow-lg shadow-accent/25 hover:bg-accent-hover transition-all active:scale-95 sm:px-4"
             >
-              <span>Open Dashboard</span>
-              <span>→</span>
+              <span>Dashboard</span>
+              <span aria-hidden="true">→</span>
             </Link>
           ) : (
-            <div className="flex items-center gap-2">
+            <div className="flex shrink-0 items-center gap-2">
               <Link
                 href="/login"
-                className="hidden sm:inline-flex rounded-full px-3.5 py-1.5 text-xs font-semibold text-muted hover:text-white transition-colors"
+                className="hidden lg:inline-flex whitespace-nowrap rounded-full px-3.5 py-1.5 text-xs font-semibold text-muted hover:text-white transition-colors"
               >
                 Sign In
               </Link>
               <Link
                 href="/login"
-                className="inline-flex items-center gap-1.5 rounded-full bg-accent px-4 py-1.5 text-xs font-bold text-accent-contrast shadow-lg shadow-accent/25 hover:bg-accent-hover transition-all active:scale-95"
+                className="inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full bg-accent px-3 py-1.5 text-xs font-bold text-accent-contrast shadow-lg shadow-accent/25 hover:bg-accent-hover transition-all active:scale-95 sm:px-4"
               >
-                <SparklesIcon className="h-3.5 w-3.5" />
-                <span>Enter Sanctuary</span>
+                <SparklesIcon className="h-3.5 w-3.5 shrink-0" />
+                <span>
+                  <span className="sm:hidden">Start</span>
+                  <span className="hidden sm:inline">Enter Sanctuary</span>
+                </span>
               </Link>
             </div>
           )}
@@ -91,7 +91,7 @@ export function LandingNavbar({ viewer }: { viewer: Viewer | null }) {
           <button
             type="button"
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            className="md:hidden flex h-8 w-8 items-center justify-center rounded-full border border-white/10 text-muted hover:text-white"
+            className="lg:hidden flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-white/10 text-muted hover:text-white"
             aria-label="Toggle navigation menu"
           >
             {mobileMenuOpen ? (
@@ -105,7 +105,7 @@ export function LandingNavbar({ viewer }: { viewer: Viewer | null }) {
 
       {/* Mobile Drawer Dropdown */}
       {mobileMenuOpen && (
-        <div className="mt-2 flex flex-col gap-2 rounded-2xl border border-white/10 bg-[#07080e]/95 p-4 shadow-2xl backdrop-blur-2xl md:hidden animate-fade">
+        <div className="mt-2 flex flex-col gap-2 rounded-2xl border border-white/10 bg-[#07080e]/95 p-4 shadow-2xl backdrop-blur-2xl lg:hidden animate-fade">
           <a
             href="#features"
             onClick={() => setMobileMenuOpen(false)}

@@ -27,6 +27,7 @@ import { TimezoneSelector } from "@/components/timezone-selector";
 import { StatusBadge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useLibrary } from "@/features/library/library-provider";
+import { useNow } from "@/lib/use-now";
 import {
   formatAiringRelative,
   formatAiringTime,
@@ -81,6 +82,8 @@ interface ScheduleBrowserProps {
   watchingIds: number[];
   /** A `?date=` deep link selects that day, not just its week. */
   initialDate?: string;
+  /** Server render time; keeps first client render identical. */
+  initialNow: number;
 }
 
 export function ScheduleBrowser({
@@ -89,7 +92,9 @@ export function ScheduleBrowser({
   entries,
   watchingIds,
   initialDate,
+  initialNow,
 }: ScheduleBrowserProps) {
+  const nowMs = useNow(initialNow);
   const router = useRouter();
   const { preferences } = usePreferences();
   const { activeTimeZone } = useActiveTimeZone();
@@ -117,8 +122,8 @@ export function ScheduleBrowser({
 
   // Default active day is today in the selected timezone if within this week
   const todayIso = useMemo(
-    () => toIsoDateString(new Date(), activeTimeZone),
-    [activeTimeZone],
+    () => toIsoDateString(new Date(nowMs), activeTimeZone),
+    [nowMs, activeTimeZone],
   );
   const initialDayDate = useMemo(() => {
     if (initialDate && week.days.some((day) => day.date === initialDate)) {
@@ -202,12 +207,12 @@ export function ScheduleBrowser({
 
   // Nearest future upcoming release
   const nextUpcomingEntry = useMemo(() => {
-    const nowSec = Math.floor(Date.now() / 1000);
+    const nowSec = Math.floor(nowMs / 1000);
     const future = allEntries
       .filter((e) => e.airingAt > nowSec)
       .sort((a, b) => a.airingAt - b.airingAt);
     return future[0] ?? null;
-  }, [allEntries]);
+  }, [allEntries, nowMs]);
 
   const handlePrevWeek = () => {
     router.push(`/schedule?date=${week.prevWeekDate}`);
@@ -291,8 +296,8 @@ export function ScheduleBrowser({
           </div>
 
           {/* Heading & Subtitle with Timezone Pill */}
-          <div className="flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
-            <div>
+          <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between md:gap-6">
+            <div className="min-w-0">
               <h1 className="font-display text-2xl font-bold tracking-tight text-fg sm:text-3xl lg:text-4xl">
                 Weekly Broadcast Schedule
               </h1>
@@ -310,10 +315,10 @@ export function ScheduleBrowser({
             </div>
 
             {/* Timezone pill container */}
-            <div className="inline-flex items-center gap-2 rounded-2xl border border-white/[0.08] bg-surface-2/70 px-3.5 py-1.5 text-xs text-muted backdrop-blur-md self-start md:self-auto">
-              <ClockIcon className="h-3.5 w-3.5 text-accent-strong" />
-              <span className="text-faint">Local Timezone:</span>
-              <TimezoneSelector />
+            <div className="inline-flex max-w-full shrink-0 items-center gap-2 self-start rounded-2xl border border-white/[0.08] bg-surface-2/70 px-3.5 py-1.5 text-xs text-muted backdrop-blur-md md:self-auto">
+              <ClockIcon className="h-3.5 w-3.5 shrink-0 text-accent-strong" />
+              <span className="whitespace-nowrap text-faint">Local Timezone:</span>
+              <TimezoneSelector className="shrink-0" />
             </div>
           </div>
 
@@ -337,7 +342,7 @@ export function ScheduleBrowser({
             <div className="flex flex-col rounded-2xl border border-white/[0.06] bg-surface-2/50 p-3 backdrop-blur-md">
               <div className="flex items-center gap-1.5 text-[11px] font-semibold text-emerald-300">
                 <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 shadow-[0_0_6px_rgba(52,211,153,0.8)]" />
-                <span>Today's Broadcasts</span>
+                <span>Today&apos;s Broadcasts</span>
               </div>
               <div className="mt-1 flex items-baseline gap-1">
                 <span className="font-display text-lg font-bold tabular-nums text-fg sm:text-xl">
@@ -373,7 +378,7 @@ export function ScheduleBrowser({
                     className="truncate font-display text-xs font-semibold text-fg"
                     title={getDisplayTitle(nextUpcomingEntry.media.title, true)}
                   >
-                    {formatAiringRelative(nextUpcomingEntry.airingAt).label}
+                    {formatAiringRelative(nextUpcomingEntry.airingAt, nowMs).label}
                   </span>
                 ) : (
                   <span className="text-xs text-faint">None remaining</span>
@@ -513,7 +518,7 @@ export function ScheduleBrowser({
         {/* Search input within the active day */}
         <div className="relative w-full sm:max-w-xs">
           <label htmlFor="schedule-day-search" className="sr-only">
-            Filter today's releases
+            Filter today&apos;s releases
           </label>
           <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-faint">
             <SearchIcon className="h-3.5 w-3.5" />
@@ -602,6 +607,7 @@ export function ScheduleBrowser({
                 onToggleEpisode={toggleEpisode}
                 isPending={pendingIds.has(entry.mediaId)}
                 onRequestAdd={requestAdd}
+                nowMs={nowMs}
               />
             ))}
           </div>
@@ -626,6 +632,7 @@ interface ScheduleReleaseCardProps {
   ) => Promise<boolean>;
   isPending: boolean;
   onRequestAdd: (anime: AnimeSummary) => void;
+  nowMs: number;
 }
 
 function ScheduleReleaseCard({
@@ -639,6 +646,7 @@ function ScheduleReleaseCard({
   onToggleEpisode,
   isPending,
   onRequestAdd,
+  nowMs,
 }: ScheduleReleaseCardProps) {
   const anime = entry.media;
   const title = getDisplayTitle(anime.title, titleLanguage === "english");
@@ -646,7 +654,7 @@ function ScheduleReleaseCard({
 
   const airingTimeStr = formatAiringTime(entry.airingAt, timeZone);
   const tzAbbr = getTimeZoneAbbr(entry.airingAt, timeZone);
-  const relative = formatAiringRelative(entry.airingAt);
+  const relative = formatAiringRelative(entry.airingAt, nowMs);
 
   // Check if this specific episode has been watched. Individual records are the source of truth when present.
   const isWatched =

@@ -14,7 +14,6 @@ import {
 import { usePreferences } from "@/components/providers/preferences-provider";
 import { useLibrary } from "@/features/library/library-provider";
 import {
-  cn,
   formatFormat,
   formatScore,
   getDisplayTitle,
@@ -107,7 +106,6 @@ export function SeasonalCarousel({
             anime.title,
             preferences.titleLanguage === "english",
           );
-          const nativeTitle = anime.title.native;
           const cover = anime.coverImage.extraLarge ?? anime.coverImage.large;
           const score = formatScore(anime.averageScore);
           const formatLabel = formatFormat(anime.format);

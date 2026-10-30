@@ -24,7 +24,6 @@ import { useSidebar } from "@/components/providers/sidebar-provider";
 import {
   useTheme,
   type DesignDirection,
-  type ThemeMode,
 } from "@/components/providers/theme-provider";
 import { UserAvatar } from "@/components/user-avatar";
 import { cn } from "@/lib/utils";

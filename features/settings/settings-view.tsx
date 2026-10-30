@@ -12,7 +12,6 @@ import {
   LogOutIcon,
   MonitorIcon,
   MoonIcon,
-  SparklesIcon,
   SunIcon,
   UserIcon,
 } from "@/components/icons";
@@ -28,7 +27,6 @@ import { TimezoneSelector } from "@/components/timezone-selector";
 import { useLibrary } from "@/features/library/library-provider";
 import { getSupabaseBrowserClient } from "@/lib/supabase/client";
 import { cn, formatIsoDate, getDisplayTitle } from "@/lib/utils";
-import type { LibraryView } from "@/types/library";
 import type { Viewer } from "@/types/viewer";
 
 const DESIGN_OPTIONS: Array<{

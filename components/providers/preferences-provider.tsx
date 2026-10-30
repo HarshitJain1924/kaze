@@ -4,9 +4,7 @@ import {
   createContext,
   useCallback,
   useContext,
-  useEffect,
   useMemo,
-  useState,
   useSyncExternalStore,
 } from "react";
 import type { ReactNode } from "react";
@@ -135,22 +133,43 @@ export function usePreferences(): PreferencesContextValue {
   return context;
 }
 
+const subscribeToEnvironment = () => () => {};
+
+function getMountedSnapshot(): boolean {
+  return true;
+}
+
+function getMountedServerSnapshot(): boolean {
+  return false;
+}
+
+function getDeviceTimeZoneSnapshot(): string {
+  try {
+    return Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC";
+  } catch {
+    return "UTC";
+  }
+}
+
+function getDeviceTimeZoneServerSnapshot(): string {
+  return "UTC";
+}
+
 export function useActiveTimeZone() {
   const { preferences, setPreference } = usePreferences();
-  const [deviceTimeZone, setDeviceTimeZone] = useState<string>("UTC");
-  const [mounted, setMounted] = useState<boolean>(false);
-
-  useEffect(() => {
-    setMounted(true);
-    try {
-      const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
-      if (tz) {
-        setDeviceTimeZone(tz);
-      }
-    } catch {
-      // Keep UTC fallback
-    }
-  }, []);
+  // These are environment values, not React state: reading them through
+  // useSyncExternalStore keeps SSR deterministic and avoids a setState-in-
+  // effect render cascade on every mount.
+  const mounted = useSyncExternalStore(
+    subscribeToEnvironment,
+    getMountedSnapshot,
+    getMountedServerSnapshot,
+  );
+  const deviceTimeZone = useSyncExternalStore(
+    subscribeToEnvironment,
+    getDeviceTimeZoneSnapshot,
+    getDeviceTimeZoneServerSnapshot,
+  );
 
   const activeTimeZone = useMemo(() => {
     if (preferences.timeZone && preferences.timeZone !== "auto") {

@@ -21,7 +21,7 @@ export function IntroShowcase() {
         <Logo />
         <div className="inline-flex items-center gap-2 rounded-full border border-emerald-500/30 bg-emerald-950/40 px-3.5 py-1 text-xs font-semibold text-emerald-300 shadow-md backdrop-blur-xl">
           <span className="h-2 w-2 rounded-full bg-emerald-400 radar-live-dot" />
-          <span>Encrypted Vault</span>
+          <span>Private Vault</span>
         </div>
       </div>
 
@@ -85,7 +85,7 @@ export function IntroShowcase() {
             </div>
             <div className="min-w-0 flex-1">
               <h3 className="text-sm font-bold text-white">Private & Synced Everywhere</h3>
-              <p className="text-xs text-muted">Row-level security encryption with seamless cloud sync.</p>
+              <p className="text-xs text-muted">Row-level security protection with seamless cloud sync.</p>
             </div>
           </div>
         </div>

@@ -1,4 +1,5 @@
 import type { Metadata, Viewport } from "next";
+import Script from "next/script";
 import {
   Fraunces,
   IBM_Plex_Mono,
@@ -93,8 +94,6 @@ export const viewport: Viewport = {
   ],
 };
 
-const themeScript = `(function(){try{var stored=localStorage.getItem('kaze-theme');var mode=stored==='light'||stored==='dark'||stored==='system'?stored:'dark';var resolved=mode==='system'?(window.matchMedia('(prefers-color-scheme: light)').matches?'light':'dark'):mode;var design=localStorage.getItem('kaze-design');if(design!=='broadcast'&&design!=='editorial'&&design!=='shelf'){design='broadcast';}var root=document.documentElement;root.dataset.design=design;root.classList.toggle('light',resolved==='light');root.dataset.theme=resolved;root.style.colorScheme=resolved;}catch(error){}})();`;
-
 export default function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
@@ -107,7 +106,14 @@ export default function RootLayout({
       suppressHydrationWarning
     >
       <body className="antialiased">
-        <script dangerouslySetInnerHTML={{ __html: themeScript }} />
+        {/* beforeInteractive injects this into <head> as a blocking script,
+            so the saved theme applies before first paint. It lives outside
+            the React tree, keeping React's streaming marker scripts intact. */}
+        <Script
+          id="theme-init"
+          src="/theme-init.js"
+          strategy="beforeInteractive"
+        />
         <ThemeProvider>
           <PreferencesProvider>
             <SidebarProvider>

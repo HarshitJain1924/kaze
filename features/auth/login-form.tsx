@@ -12,7 +12,6 @@ import {
   LoaderIcon,
   LockIcon,
   MailIcon,
-  ShieldCheckIcon,
 } from "@/components/icons";
 import { Button } from "@/components/ui/button";
 import { Field, Input } from "@/components/ui/field";
@@ -223,7 +222,7 @@ export function LoginForm({
           </h1>
           <p className="mt-2 text-xs leading-relaxed text-muted sm:text-sm">
             Discovery and anime details already operate live with the public AniList
-            GraphQL API. Cloud authentication and your personal encrypted library require a Supabase project.
+            GraphQL API. Cloud authentication and your personal library require a Supabase project.
           </p>
           <div className="mt-4 rounded-xl border border-white/[0.08] bg-surface-2/80 p-3.5 backdrop-blur-md">
             <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-faint">
@@ -501,7 +500,7 @@ export function LoginForm({
       </div>
 
       <p className="mt-4 text-center text-[11px] leading-relaxed text-faint">
-        Your library and episode progress are encrypted and private to your account.
+        Your library and episode progress are private to your account and protected by row-level security.
       </p>
     </div>
   );

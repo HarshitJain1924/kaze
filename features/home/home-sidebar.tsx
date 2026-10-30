@@ -239,7 +239,6 @@ export function HomeSidebar({
                   entry.media.title,
                   preferences.titleLanguage === "english",
                 );
-                const nativeTitle = entry.media.title.native;
                 const cover =
                   entry.media.coverImage.extraLarge ??
                   entry.media.coverImage.large;
@@ -336,7 +335,6 @@ export function HomeSidebar({
                 anime.title,
                 preferences.titleLanguage === "english",
               );
-              const nativeTitle = anime.title.native;
               const cover =
                 anime.coverImage.extraLarge ?? anime.coverImage.large;
 

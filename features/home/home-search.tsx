@@ -28,7 +28,6 @@ import { StatusBadge } from "@/components/ui/badge";
 import { useLibrary } from "@/features/library/library-provider";
 import {
   cn,
-  formatEpisodeCount,
   formatFormat,
   formatScore,
   getDisplayTitle,
@@ -113,10 +112,14 @@ export function HomeSearch({ popularAnime }: HomeSearchProps) {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  // Debounce search input
+  // Debounce search input and clear results when the field is emptied.
   useEffect(() => {
     const timer = setTimeout(() => {
-      setDebouncedQuery(query.trim());
+      const trimmed = query.trim();
+      setDebouncedQuery(trimmed);
+      if (!trimmed) {
+        setResults([]);
+      }
     }, 280);
 
     return () => clearTimeout(timer);
@@ -125,7 +128,6 @@ export function HomeSearch({ popularAnime }: HomeSearchProps) {
   // Fetch search results on debounced query
   useEffect(() => {
     if (!debouncedQuery) {
-      setResults([]);
       return;
     }
 
@@ -377,7 +379,6 @@ export function HomeSearch({ popularAnime }: HomeSearchProps) {
                     anime.title,
                     preferences.titleLanguage === "english",
                   );
-                  const nativeTitle = anime.title.native;
                   const cover =
                     anime.coverImage.extraLarge ?? anime.coverImage.large;
                   const isTracked = !!entryFor(anime.id);
@@ -532,7 +533,6 @@ export function HomeSearch({ popularAnime }: HomeSearchProps) {
                   anime.title,
                   preferences.titleLanguage === "english",
                 );
-                const nativeTitle = anime.title.native;
                 const isTracked = !!entryFor(anime.id);
                 const isAdding = addingId === anime.id;
                 const score = formatScore(anime.averageScore);

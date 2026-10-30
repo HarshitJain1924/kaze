@@ -10,7 +10,6 @@ import { ErrorState } from "@/components/error-state";
 import {
   ChartIcon,
   ChevronRightIcon,
-  ClockIcon,
   LibraryIcon,
   SparklesIcon,
   StarIcon,

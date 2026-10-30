@@ -13,7 +13,6 @@ import {
   CloseIcon,
   CrownIcon,
   FilmIcon,
-  FlameIcon,
   InfoIcon,
   LibraryIcon,
   PlayIcon,
@@ -30,6 +29,7 @@ import type { LibraryStats } from "@/features/stats/calculate-stats";
 import { useLibrary } from "@/features/library/library-provider";
 import { WATCH_STATUS_META, WATCH_STATUS_ORDER } from "@/lib/library-meta";
 import { cn, formatFormat, isHttpUrl } from "@/lib/utils";
+import type { AnimeFormat } from "@/types/anime";
 import type { WatchStatus } from "@/types/library";
 
 function percent(count: number, total: number): number {
@@ -262,31 +262,47 @@ function StatusDonutTelemetry({
   const totalGapsPx = gapAnglePx * activeCount;
   const usableCircumference = Math.max(0, circumference - totalGapsPx);
 
-  let accumulatedLength = 0;
+  interface StatusSegment {
+    status: WatchStatus;
+    label: string;
+    color: string;
+    count: number;
+    percent: number;
+    strokeDasharray: string;
+    strokeDashoffset: number;
+    isHovered: boolean;
+    arcLength: number;
+    offset: number;
+  }
 
-  const segments = WATCH_STATUS_ORDER.map((status) => {
-    const count = stats.statusCounts[status];
-    const meta = WATCH_STATUS_META[status];
-    if (count === 0) return null;
+  const segments = WATCH_STATUS_ORDER.reduce<StatusSegment[]>(
+    (acc, status) => {
+      const count = stats.statusCounts[status];
+      if (count === 0) return acc;
+      const meta = WATCH_STATUS_META[status];
+      const fraction = count / total;
+      const arcLength = Math.max(1, fraction * usableCircumference);
+      const previous = acc[acc.length - 1];
+      const offset = previous
+        ? previous.offset + previous.arcLength + gapAnglePx
+        : 0;
 
-    const fraction = count / total;
-    const arcLength = Math.max(1, fraction * usableCircumference);
-    const offset = accumulatedLength;
-    accumulatedLength += arcLength + gapAnglePx;
-
-    const isHovered = activeStatus === status;
-
-    return {
-      status,
-      label: meta.label,
-      color: meta.color,
-      count,
-      percent: Math.round(fraction * 100),
-      strokeDasharray: `${arcLength} ${circumference}`,
-      strokeDashoffset: -offset,
-      isHovered,
-    };
-  }).filter(Boolean);
+      acc.push({
+        status,
+        label: meta.label,
+        color: meta.color,
+        count,
+        percent: Math.round(fraction * 100),
+        strokeDasharray: `${arcLength} ${circumference}`,
+        strokeDashoffset: -offset,
+        isHovered: activeStatus === status,
+        arcLength,
+        offset,
+      });
+      return acc;
+    },
+    [],
+  );
 
   const completionPercent = Math.round(
     ((stats.statusCounts.completed || 0) / total) * 100,
@@ -608,7 +624,7 @@ export function StatsView() {
     return [...map.entries()]
       .map(([format, count]) => ({
         format,
-        label: formatFormat(format as any) ?? format,
+        label: formatFormat(format as AnimeFormat) ?? format,
         count,
         percent: stats.total > 0 ? Math.round((count / stats.total) * 100) : 0,
       }))
@@ -686,9 +702,6 @@ export function StatsView() {
   const completionRate = percent(stats.statusCounts.completed, stats.total);
   const maxScoreCount = Math.max(1, ...stats.scoreDistribution.map((b) => b.count));
   const topGenres = stats.genreDistribution.slice(0, 10);
-  const maxGenreCount = Math.max(1, ...topGenres.map((g) => g.count));
-  const top3Podium = topGenres.slice(0, 3);
-  const otherGenres = topGenres.slice(3);
 
   return (
     <div className="space-y-7">

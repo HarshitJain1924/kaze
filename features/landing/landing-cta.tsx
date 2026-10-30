@@ -84,7 +84,7 @@ export function LandingCta({ viewer }: { viewer: Viewer | null }) {
               <span>·</span>
               <span className="flex items-center gap-1.5">
                 <CheckIcon className="h-3.5 w-3.5 text-emerald-400" />
-                Encrypted PostgreSQL Vault
+                Private PostgreSQL Vault
               </span>
             </div>
           </div>

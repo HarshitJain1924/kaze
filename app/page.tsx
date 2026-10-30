@@ -16,7 +16,7 @@ import type { AnimeSummary } from "@/types/anime";
 export const metadata: Metadata = {
   title: "Kaze · Personal Anime Sanctuary",
   description:
-    "A quieter, cinematic way to track your anime journey. One-tap progress, live Tokyo simulcast radar, and encrypted taste telemetry.",
+    "A quieter, cinematic way to track your anime journey. One-tap progress, live Tokyo simulcast radar, and private taste telemetry.",
 };
 
 export const dynamic = "force-dynamic";

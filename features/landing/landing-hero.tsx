@@ -5,8 +5,6 @@ import Link from "next/link";
 import { useState } from "react";
 
 import {
-  CalendarIcon,
-  ChartIcon,
   CheckIcon,
   ClockIcon,
   FlameIcon,
@@ -68,7 +66,7 @@ export function LandingHero({ viewer }: { viewer: Viewer | null }) {
           <p className="mx-auto mt-6 max-w-2xl text-base leading-relaxed text-muted sm:text-lg lg:text-xl">
             Stop logging episodes into clunky spreadsheets and ad-infested forums.
             Track your simulcasts in 1-tap, watch live broadcast countdowns from Tokyo,
-            and keep your watch history in an encrypted private vault.
+            and keep your watch history in a private, account-scoped vault.
           </p>
 
           {/* CTA Button Cluster */}
@@ -120,7 +118,7 @@ export function LandingHero({ viewer }: { viewer: Viewer | null }) {
             <span className="text-white/20 hidden sm:inline">·</span>
             <span className="flex items-center gap-1.5">
               <ShieldCheckIcon className="h-3.5 w-3.5 text-purple-400" />
-              Encrypted Supabase RLS
+              Supabase RLS Protection
             </span>
           </div>
         </div>

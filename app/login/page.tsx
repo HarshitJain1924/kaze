@@ -11,7 +11,7 @@ import { getSupabaseConfig } from "@/lib/supabase/config";
 
 export const metadata: Metadata = {
   title: "Sanctuary · Kaze Anime Platform",
-  description: "Enter your personal, encrypted anime sanctuary with one-tap progress tracking.",
+  description: "Enter your personal anime sanctuary with one-tap progress tracking.",
 };
 
 export const dynamic = "force-dynamic";
@@ -74,7 +74,7 @@ export default async function LoginPage({
                 Your anime journey, elevated to cinema.
               </h2>
               <p className="text-xs text-muted">
-                1-tap episode progress, live simulcast countdowns, and encrypted taste telemetry.
+                1-tap episode progress, live simulcast countdowns, and private taste telemetry.
               </p>
             </div>
           </div>
@@ -91,7 +91,7 @@ export default async function LoginPage({
 
         {/* Footer Security Footnote */}
         <div className="relative z-10 flex flex-col sm:flex-row items-center justify-between gap-2 border-t border-white/[0.06] pt-4 text-[11px] text-faint">
-          <span>Row-Level Security (RLS) encrypted vault</span>
+          <span>Private vault protected by Row-Level Security (RLS)</span>
           <span>Zero tracking · Edge-cached AniList metadata</span>
         </div>
       </div>

@@ -5,7 +5,6 @@ import Link from "next/link";
 import { useCallback, useMemo, useState } from "react";
 
 import {
-  CheckIcon,
   ChevronRightIcon,
   LoaderIcon,
   PlusIcon,
@@ -24,7 +23,7 @@ import {
   getDisplayTitle,
   isHttpUrl,
 } from "@/lib/utils";
-import type { Anime, AnimeSummary, RelatedAnime } from "@/types/anime";
+import type { Anime, RelatedAnime } from "@/types/anime";
 
 interface AnimeFranchiseSectionProps {
   currentAnime: Anime;
@@ -313,7 +312,7 @@ export function AnimeFranchiseSection({
 
       {/* Grid of Season & Franchise Cards */}
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
-        {displayedItems.map((item, index) => {
+        {displayedItems.map((item) => {
           const isCurrent = item.id === currentAnime.id;
           const entry = entryFor(item.id);
           const isTracked = !!entry;

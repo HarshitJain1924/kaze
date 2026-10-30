@@ -3,9 +3,10 @@ import type { Metadata } from "next";
 import { ErrorState } from "@/components/error-state";
 import { RetryButton } from "@/components/retry-button";
 import { ScheduleBrowser } from "@/features/schedule/schedule-browser";
-import { loadLibraryItems } from "@/features/library/load-library";
 import { getViewer } from "@/lib/auth";
 import { getWeekRange, groupScheduleByDay } from "@/lib/schedule";
+import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { createLibraryRepository } from "@/repositories/library";
 import { getCatalogService } from "@/services/catalog/catalog-service";
 import type { AiringScheduleEntry } from "@/types/anime";
 
@@ -26,14 +27,20 @@ export default async function SchedulePage({
   const week = getWeekRange(date);
   const viewer = await getViewer();
 
-  // Load viewer's watching titles if authenticated
+  // Only the ids are needed here, so skip episode rows and metadata
+  // hydration entirely instead of loading the whole library again.
   let watchingIds: number[] = [];
   if (viewer) {
     try {
-      const items = await loadLibraryItems(viewer.id);
-      watchingIds = items
-        .filter((item) => item.entry.status === "watching")
-        .map((item) => item.entry.anilistId);
+      const supabase = await createSupabaseServerClient();
+      if (supabase) {
+        const entries = await createLibraryRepository(supabase).list(
+          viewer.id,
+        );
+        watchingIds = entries
+          .filter((entry) => entry.status === "watching")
+          .map((entry) => entry.anilistId);
+      }
     } catch (err) {
       console.error(
         "[schedule] could not load user watching list:",
@@ -81,6 +88,7 @@ export default async function SchedulePage({
       entries={entries}
       watchingIds={watchingIds}
       initialDate={date}
+      initialNow={week.generatedAtMs}
     />
   );
 }

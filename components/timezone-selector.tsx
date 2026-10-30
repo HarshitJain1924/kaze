@@ -48,6 +48,7 @@ export function TimezoneSelector({
     width: number;
     top?: number;
     bottom?: number;
+    maxHeight: number;
   } | null>(null);
   const popoverRef = useRef<HTMLDivElement>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
@@ -78,12 +79,18 @@ export function TimezoneSelector({
       Math.min(rect.right - width, window.innerWidth - width - margin),
     );
     const spaceBelow = window.innerHeight - rect.bottom - margin;
+    const spaceAbove = rect.top - margin;
+    const openUpward = spaceBelow < 320 && spaceAbove > spaceBelow;
+    const available = Math.max(0, (openUpward ? spaceAbove : spaceBelow) - gap);
 
-    setPosition(
-      spaceBelow < 320 && rect.top > spaceBelow
-        ? { left, width, bottom: window.innerHeight - rect.top + gap }
-        : { left, width, top: rect.bottom + gap },
-    );
+    setPosition({
+      left,
+      width,
+      maxHeight: Math.min(available, Math.round(window.innerHeight * 0.7)),
+      ...(openUpward
+        ? { bottom: window.innerHeight - rect.top + gap }
+        : { top: rect.bottom + gap }),
+    });
   }, []);
 
   useLayoutEffect(() => {
@@ -228,7 +235,7 @@ export function TimezoneSelector({
         aria-haspopup="dialog"
         onClick={() => (open ? closePopover() : setOpen(true))}
         className={cn(
-          "inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-1 text-xs font-medium transition-all",
+          "inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-lg border px-2.5 py-1 text-xs font-medium transition-all",
           open
             ? "border-accent bg-accent/15 text-accent-strong ring-1 ring-accent/40"
             : "border-border-subtle bg-surface-2/80 text-fg hover:border-border hover:bg-surface-3 hover:text-accent-strong",
@@ -236,7 +243,7 @@ export function TimezoneSelector({
         title={`Current timezone: ${getTimeZoneDisplayName(activeTimeZone, deviceTimeZone)}`}
       >
         <GlobeIcon className="h-3.5 w-3.5 text-accent-strong" />
-        <span suppressHydrationWarning className="tabular-nums">
+        <span suppressHydrationWarning className="whitespace-nowrap tabular-nums">
           {activeDisplay}
         </span>
         <ChevronDownIcon
@@ -258,8 +265,9 @@ export function TimezoneSelector({
                 width: position.width,
                 top: position.top,
                 bottom: position.bottom,
+                maxHeight: position.maxHeight,
               }}
-              className="fixed z-50 max-h-[70vh] overflow-y-auto rounded-2xl border border-border bg-surface p-3 shadow-xl backdrop-blur-md animate-in fade-in zoom-in-95 duration-150"
+              className="fixed z-50 overflow-y-auto overscroll-contain rounded-2xl border border-border bg-surface p-3 shadow-xl backdrop-blur-md animate-in fade-in zoom-in-95 duration-150"
             >
               {/* Header */}
               <div className="flex items-center justify-between pb-2 border-b border-border-subtle">

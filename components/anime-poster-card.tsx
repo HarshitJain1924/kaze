@@ -51,7 +51,6 @@ export interface AnimePosterCardProps {
 
 export function AnimePosterCard({
   anime,
-  metaMode = "overlay",
   priority = false,
   showQuickAdd = true,
   className,

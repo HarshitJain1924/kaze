@@ -15,6 +15,7 @@ import { SectionHeader } from "@/components/section-header";
 import { useActiveTimeZone, usePreferences } from "@/components/providers/preferences-provider";
 import { TimezoneSelector } from "@/components/timezone-selector";
 import { useLibrary } from "@/features/library/library-provider";
+import { useNow } from "@/lib/use-now";
 import {
   formatAiringRelative,
   formatAiringTime,
@@ -29,6 +30,8 @@ import type { AiringScheduleEntry, AnimeSummary } from "@/types/anime";
 interface HomeScheduleProps {
   week: WeekRange;
   initialEntries: AiringScheduleEntry[] | null;
+  /** Server render time; keeps the first client render identical. */
+  initialNow: number;
 }
 
 /** The dashboard shows the shape of a day and links out; the full page holds
@@ -45,7 +48,12 @@ function formatDayHeading(isoDate: string): string {
   }).format(date);
 }
 
-export function HomeSchedule({ week, initialEntries }: HomeScheduleProps) {
+export function HomeSchedule({
+  week,
+  initialEntries,
+  initialNow,
+}: HomeScheduleProps) {
+  const nowMs = useNow(initialNow);
   const { preferences } = usePreferences();
   const { activeTimeZone } = useActiveTimeZone();
   const {
@@ -80,10 +88,10 @@ export function HomeSchedule({ week, initialEntries }: HomeScheduleProps) {
 
   // Default active day is today in active timezone if within this week, otherwise first day
   const initialDate = useMemo(() => {
-    const localTodayIso = toIsoDateString(new Date(), activeTimeZone);
+    const localTodayIso = toIsoDateString(new Date(nowMs), activeTimeZone);
     const match = days.find((d) => d.date === localTodayIso);
     return match ? match.date : (days[0]?.date ?? "");
-  }, [days, activeTimeZone]);
+  }, [days, activeTimeZone, nowMs]);
 
   const [selectedDate, setSelectedDate] = useState<string>(initialDate);
   const [filterMode, setFilterMode] = useState<"all" | "watching">("all");
@@ -331,6 +339,7 @@ export function HomeSchedule({ week, initialEntries }: HomeScheduleProps) {
                 onToggleEpisode={toggleEpisode}
                 onRequestAdd={() => requestAdd(entry.media)}
                 isPending={pendingIds.has(entry.mediaId)}
+                nowMs={nowMs}
               />
             ))}
           </div>
@@ -365,6 +374,7 @@ interface HomeScheduleCardProps {
   ) => Promise<boolean>;
   onRequestAdd: () => void;
   isPending: boolean;
+  nowMs: number;
 }
 
 function HomeScheduleCard({
@@ -378,15 +388,15 @@ function HomeScheduleCard({
   onToggleEpisode,
   onRequestAdd,
   isPending,
+  nowMs,
 }: HomeScheduleCardProps) {
   const anime = entry.media;
   const title = getDisplayTitle(anime.title, titleLanguage === "english");
-  const nativeTitle = anime.title.native;
   const cover = anime.coverImage.extraLarge ?? anime.coverImage.large;
 
   const airingTimeStr = formatAiringTime(entry.airingAt, timeZone);
   const tzAbbr = getTimeZoneAbbr(entry.airingAt, timeZone);
-  const relative = formatAiringRelative(entry.airingAt);
+  const relative = formatAiringRelative(entry.airingAt, nowMs);
 
   // Individual watched records are the source of truth when present.
   const isWatched =

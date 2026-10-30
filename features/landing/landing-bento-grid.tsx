@@ -3,17 +3,10 @@
 import { useState } from "react";
 
 import {
-  CalendarIcon,
   ChartIcon,
-  CheckIcon,
   ClockIcon,
-  CompassIcon,
-  DownloadIcon,
-  FlameIcon,
   LockIcon,
   PlusIcon,
-  ShieldCheckIcon,
-  SparklesIcon,
   ZapIcon,
 } from "@/components/icons";
 import { cn } from "@/lib/utils";
@@ -208,7 +201,7 @@ export function LandingBentoGrid() {
             </p>
           </div>
 
-          {/* Card 4: Encrypted Private Vault (Spans 2 columns on large screens) */}
+          {/* Card 4: Private Vault (Spans 2 columns on large screens) */}
           <div className="lg:col-span-2 relative overflow-hidden rounded-3xl border border-white/[0.1] bg-surface/80 p-6 sm:p-8 shadow-2xl backdrop-blur-2xl transition-all duration-300 hover:border-white/20">
             <div className="pointer-events-none absolute -right-20 -bottom-20 h-64 w-64 rounded-full bg-purple-600/20 blur-[100px]" />
 
@@ -219,7 +212,7 @@ export function LandingBentoGrid() {
                 </div>
                 <div>
                   <h3 className="font-display text-xl font-bold text-white">
-                    Private &amp; Encrypted Vault
+                    Private &amp; Protected Vault
                   </h3>
                   <p className="text-xs text-muted">
                     Your personal library belongs to you. Zero tracking pixels.
