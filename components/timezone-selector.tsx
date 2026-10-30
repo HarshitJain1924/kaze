@@ -1,6 +1,15 @@
 "use client";
 
-import { useEffect, useId, useMemo, useRef, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useId,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
+import { createPortal } from "react-dom";
 
 import { CheckIcon, ChevronDownIcon, GlobeIcon, SearchIcon } from "@/components/icons";
 import { useActiveTimeZone } from "@/components/providers/preferences-provider";
@@ -34,17 +43,67 @@ export function TimezoneSelector({
 
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState("");
+  const [position, setPosition] = useState<{
+    left: number;
+    width: number;
+    top?: number;
+    bottom?: number;
+  } | null>(null);
   const popoverRef = useRef<HTMLDivElement>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
   const selectId = useId();
+
+  const closePopover = useCallback(() => {
+    setOpen(false);
+    setPosition(null);
+    setSearch("");
+  }, []);
+
+  /**
+   * The trigger often sits inside a hero panel with `overflow-hidden`, which
+   * would clip an absolutely positioned popover. The portal is positioned
+   * against the viewport instead and clamped so it never leaves the screen.
+   */
+  const updatePosition = useCallback(() => {
+    const trigger = triggerRef.current;
+    if (!trigger) return;
+
+    const margin = 8;
+    const gap = 6;
+    const rect = trigger.getBoundingClientRect();
+    const width = Math.min(320, window.innerWidth - margin * 2);
+    const left = Math.max(
+      margin,
+      Math.min(rect.right - width, window.innerWidth - width - margin),
+    );
+    const spaceBelow = window.innerHeight - rect.bottom - margin;
+
+    setPosition(
+      spaceBelow < 320 && rect.top > spaceBelow
+        ? { left, width, bottom: window.innerHeight - rect.top + gap }
+        : { left, width, top: rect.bottom + gap },
+    );
+  }, []);
+
+  useLayoutEffect(() => {
+    if (!open) return;
+    updatePosition();
+    window.addEventListener("resize", updatePosition);
+    // Capture scroll events from any ancestor, not just the document.
+    window.addEventListener("scroll", updatePosition, true);
+    return () => {
+      window.removeEventListener("resize", updatePosition);
+      window.removeEventListener("scroll", updatePosition, true);
+    };
+  }, [open, updatePosition]);
 
   // Close on outside click or Escape
   useEffect(() => {
     if (!open) return;
     function handleKeyDown(e: KeyboardEvent) {
       if (e.key === "Escape") {
-        setOpen(false);
+        closePopover();
         triggerRef.current?.focus();
       }
     }
@@ -55,7 +114,7 @@ export function TimezoneSelector({
         triggerRef.current &&
         !triggerRef.current.contains(e.target as Node)
       ) {
-        setOpen(false);
+        closePopover();
       }
     }
     window.addEventListener("keydown", handleKeyDown);
@@ -64,14 +123,12 @@ export function TimezoneSelector({
       window.removeEventListener("keydown", handleKeyDown);
       window.removeEventListener("mousedown", handleClickOutside);
     };
-  }, [open]);
+  }, [open, closePopover]);
 
   // Focus search input when popover opens
   useEffect(() => {
     if (open) {
       searchInputRef.current?.focus();
-    } else {
-      setSearch("");
     }
   }, [open]);
 
@@ -93,7 +150,7 @@ export function TimezoneSelector({
   const handleChoose = (tzValue: string) => {
     setTimeZone(tzValue);
     onSelect?.(tzValue);
-    setOpen(false);
+    closePopover();
   };
 
   const isJapanTime = activeTimeZone === "Asia/Tokyo";
@@ -169,7 +226,7 @@ export function TimezoneSelector({
         type="button"
         aria-expanded={open}
         aria-haspopup="dialog"
-        onClick={() => setOpen((prev) => !prev)}
+        onClick={() => (open ? closePopover() : setOpen(true))}
         className={cn(
           "inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-1 text-xs font-medium transition-all",
           open
@@ -190,117 +247,128 @@ export function TimezoneSelector({
         />
       </button>
 
-      {open ? (
-        <div
-          ref={popoverRef}
-          role="dialog"
-          aria-label="Select timezone"
-          className="absolute left-0 top-full z-50 mt-1.5 w-72 sm:w-80 rounded-2xl border border-border bg-surface p-3 shadow-xl backdrop-blur-md animate-in fade-in zoom-in-95 duration-150"
-        >
-          {/* Header */}
-          <div className="flex items-center justify-between pb-2 border-b border-border-subtle">
-            <div>
-              <p className="text-xs font-semibold text-fg">Timezone</p>
-              <p className="text-[11px] text-muted truncate max-w-[200px]">
-                {getTimeZoneDisplayName(activeTimeZone, deviceTimeZone)}
-              </p>
-            </div>
-            {isAuto ? (
-              <span className="inline-flex items-center rounded-full bg-accent/15 px-2 py-0.5 text-[10px] font-semibold text-accent-strong">
-                Auto
-              </span>
-            ) : (
-              <span className="inline-flex items-center rounded-full bg-surface-3 px-2 py-0.5 text-[10px] font-medium text-muted">
-                Custom
-              </span>
-            )}
-          </div>
-
-          {/* Quick Action: Toggle between Local and Japan Release Time */}
-          <div className="py-2 border-b border-border-subtle">
-            <button
-              type="button"
-              onClick={handleToggleJapanLocal}
-              className="w-full flex items-center justify-between rounded-xl border border-accent/30 bg-accent-soft px-3 py-2 text-xs font-semibold text-accent-strong hover:bg-accent/20 transition-colors"
+      {open && position
+        ? createPortal(
+            <div
+              ref={popoverRef}
+              role="dialog"
+              aria-label="Select timezone"
+              style={{
+                left: position.left,
+                width: position.width,
+                top: position.top,
+                bottom: position.bottom,
+              }}
+              className="fixed z-50 max-h-[70vh] overflow-y-auto rounded-2xl border border-border bg-surface p-3 shadow-xl backdrop-blur-md animate-in fade-in zoom-in-95 duration-150"
             >
-              <span>
-                {isJapanTime
-                  ? `Switch to My Timezone (${deviceAbbr})`
-                  : "Switch to Japan Release Time (JST)"}
-              </span>
-              <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-accent/25">
-                {isJapanTime ? "Local" : "JST"}
-              </span>
-            </button>
-          </div>
-
-          {/* Search box */}
-          <div className="relative my-2">
-            <SearchIcon className="absolute left-2.5 top-2.5 h-3.5 w-3.5 text-faint" />
-            <input
-              ref={searchInputRef}
-              type="text"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder="Search timezones or cities…"
-              className="w-full rounded-lg border border-border-subtle bg-surface-2 pl-8 pr-3 py-1.5 text-xs text-fg placeholder:text-faint focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent"
-            />
-          </div>
-
-          {/* Option list */}
-          <div className="max-h-56 overflow-y-auto space-y-1 no-scrollbar pr-0.5">
-            {filteredOptions.length === 0 ? (
-              <div className="py-4 text-center text-xs text-muted">
-                No matching timezone found
+              {/* Header */}
+              <div className="flex items-center justify-between pb-2 border-b border-border-subtle">
+                <div>
+                  <p className="text-xs font-semibold text-fg">Timezone</p>
+                  <p className="text-[11px] text-muted truncate max-w-[200px]">
+                    {getTimeZoneDisplayName(activeTimeZone, deviceTimeZone)}
+                  </p>
+                </div>
+                {isAuto ? (
+                  <span className="inline-flex items-center rounded-full bg-accent/15 px-2 py-0.5 text-[10px] font-semibold text-accent-strong">
+                    Auto
+                  </span>
+                ) : (
+                  <span className="inline-flex items-center rounded-full bg-surface-3 px-2 py-0.5 text-[10px] font-medium text-muted">
+                    Custom
+                  </span>
+                )}
               </div>
-            ) : (
-              filteredOptions.map((opt) => {
-                const isSelected =
-                  opt.value === "auto" ? isAuto : activeTimeZone === opt.value;
-                const optAbbr =
-                  opt.value === "auto"
-                    ? deviceAbbr
-                    : getTimeZoneAbbr(undefined, opt.value);
 
-                return (
-                  <button
-                    key={opt.value}
-                    type="button"
-                    onClick={() => handleChoose(opt.value)}
-                    className={cn(
-                      "w-full flex items-center justify-between gap-2 rounded-lg px-2.5 py-1.5 text-left text-xs transition-colors",
-                      isSelected
-                        ? "bg-accent/15 text-accent-strong font-semibold"
-                        : "text-fg hover:bg-surface-2 hover:text-fg",
-                    )}
-                  >
-                    <div className="min-w-0 flex-1">
-                      <p className="truncate leading-snug">{opt.label}</p>
-                      {opt.value !== "auto" ? (
-                        <p className="text-[10px] text-faint truncate font-mono">
-                          {opt.value}
-                        </p>
-                      ) : (
-                        <p className="text-[10px] text-faint truncate">
-                          Detected: {deviceTimeZone}
-                        </p>
-                      )}
-                    </div>
-                    <div className="shrink-0 flex items-center gap-1.5">
-                      <span className="font-mono text-[11px] tabular-nums text-muted">
-                        {optAbbr}
-                      </span>
-                      {isSelected ? (
-                        <CheckIcon className="h-3.5 w-3.5 text-accent-strong" />
-                      ) : null}
-                    </div>
-                  </button>
-                );
-              })
-            )}
-          </div>
-        </div>
-      ) : null}
+              {/* Quick Action: Toggle between Local and Japan Release Time */}
+              <div className="py-2 border-b border-border-subtle">
+                <button
+                  type="button"
+                  onClick={handleToggleJapanLocal}
+                  className="w-full flex items-center justify-between rounded-xl border border-accent/30 bg-accent-soft px-3 py-2 text-xs font-semibold text-accent-strong hover:bg-accent/20 transition-colors"
+                >
+                  <span>
+                    {isJapanTime
+                      ? `Switch to My Timezone (${deviceAbbr})`
+                      : "Switch to Japan Release Time (JST)"}
+                  </span>
+                  <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-accent/25">
+                    {isJapanTime ? "Local" : "JST"}
+                  </span>
+                </button>
+              </div>
+
+              {/* Search box */}
+              <div className="relative my-2">
+                <SearchIcon className="absolute left-2.5 top-2.5 h-3.5 w-3.5 text-faint" />
+                <input
+                  ref={searchInputRef}
+                  type="text"
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  placeholder="Search timezones or cities…"
+                  className="w-full rounded-lg border border-border-subtle bg-surface-2 pl-8 pr-3 py-1.5 text-xs text-fg placeholder:text-faint focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent"
+                />
+              </div>
+
+              {/* Option list */}
+              <div className="max-h-56 overflow-y-auto space-y-1 no-scrollbar pr-0.5">
+                {filteredOptions.length === 0 ? (
+                  <div className="py-4 text-center text-xs text-muted">
+                    No matching timezone found
+                  </div>
+                ) : (
+                  filteredOptions.map((opt) => {
+                    const isSelected =
+                      opt.value === "auto"
+                        ? isAuto
+                        : activeTimeZone === opt.value;
+                    const optAbbr =
+                      opt.value === "auto"
+                        ? deviceAbbr
+                        : getTimeZoneAbbr(undefined, opt.value);
+
+                    return (
+                      <button
+                        key={opt.value}
+                        type="button"
+                        onClick={() => handleChoose(opt.value)}
+                        className={cn(
+                          "w-full flex items-center justify-between gap-2 rounded-lg px-2.5 py-1.5 text-left text-xs transition-colors",
+                          isSelected
+                            ? "bg-accent/15 text-accent-strong font-semibold"
+                            : "text-fg hover:bg-surface-2 hover:text-fg",
+                        )}
+                      >
+                        <div className="min-w-0 flex-1">
+                          <p className="truncate leading-snug">{opt.label}</p>
+                          {opt.value !== "auto" ? (
+                            <p className="text-[10px] text-faint truncate font-mono">
+                              {opt.value}
+                            </p>
+                          ) : (
+                            <p className="text-[10px] text-faint truncate">
+                              Detected: {deviceTimeZone}
+                            </p>
+                          )}
+                        </div>
+                        <div className="shrink-0 flex items-center gap-1.5">
+                          <span className="font-mono text-[11px] tabular-nums text-muted">
+                            {optAbbr}
+                          </span>
+                          {isSelected ? (
+                            <CheckIcon className="h-3.5 w-3.5 text-accent-strong" />
+                          ) : null}
+                        </div>
+                      </button>
+                    );
+                  })
+                )}
+              </div>
+            </div>,
+            document.body,
+          )
+        : null}
     </div>
   );
 }
