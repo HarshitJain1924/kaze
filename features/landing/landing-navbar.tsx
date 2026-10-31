@@ -12,39 +12,39 @@ export function LandingNavbar({ viewer }: { viewer: Viewer | null }) {
 
   return (
     <header className="sticky top-4 z-50 mx-auto w-full max-w-6xl px-4 sm:px-6">
-      <div className="relative flex items-center justify-between gap-3 rounded-full border border-white/[0.12] bg-[#07080e]/80 px-4 py-2.5 shadow-2xl backdrop-blur-2xl ring-1 ring-white/5 transition-all">
+      <div className="relative flex items-center justify-between gap-3 rounded-full border border-border bg-surface/80 px-4 py-2.5 shadow-2xl backdrop-blur-2xl ring-1 ring-border-subtle transition-all">
         {/* Brand Logo (Logo already renders its own home link) */}
         <Logo className="select-none" />
 
         {/* Center Desktop Navigation Links */}
-        <nav className="hidden lg:flex items-center gap-1 rounded-full border border-white/[0.06] bg-white/[0.03] px-2 py-1 text-xs font-semibold text-muted">
+        <nav className="hidden lg:flex items-center gap-1 rounded-full border border-border-subtle bg-surface-2/60 px-2 py-1 text-xs font-semibold text-muted">
           <a
             href="#features"
-            className="rounded-full px-3 py-1 hover:text-white hover:bg-white/[0.06] transition-colors"
+            className="rounded-full px-3 py-1 hover:text-fg hover:bg-surface-3 transition-colors"
           >
             Features
           </a>
           <a
             href="#radar"
-            className="rounded-full px-3 py-1 hover:text-white hover:bg-white/[0.06] transition-colors"
+            className="rounded-full px-3 py-1 hover:text-fg hover:bg-surface-3 transition-colors"
           >
             Airing Radar
           </a>
           <a
             href="#dna"
-            className="rounded-full px-3 py-1 hover:text-white hover:bg-white/[0.06] transition-colors"
+            className="rounded-full px-3 py-1 hover:text-fg hover:bg-surface-3 transition-colors"
           >
             Taste DNA
           </a>
           <a
             href="#compare"
-            className="rounded-full px-3 py-1 hover:text-white hover:bg-white/[0.06] transition-colors"
+            className="rounded-full px-3 py-1 hover:text-fg hover:bg-surface-3 transition-colors"
           >
             Why Kaze
           </a>
           <Link
             href="/discover"
-            className="rounded-full px-3 py-1 text-accent-strong hover:text-white hover:bg-white/[0.06] transition-colors"
+            className="rounded-full px-3 py-1 text-accent-strong hover:text-fg hover:bg-surface-3 transition-colors"
           >
             Catalogue
           </Link>
@@ -53,7 +53,7 @@ export function LandingNavbar({ viewer }: { viewer: Viewer | null }) {
         {/* Right CTA Actions */}
         <div className="flex shrink-0 items-center gap-2 sm:gap-3">
           {/* Live AniList Pipeline Indicator */}
-          <div className="hidden xl:inline-flex items-center gap-1.5 rounded-full border border-emerald-500/30 bg-emerald-950/40 px-3 py-1 text-[11px] font-semibold text-emerald-300">
+          <div className="hidden xl:inline-flex items-center gap-1.5 rounded-full border border-emerald-500/30 bg-emerald-950/40 px-3 py-1 text-[11px] font-semibold text-emerald-300 light:bg-emerald-500/10 light:text-emerald-700">
             <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 radar-live-dot" />
             <span>AniList GraphQL Live</span>
           </div>
@@ -70,7 +70,7 @@ export function LandingNavbar({ viewer }: { viewer: Viewer | null }) {
             <div className="flex shrink-0 items-center gap-2">
               <Link
                 href="/login"
-                className="hidden lg:inline-flex whitespace-nowrap rounded-full px-3.5 py-1.5 text-xs font-semibold text-muted hover:text-white transition-colors"
+                className="hidden lg:inline-flex whitespace-nowrap rounded-full px-3.5 py-1.5 text-xs font-semibold text-muted hover:text-fg transition-colors"
               >
                 Sign In
               </Link>
@@ -91,7 +91,7 @@ export function LandingNavbar({ viewer }: { viewer: Viewer | null }) {
           <button
             type="button"
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            className="lg:hidden flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-white/10 text-muted hover:text-white"
+            className="lg:hidden flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-border-subtle text-muted hover:text-fg"
             aria-label="Toggle navigation menu"
           >
             {mobileMenuOpen ? (
@@ -105,44 +105,44 @@ export function LandingNavbar({ viewer }: { viewer: Viewer | null }) {
 
       {/* Mobile Drawer Dropdown */}
       {mobileMenuOpen && (
-        <div className="mt-2 flex flex-col gap-2 rounded-2xl border border-white/10 bg-[#07080e]/95 p-4 shadow-2xl backdrop-blur-2xl lg:hidden animate-fade">
+        <div className="mt-2 flex flex-col gap-2 rounded-2xl border border-border bg-surface/95 p-4 shadow-2xl backdrop-blur-2xl lg:hidden animate-fade">
           <a
             href="#features"
             onClick={() => setMobileMenuOpen(false)}
-            className="rounded-xl px-3 py-2 text-sm font-semibold text-muted hover:bg-white/[0.05] hover:text-white"
+            className="rounded-xl px-3 py-2 text-sm font-semibold text-muted hover:bg-surface-2 hover:text-fg"
           >
             Features
           </a>
           <a
             href="#radar"
             onClick={() => setMobileMenuOpen(false)}
-            className="rounded-xl px-3 py-2 text-sm font-semibold text-muted hover:bg-white/[0.05] hover:text-white"
+            className="rounded-xl px-3 py-2 text-sm font-semibold text-muted hover:bg-surface-2 hover:text-fg"
           >
             Airing Radar
           </a>
           <a
             href="#dna"
             onClick={() => setMobileMenuOpen(false)}
-            className="rounded-xl px-3 py-2 text-sm font-semibold text-muted hover:bg-white/[0.05] hover:text-white"
+            className="rounded-xl px-3 py-2 text-sm font-semibold text-muted hover:bg-surface-2 hover:text-fg"
           >
             Taste DNA Telemetry
           </a>
           <a
             href="#compare"
             onClick={() => setMobileMenuOpen(false)}
-            className="rounded-xl px-3 py-2 text-sm font-semibold text-muted hover:bg-white/[0.05] hover:text-white"
+            className="rounded-xl px-3 py-2 text-sm font-semibold text-muted hover:bg-surface-2 hover:text-fg"
           >
             Why Kaze
           </a>
           <Link
             href="/discover"
             onClick={() => setMobileMenuOpen(false)}
-            className="rounded-xl px-3 py-2 text-sm font-semibold text-accent-strong hover:bg-white/[0.05] hover:text-white"
+            className="rounded-xl px-3 py-2 text-sm font-semibold text-accent-strong hover:bg-surface-2 hover:text-fg"
           >
             Explore Discover Catalogue →
           </Link>
 
-          <div className="border-t border-white/10 pt-3 flex flex-col gap-2">
+          <div className="border-t border-border-subtle pt-3 flex flex-col gap-2">
             {viewer ? (
               <Link
                 href="/dashboard"
@@ -154,7 +154,7 @@ export function LandingNavbar({ viewer }: { viewer: Viewer | null }) {
               <>
                 <Link
                   href="/login"
-                  className="flex items-center justify-center rounded-xl border border-white/10 bg-surface-2 py-2 text-xs font-semibold text-white"
+                  className="flex items-center justify-center rounded-xl border border-border-subtle bg-surface-2 py-2 text-xs font-semibold text-fg"
                 >
                   Sign In
                 </Link>

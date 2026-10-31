@@ -41,7 +41,7 @@ export default async function LandingPage() {
   }
 
   return (
-    <div className="theme-dark min-h-dvh bg-[#07080e] text-fg selection:bg-accent selection:text-white">
+    <div className="min-h-dvh bg-bg text-fg selection:bg-accent selection:text-white">
       {/* 1. Floating Capsule Glass Navigation Header */}
       <LandingNavbar viewer={viewer} />
 

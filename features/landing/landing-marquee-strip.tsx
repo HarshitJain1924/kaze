@@ -55,7 +55,7 @@ function StripRow({
         {loop.map((p, idx) => (
           <div
             key={`${p.id}-${idx}`}
-            className="group relative h-48 w-32 shrink-0 overflow-hidden rounded-2xl border border-white/10 bg-surface-2 shadow-2xl transition-all duration-300 hover:scale-105 hover:border-white/30 sm:h-56 sm:w-36"
+            className="group relative h-48 w-32 shrink-0 overflow-hidden rounded-2xl border border-border-subtle bg-surface-2 shadow-2xl transition-all duration-300 hover:scale-105 hover:border-border sm:h-56 sm:w-36"
           >
             <Image
               src={p.src}
@@ -77,11 +77,11 @@ function StripRow({
 
 export function LandingMarqueeStrip() {
   return (
-    <section className="relative overflow-hidden py-12 border-y border-white/[0.08] bg-[#05060a]">
+    <section className="relative overflow-hidden py-12 border-y border-border-subtle bg-bg-soft">
       {/* Background Japanese Watermark */}
       <div
         aria-hidden="true"
-        className="pointer-events-none absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 text-[320px] font-black leading-none text-white/[0.02] select-none"
+        className="pointer-events-none absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 text-[320px] font-black leading-none text-fg/[0.03] select-none"
         style={{ fontFamily: "serif" }}
       >
         風
@@ -92,7 +92,7 @@ export function LandingMarqueeStrip() {
         <span className="font-mono text-xs uppercase tracking-[0.25em] text-accent-strong font-bold">
           LIVE DIRECT FROM TOKYO BROADCASTS
         </span>
-        <h2 className="mt-1 font-display text-xl sm:text-2xl font-extrabold text-white">
+        <h2 className="mt-1 font-display text-xl sm:text-2xl font-extrabold text-fg">
           Over 10,000+ Series, Films &amp; OVAs Indexed
         </h2>
       </div>
@@ -103,8 +103,8 @@ export function LandingMarqueeStrip() {
         <StripRow posters={TRACK_2} direction="right" duration="34s" />
 
         {/* Left & Right Fade Masks for Seamless Visual Horizon */}
-        <div className="pointer-events-none absolute inset-y-0 left-0 w-24 sm:w-48 bg-gradient-to-r from-[#05060a] via-[#05060a]/80 to-transparent z-10" />
-        <div className="pointer-events-none absolute inset-y-0 right-0 w-24 sm:w-48 bg-gradient-to-l from-[#05060a] via-[#05060a]/80 to-transparent z-10" />
+        <div className="pointer-events-none absolute inset-y-0 left-0 w-24 sm:w-48 bg-gradient-to-r from-bg-soft via-bg-soft/80 to-transparent z-10" />
+        <div className="pointer-events-none absolute inset-y-0 right-0 w-24 sm:w-48 bg-gradient-to-l from-bg-soft via-bg-soft/80 to-transparent z-10" />
       </div>
     </section>
   );

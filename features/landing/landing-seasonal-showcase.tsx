@@ -20,11 +20,11 @@ export function LandingSeasonalShowcase({
       <div className="mx-auto max-w-6xl px-4 sm:px-6">
         <div className="flex flex-col sm:flex-row items-start sm:items-end justify-between gap-4 pb-10">
           <div>
-            <div className="inline-flex items-center gap-2 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-3 py-1 text-xs font-semibold text-emerald-300">
+            <div className="inline-flex items-center gap-2 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-3 py-1 text-xs font-semibold text-emerald-300 light:text-emerald-700">
               <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 radar-live-dot" />
               <span>Broadcast Season Spotlight</span>
             </div>
-            <h2 className="mt-2 font-display text-2xl sm:text-4xl font-extrabold text-white">
+            <h2 className="mt-2 font-display text-2xl sm:text-4xl font-extrabold text-fg">
               Trending in {seasonLabel} {year}
             </h2>
             <p className="text-sm text-muted">
@@ -34,7 +34,7 @@ export function LandingSeasonalShowcase({
 
           <Link
             href="/discover"
-            className="inline-flex items-center gap-1.5 rounded-full border border-white/10 bg-surface px-4 py-2 text-xs font-bold text-accent-strong hover:bg-surface-2 hover:text-white transition-all"
+            className="inline-flex items-center gap-1.5 rounded-full border border-border-subtle bg-surface px-4 py-2 text-xs font-bold text-accent-strong hover:bg-surface-2 hover:text-fg transition-all"
           >
             <CompassIcon className="h-3.5 w-3.5" />
             <span>Explore All Releases →</span>
@@ -47,7 +47,7 @@ export function LandingSeasonalShowcase({
             <Link
               key={anime.id}
               href={`/anime/${anime.id}`}
-              className="group relative flex flex-col overflow-hidden rounded-2xl border border-white/[0.08] bg-surface/75 shadow-lg backdrop-blur-md transition-all duration-300 hover:scale-[1.03] hover:border-accent/50 hover:shadow-2xl hover:shadow-accent/15"
+              className="group relative flex flex-col overflow-hidden rounded-2xl border border-border-subtle bg-surface/75 shadow-lg backdrop-blur-md transition-all duration-300 hover:scale-[1.03] hover:border-accent/50 hover:shadow-2xl hover:shadow-accent/15"
             >
               {/* Aspect Ratio 2:3 Poster Frame */}
               <div className="relative aspect-[2/3] w-full overflow-hidden bg-surface-2">
@@ -83,7 +83,7 @@ export function LandingSeasonalShowcase({
                   <p className="truncate text-xs font-bold text-white drop-shadow">
                     {anime.title.english || anime.title.romaji}
                   </p>
-                  <p className="text-[10px] text-faint truncate">
+                  <p className="text-[10px] text-white/65 truncate">
                     {anime.genres?.slice(0, 2).join(" · ") || "Anime"}
                   </p>
                 </div>

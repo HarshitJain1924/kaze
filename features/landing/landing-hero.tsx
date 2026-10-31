@@ -44,11 +44,11 @@ export function LandingHero({ viewer }: { viewer: Viewer | null }) {
       <div className="relative mx-auto max-w-6xl px-4 sm:px-6">
         {/* Top Eyebrow Badge */}
         <div className="flex justify-center">
-          <div className="inline-flex items-center gap-2 rounded-full border border-purple-500/30 bg-purple-500/10 px-4 py-1.5 text-xs font-semibold text-purple-300 shadow-lg backdrop-blur-xl ring-1 ring-purple-500/20 animate-fade">
+          <div className="inline-flex items-center gap-2 rounded-full border border-purple-500/30 bg-purple-500/10 px-4 py-1.5 text-xs font-semibold text-purple-300 light:text-purple-700 shadow-lg backdrop-blur-xl ring-1 ring-purple-500/20 animate-fade">
             <SparklesIcon className="h-3.5 w-3.5 text-accent-strong" />
             <span>Personal Anime Sanctuary · Version 2.0</span>
-            <span className="hidden sm:inline text-white/30">|</span>
-            <span className="hidden sm:inline text-white/70">
+            <span className="hidden sm:inline text-faint/60">|</span>
+            <span className="hidden sm:inline text-muted">
               AniList Live Edge Pipeline
             </span>
           </div>
@@ -56,9 +56,9 @@ export function LandingHero({ viewer }: { viewer: Viewer | null }) {
 
         {/* Main Title & Value Proposition */}
         <div className="mx-auto mt-6 max-w-4xl text-center">
-          <h1 className="font-display text-4xl font-black leading-[1.1] tracking-tight text-white sm:text-6xl lg:text-7xl drop-shadow-xl">
+          <h1 className="font-display text-4xl font-black leading-[1.1] tracking-tight text-fg sm:text-6xl lg:text-7xl drop-shadow-xl">
             Your anime journey,{" "}
-            <span className="bg-gradient-to-r from-purple-200 via-white to-accent-strong bg-clip-text text-transparent">
+            <span className="bg-gradient-to-r from-accent via-accent-strong to-accent-hover bg-clip-text text-transparent">
               elevated to cinema.
             </span>
           </h1>
@@ -92,7 +92,7 @@ export function LandingHero({ viewer }: { viewer: Viewer | null }) {
 
             <Link
               href="/discover"
-              className="w-full sm:w-auto inline-flex items-center justify-center gap-2 rounded-2xl border border-white/10 bg-surface/80 px-6 py-4 text-sm font-bold text-fg backdrop-blur-xl hover:bg-surface-2 hover:border-white/20 transition-all active:scale-95"
+              className="w-full sm:w-auto inline-flex items-center justify-center gap-2 rounded-2xl border border-border-subtle bg-surface/80 px-6 py-4 text-sm font-bold text-fg backdrop-blur-xl hover:bg-surface-2 hover:border-border transition-all active:scale-95"
             >
               <PlayIcon className="h-4 w-4 text-accent-strong" />
               <span>Explore Live Catalogue</span>
@@ -105,17 +105,17 @@ export function LandingHero({ viewer }: { viewer: Viewer | null }) {
               <CheckIcon className="h-3.5 w-3.5 text-emerald-400" />
               Zero Ads Forever
             </span>
-            <span className="text-white/20 hidden sm:inline">·</span>
+            <span className="text-faint/50 hidden sm:inline">·</span>
             <span className="flex items-center gap-1.5">
               <ZapIcon className="h-3.5 w-3.5 text-accent-strong" />
               1-Tap Episode Stepper
             </span>
-            <span className="text-white/20 hidden sm:inline">·</span>
+            <span className="text-faint/50 hidden sm:inline">·</span>
             <span className="flex items-center gap-1.5">
               <ClockIcon className="h-3.5 w-3.5 text-amber-400" />
               Live Tokyo Broadcast Radar
             </span>
-            <span className="text-white/20 hidden sm:inline">·</span>
+            <span className="text-faint/50 hidden sm:inline">·</span>
             <span className="flex items-center gap-1.5">
               <ShieldCheckIcon className="h-3.5 w-3.5 text-purple-400" />
               Supabase RLS Protection
@@ -129,9 +129,9 @@ export function LandingHero({ viewer }: { viewer: Viewer | null }) {
           <div className="pointer-events-none absolute -inset-2 rounded-3xl bg-gradient-to-r from-accent/30 via-purple-600/20 to-cyan-500/20 blur-2xl opacity-75" />
 
           {/* Browser Chrome Window Container */}
-          <div className="relative rounded-3xl border border-white/[0.15] bg-[#0c0e17]/95 shadow-[0_25px_60px_-15px_rgba(0,0,0,0.9)] backdrop-blur-3xl overflow-hidden ring-1 ring-white/10">
+          <div className="relative rounded-3xl border border-border bg-surface/95 shadow-[0_25px_60px_-15px_rgba(0,0,0,0.35)] backdrop-blur-3xl overflow-hidden ring-1 ring-border-subtle">
             {/* Top Chrome Window Toolbar */}
-            <div className="flex items-center justify-between border-b border-white/[0.08] bg-[#090b12] px-4 py-3">
+            <div className="flex items-center justify-between border-b border-border-subtle bg-surface-2 px-4 py-3">
               <div className="flex items-center gap-2">
                 <span className="h-3 w-3 rounded-full bg-rose-500/80 shadow-[0_0_8px_rgba(244,63,94,0.6)]" />
                 <span className="h-3 w-3 rounded-full bg-amber-500/80 shadow-[0_0_8px_rgba(245,158,11,0.6)]" />
@@ -141,7 +141,7 @@ export function LandingHero({ viewer }: { viewer: Viewer | null }) {
                 </span>
               </div>
 
-              <div className="inline-flex items-center gap-2 rounded-full border border-white/[0.08] bg-white/[0.03] px-3 py-1 text-[11px] font-semibold text-muted">
+              <div className="inline-flex items-center gap-2 rounded-full border border-border-subtle bg-surface px-3 py-1 text-[11px] font-semibold text-muted">
                 <span className="h-2 w-2 rounded-full bg-accent-strong animate-pulse" />
                 <span>Interactive Live Demo · Try clicking below!</span>
               </div>
@@ -150,13 +150,13 @@ export function LandingHero({ viewer }: { viewer: Viewer | null }) {
             {/* Inner Dashboard Preview Grid */}
             <div className="p-4 sm:p-6 lg:p-8 grid gap-5 lg:grid-cols-[1.25fr_1fr]">
               {/* Left Live Card: Interactive Continue Watching Stepper */}
-              <div className="relative rounded-2xl border border-white/[0.1] bg-surface/90 p-5 shadow-xl backdrop-blur-xl space-y-4">
+              <div className="relative rounded-2xl border border-border-subtle bg-surface p-5 shadow-xl backdrop-blur-xl space-y-4">
                 <div className="flex items-center justify-between">
                   <div className="inline-flex items-center gap-1.5 text-xs font-bold text-accent-strong uppercase tracking-wider">
                     <FlameIcon className="h-3.5 w-3.5 text-rose-400" />
                     <span>Continue Watching Centerpiece</span>
                   </div>
-                  <span className="rounded-md border border-purple-500/30 bg-purple-500/10 px-2 py-0.5 text-[11px] font-semibold text-purple-300">
+                  <span className="rounded-md border border-purple-500/30 bg-purple-500/10 px-2 py-0.5 text-[11px] font-semibold text-purple-300 light:text-purple-700">
                     ONA · Trigger
                   </span>
                 </div>
@@ -177,7 +177,7 @@ export function LandingHero({ viewer }: { viewer: Viewer | null }) {
 
                   <div className="min-w-0 flex-1 space-y-2">
                     <div>
-                      <h3 className="truncate font-display text-base sm:text-lg font-bold text-white">
+                      <h3 className="truncate font-display text-base sm:text-lg font-bold text-fg">
                         Cyberpunk: Edgerunners
                       </h3>
                       <p className="text-xs text-muted">
@@ -228,7 +228,7 @@ export function LandingHero({ viewer }: { viewer: Viewer | null }) {
                         type="button"
                         onClick={handleResetDemo}
                         title="Reset demo progress"
-                        className="flex h-8 w-8 items-center justify-center rounded-xl border border-white/10 bg-surface-2 text-faint hover:text-white transition-colors"
+                        className="flex h-8 w-8 items-center justify-center rounded-xl border border-border-subtle bg-surface-2 text-faint hover:text-fg transition-colors"
                       >
                         <RefreshIcon className="h-3.5 w-3.5" />
                       </button>
@@ -240,11 +240,11 @@ export function LandingHero({ viewer }: { viewer: Viewer | null }) {
               {/* Right Side: Airing Radar & Telemetry Snapshot */}
               <div className="space-y-3">
                 {/* Airing Today Radar Card */}
-                <div className="rounded-2xl border border-white/[0.08] bg-surface/75 p-3.5 shadow-md backdrop-blur-md">
-                  <div className="flex items-center justify-between pb-2 border-b border-white/[0.06]">
+                <div className="rounded-2xl border border-border-subtle bg-surface p-3.5 shadow-md backdrop-blur-md">
+                  <div className="flex items-center justify-between pb-2 border-b border-border-subtle">
                     <div className="flex items-center gap-2">
                       <span className="h-2 w-2 rounded-full bg-emerald-400 radar-live-dot" />
-                      <span className="text-xs font-bold text-white uppercase tracking-wider">
+                      <span className="text-xs font-bold text-fg uppercase tracking-wider">
                         Tokyo Broadcast Radar
                       </span>
                     </div>
@@ -253,7 +253,7 @@ export function LandingHero({ viewer }: { viewer: Viewer | null }) {
 
                   <div className="mt-2 space-y-1.5">
                     <div className="flex items-center justify-between rounded-lg bg-surface-2/60 px-2.5 py-1.5 text-xs">
-                      <span className="font-semibold text-white truncate max-w-[170px]">
+                      <span className="font-semibold text-fg truncate max-w-[170px]">
                         Chainsaw Man: Reze-hen
                       </span>
                       <span className="font-mono text-accent-strong font-bold text-[11px]">
@@ -261,7 +261,7 @@ export function LandingHero({ viewer }: { viewer: Viewer | null }) {
                       </span>
                     </div>
                     <div className="flex items-center justify-between rounded-lg bg-surface-2/60 px-2.5 py-1.5 text-xs">
-                      <span className="font-semibold text-white truncate max-w-[170px]">
+                      <span className="font-semibold text-fg truncate max-w-[170px]">
                         Sousou no Frieren S2
                       </span>
                       <span className="font-mono text-emerald-400 font-bold text-[11px]">
@@ -273,15 +273,15 @@ export function LandingHero({ viewer }: { viewer: Viewer | null }) {
 
                 {/* Vault Telemetry DNA Card */}
                 <div className="grid grid-cols-2 gap-2.5">
-                  <div className="rounded-2xl border border-white/[0.08] bg-surface/75 p-3 text-center">
+                  <div className="rounded-2xl border border-border-subtle bg-surface p-3 text-center">
                     <p className="text-[10px] uppercase font-bold text-faint">
                       Vault Episodes
                     </p>
-                    <p className="font-mono text-base font-extrabold text-white">
+                    <p className="font-mono text-base font-extrabold text-fg">
                       1,017
                     </p>
                   </div>
-                  <div className="rounded-2xl border border-white/[0.08] bg-surface/75 p-3 text-center">
+                  <div className="rounded-2xl border border-border-subtle bg-surface p-3 text-center">
                     <p className="text-[10px] uppercase font-bold text-faint">
                       Total Time
                     </p>

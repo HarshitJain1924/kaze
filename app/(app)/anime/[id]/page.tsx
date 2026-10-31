@@ -190,23 +190,23 @@ export default async function AnimeDetailsPage({ params }: PageProps) {
         {/* Liquid Glass Breadcrumb Navigation Bar */}
         <nav
           aria-label="Breadcrumbs"
-          className="inline-flex items-center gap-2 rounded-2xl liquid-glass-interactive px-3.5 py-1.5 text-xs font-medium text-white/95"
+          className="inline-flex items-center gap-2 rounded-2xl liquid-glass-interactive px-3.5 py-1.5 text-xs font-medium text-fg"
         >
           <Link
             href="/discover"
-            className="flex items-center gap-1.5 transition-colors hover:text-white"
+            className="flex items-center gap-1.5 transition-colors hover:text-accent-strong"
           >
             <ArrowLeftIcon className="h-3.5 w-3.5" />
             <span>Discover</span>
           </Link>
-          <span className="text-white/40">/</span>
-          <span className="max-w-[140px] truncate text-white/70 sm:max-w-[240px]">
+          <span className="text-faint">/</span>
+          <span className="max-w-[140px] truncate text-muted sm:max-w-[240px]">
             {displayTitle}
           </span>
           {anime.format ? (
             <>
-              <span className="text-white/40">/</span>
-              <span className="rounded bg-white/20 px-1.5 py-0.5 text-[10px] font-semibold uppercase text-white shadow-xs">
+              <span className="text-faint">/</span>
+              <span className="rounded bg-surface-3 px-1.5 py-0.5 text-[10px] font-semibold uppercase text-fg shadow-xs">
                 {formatFormat(anime.format)}
               </span>
             </>

@@ -711,7 +711,7 @@ export function ContinueWatching({ todayEntries }: ContinueWatchingProps = {}) {
             </span>
           ) : null}
           {todayAiringCount > 0 ? (
-            <span className="inline-flex items-center gap-1 rounded-lg border border-emerald-500/30 bg-emerald-950/60 px-2 py-0.5 text-xs font-bold text-emerald-300">
+            <span className="inline-flex items-center gap-1 rounded-lg border border-emerald-500/30 bg-emerald-950/60 px-2 py-0.5 text-xs font-bold text-emerald-300 light:bg-emerald-500/10 light:text-emerald-700">
               <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 radar-live-dot" />
               {todayAiringCount} airing today
             </span>

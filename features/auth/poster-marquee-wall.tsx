@@ -83,7 +83,7 @@ function PosterTrack({
         {loopPosters.map((poster, index) => (
           <div
             key={`${poster.id}-${index}`}
-            className="group relative h-40 w-28 shrink-0 overflow-hidden rounded-xl border border-white/[0.08] bg-surface-2 shadow-xl transition-transform duration-300 sm:h-48 sm:w-32"
+            className="group relative h-40 w-28 shrink-0 overflow-hidden rounded-xl border border-border-subtle bg-surface-2 shadow-xl transition-transform duration-300 sm:h-48 sm:w-32"
           >
             <Image
               src={poster.src}
@@ -107,7 +107,7 @@ export function PosterMarqueeWall() {
   return (
     <div
       aria-hidden="true"
-      className="pointer-events-none absolute inset-0 overflow-hidden select-none bg-[#07080e]"
+      className="pointer-events-none absolute inset-0 overflow-hidden select-none bg-bg-soft"
     >
       {/* Dynamic angled multi-row poster canvas */}
       <div className="absolute -inset-x-28 -inset-y-24 flex flex-col justify-center gap-4 -rotate-3 scale-110 opacity-35 sm:opacity-40">
@@ -119,7 +119,7 @@ export function PosterMarqueeWall() {
 
       {/* Atmospheric Japanese Kanji Watermark: 風 (Kaze - Wind) */}
       <div
-        className="pointer-events-none absolute -right-6 top-1/4 text-[280px] font-black leading-none text-white/[0.035] select-none blur-[1px]"
+        className="pointer-events-none absolute -right-6 top-1/4 text-[280px] font-black leading-none text-fg/[0.04] select-none blur-[1px]"
         style={{ fontFamily: "serif" }}
       >
         風
@@ -127,16 +127,16 @@ export function PosterMarqueeWall() {
 
       {/* Cinematic Multi-Stop Scrims: Guarantees maximum foreground legibility and contrast */}
       {/* 1. Deep background base scrim */}
-      <div className="absolute inset-0 bg-[#07080e]/45" />
+      <div className="absolute inset-0 bg-bg-soft/45" />
 
       {/* 2. Left-to-right gradient: dense on the left for text, opening slightly on the right to show moving artwork */}
-      <div className="absolute inset-0 bg-gradient-to-r from-[#07080e] via-[#07080e]/90 to-[#07080e]/50" />
+      <div className="absolute inset-0 bg-gradient-to-r from-bg-soft via-bg-soft/90 to-bg-soft/50" />
 
       {/* 3. Top and bottom vertical fades */}
-      <div className="absolute inset-0 bg-gradient-to-b from-[#07080e] via-transparent to-[#07080e]/80" />
+      <div className="absolute inset-0 bg-gradient-to-b from-bg-soft via-transparent to-bg-soft/80" />
 
       {/* 4. Radial center vignette */}
-      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,transparent_25%,#07080e_85%)]" />
+      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,transparent_25%,var(--bg-soft)_85%)]" />
 
       {/* 5. Electric ambient color glows */}
       <div className="pointer-events-none absolute -left-20 -top-20 h-96 w-96 rounded-full bg-accent/20 blur-[130px]" />
@@ -166,7 +166,7 @@ export function MiniPosterMarquee() {
           {loopPosters.map((poster, index) => (
             <div
               key={`mini-${poster.id}-${index}`}
-              className="relative h-28 w-20 shrink-0 overflow-hidden rounded-lg border border-white/10"
+              className="relative h-28 w-20 shrink-0 overflow-hidden rounded-lg border border-border-subtle"
             >
               <Image
                 src={poster.src}
