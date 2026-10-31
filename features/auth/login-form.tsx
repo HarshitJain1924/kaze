@@ -213,7 +213,7 @@ export function LoginForm({
     return (
       <div className="relative w-full max-w-md">
         <div className="pointer-events-none absolute -inset-1 rounded-3xl bg-amber-500/10 blur-xl" />
-        <div className="relative rounded-3xl border border-white/[0.12] bg-surface/90 p-6 sm:p-8 shadow-2xl backdrop-blur-2xl ring-1 ring-white/10">
+        <div className="relative rounded-3xl border border-border bg-surface/90 p-6 sm:p-8 shadow-2xl backdrop-blur-2xl ring-1 ring-border">
           <span className="flex h-11 w-11 items-center justify-center rounded-2xl border border-warning/30 bg-warning/10 text-warning shadow-inner">
             <AlertIcon className="h-5 w-5" />
           </span>
@@ -224,7 +224,7 @@ export function LoginForm({
             Discovery and anime details already operate live with the public AniList
             GraphQL API. Cloud authentication and your personal library require a Supabase project.
           </p>
-          <div className="mt-4 rounded-xl border border-white/[0.08] bg-surface-2/80 p-3.5 backdrop-blur-md">
+          <div className="mt-4 rounded-xl border border-border-subtle bg-surface-2/80 p-3.5 backdrop-blur-md">
             <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-faint">
               Required environment variables
             </p>
@@ -238,8 +238,8 @@ export function LoginForm({
             </ul>
           </div>
           <p className="mt-4 text-xs leading-relaxed text-faint">
-            Copy <code className="text-white/80">.env.example</code> to{" "}
-            <code className="text-white/80">.env.local</code> and set your project
+            Copy <code className="text-fg/80">.env.example</code> to{" "}
+            <code className="text-fg/80">.env.local</code> and set your project
             credentials.
           </p>
           <div className="mt-6">
@@ -260,11 +260,11 @@ export function LoginForm({
     return (
       <div className="relative w-full max-w-md">
         <div className="pointer-events-none absolute -inset-1 rounded-3xl bg-emerald-500/15 blur-xl" />
-        <div className="relative rounded-3xl border border-white/[0.12] bg-surface/90 p-6 sm:p-8 shadow-2xl backdrop-blur-2xl ring-1 ring-white/10">
+        <div className="relative rounded-3xl border border-border bg-surface/90 p-6 sm:p-8 shadow-2xl backdrop-blur-2xl ring-1 ring-border">
           <span className="flex h-12 w-12 items-center justify-center rounded-2xl border border-emerald-500/30 bg-emerald-500/15 text-emerald-400 shadow-inner">
             <CheckIcon className="h-6 w-6" />
           </span>
-          <h1 className="mt-5 font-display text-2xl font-bold tracking-tight text-white">
+          <h1 className="mt-5 font-display text-2xl font-bold tracking-tight text-fg">
             {notice.title}
           </h1>
           <p className="mt-2 text-sm leading-relaxed text-muted">
@@ -281,7 +281,7 @@ export function LoginForm({
             <LinkButton
               href="/discover"
               variant="ghost"
-              className="h-11 w-full rounded-xl border border-white/[0.08] hover:bg-white/[0.05]"
+              className="h-11 w-full rounded-xl border border-border-subtle hover:bg-surface-3"
             >
               Keep browsing
             </LinkButton>
@@ -297,10 +297,10 @@ export function LoginForm({
       <div className="pointer-events-none absolute -inset-1.5 rounded-3xl bg-gradient-to-tr from-accent/25 via-purple-500/10 to-accent/20 opacity-75 blur-2xl transition-all duration-500" />
 
       {/* Main Liquid-Glass Container */}
-      <div className="relative rounded-3xl border border-white/[0.12] bg-surface/90 p-6 sm:p-8 shadow-2xl backdrop-blur-2xl ring-1 ring-white/5">
+      <div className="relative rounded-3xl border border-border bg-surface/90 p-6 sm:p-8 shadow-2xl backdrop-blur-2xl ring-1 ring-border-subtle">
         {/* Card Header */}
         <div className="space-y-1.5">
-          <h2 className="font-display text-2xl font-bold tracking-tight text-white sm:text-3xl">
+          <h2 className="font-display text-2xl font-bold tracking-tight text-fg sm:text-3xl">
             {title}
           </h2>
           <p className="text-xs leading-relaxed text-muted sm:text-sm">{subtitle}</p>
@@ -311,7 +311,7 @@ export function LoginForm({
           <div
             role="tablist"
             aria-label="Authentication mode"
-            className="mt-6 grid grid-cols-2 gap-1 rounded-2xl border border-white/[0.08] bg-surface-2/70 p-1 backdrop-blur-md"
+            className="mt-6 grid grid-cols-2 gap-1 rounded-2xl border border-border-subtle bg-surface-2/70 p-1 backdrop-blur-md"
           >
             <button
               type="button"
@@ -320,8 +320,8 @@ export function LoginForm({
               onClick={() => switchMode("signin")}
               className={`h-10 rounded-xl text-xs sm:text-sm font-semibold transition-all duration-200 ${
                 mode === "signin"
-                  ? "bg-surface-3 text-white shadow-md border border-white/[0.12]"
-                  : "text-muted hover:text-white hover:bg-white/[0.04]"
+                  ? "bg-surface-3 text-fg shadow-md border border-border"
+                  : "text-muted hover:text-fg hover:bg-surface-3"
               }`}
             >
               Sign In
@@ -333,8 +333,8 @@ export function LoginForm({
               onClick={() => switchMode("signup")}
               className={`h-10 rounded-xl text-xs sm:text-sm font-semibold transition-all duration-200 ${
                 mode === "signup"
-                  ? "bg-surface-3 text-white shadow-md border border-white/[0.12]"
-                  : "text-muted hover:text-white hover:bg-white/[0.04]"
+                  ? "bg-surface-3 text-fg shadow-md border border-border"
+                  : "text-muted hover:text-fg hover:bg-surface-3"
               }`}
             >
               Create Account
@@ -362,7 +362,7 @@ export function LoginForm({
                 onChange={(event) => setEmail(event.target.value)}
                 disabled={busy}
                 required
-                className="h-11 sm:h-12 pl-10 rounded-xl border-white/[0.1] bg-surface-2/80 text-sm focus:border-accent focus:ring-2 focus:ring-accent/20"
+                className="h-11 sm:h-12 pl-10 rounded-xl border-border bg-surface-2/80 text-sm focus:border-accent focus:ring-2 focus:ring-accent/20"
               />
             </div>
           </Field>
@@ -396,13 +396,13 @@ export function LoginForm({
                   value={password}
                   onChange={(event) => setPassword(event.target.value)}
                   disabled={busy}
-                  className="h-11 sm:h-12 pl-10 pr-12 rounded-xl border-white/[0.1] bg-surface-2/80 text-sm focus:border-accent focus:ring-2 focus:ring-accent/20"
+                  className="h-11 sm:h-12 pl-10 pr-12 rounded-xl border-border bg-surface-2/80 text-sm focus:border-accent focus:ring-2 focus:ring-accent/20"
                   required
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword((value) => !value)}
-                  className="absolute right-2.5 top-1/2 -translate-y-1/2 rounded-lg p-1.5 text-faint transition-colors hover:bg-white/[0.08] hover:text-white"
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 rounded-lg p-1.5 text-faint transition-colors hover:bg-surface-3 hover:text-fg"
                   aria-label={showPassword ? "Hide password" : "Show password"}
                 >
                   {showPassword ? (
@@ -430,7 +430,7 @@ export function LoginForm({
                   value={confirmPassword}
                   onChange={(event) => setConfirmPassword(event.target.value)}
                   disabled={busy}
-                  className="h-11 sm:h-12 pl-10 rounded-xl border-white/[0.1] bg-surface-2/80 text-sm focus:border-accent focus:ring-2 focus:ring-accent/20"
+                  className="h-11 sm:h-12 pl-10 rounded-xl border-border bg-surface-2/80 text-sm focus:border-accent focus:ring-2 focus:ring-accent/20"
                   required
                 />
               </div>
@@ -469,12 +469,12 @@ export function LoginForm({
         </form>
 
         {/* Footer Navigation */}
-        <div className="mt-5 flex flex-wrap items-center justify-between gap-2 border-t border-white/[0.06] pt-4 text-xs">
+        <div className="mt-5 flex flex-wrap items-center justify-between gap-2 border-t border-border-subtle pt-4 text-xs">
           {mode === "signin" ? (
             <button
               type="button"
               onClick={() => switchMode("forgot")}
-              className="text-muted transition-colors hover:text-white"
+              className="text-muted transition-colors hover:text-fg"
             >
               Forgot your password?
             </button>
@@ -482,7 +482,7 @@ export function LoginForm({
             <button
               type="button"
               onClick={() => switchMode("signin")}
-              className="text-muted transition-colors hover:text-white"
+              className="text-muted transition-colors hover:text-fg"
             >
               Back to sign in
             </button>
@@ -491,7 +491,7 @@ export function LoginForm({
             href="/discover"
             variant="ghost"
             size="sm"
-            className="flex items-center gap-1.5 text-xs text-muted hover:text-white"
+            className="flex items-center gap-1.5 text-xs text-muted hover:text-fg"
           >
             <CompassIcon className="h-3.5 w-3.5" />
             <span>Keep browsing</span>

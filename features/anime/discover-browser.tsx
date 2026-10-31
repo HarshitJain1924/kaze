@@ -138,7 +138,7 @@ function DiscoverDetailedCard({ anime }: { anime: AnimeSummary }) {
   const entry = entryFor(anime.id);
 
   return (
-    <article className="group relative flex flex-col sm:flex-row gap-4 p-3.5 sm:p-4 rounded-2xl border border-white/10 bg-surface-2 hover:border-white/20 hover:bg-surface-3 transition-all duration-200 shadow-sm">
+    <article className="group relative flex flex-col sm:flex-row gap-4 p-3.5 sm:p-4 rounded-2xl border border-border-subtle bg-surface-2 transition-all duration-200 shadow-sm hover:border-border hover:bg-surface-3">
       {/* Poster */}
       <Link
         href={`/anime/${anime.id}`}
@@ -175,23 +175,23 @@ function DiscoverDetailedCard({ anime }: { anime: AnimeSummary }) {
               </span>
             ) : null}
             {formatLabel ? (
-              <span className="rounded-lg border border-white/10 bg-white/5 px-2 py-0.5 text-[10px] font-medium text-white/80">
+              <span className="rounded-lg border border-border-subtle bg-surface-3/60 px-2 py-0.5 text-[10px] font-medium text-muted">
                 {formatLabel}
               </span>
             ) : null}
             {anime.seasonYear ? (
-              <span className="rounded-lg border border-white/10 bg-white/5 px-2 py-0.5 text-[10px] font-medium text-white/80">
+              <span className="rounded-lg border border-border-subtle bg-surface-3/60 px-2 py-0.5 text-[10px] font-medium text-muted">
                 {anime.seasonYear}
               </span>
             ) : null}
             {anime.episodes ? (
-              <span className="rounded-lg border border-white/10 bg-white/5 px-2 py-0.5 text-[10px] font-medium text-white/80">
+              <span className="rounded-lg border border-border-subtle bg-surface-3/60 px-2 py-0.5 text-[10px] font-medium text-muted">
                 {formatEpisodeCount(anime.episodes, { short: true })}
               </span>
             ) : null}
           </div>
 
-          <h3 className="mt-2 font-display text-base sm:text-lg font-bold text-white transition-colors group-hover:text-accent-strong line-clamp-1">
+          <h3 className="mt-2 font-display text-base sm:text-lg font-bold text-fg transition-colors group-hover:text-accent-strong line-clamp-1">
             <Link href={`/anime/${anime.id}`}>
               {title}
             </Link>
@@ -203,7 +203,7 @@ function DiscoverDetailedCard({ anime }: { anime: AnimeSummary }) {
               {anime.genres.slice(0, 4).map((genre) => (
                 <span
                   key={genre}
-                  className="rounded-md border border-white/10 bg-white/5 px-2 py-0.5 text-[10px] font-medium text-white/60"
+                  className="rounded-md border border-border-subtle bg-surface-3/60 px-2 py-0.5 text-[10px] font-medium text-faint"
                 >
                   {genre}
                 </span>
@@ -213,7 +213,7 @@ function DiscoverDetailedCard({ anime }: { anime: AnimeSummary }) {
         </div>
 
         {/* Bottom Actions Row */}
-        <div className="flex items-center justify-between gap-2 border-t border-white/10 pt-2.5">
+        <div className="flex items-center justify-between gap-2 border-t border-border-subtle pt-2.5">
           <Link
             href={`/anime/${anime.id}`}
             className="inline-flex items-center gap-1 text-xs font-semibold text-accent-strong hover:underline"
@@ -469,7 +469,7 @@ export function DiscoverBrowser({
   return (
     <div className="space-y-6">
       {/* 1. Cinematic Discover Header & Ambient Showcase */}
-      <header className="group relative isolate overflow-hidden rounded-3xl border border-white/15 bg-black/80 shadow-2xl transition-all">
+      <header className="group relative isolate overflow-hidden rounded-3xl border border-border-subtle bg-surface-2 shadow-2xl transition-all">
         {topAnime && topArtwork && isHttpUrl(topArtwork) ? (
           <div
             aria-hidden="true"
@@ -509,24 +509,24 @@ export function DiscoverBrowser({
               <span className="text-[11px] font-bold uppercase tracking-wider text-accent-strong">
                 AniList Global Catalogue
               </span>
-              <span className="text-white/30">·</span>
-              <span className="text-xs font-medium text-white/70">
+              <span className="text-faint">·</span>
+              <span className="text-xs font-medium text-muted">
                 10,000+ Series & Films
               </span>
             </div>
 
-            <h1 className="mt-2 font-display text-2xl font-bold tracking-tight text-white sm:text-3xl lg:text-4xl drop-shadow-sm">
+            <h1 className="mt-2 font-display text-2xl font-bold tracking-tight text-fg sm:text-3xl lg:text-4xl">
               Discover Anime
             </h1>
 
-            <p className="mt-2 text-xs leading-relaxed text-white/75 sm:text-sm">
+            <p className="mt-2 text-xs leading-relaxed text-muted sm:text-sm">
               Explore seasonal releases, highest rated classics, trending anime, and hidden gems. Filter by genre, format, airing status, source material, country, adult content, or search directly.
             </p>
           </div>
 
           {/* Featured Spotlight Card from Top Result */}
           {topAnime ? (
-            <div className="flex items-center gap-3.5 rounded-2xl border border-white/15 bg-white/5 p-3 backdrop-blur-md shadow-xl lg:max-w-sm">
+            <div className="flex items-center gap-3.5 rounded-2xl border border-border-subtle bg-surface/70 p-3 shadow-xl backdrop-blur-md lg:max-w-sm">
               <Link
                 href={`/anime/${topAnime.id}`}
                 className="group/spot relative aspect-[2/3] w-16 sm:w-20 shrink-0 overflow-hidden rounded-xl border border-white/20 shadow-md"
@@ -557,12 +557,12 @@ export function DiscoverBrowser({
                 </span>
                 <Link
                   href={`/anime/${topAnime.id}`}
-                  className="mt-0.5 line-clamp-1 block font-display text-sm font-bold text-white hover:text-accent-strong transition-colors"
+                  className="mt-0.5 line-clamp-1 block font-display text-sm font-bold text-fg transition-colors hover:text-accent-strong"
                   title={getDisplayTitle(topAnime.title, preferences.titleLanguage === "english")}
                 >
                   {getDisplayTitle(topAnime.title, preferences.titleLanguage === "english")}
                 </Link>
-                <p className="mt-0.5 text-[11px] text-white/60">
+                <p className="mt-0.5 text-[11px] text-muted">
                   {formatFormat(topAnime.format)} {topAnime.seasonYear ? `· ${topAnime.seasonYear}` : ""} {topAnime.episodes ? `· ${topAnime.episodes} eps` : ""}
                 </p>
 
@@ -595,7 +595,7 @@ export function DiscoverBrowser({
                 "inline-flex shrink-0 items-center gap-1.5 rounded-xl border px-3 py-1.5 text-xs font-semibold transition-all active:scale-95 shadow-xs",
                 isActive
                   ? "border-accent bg-accent text-accent-contrast shadow-md scale-102"
-                  : "border-white/10 bg-surface-2 text-white/80 hover:border-white/25 hover:bg-surface-3 hover:text-white",
+                  : "border-border-subtle bg-surface-2 text-muted hover:border-border hover:bg-surface-3 hover:text-fg",
               )}
             >
               <IconComponent
@@ -611,10 +611,10 @@ export function DiscoverBrowser({
       </div>
 
       {/* 3. Search & Filter Command Deck */}
-      <div className="space-y-3.5 rounded-2xl border border-white/10 bg-surface-2/80 p-3 sm:p-4 shadow-lg backdrop-blur-md">
+      <div className="space-y-3.5 rounded-2xl border border-border-subtle bg-surface-2/80 p-3 sm:p-4 shadow-lg backdrop-blur-md">
         <div className="flex flex-col gap-2.5 sm:flex-row sm:items-center">
           <div className="relative flex-1">
-            <SearchIcon className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-white/40" />
+            <SearchIcon className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-faint" />
             <input
               type="search"
               role="searchbox"
@@ -624,7 +624,7 @@ export function DiscoverBrowser({
               placeholder="Search anime by title in English or Romaji…"
               autoComplete="off"
               spellCheck={false}
-              className="h-11 w-full rounded-xl border border-white/15 bg-black/40 pl-10 pr-20 text-sm text-white placeholder-white/40 transition-colors focus:border-accent focus:bg-black/60 focus:outline-none focus:ring-1 focus:ring-accent [&::-webkit-search-cancel-button]:appearance-none [&::-webkit-search-cancel-button]:hidden [&::-webkit-search-decoration]:appearance-none"
+              className="h-11 w-full rounded-xl border border-border bg-surface-3/50 pl-10 pr-20 text-sm text-fg placeholder:text-faint transition-colors focus:border-accent focus:bg-surface-3 focus:outline-none focus:ring-1 focus:ring-accent [&::-webkit-search-cancel-button]:appearance-none [&::-webkit-search-cancel-button]:hidden [&::-webkit-search-decoration]:appearance-none"
             />
             <div className="absolute right-2.5 top-1/2 flex -translate-y-1/2 items-center gap-1.5">
               {isLoading || isTyping ? (
@@ -635,12 +635,12 @@ export function DiscoverBrowser({
                   type="button"
                   onClick={clearQuery}
                   aria-label="Clear search"
-                  className="flex h-7 w-7 items-center justify-center rounded-lg text-white/50 hover:bg-white/10 hover:text-white transition-colors"
+                  className="flex h-7 w-7 items-center justify-center rounded-lg text-faint transition-colors hover:bg-surface-3 hover:text-fg"
                 >
                   <CloseIcon className="h-3.5 w-3.5" />
                 </button>
               ) : (
-                <kbd className="hidden sm:inline-flex items-center rounded border border-white/15 bg-white/5 px-1.5 text-[10px] font-mono text-white/40">
+                <kbd className="hidden sm:inline-flex items-center rounded border border-border bg-surface-3/60 px-1.5 text-[10px] font-mono text-faint">
                   Ctrl K
                 </kbd>
               )}
@@ -656,7 +656,7 @@ export function DiscoverBrowser({
                 "inline-flex h-11 items-center gap-2 rounded-xl border px-4 text-xs font-semibold transition-all active:scale-95 shadow-sm",
                 showFilters || activeChips.length > 0
                   ? "border-accent bg-accent/20 text-accent-strong"
-                  : "border-white/15 bg-white/5 text-white/80 hover:bg-white/10 hover:text-white",
+                  : "border-border-subtle bg-surface-2 text-muted hover:bg-surface-3 hover:text-fg",
               )}
             >
               <SlidersIcon className="h-4 w-4" />
@@ -672,7 +672,7 @@ export function DiscoverBrowser({
               <button
                 type="button"
                 onClick={resetAll}
-                className="inline-flex h-11 items-center rounded-xl border border-white/10 bg-white/5 px-3 text-xs font-medium text-white/60 hover:bg-white/10 hover:text-white transition-colors"
+                className="inline-flex h-11 items-center rounded-xl border border-border-subtle bg-surface-3/60 px-3 text-xs font-medium text-muted transition-colors hover:bg-surface-3 hover:text-fg"
               >
                 Reset
               </button>
@@ -682,7 +682,7 @@ export function DiscoverBrowser({
 
         {/* Collapsible Filter Dropdowns */}
         {showFilters ? (
-          <div className="pt-2 border-t border-white/10">
+          <div className="pt-2 border-t border-border-subtle">
             <AnimeFilters
               value={filters}
               onChange={updateFilters}
@@ -694,7 +694,7 @@ export function DiscoverBrowser({
         {/* Active Filter Chips */}
         {activeChips.length > 0 ? (
           <div className="flex flex-wrap items-center gap-1.5 pt-1">
-            <span className="text-[11px] font-semibold text-white/50 mr-1">
+            <span className="text-[11px] font-semibold text-faint mr-1">
               Active filters:
             </span>
             {activeChips.map((chip) => (
@@ -713,7 +713,7 @@ export function DiscoverBrowser({
             <button
               type="button"
               onClick={resetAll}
-              className="ml-1 text-[11px] font-medium text-white/50 underline-offset-2 hover:text-white hover:underline transition-colors"
+              className="ml-1 text-[11px] font-medium text-faint underline-offset-2 hover:text-fg hover:underline transition-colors"
             >
               Clear all
             </button>
@@ -722,9 +722,9 @@ export function DiscoverBrowser({
       </div>
 
       {/* 4. Results Bar & View Mode Switcher */}
-      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-white/10 pb-3">
+      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border-subtle pb-3">
         <div className="flex items-center gap-2">
-          <p aria-live="polite" className="text-xs font-semibold text-white/80">
+          <p aria-live="polite" className="text-xs font-semibold text-muted">
             {isLoading ? (
               <span className="inline-flex items-center gap-1.5 text-accent-strong">
                 <span className="h-2 w-2 rounded-full bg-accent-strong radar-live-dot" />
@@ -732,8 +732,8 @@ export function DiscoverBrowser({
               </span>
             ) : pageInfo?.total != null ? (
               <span>
-                Showing <span className="font-bold text-white">{items.length}</span> of{" "}
-                <span className="font-bold text-white">{pageInfo.total.toLocaleString("en-US")}</span> results
+                Showing <span className="font-bold text-fg">{items.length}</span> of{" "}
+                <span className="font-bold text-fg">{pageInfo.total.toLocaleString("en-US")}</span> results
               </span>
             ) : (
               <span>{items.length} results</span>
@@ -743,12 +743,12 @@ export function DiscoverBrowser({
 
         <div className="flex items-center gap-2.5">
           {/* Quick Sort Selector */}
-          <div className="flex items-center gap-1.5 text-xs text-white/70">
-            <span className="hidden sm:inline text-white/50">Sort by:</span>
+          <div className="flex items-center gap-1.5 text-xs text-muted">
+            <span className="hidden sm:inline text-faint">Sort by:</span>
             <select
               value={filters.sort}
               onChange={(e) => updateFilters({ sort: e.target.value as AnimeSort })}
-              className="h-8 rounded-lg border border-white/15 bg-surface-2 px-2.5 text-xs font-semibold text-white focus:border-accent focus:outline-none"
+              className="h-8 rounded-lg border border-border bg-surface-2 px-2.5 text-xs font-semibold text-fg focus:border-accent focus:outline-none"
             >
               {SORT_OPTIONS.map((opt) => (
                 <option key={opt.value} value={opt.value}>
@@ -759,7 +759,7 @@ export function DiscoverBrowser({
           </div>
 
           {/* View Mode Toggle: Grid vs Detailed List */}
-          <div className="inline-flex items-center rounded-lg border border-white/15 bg-surface-2 p-0.5">
+          <div className="inline-flex items-center rounded-lg border border-border bg-surface-2 p-0.5">
             <button
               type="button"
               onClick={() => setViewMode("grid")}
@@ -769,7 +769,7 @@ export function DiscoverBrowser({
                 "flex h-7 w-7 items-center justify-center rounded-md transition-all",
                 viewMode === "grid"
                   ? "bg-accent text-accent-contrast shadow-xs font-bold"
-                  : "text-white/60 hover:text-white",
+                  : "text-muted hover:text-fg",
               )}
             >
               <GridIcon className="h-3.5 w-3.5" />
@@ -783,7 +783,7 @@ export function DiscoverBrowser({
                 "flex h-7 w-7 items-center justify-center rounded-md transition-all",
                 viewMode === "list"
                   ? "bg-accent text-accent-contrast shadow-xs font-bold"
-                  : "text-white/60 hover:text-white",
+                  : "text-muted hover:text-fg",
               )}
             >
               <ListIcon className="h-3.5 w-3.5" />
@@ -849,7 +849,7 @@ export function DiscoverBrowser({
                 {status === "loadingMore" ? "Loading more titles…" : "Load more anime"}
               </Button>
             ) : (
-              <p className="text-xs text-white/50">
+              <p className="text-xs text-faint">
                 {pageInfo?.total != null
                   ? "You have reached the end of these results."
                   : "No further results."}

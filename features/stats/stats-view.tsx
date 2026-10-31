@@ -208,7 +208,7 @@ function StatKpiCard({
   iconClass: string;
 }) {
   return (
-    <div className="group relative overflow-hidden rounded-2xl border border-white/10 bg-surface-2 p-4 sm:p-5 transition-all duration-300 hover:border-white/20 hover:bg-surface-3 shadow-md">
+    <div className="group relative overflow-hidden rounded-2xl border border-white/10 bg-[#121520] p-4 sm:p-5 shadow-md transition-all duration-300 hover:border-white/20 hover:bg-[#181c2b]">
       <div
         aria-hidden="true"
         className="pointer-events-none absolute -right-6 -top-6 h-24 w-24 rounded-full opacity-20 blur-2xl transition-opacity group-hover:opacity-40"
@@ -676,11 +676,11 @@ export function StatsView() {
   if (stats.total === 0) {
     return (
       <div className="space-y-6">
-        <header className="rounded-3xl border border-white/10 bg-surface-2 p-6 sm:p-8">
-          <h1 className="font-display text-2xl font-bold tracking-tight text-white sm:text-3xl">
+        <header className="rounded-3xl border border-border-subtle bg-surface p-6 sm:p-8">
+          <h1 className="font-display text-2xl font-bold tracking-tight text-fg sm:text-3xl">
             Anime Watching Analytics
           </h1>
-          <p className="mt-1 text-sm text-white/60">
+          <p className="mt-1 text-sm text-muted">
             Track your journey through Japanese animation with verified statistics.
           </p>
         </header>
@@ -722,8 +722,8 @@ export function StatsView() {
                 className="object-cover"
               />
             </div>
-            <div className="absolute inset-0 bg-gradient-to-r from-surface via-surface/90 to-surface/40" />
-            <div className="absolute inset-0 bg-gradient-to-t from-surface via-transparent to-transparent" />
+            <div className="absolute inset-0 bg-gradient-to-r from-black via-black/90 to-black/40" />
+            <div className="absolute inset-0 bg-gradient-to-t from-black via-transparent to-transparent" />
           </div>
         ) : null}
 
@@ -851,7 +851,7 @@ export function StatsView() {
       {/* 3. Modern Luxury Status Telemetry Matrix (Replaces Dated Corny Bar) */}
       <section
         aria-labelledby="status-telemetry"
-        className="space-y-5 rounded-3xl border border-white/10 bg-surface-2 p-5 sm:p-7 shadow-xl backdrop-blur-md"
+        className="space-y-5 rounded-3xl border border-white/10 bg-[#121520] p-5 sm:p-7 shadow-xl backdrop-blur-md"
       >
         <div className="flex flex-wrap items-center justify-between gap-3 border-b border-white/10 pb-4">
           <div className="flex items-center gap-2.5">
@@ -957,7 +957,7 @@ export function StatsView() {
         {/* Ratings Distribution */}
         <section
           aria-labelledby="rating-distribution"
-          className="flex flex-col justify-between space-y-4 rounded-3xl border border-white/10 bg-surface-2 p-5 sm:p-6 shadow-lg backdrop-blur-md"
+          className="flex flex-col justify-between space-y-4 rounded-3xl border border-white/10 bg-[#121520] p-5 sm:p-6 shadow-lg backdrop-blur-md"
         >
           <div>
             <div className="flex items-center justify-between border-b border-white/10 pb-3">
@@ -1053,7 +1053,7 @@ export function StatsView() {
         {formatCounts.length > 0 ? (
           <section
             aria-label="Format breakdown"
-            className="flex flex-col justify-between space-y-4 rounded-3xl border border-white/10 bg-surface-2 p-5 sm:p-6 shadow-lg backdrop-blur-md"
+            className="flex flex-col justify-between space-y-4 rounded-3xl border border-white/10 bg-[#121520] p-5 sm:p-6 shadow-lg backdrop-blur-md"
           >
             <div>
               <div className="flex items-center justify-between border-b border-white/10 pb-3">
@@ -1094,7 +1094,7 @@ export function StatsView() {
       {/* 5. Multidimensional Genre Affinity & Taste Matrix */}
       <section
         aria-labelledby="genre-affinity-matrix"
-        className="space-y-6 rounded-3xl border border-white/10 bg-surface-2 p-5 sm:p-7 shadow-xl backdrop-blur-md"
+        className="space-y-6 rounded-3xl border border-white/10 bg-[#121520] p-5 sm:p-7 shadow-xl backdrop-blur-md"
       >
         <div className="flex flex-wrap items-center justify-between gap-3 border-b border-white/10 pb-4">
           <div className="flex items-center gap-2.5">
@@ -1205,7 +1205,7 @@ export function StatsView() {
       {eraCounts.length > 0 ? (
         <section
           aria-label="Release era timeline"
-          className="space-y-4 rounded-3xl border border-white/10 bg-surface-2 p-5 sm:p-6 shadow-lg backdrop-blur-md"
+          className="space-y-4 rounded-3xl border border-white/10 bg-[#121520] p-5 sm:p-6 shadow-lg backdrop-blur-md"
         >
           <div className="flex items-center justify-between border-b border-white/10 pb-3">
             <div className="flex items-center gap-2">

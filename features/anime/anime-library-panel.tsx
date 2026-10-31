@@ -55,9 +55,9 @@ export function AnimeLibraryPanel({ anime }: { anime: Anime }) {
   return (
     <section
       aria-label="Your library actions"
-      className="liquid-glass rounded-3xl p-6 border border-white/15 shadow-2xl backdrop-blur-2xl"
+      className="liquid-glass rounded-3xl p-6 border border-border shadow-2xl backdrop-blur-2xl"
     >
-      <div className="flex items-center justify-between gap-3 border-b border-white/10 pb-4">
+      <div className="flex items-center justify-between gap-3 border-b border-border-subtle pb-4">
         <div className="flex items-center gap-2">
           <span className="h-2 w-2 rounded-full bg-accent" />
           <h2 className="font-display text-base font-semibold text-fg">

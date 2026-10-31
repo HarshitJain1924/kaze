@@ -32,36 +32,36 @@ const STATUS_PILL_CONFIG: Record<
     beacon: "bg-purple-400 shadow-[0_0_8px_rgba(168,85,247,0.8)]",
     activeBorder: "border-purple-500/50 shadow-[0_0_12px_rgba(168,85,247,0.25)]",
     activeBg: "bg-purple-500/15",
-    activeText: "text-purple-200 font-semibold",
-    activeBadge: "bg-purple-500/25 text-purple-300",
+    activeText: "text-purple-200 font-semibold light:text-purple-700",
+    activeBadge: "bg-purple-500/25 text-purple-300 light:bg-purple-500/15 light:text-purple-700",
   },
   planning: {
     beacon: "bg-sky-400 shadow-[0_0_8px_rgba(56,189,248,0.8)]",
     activeBorder: "border-sky-500/50 shadow-[0_0_12px_rgba(56,189,248,0.25)]",
     activeBg: "bg-sky-500/15",
-    activeText: "text-sky-200 font-semibold",
-    activeBadge: "bg-sky-500/25 text-sky-300",
+    activeText: "text-sky-200 font-semibold light:text-sky-700",
+    activeBadge: "bg-sky-500/25 text-sky-300 light:bg-sky-500/15 light:text-sky-700",
   },
   on_hold: {
     beacon: "bg-amber-400 shadow-[0_0_8px_rgba(251,191,36,0.8)]",
     activeBorder: "border-amber-500/50 shadow-[0_0_12px_rgba(251,191,36,0.25)]",
     activeBg: "bg-amber-500/15",
-    activeText: "text-amber-200 font-semibold",
-    activeBadge: "bg-amber-500/25 text-amber-300",
+    activeText: "text-amber-200 font-semibold light:text-amber-700",
+    activeBadge: "bg-amber-500/25 text-amber-300 light:bg-amber-500/15 light:text-amber-700",
   },
   completed: {
     beacon: "bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.8)]",
     activeBorder: "border-emerald-500/50 shadow-[0_0_12px_rgba(52,211,153,0.25)]",
     activeBg: "bg-emerald-500/15",
-    activeText: "text-emerald-200 font-semibold",
-    activeBadge: "bg-emerald-500/25 text-emerald-300",
+    activeText: "text-emerald-200 font-semibold light:text-emerald-700",
+    activeBadge: "bg-emerald-500/25 text-emerald-300 light:bg-emerald-500/15 light:text-emerald-700",
   },
   dropped: {
     beacon: "bg-rose-400 shadow-[0_0_8px_rgba(244,63,94,0.8)]",
     activeBorder: "border-rose-500/50 shadow-[0_0_12px_rgba(244,63,94,0.25)]",
     activeBg: "bg-rose-500/15",
-    activeText: "text-rose-200 font-semibold",
-    activeBadge: "bg-rose-500/25 text-rose-300",
+    activeText: "text-rose-200 font-semibold light:text-rose-700",
+    activeBadge: "bg-rose-500/25 text-rose-300 light:bg-rose-500/15 light:text-rose-700",
   },
 };
 
@@ -91,7 +91,7 @@ export function LibraryToolbar({
   return (
     <div className="space-y-4">
       {/* Status Segmented Bar */}
-      <div className="relative rounded-2xl border border-white/[0.08] bg-surface/70 p-1.5 backdrop-blur-md shadow-xs">
+      <div className="relative rounded-2xl border border-border-subtle bg-surface/70 p-1.5 backdrop-blur-md shadow-xs">
         <div
           role="group"
           aria-label="Filter by watch status"
@@ -159,7 +159,7 @@ export function LibraryToolbar({
             value={query}
             onChange={(e) => onQueryChange(e.target.value)}
             placeholder="Search titles in library…"
-            className="h-11 w-full rounded-xl border border-white/[0.08] bg-surface/70 pl-10 pr-9 text-sm text-fg placeholder:text-faint/70 transition-all focus:border-accent focus:bg-surface-2 focus:outline-none focus:ring-1 focus:ring-accent [&::-webkit-search-cancel-button]:appearance-none [&::-webkit-search-cancel-button]:hidden [&::-webkit-search-decoration]:appearance-none"
+            className="h-11 w-full rounded-xl border border-border-subtle bg-surface/70 pl-10 pr-9 text-sm text-fg placeholder:text-faint/70 transition-all focus:border-accent focus:bg-surface-2 focus:outline-none focus:ring-1 focus:ring-accent [&::-webkit-search-cancel-button]:appearance-none [&::-webkit-search-cancel-button]:hidden [&::-webkit-search-decoration]:appearance-none"
           />
           {query.trim().length > 0 && (
             <button
@@ -189,7 +189,7 @@ export function LibraryToolbar({
               onChange={(event) =>
                 onSortChange(event.target.value as LibrarySort)
               }
-              className="h-11 rounded-xl border border-white/[0.08] bg-surface/70 pl-9 pr-8 text-xs font-medium text-fg transition-all focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent"
+              className="h-11 rounded-xl border border-border-subtle bg-surface/70 pl-9 pr-8 text-xs font-medium text-fg transition-all focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent"
             >
               {(
                 Object.entries(LIBRARY_SORT_LABELS) as Array<[LibrarySort, string]>
@@ -205,7 +205,7 @@ export function LibraryToolbar({
           <div
             role="group"
             aria-label="Library layout view"
-            className="flex rounded-xl border border-white/[0.08] bg-surface/70 p-1 backdrop-blur-md"
+            className="flex rounded-xl border border-border-subtle bg-surface/70 p-1 backdrop-blur-md"
           >
             <button
               type="button"

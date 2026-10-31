@@ -59,13 +59,13 @@ export function HomeStatsStrip({
         {/* Tracked */}
         <Link
           href="/library"
-          className="group relative flex items-center justify-between overflow-hidden rounded-2xl border border-white/[0.08] bg-surface/75 p-3.5 backdrop-blur-md transition-all duration-200 hover:-translate-y-0.5 hover:border-white/[0.18] hover:bg-surface-2/85 hover:shadow-lg"
+          className="group relative flex items-center justify-between overflow-hidden rounded-2xl border border-border-subtle bg-surface/75 p-3.5 backdrop-blur-md transition-all duration-200 hover:-translate-y-0.5 hover:border-border hover:bg-surface-2/85 hover:shadow-lg"
         >
           <div className="space-y-0.5">
             <p className="text-[11px] font-semibold uppercase tracking-wider text-muted">
               In Vault
             </p>
-            <p className="font-display text-2xl font-bold tracking-tight text-fg group-hover:text-white tabular-nums">
+            <p className="font-display text-2xl font-bold tracking-tight text-fg group-hover:text-accent-strong tabular-nums">
               {stats.total}
             </p>
           </div>
@@ -77,13 +77,13 @@ export function HomeStatsStrip({
         {/* Currently Watching */}
         <Link
           href="/library?status=watching"
-          className="group relative flex items-center justify-between overflow-hidden rounded-2xl border border-white/[0.08] bg-surface/75 p-3.5 backdrop-blur-md transition-all duration-200 hover:-translate-y-0.5 hover:border-purple-500/30 hover:bg-surface-2/85 hover:shadow-lg"
+          className="group relative flex items-center justify-between overflow-hidden rounded-2xl border border-border-subtle bg-surface/75 p-3.5 backdrop-blur-md transition-all duration-200 hover:-translate-y-0.5 hover:border-purple-500/30 hover:bg-surface-2/85 hover:shadow-lg"
         >
           <div className="space-y-0.5">
             <p className="text-[11px] font-semibold uppercase tracking-wider text-muted">
               Watching
             </p>
-            <p className="font-display text-2xl font-bold tracking-tight text-fg group-hover:text-white tabular-nums">
+            <p className="font-display text-2xl font-bold tracking-tight text-fg group-hover:text-accent-strong tabular-nums">
               {stats.statusCounts.watching}
             </p>
           </div>
@@ -95,13 +95,13 @@ export function HomeStatsStrip({
         {/* Completed */}
         <Link
           href="/library?status=completed"
-          className="group relative flex items-center justify-between overflow-hidden rounded-2xl border border-white/[0.08] bg-surface/75 p-3.5 backdrop-blur-md transition-all duration-200 hover:-translate-y-0.5 hover:border-emerald-500/30 hover:bg-surface-2/85 hover:shadow-lg"
+          className="group relative flex items-center justify-between overflow-hidden rounded-2xl border border-border-subtle bg-surface/75 p-3.5 backdrop-blur-md transition-all duration-200 hover:-translate-y-0.5 hover:border-emerald-500/30 hover:bg-surface-2/85 hover:shadow-lg"
         >
           <div className="space-y-0.5">
             <p className="text-[11px] font-semibold uppercase tracking-wider text-muted">
               Completed
             </p>
-            <p className="font-display text-2xl font-bold tracking-tight text-fg group-hover:text-white tabular-nums">
+            <p className="font-display text-2xl font-bold tracking-tight text-fg group-hover:text-accent-strong tabular-nums">
               {stats.statusCounts.completed}
             </p>
           </div>
@@ -113,13 +113,13 @@ export function HomeStatsStrip({
         {/* Total Episodes */}
         <Link
           href="/stats"
-          className="group relative flex items-center justify-between overflow-hidden rounded-2xl border border-white/[0.08] bg-surface/75 p-3.5 backdrop-blur-md transition-all duration-200 hover:-translate-y-0.5 hover:border-amber-500/30 hover:bg-surface-2/85 hover:shadow-lg"
+          className="group relative flex items-center justify-between overflow-hidden rounded-2xl border border-border-subtle bg-surface/75 p-3.5 backdrop-blur-md transition-all duration-200 hover:-translate-y-0.5 hover:border-amber-500/30 hover:bg-surface-2/85 hover:shadow-lg"
         >
           <div className="space-y-0.5">
             <p className="text-[11px] font-semibold uppercase tracking-wider text-muted">
               Episodes Logged
             </p>
-            <p className="font-display text-2xl font-bold tracking-tight text-fg group-hover:text-white tabular-nums">
+            <p className="font-display text-2xl font-bold tracking-tight text-fg group-hover:text-accent-strong tabular-nums">
               {stats.episodesWatched.toLocaleString()}
             </p>
           </div>

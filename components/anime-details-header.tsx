@@ -75,7 +75,7 @@ export function AnimeDetailsHeader({
         <p className="mt-1.5 text-sm text-muted sm:text-[15px]">{secondary}</p>
       ) : null}
 
-      <div className="mt-5 flex flex-wrap items-center gap-x-6 gap-y-3 border-t border-white/10 pt-4">
+      <div className="mt-5 flex flex-wrap items-center gap-x-6 gap-y-3 border-t border-border-subtle pt-4">
         {score ? (
           <div>
             <p className="text-xs text-faint">Community</p>
@@ -113,7 +113,7 @@ export function AnimeDetailsHeader({
       </div>
 
       {prequel || sequel ? (
-        <div className="mt-4 flex flex-wrap items-center gap-2 border-t border-white/10 pt-3.5">
+        <div className="mt-4 flex flex-wrap items-center gap-2 border-t border-border-subtle pt-3.5">
           <span className="text-[11px] font-semibold uppercase tracking-wider text-faint mr-1">
             Franchise:
           </span>

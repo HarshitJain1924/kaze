@@ -31,7 +31,7 @@ export function AnimeDetailsTabs({
   return (
     <div className="space-y-6">
       {/* Navigation Tab Bar */}
-      <div className="flex items-center justify-between border-b border-white/10 pb-3">
+      <div className="flex items-center justify-between border-b border-border-subtle pb-3">
         <div
           role="tablist"
           aria-label="Anime sections"
@@ -46,7 +46,7 @@ export function AnimeDetailsTabs({
               "rounded-xl px-4 py-2 text-xs font-semibold transition-all",
               activeTab === "overview"
                 ? "bg-accent text-accent-contrast shadow-[inset_0_1px_1px_rgba(255,255,255,0.35),0_4px_12px_rgba(139,92,246,0.35)]"
-                : "text-muted hover:bg-white/[0.08] hover:text-fg",
+                : "text-muted hover:bg-surface-2 hover:text-fg",
             )}
           >
             Overview
@@ -62,7 +62,7 @@ export function AnimeDetailsTabs({
                 "inline-flex items-center gap-1.5 rounded-xl px-4 py-2 text-xs font-semibold transition-all",
                 activeTab === "franchise"
                   ? "bg-accent text-accent-contrast shadow-[inset_0_1px_1px_rgba(255,255,255,0.35),0_4px_12px_rgba(139,92,246,0.35)]"
-                  : "text-muted hover:bg-white/[0.08] hover:text-fg",
+                  : "text-muted hover:bg-surface-2 hover:text-fg",
               )}
             >
               <span>Seasons & Franchise</span>
@@ -88,7 +88,7 @@ export function AnimeDetailsTabs({
               "inline-flex items-center gap-1.5 rounded-xl px-4 py-2 text-xs font-semibold transition-all",
               activeTab === "episodes"
                 ? "bg-accent text-accent-contrast shadow-[inset_0_1px_1px_rgba(255,255,255,0.35),0_4px_12px_rgba(139,92,246,0.35)]"
-                : "text-muted hover:bg-white/[0.08] hover:text-fg",
+                : "text-muted hover:bg-surface-2 hover:text-fg",
             )}
           >
             <span>Episodes</span>
@@ -115,7 +115,7 @@ export function AnimeDetailsTabs({
               "rounded-xl px-4 py-2 text-xs font-semibold transition-all",
               activeTab === "details"
                 ? "bg-accent text-accent-contrast shadow-[inset_0_1px_1px_rgba(255,255,255,0.35),0_4px_12px_rgba(139,92,246,0.35)]"
-                : "text-muted hover:bg-white/[0.08] hover:text-fg",
+                : "text-muted hover:bg-surface-2 hover:text-fg",
             )}
           >
             Details

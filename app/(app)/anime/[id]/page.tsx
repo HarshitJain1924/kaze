@@ -214,13 +214,13 @@ export default async function AnimeDetailsPage({ params }: PageProps) {
         </nav>
 
         {catalogMeta.degraded ? (
-          <div className="mt-3 flex flex-wrap items-center justify-between gap-2 rounded-2xl border border-amber-500/25 bg-amber-950/40 px-3.5 py-2 text-xs text-amber-200 backdrop-blur-md">
+          <div className="mt-3 flex flex-wrap items-center justify-between gap-2 rounded-2xl border border-amber-500/25 bg-amber-950/40 px-3.5 py-2 text-xs text-amber-200 light:bg-amber-500/10 light:text-amber-800 backdrop-blur-md">
             <span>
               {catalogMeta.health.isSuspended
                 ? "Offline resilience mode: AniList is temporarily suspended upstream. Showing the metadata that is still available."
                 : "Offline resilience mode: AniList is unavailable right now. Showing the metadata that is still available."}
             </span>
-            <span className="font-semibold text-amber-400">
+            <span className="font-semibold text-amber-400 light:text-amber-700">
               Library tracking operational
             </span>
           </div>
@@ -244,7 +244,7 @@ export default async function AnimeDetailsPage({ params }: PageProps) {
           </div>
 
           <div className="min-w-0 flex-1 sm:pt-1">
-            <div className="liquid-glass rounded-3xl p-5 sm:p-7 border border-white/15">
+            <div className="liquid-glass rounded-3xl p-5 sm:p-7 border border-border">
               <AnimeDetailsHeader anime={anime} />
             </div>
           </div>

@@ -93,7 +93,7 @@ export function DesktopSidebar({ viewer }: { viewer: Viewer | null }) {
   return (
     <aside
       className={cn(
-        "fixed inset-y-0 left-0 z-40 hidden flex-col border-r border-white/[0.08] bg-bg/80 backdrop-blur-2xl backdrop-saturate-[180%] shadow-[inset_-1px_0_1px_rgba(255,255,255,0.05)] transition-[width,padding] duration-300 ease-out lg:flex",
+        "fixed inset-y-0 left-0 z-40 hidden flex-col border-r border-border-subtle bg-bg/80 backdrop-blur-2xl backdrop-saturate-[180%] shadow-[inset_-1px_0_1px_rgba(255,255,255,0.05)] transition-[width,padding] duration-300 ease-out lg:flex",
         isCollapsed
           ? "w-[72px] items-center px-2.5 py-5"
           : "w-[242px] px-3.5 py-6",
@@ -130,7 +130,7 @@ export function DesktopSidebar({ viewer }: { viewer: Viewer | null }) {
             onClick={toggleSidebar}
             title="Collapse sidebar"
             aria-label="Collapse sidebar to icons"
-            className="group relative flex h-8 w-8 items-center justify-center rounded-xl text-faint transition-colors hover:bg-white/[0.08] hover:text-fg active:scale-95"
+            className="group relative flex h-8 w-8 items-center justify-center rounded-xl text-faint transition-colors hover:bg-surface-2 hover:text-fg active:scale-95"
           >
             <PanelLeftCloseIcon className="h-4 w-4" />
             <div className="pointer-events-none absolute left-full ml-3 z-50 hidden rounded-xl liquid-glass px-3 py-1.5 text-xs font-semibold text-fg shadow-2xl whitespace-nowrap group-hover:flex animate-fade">
@@ -157,7 +157,7 @@ export function DesktopSidebar({ viewer }: { viewer: Viewer | null }) {
                   : "gap-3 px-3.5 py-2.5 text-sm",
                 active
                   ? "border border-accent/40 bg-accent-soft font-semibold text-fg shadow-[0_0_15px_rgba(139,92,246,0.18)]"
-                  : "border border-transparent font-medium text-muted hover:border-white/[0.06] hover:bg-surface/70 hover:text-fg",
+                  : "border border-transparent font-medium text-muted hover:border-border-subtle hover:bg-surface/70 hover:text-fg",
               )}
             >
               <Icon
@@ -200,10 +200,10 @@ export function DesktopSidebar({ viewer }: { viewer: Viewer | null }) {
               onClick={() => setMode(resolved === "dark" ? "light" : "dark")}
               title={`Switch to ${resolved === "dark" ? "light" : "dark"} mode`}
               aria-label="Toggle dark/light mode"
-              className="flex h-11 w-11 items-center justify-center rounded-2xl border border-white/[0.08] bg-surface/70 text-muted transition-all duration-150 hover:border-accent/40 hover:bg-surface-2 hover:text-fg active:scale-95 shadow-xs"
+              className="flex h-11 w-11 items-center justify-center rounded-2xl border border-border-subtle bg-surface/70 text-muted transition-all duration-150 hover:border-accent/40 hover:bg-surface-2 hover:text-fg active:scale-95 shadow-xs"
             >
               {resolved === "dark" ? (
-                <MoonIcon className="h-4 w-4 text-purple-300" />
+                <MoonIcon className="h-4 w-4 text-purple-300 light:text-purple-700" />
               ) : (
                 <SunIcon className="h-4 w-4 text-amber-400" />
               )}
@@ -214,7 +214,7 @@ export function DesktopSidebar({ viewer }: { viewer: Viewer | null }) {
           </div>
         ) : (
           /* Expanded Mode: Modern Studio Quick Theme & Appearance Dock */
-          <div className="rounded-2xl border border-white/[0.08] bg-surface/75 p-2.5 backdrop-blur-md shadow-xs space-y-2">
+          <div className="rounded-2xl border border-border-subtle bg-surface/75 p-2.5 backdrop-blur-md shadow-xs space-y-2">
             {/* Top row: Dark / Light / System Mode Segmented Pill */}
             <div className="flex items-center justify-between">
               <span className="text-[10px] font-bold uppercase tracking-wider text-faint">
@@ -223,7 +223,7 @@ export function DesktopSidebar({ viewer }: { viewer: Viewer | null }) {
               <div
                 role="group"
                 aria-label="Theme mode"
-                className="flex items-center gap-0.5 rounded-xl border border-white/[0.08] bg-bg/70 p-0.5"
+                className="flex items-center gap-0.5 rounded-xl border border-border-subtle bg-bg/70 p-0.5"
               >
                 <button
                   type="button"
@@ -233,7 +233,7 @@ export function DesktopSidebar({ viewer }: { viewer: Viewer | null }) {
                   className={cn(
                     "flex h-6 w-6 items-center justify-center rounded-lg transition-all",
                     mode === "dark"
-                      ? "border border-purple-500/40 bg-purple-500/20 text-purple-300 shadow-xs"
+                      ? "border border-purple-500/40 bg-purple-500/20 text-purple-300 light:bg-purple-500/10 light:text-purple-700 shadow-xs"
                       : "text-faint hover:text-muted",
                   )}
                 >
@@ -247,7 +247,7 @@ export function DesktopSidebar({ viewer }: { viewer: Viewer | null }) {
                   className={cn(
                     "flex h-6 w-6 items-center justify-center rounded-lg transition-all",
                     mode === "light"
-                      ? "border border-amber-400/40 bg-amber-400/20 text-amber-300 shadow-xs"
+                      ? "border border-amber-400/40 bg-amber-400/20 text-amber-300 light:bg-amber-400/10 light:text-amber-700 shadow-xs"
                       : "text-faint hover:text-muted",
                   )}
                 >
@@ -271,7 +271,7 @@ export function DesktopSidebar({ viewer }: { viewer: Viewer | null }) {
             </div>
 
             {/* Bottom row: 3 Accent Theme Color Swatches */}
-            <div className="flex items-center justify-between pt-0.5 border-t border-white/[0.06]">
+            <div className="flex items-center justify-between pt-0.5 border-t border-border-subtle">
               <span className="text-[10px] text-faint">Theme Accent</span>
               <div
                 role="group"
@@ -319,7 +319,7 @@ export function DesktopSidebar({ viewer }: { viewer: Viewer | null }) {
               : "gap-3 px-3.5 py-2.5 text-sm",
             pathname === "/settings"
               ? "border border-accent/40 bg-accent-soft font-semibold text-fg shadow-[0_0_15px_rgba(139,92,246,0.18)]"
-              : "border border-transparent font-medium text-muted hover:border-white/[0.06] hover:bg-surface/70 hover:text-fg",
+              : "border border-transparent font-medium text-muted hover:border-border-subtle hover:bg-surface/70 hover:text-fg",
           )}
         >
           <SettingsIcon
@@ -348,7 +348,7 @@ export function DesktopSidebar({ viewer }: { viewer: Viewer | null }) {
           <Link
             href="/settings"
             className={cn(
-              "group relative flex items-center rounded-2xl border border-white/[0.08] bg-surface/75 backdrop-blur-md transition-all duration-150 hover:border-white/[0.18] hover:bg-surface-2/90 shadow-xs",
+              "group relative flex items-center rounded-2xl border border-border-subtle bg-surface/75 backdrop-blur-md transition-all duration-150 hover:border-border hover:bg-surface-2/90 shadow-xs",
               isCollapsed
                 ? "mx-auto h-11 w-11 justify-center p-0"
                 : "gap-2.5 p-2",

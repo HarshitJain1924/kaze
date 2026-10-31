@@ -114,7 +114,7 @@ export function SeasonalCarousel({
           return (
             <article
               key={anime.id}
-              className="group relative aspect-[2/3] w-[145px] sm:w-[160px] shrink-0 overflow-hidden rounded-2xl border border-white/[0.08] bg-surface-2 shadow-sm transition-all duration-200 hover:-translate-y-1 hover:border-accent/40 hover:shadow-xl"
+              className="group relative aspect-[2/3] w-[145px] sm:w-[160px] shrink-0 overflow-hidden rounded-2xl border border-border-subtle bg-surface-2 shadow-sm transition-all duration-200 hover:-translate-y-1 hover:border-accent/40 hover:shadow-xl"
             >
               {cover && isHttpUrl(cover) ? (
                 <Image

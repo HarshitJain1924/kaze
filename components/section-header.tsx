@@ -20,9 +20,11 @@ export function SectionHeader({
           {title}
         </h2>
         {description ? (
-          <p className="mt-1 text-[13px] leading-relaxed text-muted">
+          /* A div, not a p: descriptions can embed the timezone picker, which
+             renders block markup and would make the paragraph invalid HTML. */
+          <div className="mt-1 text-[13px] leading-relaxed text-muted">
             {description}
-          </p>
+          </div>
         ) : null}
       </div>
       {action && actionHref ? (

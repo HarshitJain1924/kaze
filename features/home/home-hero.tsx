@@ -306,7 +306,7 @@ export function HomeHero({
 
             {/* Liquid-Glass Detail Header Info Card */}
             <div className="min-w-0 flex-1">
-              <div className="liquid-glass rounded-3xl p-5 sm:p-6 lg:p-7 border border-white/15 shadow-2xl">
+              <div className="liquid-glass liquid-glass-dark rounded-3xl p-5 sm:p-6 lg:p-7 border border-white/15 shadow-2xl">
                 {/* Badges row with liquid-glass-pill */}
                 <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
                   {currentAnime.status ? (

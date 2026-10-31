@@ -81,7 +81,7 @@ export function LibraryList({ items }: { items: LibraryItem[] }) {
         return (
           <li
             key={entry.id}
-            className="group relative flex flex-col gap-3 rounded-2xl border border-white/[0.08] bg-surface/70 p-3 sm:flex-row sm:items-center sm:gap-4 sm:p-4 backdrop-blur-md transition-all duration-200 hover:border-white/[0.18] hover:bg-surface-2/80 hover:shadow-lg"
+            className="group relative flex flex-col gap-3 rounded-2xl border border-border-subtle bg-surface/70 p-3 sm:flex-row sm:items-center sm:gap-4 sm:p-4 backdrop-blur-md transition-all duration-200 hover:border-border hover:bg-surface-2/80 hover:shadow-lg"
           >
             {/* Thumbnail Poster */}
             <Link
@@ -133,7 +133,7 @@ export function LibraryList({ items }: { items: LibraryItem[] }) {
                 {/* Subtitle Metadata Chips */}
                 <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-faint">
                   {formatText && (
-                    <span className="rounded-md border border-white/10 bg-surface-3/60 px-1.5 py-0.5 text-[11px] font-medium text-muted">
+                    <span className="rounded-md border border-border-subtle bg-surface-3/60 px-1.5 py-0.5 text-[11px] font-medium text-muted">
                       {formatText}
                     </span>
                   )}
@@ -210,7 +210,7 @@ export function LibraryList({ items }: { items: LibraryItem[] }) {
               <div className="flex items-center gap-1">
                 <Link
                   href={`/anime/${entry.anilistId}`}
-                  className="flex h-9 w-9 items-center justify-center rounded-xl border border-white/10 bg-surface-2 text-faint transition-colors hover:border-white/20 hover:text-fg"
+                  className="flex h-9 w-9 items-center justify-center rounded-xl border border-border-subtle bg-surface-2 text-faint transition-colors hover:border-border hover:text-fg"
                   aria-label={`View full details for ${title}`}
                   title="View anime details"
                 >

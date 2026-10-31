@@ -166,7 +166,7 @@ export function LibraryBrowser({
     <div className="space-y-6">
       {/* Cinematic Ambient Hero Header */}
       {items.length > 0 ? (
-        <header className="relative overflow-hidden rounded-3xl border border-white/[0.08] bg-surface/85 p-6 sm:p-7 md:p-8 backdrop-blur-xl shadow-2xl">
+        <header className="relative overflow-hidden rounded-3xl border border-border-subtle bg-surface/85 p-6 sm:p-7 md:p-8 backdrop-blur-xl shadow-2xl">
           {/* Ambient high-res backdrop with cinematic dark vignette */}
           {libraryTelemetry.backdropUrl &&
           isHttpUrl(libraryTelemetry.backdropUrl) ? (
@@ -194,13 +194,13 @@ export function LibraryBrowser({
               <div className="inline-flex items-center gap-2 rounded-full border border-accent/30 bg-accent-soft px-3 py-1 text-xs font-semibold text-accent-strong backdrop-blur-md shadow-xs">
                 <span className="h-2 w-2 rounded-full bg-accent radar-live-dot" />
                 <span>Personal Archive</span>
-                <span className="text-white/30">/</span>
+                <span className="text-faint">/</span>
                 <span className="text-muted">Anime Vault</span>
               </div>
 
               <Link
                 href="/stats"
-                className="group inline-flex items-center gap-1.5 rounded-full border border-white/[0.08] bg-surface-2/80 px-3.5 py-1.5 text-xs font-medium text-muted backdrop-blur-md transition-all hover:border-accent/40 hover:bg-surface-3 hover:text-fg shadow-xs"
+                className="group inline-flex items-center gap-1.5 rounded-full border border-border-subtle bg-surface-2/80 px-3.5 py-1.5 text-xs font-medium text-muted backdrop-blur-md transition-all hover:border-accent/40 hover:bg-surface-3 hover:text-fg shadow-xs"
               >
                 <ChartIcon className="h-3.5 w-3.5 text-accent-strong transition-transform group-hover:scale-110" />
                 <span>Stats & Analytics</span>
@@ -236,10 +236,10 @@ export function LibraryBrowser({
                   "flex flex-col rounded-2xl border p-3 text-left transition-all duration-150 backdrop-blur-md active:scale-[0.98]",
                   status === "watching"
                     ? "border-purple-500/50 bg-purple-500/15 shadow-[0_0_12px_rgba(168,85,247,0.25)]"
-                    : "border-white/[0.06] bg-surface-2/50 hover:border-white/[0.14] hover:bg-surface-2/80",
+                    : "border-border-subtle bg-surface-2/50 hover:border-border hover:bg-surface-2/80",
                 )}
               >
-                <div className="flex items-center gap-1.5 text-[11px] font-semibold text-purple-300">
+                <div className="flex items-center gap-1.5 text-[11px] font-semibold text-purple-300 light:text-purple-700">
                   <span className="h-1.5 w-1.5 rounded-full bg-purple-400 shadow-[0_0_6px_rgba(168,85,247,0.8)]" />
                   <span>In Progress</span>
                 </div>
@@ -259,10 +259,10 @@ export function LibraryBrowser({
                   "flex flex-col rounded-2xl border p-3 text-left transition-all duration-150 backdrop-blur-md active:scale-[0.98]",
                   status === "completed"
                     ? "border-emerald-500/50 bg-emerald-500/15 shadow-[0_0_12px_rgba(52,211,153,0.25)]"
-                    : "border-white/[0.06] bg-surface-2/50 hover:border-white/[0.14] hover:bg-surface-2/80",
+                    : "border-border-subtle bg-surface-2/50 hover:border-border hover:bg-surface-2/80",
                 )}
               >
-                <div className="flex items-center gap-1.5 text-[11px] font-semibold text-emerald-300">
+                <div className="flex items-center gap-1.5 text-[11px] font-semibold text-emerald-300 light:text-emerald-700">
                   <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 shadow-[0_0_6px_rgba(52,211,153,0.8)]" />
                   <span>Completed</span>
                 </div>
@@ -282,10 +282,10 @@ export function LibraryBrowser({
                   "flex flex-col rounded-2xl border p-3 text-left transition-all duration-150 backdrop-blur-md active:scale-[0.98]",
                   status === "planning"
                     ? "border-sky-500/50 bg-sky-500/15 shadow-[0_0_12px_rgba(56,189,248,0.25)]"
-                    : "border-white/[0.06] bg-surface-2/50 hover:border-white/[0.14] hover:bg-surface-2/80",
+                    : "border-border-subtle bg-surface-2/50 hover:border-border hover:bg-surface-2/80",
                 )}
               >
-                <div className="flex items-center gap-1.5 text-[11px] font-semibold text-sky-300">
+                <div className="flex items-center gap-1.5 text-[11px] font-semibold text-sky-300 light:text-sky-700">
                   <span className="h-1.5 w-1.5 rounded-full bg-sky-400 shadow-[0_0_6px_rgba(56,189,248,0.8)]" />
                   <span>Watchlist</span>
                 </div>
@@ -298,8 +298,8 @@ export function LibraryBrowser({
               </button>
 
               {/* Pod 4: Ratings or Volume Readout */}
-              <div className="flex flex-col rounded-2xl border border-white/[0.06] bg-surface-2/50 p-3 backdrop-blur-md">
-                <div className="flex items-center gap-1.5 text-[11px] font-semibold text-amber-300">
+              <div className="flex flex-col rounded-2xl border border-border-subtle bg-surface-2/50 p-3 backdrop-blur-md">
+                <div className="flex items-center gap-1.5 text-[11px] font-semibold text-amber-300 light:text-amber-700">
                   <StarIcon className="h-3 w-3 fill-amber-400 text-amber-400" />
                   <span>Personal Rating</span>
                 </div>
@@ -356,7 +356,7 @@ export function LibraryBrowser({
       {/* Zero items onboarding state */}
       {items.length === 0 && !loadError ? (
         <div className="space-y-6">
-          <section className="relative overflow-hidden rounded-3xl border border-white/[0.08] bg-surface/80 p-6 sm:p-8 backdrop-blur-xl">
+          <section className="relative overflow-hidden rounded-3xl border border-border-subtle bg-surface/80 p-6 sm:p-8 backdrop-blur-xl">
             <div className="max-w-xl space-y-3">
               <div className="inline-flex items-center gap-2 rounded-full border border-accent/30 bg-accent-soft px-3 py-1 text-xs font-semibold text-accent-strong">
                 <SparklesIcon className="h-3.5 w-3.5" />
@@ -463,7 +463,7 @@ export function LibraryBrowser({
       )}
 
       {items.some((item) => !item.anime) ? (
-        <p className="rounded-2xl border border-white/[0.08] bg-surface-2/60 p-3.5 text-xs leading-relaxed text-faint">
+        <p className="rounded-2xl border border-border-subtle bg-surface-2/60 p-3.5 text-xs leading-relaxed text-faint">
           Some entries could not be matched with AniList metadata. Their
           progress, ratings and notes are preserved, and they remain removable
           here.

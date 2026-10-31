@@ -137,7 +137,7 @@ export function FeaturedAngularCard({
   return (
     <article
       aria-label={`Featured: ${title}`}
-      className="group relative isolate overflow-hidden rounded-3xl border border-white/15 bg-surface-2 shadow-xl transition-all"
+      className="group relative isolate overflow-hidden rounded-3xl border border-border-subtle bg-surface-2 shadow-xl transition-all"
     >
       {/* Ambient Artwork Backdrop */}
       <div
@@ -234,13 +234,13 @@ export function FeaturedAngularCard({
 
                 <Link
                   href={`/anime/${anime.id}`}
-                  className="mt-1 line-clamp-1 block font-display text-xl font-bold tracking-tight text-white transition-colors hover:text-accent-strong sm:text-2xl"
+                  className="mt-1 line-clamp-1 block font-display text-xl font-bold tracking-tight text-fg transition-colors hover:text-accent-strong sm:text-2xl"
                   title={title}
                 >
                   {title}
                 </Link>
 
-                <p className="mt-1 text-xs font-medium text-white/70 sm:text-[13px]">
+                <p className="mt-1 text-xs font-medium text-muted sm:text-[13px]">
                   {total !== null && total > 0
                     ? `Up next: episode ${atEnd ? total : nextEp} of ${total}`
                     : `Up next: episode ${nextEp}`}
@@ -256,7 +256,7 @@ export function FeaturedAngularCard({
                       onClick={onPrevItem}
                       aria-label="Previous series in queue"
                       title="Previous series"
-                      className="flex h-8 w-8 items-center justify-center rounded-xl border border-white/10 bg-white/5 text-white/70 hover:bg-white/10 hover:text-white transition-all active:scale-95"
+                      className="flex h-8 w-8 items-center justify-center rounded-xl border border-border-subtle bg-surface-3/60 text-muted transition-all hover:bg-surface-3 hover:text-fg active:scale-95"
                     >
                       <ChevronLeftIcon className="h-3.5 w-3.5" />
                     </button>
@@ -265,7 +265,7 @@ export function FeaturedAngularCard({
                       onClick={onNextItem}
                       aria-label="Next series in queue"
                       title="Next series"
-                      className="flex h-8 w-8 items-center justify-center rounded-xl border border-white/10 bg-white/5 text-white/70 hover:bg-white/10 hover:text-white transition-all active:scale-95"
+                      className="flex h-8 w-8 items-center justify-center rounded-xl border border-border-subtle bg-surface-3/60 text-muted transition-all hover:bg-surface-3 hover:text-fg active:scale-95"
                     >
                       <ChevronRightIcon className="h-3.5 w-3.5" />
                     </button>
@@ -280,7 +280,7 @@ export function FeaturedAngularCard({
                     "flex h-8 w-8 items-center justify-center rounded-xl border transition-colors active:scale-95",
                     isBookmarked
                       ? "border-accent/50 bg-accent/20 text-accent-strong"
-                      : "border-white/10 bg-white/5 text-white/70 hover:bg-white/10 hover:text-white",
+                      : "border-border-subtle bg-surface-3/60 text-muted hover:bg-surface-3 hover:text-fg",
                   )}
                 >
                   <BookmarkIcon
@@ -293,14 +293,14 @@ export function FeaturedAngularCard({
                     type="button"
                     onClick={() => setShowMenu((prev) => !prev)}
                     aria-label="More options"
-                    className="flex h-8 w-8 items-center justify-center rounded-xl border border-white/10 bg-white/5 text-white/70 transition-colors hover:bg-white/10 hover:text-white active:scale-95"
+                    className="flex h-8 w-8 items-center justify-center rounded-xl border border-border-subtle bg-surface-3/60 text-muted transition-colors hover:bg-surface-3 hover:text-fg active:scale-95"
                   >
                     <MoreHorizontalIcon className="h-4 w-4" />
                   </button>
 
                   {showMenu ? (
                     <div
-                      className="absolute right-0 top-full z-50 mt-1.5 w-48 rounded-xl border border-white/15 bg-surface p-1 shadow-2xl backdrop-blur-xl"
+                      className="absolute right-0 top-full z-50 mt-1.5 w-48 rounded-xl border border-border bg-surface p-1 shadow-2xl backdrop-blur-xl"
                       onMouseLeave={() => setShowMenu(false)}
                     >
                       <Link
@@ -339,13 +339,13 @@ export function FeaturedAngularCard({
             {/* Metadata Badges */}
             <div className="mt-3 flex flex-wrap items-center gap-1.5">
               {formatLabel ? (
-                <span className="rounded-lg border border-white/10 bg-white/5 px-2.5 py-0.5 text-[11px] font-medium text-white/80">
+                <span className="rounded-lg border border-border-subtle bg-surface-3/60 px-2.5 py-0.5 text-[11px] font-medium text-muted">
                   {formatLabel}
                 </span>
               ) : null}
 
               {seasonLabelText ? (
-                <span className="rounded-lg border border-white/10 bg-white/5 px-2.5 py-0.5 text-[11px] font-medium text-white/80">
+                <span className="rounded-lg border border-border-subtle bg-surface-3/60 px-2.5 py-0.5 text-[11px] font-medium text-muted">
                   {seasonLabelText}
                 </span>
               ) : null}
@@ -353,7 +353,7 @@ export function FeaturedAngularCard({
               {genres.map((genre) => (
                 <span
                   key={genre}
-                  className="rounded-lg border border-white/10 bg-white/5 px-2.5 py-0.5 text-[11px] font-medium text-white/60"
+                  className="rounded-lg border border-border-subtle bg-surface-3/60 px-2.5 py-0.5 text-[11px] font-medium text-faint"
                 >
                   {genre}
                 </span>
@@ -364,8 +364,8 @@ export function FeaturedAngularCard({
           {/* Progress & Controls */}
           <div>
             <div className="flex items-baseline justify-between text-xs sm:text-sm">
-              <span className="text-white/70">
-                <span className="font-bold tabular-nums text-white">
+              <span className="text-muted">
+                <span className="font-bold tabular-nums text-fg">
                   {watchedCount}
                 </span>
                 {total && total > 0 ? ` / ${total}` : ""} episodes watched
@@ -376,7 +376,7 @@ export function FeaturedAngularCard({
             </div>
 
             {/* Glowing progress bar */}
-            <div className="mt-2 h-2.5 w-full overflow-hidden rounded-full bg-white/10 p-0.5">
+            <div className="mt-2 h-2.5 w-full overflow-hidden rounded-full bg-surface-3 p-0.5">
               <div
                 className="h-full rounded-full bg-gradient-to-r from-accent to-accent-strong shadow-[0_0_12px_rgba(139,92,246,0.6)] transition-all duration-300"
                 style={{ width: `${percent ?? (watchedCount > 0 ? 30 : 0)}%` }}
@@ -392,7 +392,7 @@ export function FeaturedAngularCard({
                 className={cn(
                   "flex h-10 flex-1 min-w-[190px] items-center justify-center gap-2 rounded-xl px-5 text-xs font-bold shadow-md transition-all active:scale-[0.98] sm:h-11 sm:text-sm",
                   atEnd
-                    ? "cursor-default border border-white/10 bg-white/5 text-white/60"
+                    ? "cursor-default border border-border-subtle bg-surface-3 text-muted"
                     : "bg-accent text-accent-contrast hover:bg-accent-hover hover:shadow-lg disabled:opacity-60",
                 )}
               >
@@ -418,7 +418,7 @@ export function FeaturedAngularCard({
                   disabled={isPending}
                   onClick={handleDecrement}
                   title="Undo last episode (-1)"
-                  className="flex h-10 w-10 sm:h-11 sm:w-11 items-center justify-center rounded-xl border border-white/15 bg-white/5 text-white/80 hover:bg-white/10 hover:text-white transition-all active:scale-95"
+                  className="flex h-10 w-10 sm:h-11 sm:w-11 items-center justify-center rounded-xl border border-border bg-surface-3/60 text-muted transition-all hover:bg-surface-3 hover:text-fg active:scale-95"
                 >
                   <MinusIcon className="h-4 w-4" />
                 </button>
@@ -429,7 +429,7 @@ export function FeaturedAngularCard({
                 type="button"
                 onClick={() => requestAdd(anime)}
                 title="Adjust status & progress"
-                className="flex h-10 w-10 sm:h-11 sm:w-11 items-center justify-center rounded-xl border border-white/15 bg-white/5 text-white/80 hover:bg-white/10 hover:text-white transition-all active:scale-95"
+                className="flex h-10 w-10 sm:h-11 sm:w-11 items-center justify-center rounded-xl border border-border bg-surface-3/60 text-muted transition-all hover:bg-surface-3 hover:text-fg active:scale-95"
               >
                 <SlidersIcon className="h-4 w-4" />
               </button>
@@ -437,9 +437,9 @@ export function FeaturedAngularCard({
               {/* View Details Link */}
               <Link
                 href={`/anime/${anime.id}`}
-                className="inline-flex h-10 items-center gap-1.5 rounded-xl border border-white/15 bg-white/5 px-3.5 text-xs font-semibold text-white transition-all hover:bg-white/10 active:scale-95 sm:h-11"
+                className="inline-flex h-10 items-center gap-1.5 rounded-xl border border-border bg-surface-3/60 px-3.5 text-xs font-semibold text-fg transition-all hover:bg-surface-3 active:scale-95 sm:h-11"
               >
-                <EyeIcon className="h-3.5 w-3.5 text-white/70" />
+                <EyeIcon className="h-3.5 w-3.5 text-muted" />
                 <span>Details</span>
               </Link>
             </div>
@@ -487,7 +487,7 @@ export function QueueCard({
         "group/q relative flex flex-col justify-between overflow-hidden rounded-2xl border transition-all duration-200 cursor-pointer select-none",
         isActive
           ? "border-accent ring-2 ring-accent/60 bg-accent/10 shadow-lg scale-[1.01]"
-          : "border-white/10 bg-surface hover:border-white/20 hover:bg-surface-2",
+          : "border-border-subtle bg-surface hover:border-border hover:bg-surface-2",
       )}
     >
       {/* Artwork with integrated progress bar */}
@@ -538,12 +538,12 @@ export function QueueCard({
       <div className="flex items-center justify-between gap-2 p-2.5">
         <div className="min-w-0 flex-1">
           <p
-            className="line-clamp-1 font-display text-xs font-bold text-white transition-colors group-hover/q:text-accent-strong"
+            className="line-clamp-1 font-display text-xs font-bold text-fg transition-colors group-hover/q:text-accent-strong"
             title={title}
           >
             {title}
           </p>
-          <p className="mt-0.5 text-[11px] text-white/60">
+          <p className="mt-0.5 text-[11px] text-muted">
             {total ? `${entry.progress}/${total} eps` : `${entry.progress} watched`}
             {percent !== null ? ` · ${percent}%` : ""}
           </p>
@@ -561,7 +561,7 @@ export function QueueCard({
           className={cn(
             "flex h-7 shrink-0 items-center gap-1 rounded-lg px-2 text-[11px] font-bold transition-all active:scale-95",
             atEnd
-              ? "border border-white/10 bg-white/5 text-white/40"
+              ? "border border-border-subtle bg-surface-3 text-faint"
               : "border border-accent/40 bg-accent/20 text-accent-strong hover:bg-accent hover:text-accent-contrast shadow-xs",
           )}
         >
@@ -721,7 +721,7 @@ export function ContinueWatching({ todayEntries }: ContinueWatchingProps = {}) {
         <div className="flex items-center gap-2">
           {/* Shelf / Grid toggle */}
           {watching.length > 1 ? (
-            <div className="inline-flex items-center rounded-xl border border-white/10 bg-surface-2 p-0.5 text-xs">
+            <div className="inline-flex items-center rounded-xl border border-border-subtle bg-surface-2 p-0.5 text-xs">
               <button
                 type="button"
                 onClick={() => setViewMode("shelf")}
@@ -760,7 +760,7 @@ export function ContinueWatching({ todayEntries }: ContinueWatchingProps = {}) {
                 type="button"
                 onClick={() => handleShelfScroll("left")}
                 aria-label="Scroll queue left"
-                className="flex h-7 w-7 items-center justify-center rounded-lg border border-white/10 bg-surface-2 text-muted transition-colors hover:border-white/20 hover:bg-surface-3 hover:text-fg active:scale-95"
+                className="flex h-7 w-7 items-center justify-center rounded-lg border border-border-subtle bg-surface-2 text-muted transition-colors hover:border-border hover:bg-surface-3 hover:text-fg active:scale-95"
               >
                 <ChevronLeftIcon className="h-3.5 w-3.5" />
               </button>
@@ -768,7 +768,7 @@ export function ContinueWatching({ todayEntries }: ContinueWatchingProps = {}) {
                 type="button"
                 onClick={() => handleShelfScroll("right")}
                 aria-label="Scroll queue right"
-                className="flex h-7 w-7 items-center justify-center rounded-lg border border-white/10 bg-surface-2 text-muted transition-colors hover:border-white/20 hover:bg-surface-3 hover:text-fg active:scale-95"
+                className="flex h-7 w-7 items-center justify-center rounded-lg border border-border-subtle bg-surface-2 text-muted transition-colors hover:border-border hover:bg-surface-3 hover:text-fg active:scale-95"
               >
                 <ChevronRightIcon className="h-3.5 w-3.5" />
               </button>
@@ -836,7 +836,7 @@ export function ContinueWatching({ todayEntries }: ContinueWatchingProps = {}) {
                       onClick={() => handleShelfScroll("left")}
                       aria-label="Previous series in queue"
                       title="Scroll queue left"
-                      className="flex h-6 w-6 items-center justify-center rounded-lg border border-white/10 bg-surface-2 text-white/70 hover:border-white/20 hover:bg-surface-3 hover:text-white transition-all active:scale-95"
+                      className="flex h-6 w-6 items-center justify-center rounded-lg border border-border-subtle bg-surface-2 text-muted hover:border-border hover:bg-surface-3 hover:text-fg transition-all active:scale-95"
                     >
                       <ChevronLeftIcon className="h-3.5 w-3.5" />
                     </button>
@@ -845,7 +845,7 @@ export function ContinueWatching({ todayEntries }: ContinueWatchingProps = {}) {
                       onClick={() => handleShelfScroll("right")}
                       aria-label="Next series in queue"
                       title="Scroll queue right"
-                      className="flex h-6 w-6 items-center justify-center rounded-lg border border-white/10 bg-surface-2 text-white/70 hover:border-white/20 hover:bg-surface-3 hover:text-white transition-all active:scale-95"
+                      className="flex h-6 w-6 items-center justify-center rounded-lg border border-border-subtle bg-surface-2 text-muted hover:border-border hover:bg-surface-3 hover:text-fg transition-all active:scale-95"
                     >
                       <ChevronRightIcon className="h-3.5 w-3.5" />
                     </button>
@@ -936,7 +936,7 @@ export function ContinueWatching({ todayEntries }: ContinueWatchingProps = {}) {
                       <button
                         type="button"
                         onClick={() => setShowAllGrid((prev) => !prev)}
-                        className="inline-flex h-8 items-center gap-1.5 rounded-xl border border-white/10 bg-surface-2 px-4 text-xs font-semibold text-white/80 hover:bg-surface-3 hover:text-white transition-colors"
+                        className="inline-flex h-8 items-center gap-1.5 rounded-xl border border-border-subtle bg-surface-2 px-4 text-xs font-semibold text-muted transition-colors hover:bg-surface-3 hover:text-fg"
                       >
                         <span>
                           {showAllGrid

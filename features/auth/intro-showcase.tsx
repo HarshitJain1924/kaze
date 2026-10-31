@@ -12,7 +12,7 @@ import { PosterMarqueeWall } from "@/features/auth/poster-marquee-wall";
 
 export function IntroShowcase() {
   return (
-    <aside className="relative flex min-h-dvh flex-col justify-between overflow-hidden border-r border-white/[0.08] bg-[#07080e] p-8 sm:p-10 lg:p-12 select-none">
+    <aside className="theme-dark relative flex min-h-dvh flex-col justify-between overflow-hidden border-r border-border bg-[#07080e] p-8 sm:p-10 lg:p-12 select-none">
       {/* Dynamic Infinite Auto-Scrolling Anime Poster Library (Random Left/Right) */}
       <PosterMarqueeWall />
 

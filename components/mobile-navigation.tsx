@@ -46,7 +46,7 @@ export function MobileHeader({ viewer }: { viewer: Viewer | null }) {
   const { resolved, setMode } = useTheme();
 
   return (
-    <header className="sticky top-0 z-40 border-b border-white/10 bg-bg/75 backdrop-blur-2xl backdrop-saturate-[180%] lg:hidden">
+    <header className="sticky top-0 z-40 border-b border-border-subtle bg-bg/75 backdrop-blur-2xl backdrop-saturate-[180%] lg:hidden">
       <div className="flex h-14 items-center justify-between px-4">
         <Logo compact />
         <div className="flex items-center gap-1.5">
@@ -59,7 +59,7 @@ export function MobileHeader({ viewer }: { viewer: Viewer | null }) {
             className="flex h-9 w-9 items-center justify-center rounded-xl liquid-glass-interactive text-muted hover:text-fg active:scale-95"
           >
             {resolved === "dark" ? (
-              <MoonIcon className="h-4 w-4 text-purple-300" />
+              <MoonIcon className="h-4 w-4 text-purple-300 light:text-purple-700" />
             ) : (
               <SunIcon className="h-4 w-4 text-amber-400" />
             )}
@@ -75,7 +75,7 @@ export function MobileHeader({ viewer }: { viewer: Viewer | null }) {
           <Link
             href={viewer ? "/settings" : "/login"}
             aria-label={viewer ? "Account settings" : "Sign in"}
-            className="flex h-9 items-center justify-center rounded-xl px-1.5 transition-colors hover:bg-white/[0.08]"
+            className="flex h-9 items-center justify-center rounded-xl px-1.5 transition-colors hover:bg-surface-2"
           >
             {viewer ? (
               <UserAvatar email={viewer.email} size="sm" />
@@ -97,7 +97,7 @@ export function MobileBottomNavigation() {
   return (
     <nav
       aria-label="Primary"
-      className="safe-bottom fixed inset-x-0 bottom-0 z-40 border-t border-white/10 bg-bg-soft/75 backdrop-blur-2xl backdrop-saturate-[180%] shadow-[inset_0_1px_1px_rgba(255,255,255,0.08)] lg:hidden"
+      className="safe-bottom fixed inset-x-0 bottom-0 z-40 border-t border-border-subtle bg-bg-soft/75 backdrop-blur-2xl backdrop-saturate-[180%] shadow-[inset_0_1px_1px_rgba(255,255,255,0.08)] lg:hidden"
     >
       <div className="grid grid-cols-5 py-0.5">
         {ITEMS.map((item) => {

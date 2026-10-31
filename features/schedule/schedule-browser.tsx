@@ -230,7 +230,7 @@ export function ScheduleBrowser({
   return (
     <div className="space-y-6">
       {/* Cinematic Ambient Broadcast Center Hero Banner */}
-      <header className="relative overflow-hidden rounded-3xl border border-white/[0.08] bg-surface/85 p-6 sm:p-7 md:p-8 backdrop-blur-xl shadow-2xl">
+      <header className="relative overflow-hidden rounded-3xl border border-border-subtle bg-surface/85 p-6 sm:p-7 md:p-8 backdrop-blur-xl shadow-2xl">
         {/* Ambient high-res backdrop with dark multi-stop vignette */}
         {heroBackdrop && isHttpUrl(heroBackdrop) ? (
           <div className="pointer-events-none absolute inset-0 overflow-hidden">
@@ -256,7 +256,7 @@ export function ScheduleBrowser({
             <div className="inline-flex items-center gap-2 rounded-full border border-accent/30 bg-accent-soft px-3.5 py-1 text-xs font-semibold text-accent-strong backdrop-blur-md shadow-xs">
               <span className="h-2 w-2 rounded-full bg-accent radar-live-dot" />
               <span>Broadcast Radar</span>
-              <span className="text-white/30">/</span>
+              <span className="text-faint">/</span>
               <span className="text-muted">{week.weekLabel}</span>
             </div>
 
@@ -267,7 +267,7 @@ export function ScheduleBrowser({
                 size="sm"
                 onClick={handlePrevWeek}
                 aria-label="Previous week"
-                className="h-8 rounded-xl border-white/10 bg-surface-2/80 px-2.5 text-xs text-muted hover:border-white/20 hover:text-fg"
+                className="h-8 rounded-xl border border-border-subtle bg-surface-2/80 px-2.5 text-xs text-muted hover:border-border hover:text-fg"
               >
                 <ChevronLeftIcon className="h-4 w-4" />
                 <span className="hidden sm:inline">Prev week</span>
@@ -287,7 +287,7 @@ export function ScheduleBrowser({
                 size="sm"
                 onClick={handleNextWeek}
                 aria-label="Next week"
-                className="h-8 rounded-xl border-white/10 bg-surface-2/80 px-2.5 text-xs text-muted hover:border-white/20 hover:text-fg"
+                className="h-8 rounded-xl border border-border-subtle bg-surface-2/80 px-2.5 text-xs text-muted hover:border-border hover:text-fg"
               >
                 <span className="hidden sm:inline">Next week</span>
                 <ChevronRightIcon className="h-4 w-4" />
@@ -315,7 +315,7 @@ export function ScheduleBrowser({
             </div>
 
             {/* Timezone pill container */}
-            <div className="inline-flex max-w-full shrink-0 items-center gap-2 self-start rounded-2xl border border-white/[0.08] bg-surface-2/70 px-3.5 py-1.5 text-xs text-muted backdrop-blur-md md:self-auto">
+            <div className="inline-flex max-w-full shrink-0 items-center gap-2 self-start rounded-2xl border border-border-subtle bg-surface-2/70 px-3.5 py-1.5 text-xs text-muted backdrop-blur-md md:self-auto">
               <ClockIcon className="h-3.5 w-3.5 shrink-0 text-accent-strong" />
               <span className="whitespace-nowrap text-faint">Local Timezone:</span>
               <TimezoneSelector className="shrink-0" />
@@ -325,7 +325,7 @@ export function ScheduleBrowser({
           {/* Bento Telemetry Strip */}
           <div className="grid grid-cols-2 gap-2.5 pt-1 sm:grid-cols-4 sm:gap-3">
             {/* Bento Pod 1: Week Total */}
-            <div className="flex flex-col rounded-2xl border border-white/[0.06] bg-surface-2/50 p-3 backdrop-blur-md">
+            <div className="flex flex-col rounded-2xl border border-border-subtle bg-surface-2/50 p-3 backdrop-blur-md">
               <div className="flex items-center gap-1.5 text-[11px] font-semibold text-muted">
                 <CalendarIcon className="h-3 w-3 text-accent-strong" />
                 <span>Week Airings</span>
@@ -339,8 +339,8 @@ export function ScheduleBrowser({
             </div>
 
             {/* Bento Pod 2: Today's Releases */}
-            <div className="flex flex-col rounded-2xl border border-white/[0.06] bg-surface-2/50 p-3 backdrop-blur-md">
-              <div className="flex items-center gap-1.5 text-[11px] font-semibold text-emerald-300">
+            <div className="flex flex-col rounded-2xl border border-border-subtle bg-surface-2/50 p-3 backdrop-blur-md">
+              <div className="flex items-center gap-1.5 text-[11px] font-semibold text-emerald-300 light:text-emerald-700">
                 <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 shadow-[0_0_6px_rgba(52,211,153,0.8)]" />
                 <span>Today&apos;s Broadcasts</span>
               </div>
@@ -353,8 +353,8 @@ export function ScheduleBrowser({
             </div>
 
             {/* Bento Pod 3: Watchlist Episodes */}
-            <div className="flex flex-col rounded-2xl border border-white/[0.06] bg-surface-2/50 p-3 backdrop-blur-md">
-              <div className="flex items-center gap-1.5 text-[11px] font-semibold text-purple-300">
+            <div className="flex flex-col rounded-2xl border border-border-subtle bg-surface-2/50 p-3 backdrop-blur-md">
+              <div className="flex items-center gap-1.5 text-[11px] font-semibold text-purple-300 light:text-purple-700">
                 <FlameIcon className="h-3 w-3 text-purple-400" />
                 <span>Watchlist Queue</span>
               </div>
@@ -367,8 +367,8 @@ export function ScheduleBrowser({
             </div>
 
             {/* Bento Pod 4: Next Airing Countdown */}
-            <div className="flex flex-col rounded-2xl border border-white/[0.06] bg-surface-2/50 p-3 backdrop-blur-md">
-              <div className="flex items-center gap-1.5 text-[11px] font-semibold text-amber-300">
+            <div className="flex flex-col rounded-2xl border border-border-subtle bg-surface-2/50 p-3 backdrop-blur-md">
+              <div className="flex items-center gap-1.5 text-[11px] font-semibold text-amber-300 light:text-amber-700">
                 <span className="h-1.5 w-1.5 rounded-full bg-amber-400 radar-live-dot" />
                 <span>Next Upcoming</span>
               </div>
@@ -390,7 +390,7 @@ export function ScheduleBrowser({
       </header>
 
       {/* 7-Day Studio Broadcast Dock (Mon - Sun) */}
-      <div className="rounded-2xl border border-white/[0.08] bg-surface/70 p-2 backdrop-blur-md shadow-xs">
+      <div className="rounded-2xl border border-border-subtle bg-surface/70 p-2 backdrop-blur-md shadow-xs">
         <div
           role="group"
           aria-label="Filter by day of week"
@@ -438,7 +438,7 @@ export function ScheduleBrowser({
                 <span
                   className={cn(
                     "mt-1 font-display text-xl font-bold tabular-nums transition-colors",
-                    isSelected ? "text-white" : "text-fg",
+                    isSelected ? "text-accent-strong" : "text-fg",
                   )}
                 >
                   {day.dayNumber}
@@ -451,7 +451,7 @@ export function ScheduleBrowser({
                       "rounded-full px-1.5 py-0.5 text-[10px] font-medium",
                       isSelected
                         ? "bg-accent/30 text-accent-strong"
-                        : "bg-surface-3 text-faint",
+                        : "bg-surface-3 text-muted",
                     )}
                   >
                     {day.entries.length} eps
@@ -476,7 +476,7 @@ export function ScheduleBrowser({
         <div
           role="group"
           aria-label="Filter schedule releases"
-          className="flex rounded-xl border border-white/[0.08] bg-surface/70 p-1 backdrop-blur-md"
+          className="flex rounded-xl border border-border-subtle bg-surface/70 p-1 backdrop-blur-md"
         >
           <button
             type="button"
@@ -490,7 +490,7 @@ export function ScheduleBrowser({
             )}
           >
             <span>All Releases</span>
-            <span className="rounded-full bg-surface-3 px-1.5 py-0.5 text-[10px] font-bold tabular-nums text-faint">
+            <span className="rounded-full bg-surface-3 px-1.5 py-0.5 text-[10px] font-bold tabular-nums text-muted">
               {activeDay?.entries.length ?? 0}
             </span>
           </button>
@@ -502,13 +502,13 @@ export function ScheduleBrowser({
             className={cn(
               "inline-flex items-center gap-2 rounded-lg px-3.5 py-1.5 text-xs font-semibold transition-all duration-150 active:scale-95",
               filterMode === "watching"
-                ? "border border-purple-500/50 bg-purple-500/20 text-purple-200 shadow-[0_0_10px_rgba(168,85,247,0.25)]"
+                ? "border border-purple-500/50 bg-purple-500/20 text-purple-200 light:bg-purple-500/10 light:text-purple-700 shadow-[0_0_10px_rgba(168,85,247,0.25)]"
                 : "text-muted hover:text-fg",
             )}
           >
             <span className="h-1.5 w-1.5 rounded-full bg-purple-400 shadow-[0_0_6px_rgba(168,85,247,0.8)]" />
             <span>My Watchlist</span>
-            <span className="rounded-full bg-surface-3 px-1.5 py-0.5 text-[10px] font-bold tabular-nums text-purple-300">
+            <span className="rounded-full bg-surface-3 px-1.5 py-0.5 text-[10px] font-bold tabular-nums text-purple-300 light:text-purple-700">
               {activeDay?.entries.filter((e) => watchingSet.has(e.mediaId))
                 .length ?? 0}
             </span>
@@ -529,7 +529,7 @@ export function ScheduleBrowser({
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Filter by title…"
-            className="h-10 w-full rounded-xl border border-white/[0.08] bg-surface/70 pl-8 pr-3 text-xs text-fg placeholder:text-faint/70 transition-all focus:border-accent focus:bg-surface-2 focus:outline-none focus:ring-1 focus:ring-accent [&::-webkit-search-cancel-button]:appearance-none [&::-webkit-search-cancel-button]:hidden [&::-webkit-search-decoration]:appearance-none"
+            className="h-10 w-full rounded-xl border border-border-subtle bg-surface/70 pl-8 pr-3 text-xs text-fg placeholder:text-faint/70 transition-all focus:border-accent focus:bg-surface-2 focus:outline-none focus:ring-1 focus:ring-accent [&::-webkit-search-cancel-button]:appearance-none [&::-webkit-search-cancel-button]:hidden [&::-webkit-search-decoration]:appearance-none"
           />
         </div>
       </div>
@@ -540,7 +540,7 @@ export function ScheduleBrowser({
           <h2 className="font-display text-base font-semibold text-fg sm:text-lg">
             {activeDay ? formatDayHeading(activeDay.date) : ""}
           </h2>
-          <span className="rounded-full border border-white/[0.08] bg-surface-2 px-2.5 py-1 text-xs font-medium tabular-nums text-muted">
+          <span className="rounded-full border border-border-subtle bg-surface-2 px-2.5 py-1 text-xs font-medium tabular-nums text-muted">
             {filteredEntries.length}{" "}
             {filteredEntries.length === 1 ? "release" : "releases"}
           </span>
@@ -585,7 +585,7 @@ export function ScheduleBrowser({
               ) : (
                 <Link
                   href="/discover"
-                  className="inline-flex h-9 items-center rounded-xl border border-white/10 bg-surface-2 px-4 text-xs font-semibold text-fg transition-colors hover:border-white/20 hover:bg-surface-3"
+                  className="inline-flex h-9 items-center rounded-xl border border-border-subtle bg-surface-2 px-4 text-xs font-semibold text-fg transition-colors hover:border-border hover:bg-surface-3"
                 >
                   Explore anime in Discover
                 </Link>
@@ -680,7 +680,7 @@ function ScheduleReleaseCard({
         "group relative flex gap-3.5 rounded-2xl border p-3.5 backdrop-blur-md transition-all duration-200 hover:-translate-y-0.5 hover:shadow-xl",
         inWatching
           ? "border-purple-500/40 bg-purple-500/10 shadow-[0_0_15px_rgba(168,85,247,0.12)] hover:border-purple-500/60"
-          : "border-white/[0.08] bg-surface/75 hover:border-white/[0.18] hover:bg-surface-2/80",
+          : "border-border-subtle bg-surface/75 hover:border-border hover:bg-surface-2/80",
       )}
     >
       {/* Accent beacon rail on watchlist entries */}
@@ -694,7 +694,7 @@ function ScheduleReleaseCard({
       {/* Poster Artwork with direct CDN delivery */}
       <Link
         href={`/anime/${anime.id}`}
-        className="relative block h-[122px] w-[82px] shrink-0 overflow-hidden rounded-xl border border-white/10 bg-surface-3 shadow-md"
+        className="relative block h-[122px] w-[82px] shrink-0 overflow-hidden rounded-xl border border-border-subtle bg-surface-3 shadow-md"
         aria-label={`Open details for ${title}`}
       >
         {cover && isHttpUrl(cover) ? (
@@ -751,7 +751,7 @@ function ScheduleReleaseCard({
 
             {/* In-Watchlist Badge or Status Badge */}
             {inWatching ? (
-              <span className="inline-flex items-center gap-1 rounded-full border border-purple-500/40 bg-purple-500/20 px-2 py-0.5 text-[10px] font-semibold text-purple-300">
+              <span className="inline-flex items-center gap-1 rounded-full border border-purple-500/40 bg-purple-500/20 px-2 py-0.5 text-[10px] font-semibold text-purple-300 light:text-purple-700">
                 <span
                   aria-hidden="true"
                   className="h-1 w-1 rounded-full bg-purple-400 shadow-[0_0_4px_rgba(168,85,247,0.8)]"
@@ -780,7 +780,7 @@ function ScheduleReleaseCard({
             {formatText && <span>{formatText}</span>}
             {anime.seasonYear && <span>· {anime.seasonYear}</span>}
             {score && (
-              <span className="inline-flex items-center gap-1 font-semibold text-amber-300">
+              <span className="inline-flex items-center gap-1 font-semibold text-amber-300 light:text-amber-700">
                 · <StarIcon className="h-2.5 w-2.5 fill-current" />
                 {score}
               </span>
@@ -833,7 +833,7 @@ function ScheduleReleaseCard({
               <button
                 type="button"
                 onClick={() => onRequestAdd(anime)}
-                className="inline-flex h-8 items-center gap-1.5 rounded-xl border border-white/10 bg-surface-2 px-3 text-xs font-medium text-muted transition-all hover:border-accent/40 hover:bg-surface-3 hover:text-fg active:scale-95"
+                className="inline-flex h-8 items-center gap-1.5 rounded-xl border border-border-subtle bg-surface-2 px-3 text-xs font-medium text-muted transition-all hover:border-accent/40 hover:bg-surface-3 hover:text-fg active:scale-95"
               >
                 <PlusIcon className="h-3 w-3" />
                 <span>Track Anime</span>

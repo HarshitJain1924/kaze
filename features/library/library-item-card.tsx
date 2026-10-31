@@ -115,7 +115,7 @@ export function LibraryItemCard({ item }: { item: LibraryItem }) {
   const metaSubtitle = [formatText, yearText].filter(Boolean).join(" · ");
 
   return (
-    <article className="group relative flex flex-col rounded-2xl border border-white/[0.08] bg-surface/70 p-2.5 backdrop-blur-md transition-all duration-200 hover:-translate-y-1 hover:border-white/[0.18] hover:bg-surface-2/80 hover:shadow-xl">
+    <article className="group relative flex flex-col rounded-2xl border border-border-subtle bg-surface/70 p-2.5 backdrop-blur-md transition-all duration-200 hover:-translate-y-1 hover:border-border hover:bg-surface-2/80 hover:shadow-xl">
       {/* Poster Artwork container */}
       <div className="relative aspect-[2/3] w-full overflow-hidden rounded-xl bg-surface-3">
         {cover && isHttpUrl(cover) && !imageFailed ? (

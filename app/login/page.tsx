@@ -59,7 +59,7 @@ export default async function LoginPage({
             <Logo />
             <Link
               href="/discover"
-              className="inline-flex items-center gap-1 text-xs font-semibold text-accent-strong hover:text-white transition-colors"
+              className="inline-flex items-center gap-1 text-xs font-semibold text-accent-strong hover:text-fg transition-colors"
             >
               <span>Explore Discover</span>
               <span>→</span>
@@ -67,10 +67,10 @@ export default async function LoginPage({
           </div>
 
           {/* Mobile Art Accent Card with Auto-scrolling Posters */}
-          <div className="relative overflow-hidden rounded-2xl border border-white/[0.1] bg-surface/80 p-5 shadow-lg backdrop-blur-xl">
+          <div className="relative overflow-hidden rounded-2xl border border-border-subtle bg-surface/80 p-5 shadow-lg backdrop-blur-xl">
             <MiniPosterMarquee />
             <div className="relative z-10 space-y-1.5">
-              <h2 className="font-display text-lg font-bold text-white">
+              <h2 className="font-display text-lg font-bold text-fg">
                 Your anime journey, elevated to cinema.
               </h2>
               <p className="text-xs text-muted">
@@ -90,7 +90,7 @@ export default async function LoginPage({
         </div>
 
         {/* Footer Security Footnote */}
-        <div className="relative z-10 flex flex-col sm:flex-row items-center justify-between gap-2 border-t border-white/[0.06] pt-4 text-[11px] text-faint">
+        <div className="relative z-10 flex flex-col sm:flex-row items-center justify-between gap-2 border-t border-border-subtle pt-4 text-[11px] text-faint">
           <span>Private vault protected by Row-Level Security (RLS)</span>
           <span>Zero tracking · Edge-cached AniList metadata</span>
         </div>

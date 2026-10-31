@@ -118,8 +118,8 @@ function SettingsSection({
   badge?: string;
 }) {
   return (
-    <section className="relative overflow-hidden rounded-3xl border border-white/[0.08] bg-surface/85 p-5 sm:p-7 backdrop-blur-xl shadow-xl">
-      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-white/[0.06] pb-4">
+    <section className="relative overflow-hidden rounded-3xl border border-border-subtle bg-surface/85 p-5 sm:p-7 backdrop-blur-xl shadow-xl">
+      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border-subtle pb-4">
         <div>
           <h2 className="font-display text-lg font-bold text-fg sm:text-xl">
             {title}
@@ -131,7 +131,7 @@ function SettingsSection({
           )}
         </div>
         {badge && (
-          <span className="rounded-full border border-white/10 bg-surface-2/80 px-2.5 py-0.5 text-[11px] font-semibold text-muted">
+          <span className="rounded-full border border-border-subtle bg-surface-2/80 px-2.5 py-0.5 text-[11px] font-semibold text-muted">
             {badge}
           </span>
         )}
@@ -310,14 +310,14 @@ export function SettingsView({ viewer }: { viewer: Viewer }) {
   return (
     <div className="mx-auto max-w-4xl space-y-7 pb-10">
       {/* Header with Studio Beacon & Auto-save Status */}
-      <header className="relative overflow-hidden rounded-3xl border border-white/[0.08] bg-surface/85 p-6 sm:p-8 backdrop-blur-xl shadow-2xl">
+      <header className="relative overflow-hidden rounded-3xl border border-border-subtle bg-surface/85 p-6 sm:p-8 backdrop-blur-xl shadow-2xl">
         <div className="pointer-events-none absolute -right-20 -top-20 h-64 w-64 rounded-full bg-accent/15 blur-3xl" />
         <div className="relative z-10 flex flex-wrap items-start justify-between gap-4">
           <div className="space-y-2">
             <div className="inline-flex items-center gap-2 rounded-full border border-accent/30 bg-accent-soft px-3 py-1 text-xs font-semibold text-accent-strong backdrop-blur-md">
               <span className="h-2 w-2 rounded-full bg-accent radar-live-dot" />
               <span>Studio Engine</span>
-              <span className="text-white/30">/</span>
+              <span className="text-faint">/</span>
               <span className="text-muted">Control Center</span>
             </div>
             <h1 className="font-display text-2xl font-bold tracking-tight text-fg sm:text-3xl lg:text-4xl">
@@ -332,7 +332,7 @@ export function SettingsView({ viewer }: { viewer: Viewer }) {
           <div
             role="status"
             aria-live="polite"
-            className="flex items-center gap-2 rounded-full border border-white/10 bg-surface-2/80 px-3 py-1.5 text-xs font-medium backdrop-blur-md"
+            className="flex items-center gap-2 rounded-full border border-border-subtle bg-surface-2/80 px-3 py-1.5 text-xs font-medium backdrop-blur-md"
           >
             <span
               className={cn(
@@ -342,7 +342,7 @@ export function SettingsView({ viewer }: { viewer: Viewer }) {
                   : "bg-muted/50",
               )}
             />
-            <span className={savedVisible ? "text-emerald-300 font-semibold" : "text-muted"}>
+            <span className={savedVisible ? "text-emerald-300 font-semibold light:text-emerald-700" : "text-muted"}>
               {savedVisible ? "Saved on this device" : "Changes persist instantly"}
             </span>
           </div>
@@ -391,7 +391,7 @@ export function SettingsView({ viewer }: { viewer: Viewer }) {
                       "group relative flex flex-col justify-between rounded-2xl border p-4 text-left transition-all duration-150 active:scale-[0.98]",
                       active
                         ? "border-accent/60 bg-accent-soft shadow-[0_0_15px_rgba(139,92,246,0.2)]"
-                        : "border-white/[0.08] bg-surface-2/60 hover:border-white/[0.18] hover:bg-surface-2",
+                        : "border-border-subtle bg-surface-2/60 hover:border-border hover:bg-surface-2",
                     )}
                   >
                     <div className="flex items-center justify-between">
@@ -457,14 +457,14 @@ export function SettingsView({ viewer }: { viewer: Viewer }) {
                       "group relative flex flex-col rounded-2xl border p-3 text-left transition-all duration-150 active:scale-[0.98]",
                       active
                         ? "border-accent/60 bg-accent-soft ring-1 ring-accent/40 shadow-[0_0_18px_rgba(139,92,246,0.25)]"
-                        : "border-white/[0.08] bg-surface-2/60 hover:border-white/[0.18] hover:bg-surface-2",
+                        : "border-border-subtle bg-surface-2/60 hover:border-border hover:bg-surface-2",
                     )}
                   >
                     {/* Live Micro Interface Swatch carrying the exact theme tokens */}
                     <div
                       data-design={option.value}
                       className={cn(
-                        "relative h-24 w-full overflow-hidden rounded-xl border border-white/10 bg-bg p-3 shadow-inner",
+                        "relative h-24 w-full overflow-hidden rounded-xl border border-border-subtle bg-bg p-3 shadow-inner",
                         resolved === "light" && "light",
                       )}
                     >
@@ -477,7 +477,7 @@ export function SettingsView({ viewer }: { viewer: Viewer }) {
 
                       {/* Mock mini poster & pill elements */}
                       <div className="mt-2.5 flex items-center gap-2">
-                        <div className="h-10 w-7 shrink-0 rounded-md bg-surface-3 border border-white/10" />
+                        <div className="h-10 w-7 shrink-0 rounded-md bg-surface-3 border border-border-subtle" />
                         <div className="min-w-0 flex-1 space-y-1.5">
                           <div className="h-2 w-3/4 rounded-full bg-fg/80" />
                           <div className="flex gap-1">
@@ -537,7 +537,7 @@ export function SettingsView({ viewer }: { viewer: Viewer }) {
                 );
                 markSaved();
               }}
-              className="mt-2 h-11 w-full rounded-xl border border-white/[0.08] bg-surface-2 px-3.5 text-sm font-medium text-fg transition-all focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent"
+              className="mt-2 h-11 w-full rounded-xl border border-border-subtle bg-surface-2 px-3.5 text-sm font-medium text-fg transition-all focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent"
             >
               <option value="english" className="bg-surface text-fg">
                 English titles (e.g. Attack on Titan)
@@ -575,7 +575,7 @@ export function SettingsView({ viewer }: { viewer: Viewer }) {
                   "inline-flex h-11 items-center justify-center gap-2 rounded-xl border text-xs font-semibold transition-all active:scale-95",
                   preferences.libraryView === "grid"
                     ? "border-accent/60 bg-accent-soft text-accent-strong shadow-xs"
-                    : "border-white/[0.08] bg-surface-2 text-muted hover:text-fg",
+                    : "border-border-subtle bg-surface-2 text-muted hover:text-fg",
                 )}
               >
                 <GridIcon className="h-4 w-4" />
@@ -593,7 +593,7 @@ export function SettingsView({ viewer }: { viewer: Viewer }) {
                   "inline-flex h-11 items-center justify-center gap-2 rounded-xl border text-xs font-semibold transition-all active:scale-95",
                   preferences.libraryView === "list"
                     ? "border-accent/60 bg-accent-soft text-accent-strong shadow-xs"
-                    : "border-white/[0.08] bg-surface-2 text-muted hover:text-fg",
+                    : "border-border-subtle bg-surface-2 text-muted hover:text-fg",
                 )}
               >
                 <ListIcon className="h-4 w-4" />
@@ -603,7 +603,7 @@ export function SettingsView({ viewer }: { viewer: Viewer }) {
           </div>
 
           {/* Broadcast Timezone */}
-          <div className="space-y-2 sm:col-span-2 border-t border-white/[0.06] pt-5">
+          <div className="space-y-2 sm:col-span-2 border-t border-border-subtle pt-5">
             <div className="flex items-center gap-2">
               <ClockIcon className="h-4 w-4 text-accent-strong" />
               <span className="font-display text-sm font-semibold text-fg">
@@ -628,10 +628,10 @@ export function SettingsView({ viewer }: { viewer: Viewer }) {
       >
         <div className="space-y-6">
           {/* User Profile Overview */}
-          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between border-b border-white/[0.06] pb-5">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between border-b border-border-subtle pb-5">
             <div className="flex items-center gap-3.5">
               <div className="relative">
-                <span className="flex h-12 w-12 items-center justify-center rounded-2xl border border-white/10 bg-surface-2 text-muted shadow-sm">
+                <span className="flex h-12 w-12 items-center justify-center rounded-2xl border border-border-subtle bg-surface-2 text-muted shadow-sm">
                   <UserIcon className="h-6 w-6 text-accent-strong" />
                 </span>
                 <span className="absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full bg-emerald-400 border-2 border-bg shadow-[0_0_6px_rgba(52,211,153,0.8)]" />
@@ -656,7 +656,7 @@ export function SettingsView({ viewer }: { viewer: Viewer }) {
               variant="secondary"
               onClick={handleSignOut}
               disabled={signingOut}
-              className="h-10 rounded-xl border-white/10 bg-surface-2 px-4 text-xs font-semibold text-danger hover:border-danger/30 hover:bg-danger-soft transition-all"
+              className="h-10 rounded-xl border border-border-subtle bg-surface-2 px-4 text-xs font-semibold text-danger hover:border-danger/30 hover:bg-danger-soft transition-all"
             >
               <LogOutIcon className="h-4 w-4 mr-1.5" />
               {signingOut ? "Signing out…" : "Sign out"}
@@ -685,7 +685,7 @@ export function SettingsView({ viewer }: { viewer: Viewer }) {
                 onChange={(e) => setNicknameInput(e.target.value)}
                 placeholder="e.g. Spike, Ichigo, Zero..."
                 maxLength={30}
-                className="h-11 flex-1 rounded-xl border border-white/[0.08] bg-surface-2 px-3.5 text-sm font-medium text-fg placeholder:text-faint/70 transition-all focus:border-accent focus:bg-surface-3 focus:outline-none focus:ring-1 focus:ring-accent"
+                className="h-11 flex-1 rounded-xl border border-border-subtle bg-surface-2 px-3.5 text-sm font-medium text-fg placeholder:text-faint/70 transition-all focus:border-accent focus:bg-surface-3 focus:outline-none focus:ring-1 focus:ring-accent"
               />
               <button
                 type="submit"
@@ -720,7 +720,7 @@ export function SettingsView({ viewer }: { viewer: Viewer }) {
               variant="secondary"
               onClick={exportJson}
               disabled={items.length === 0}
-              className="h-10 rounded-xl border-white/10 bg-surface-2 px-3.5 text-xs font-semibold text-fg hover:border-white/20 hover:bg-surface-3 transition-all"
+              className="h-10 rounded-xl border border-border-subtle bg-surface-2 px-3.5 text-xs font-semibold text-fg hover:border-border hover:bg-surface-3 transition-all"
             >
               <DownloadIcon className="h-4 w-4 mr-1.5" />
               Export JSON
@@ -729,7 +729,7 @@ export function SettingsView({ viewer }: { viewer: Viewer }) {
               variant="secondary"
               onClick={exportCsv}
               disabled={items.length === 0}
-              className="h-10 rounded-xl border-white/10 bg-surface-2 px-3.5 text-xs font-semibold text-fg hover:border-white/20 hover:bg-surface-3 transition-all"
+              className="h-10 rounded-xl border border-border-subtle bg-surface-2 px-3.5 text-xs font-semibold text-fg hover:border-border hover:bg-surface-3 transition-all"
             >
               <DownloadIcon className="h-4 w-4 mr-1.5" />
               Export CSV
@@ -741,7 +741,7 @@ export function SettingsView({ viewer }: { viewer: Viewer }) {
       {/* 5. System Architecture & Privacy */}
       <SettingsSection title="System Architecture & Privacy">
         <dl className="grid gap-4 text-xs sm:grid-cols-2">
-          <div className="rounded-2xl border border-white/[0.06] bg-surface-2/40 p-3.5">
+          <div className="rounded-2xl border border-border-subtle bg-surface-2/40 p-3.5">
             <dt className="font-display text-sm font-semibold text-fg">
               Anime Metadata Pipeline
             </dt>
@@ -750,7 +750,7 @@ export function SettingsView({ viewer }: { viewer: Viewer }) {
               circuit-breaker and edge-caching resilience.
             </dd>
           </div>
-          <div className="rounded-2xl border border-white/[0.06] bg-surface-2/40 p-3.5">
+          <div className="rounded-2xl border border-border-subtle bg-surface-2/40 p-3.5">
             <dt className="font-display text-sm font-semibold text-fg">
               Zero-Tracking Privacy
             </dt>

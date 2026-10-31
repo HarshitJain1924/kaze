@@ -1,5 +1,10 @@
 @import "tailwindcss";
 
+/* `light:` applies a utility only while the light appearance is active (the
+   document root carries `.light`). Status hues that need a darker tone on
+   paper use it instead of hard-coding a dark-only tint. */
+@custom-variant light (&:where(.light, .light *));
+
 /* ---------------------------------------------------------------------------
    Design directions
 
@@ -235,6 +240,39 @@
   --status-planning: #7c3aed;
   --status-on-hold: #d97706;
   --status-dropped: #dc2626;
+}
+
+/* Cinematic surfaces (landing page, auth showcase) stay dark in both
+   appearances. Scoping the signature dark palette keeps their text tokens
+   readable when the app itself is switched to the light one. */
+.theme-dark {
+  color-scheme: dark;
+  --bg: #090a10;
+  --bg-soft: #0d0f18;
+  --surface: #121520;
+  --surface-2: #181c2b;
+  --surface-3: #22273d;
+  --border: #283049;
+  --border-subtle: #191f30;
+  --fg: #f4f6fb;
+  --muted: #9ba7be;
+  --faint: #6e7a92;
+  --accent: #8b5cf6;
+  --accent-strong: #a78bfa;
+  --accent-hover: #7c3aed;
+  --accent-soft: rgba(139, 92, 246, 0.16);
+  --accent-contrast: #ffffff;
+  --danger: #f87171;
+  --danger-soft: rgba(248, 113, 113, 0.14);
+  --success: #34d399;
+  --warning: #fbbf24;
+  --shadow-card: 0 18px 40px -20px rgba(0, 0, 0, 0.85);
+
+  --status-watching: #a78bfa;
+  --status-completed: #34d399;
+  --status-planning: #38bdf8;
+  --status-on-hold: #fbbf24;
+  --status-dropped: #f87171;
 }
 
 @theme inline {
@@ -501,6 +539,67 @@
     box-shadow: 
       inset 0 1px 1px 0 rgba(255, 255, 255, 0.9),
       0 10px 30px -10px rgba(0, 0, 0, 0.1);
+  }
+
+  /* The smaller glass pieces carry normal text tones, so they must be light
+     glass on paper too instead of leaving dark translucent slabs behind. */
+  .light .liquid-glass-subtle,
+  .light .liquid-glass-pill,
+  .light .liquid-glass-interactive {
+    background: linear-gradient(
+      135deg,
+      rgba(255, 255, 255, 0.92) 0%,
+      rgba(255, 255, 255, 0.72) 100%
+    );
+    border: 1px solid rgba(15, 23, 42, 0.1);
+    box-shadow:
+      inset 0 1px 0 0 rgba(255, 255, 255, 0.9),
+      0 6px 18px -8px rgba(15, 23, 42, 0.16);
+  }
+
+  .light .liquid-glass-interactive:hover {
+    background: linear-gradient(
+      135deg,
+      rgba(255, 255, 255, 1) 0%,
+      rgba(255, 255, 255, 0.86) 100%
+    );
+    border-color: rgba(15, 23, 42, 0.18);
+    box-shadow:
+      inset 0 1px 1px 0 rgba(255, 255, 255, 1),
+      0 10px 26px -10px rgba(15, 23, 42, 0.22);
+  }
+
+  /* Glass inside a dark island keeps its original dark recipe. */
+  .light .theme-dark .liquid-glass,
+  .light .theme-dark .liquid-glass-subtle,
+  .light .theme-dark .liquid-glass-pill,
+  .light .theme-dark .liquid-glass-interactive {
+    background: linear-gradient(
+      135deg,
+      rgba(255, 255, 255, 0.08) 0%,
+      rgba(255, 255, 255, 0.02) 100%
+    );
+    background-color: rgba(18, 21, 32, 0.55);
+    border-color: rgba(255, 255, 255, 0.14);
+    box-shadow:
+      inset 0 1px 1px 0 rgba(255, 255, 255, 0.22),
+      0 12px 36px -8px rgba(0, 0, 0, 0.5);
+  }
+
+  /* Glass that sits on top of artwork and must stay dark in both themes. */
+  .liquid-glass-dark,
+  .light .liquid-glass-dark {
+    background: linear-gradient(
+      135deg,
+      rgba(255, 255, 255, 0.08) 0%,
+      rgba(255, 255, 255, 0.02) 100%
+    );
+    background-color: rgba(10, 12, 20, 0.55);
+    border-color: rgba(255, 255, 255, 0.14);
+    box-shadow: 
+      inset 0 1px 1px 0 rgba(255, 255, 255, 0.25),
+      inset 0 -1px 1px 0 rgba(0, 0, 0, 0.2),
+      0 12px 36px -8px rgba(0, 0, 0, 0.5);
   }
 }
 
