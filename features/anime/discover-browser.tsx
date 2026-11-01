@@ -130,6 +130,38 @@ function buildQuery(
   return params.toString();
 }
 
+interface SavedDiscoverState {
+  query: string;
+  filters: AnimeFilterState;
+  search: string;
+}
+
+const DISCOVER_STATE_KEY = "kaze.discover.state.v1";
+
+function readSavedDiscoverState(): SavedDiscoverState | null {
+  if (typeof window === "undefined") return null;
+  try {
+    const raw = window.sessionStorage.getItem(DISCOVER_STATE_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as Partial<SavedDiscoverState>;
+    if (
+      typeof parsed.query !== "string" ||
+      typeof parsed.search !== "string" ||
+      !parsed.filters ||
+      typeof parsed.filters.sort !== "string"
+    ) {
+      return null;
+    }
+    return {
+      query: parsed.query,
+      filters: parsed.filters,
+      search: parsed.search,
+    };
+  } catch {
+    return null;
+  }
+}
+
 function DiscoverDetailedCard({ anime }: { anime: AnimeSummary }) {
   const { preferences } = usePreferences();
   const { entryFor, requestAdd } = useLibrary();
@@ -281,8 +313,32 @@ export function DiscoverBrowser({
   const [retryNonce, setRetryNonce] = useState(0);
   const [showFilters, setShowFilters] = useState(false);
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
+  const [restoreChecked, setRestoreChecked] = useState(false);
 
   const skipInitialFetch = useRef(true);
+
+  // Returning from a detail page can restore the route from the client cache,
+  // so keep a tab-local snapshot and reapply it when the URL has no newer
+  // explicit filters.
+  useEffect(() => {
+    const saved = readSavedDiscoverState();
+    const currentSearch = window.location.search;
+    // Defer the client-only restore until after hydration.
+    const timer = window.setTimeout(() => {
+      if (
+        saved &&
+        (saved.search === currentSearch || currentSearch === "")
+      ) {
+        setQueryInput(saved.query);
+        setQuery(saved.query);
+        setFilters(saved.filters);
+        skipInitialFetch.current = false;
+        setStatus("loading");
+      }
+      setRestoreChecked(true);
+    }, 0);
+    return () => window.clearTimeout(timer);
+  }, []);
 
   // Debounce typing; clearing the field applies immediately for snappy UX.
   useEffect(() => {
@@ -294,16 +350,29 @@ export function DiscoverBrowser({
     return () => clearTimeout(timer);
   }, [queryInput, query]);
 
-  // Keep the address bar shareable without triggering a server navigation.
+  // Keep the address bar shareable without triggering a server navigation,
+  // and persist the snapshot for the detail/back round trip.
   useEffect(() => {
+    if (!restoreChecked) return;
     const search = buildQuery(query, filters, 1);
-    const url = search
-      ? `${window.location.pathname}?${search}`
-      : window.location.pathname;
-    window.history.replaceState(null, "", url);
-  }, [query, filters]);
+    const searchString = search ? `?${search}` : "";
+    window.history.replaceState(
+      null,
+      "",
+      `${window.location.pathname}${searchString}`,
+    );
+    try {
+      window.sessionStorage.setItem(
+        DISCOVER_STATE_KEY,
+        JSON.stringify({ query, filters, search: searchString }),
+      );
+    } catch {
+      // Private browsing or a full storage quota should not break filtering.
+    }
+  }, [query, filters, restoreChecked]);
 
   useEffect(() => {
+    if (!restoreChecked) return;
     if (skipInitialFetch.current) {
       skipInitialFetch.current = false;
       return;
@@ -340,7 +409,7 @@ export function DiscoverBrowser({
       });
 
     return () => controller.abort();
-  }, [query, filters, page, retryNonce]);
+  }, [query, filters, page, retryNonce, restoreChecked]);
 
   const updateFilters = (patch: Partial<AnimeFilterState>) => {
     setFilters((current) => ({ ...current, ...patch }));
