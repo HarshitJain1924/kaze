@@ -179,7 +179,7 @@ export default async function AnimeDetailsPage({ params }: PageProps) {
       >
         {/* Ambient atmospheric aura (diffused saturated color bleeding into surroundings) */}
         {heroImage ? (
-          <div className="absolute inset-0 scale-125 blur-[90px] saturate-[2] brightness-110 opacity-50 dark:opacity-40">
+          <div className="absolute inset-0 scale-110 blur-[70px] saturate-[1.6] brightness-105 opacity-30 dark:opacity-25">
             <Image
               src={heroImage}
               alt=""
@@ -201,7 +201,7 @@ export default async function AnimeDetailsPage({ params }: PageProps) {
               priority
               unoptimized
               sizes="100vw"
-              className="object-cover object-center opacity-90"
+              className="object-cover object-center opacity-100"
             />
           </div>
         ) : cover ? (
@@ -222,13 +222,13 @@ export default async function AnimeDetailsPage({ params }: PageProps) {
 
         {/* Seamless multi-directional gradient blending into surroundings */}
         {/* Soft horizontal wash so centered artwork shines while text has liquid-glass backing */}
-        <div className="absolute inset-0 bg-gradient-to-r from-bg/90 via-bg/50 via-30% via-transparent to-transparent" />
+        <div className="absolute inset-0 bg-gradient-to-r from-bg/75 via-bg/25 via-30% via-transparent to-transparent" />
 
         {/* Smooth top scrim for breadcrumb visibility */}
-        <div className="absolute inset-x-0 top-0 h-24 bg-gradient-to-b from-black/60 via-black/20 to-transparent" />
+        <div className="absolute inset-x-0 top-0 h-24 bg-gradient-to-b from-black/40 via-black/10 to-transparent" />
 
         {/* Smooth organic bottom fade that dissolves into page body without hard lines */}
-        <div className="absolute inset-0 bg-gradient-to-t from-bg via-bg/80 via-25% via-transparent to-transparent" />
+        <div className="absolute inset-0 bg-gradient-to-t from-bg/95 via-bg/55 via-25% via-transparent to-transparent" />
       </div>
 
       {/* Hero Foreground Content */}
