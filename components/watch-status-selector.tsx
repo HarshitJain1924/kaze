@@ -1,7 +1,8 @@
 "use client";
 
-import { WATCH_STATUS_META, WATCH_STATUS_ORDER } from "@/lib/library-meta";
+import { getWatchStatusMeta, WATCH_STATUS_ORDER } from "@/lib/library-meta";
 import { cn } from "@/lib/utils";
+import type { MediaType } from "@/types/anime";
 import type { WatchStatus } from "@/types/library";
 
 import { Select } from "./ui/field";
@@ -13,6 +14,7 @@ export function WatchStatusSelector({
   label = "Watch status",
   className,
   id,
+  mediaType,
 }: {
   value: WatchStatus;
   onChange: (status: WatchStatus) => void;
@@ -20,7 +22,9 @@ export function WatchStatusSelector({
   label?: string;
   className?: string;
   id?: string;
+  mediaType?: MediaType;
 }) {
+  const meta = getWatchStatusMeta(mediaType);
   return (
     <label className={cn("block space-y-1.5", className)} htmlFor={id}>
       <span className="block text-xs font-medium text-muted">
@@ -34,7 +38,7 @@ export function WatchStatusSelector({
       >
         {WATCH_STATUS_ORDER.map((status) => (
           <option key={status} value={status}>
-            {WATCH_STATUS_META[status].label}
+            {meta[status].label}
           </option>
         ))}
       </Select>

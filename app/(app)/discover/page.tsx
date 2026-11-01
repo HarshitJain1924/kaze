@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 
 import type { AnimeFilterState } from "@/components/anime-filters";
 import { DiscoverBrowser } from "@/features/anime/discover-browser";
+import { getViewer } from "@/lib/auth";
 import {
   animeSearchParamsSchema,
   toAnimeSearchParams,
@@ -11,9 +12,9 @@ import { getCatalogService } from "@/services/catalog/catalog-service";
 import type { AnimePage } from "@/types/anime";
 
 export const metadata: Metadata = {
-  title: "Discover anime",
+  title: "Discover anime, manga & manhwa",
   description:
-    "Search and filter thousands of anime by title, genre, format, airing status, season, year, source material and country.",
+    "Search and filter thousands of anime, manga and manhwa by title, genre, format, status, season, year and country.",
 };
 
 function readInput(
@@ -26,6 +27,7 @@ function readInput(
 
   const parsed = animeSearchParamsSchema.safeParse({
     query: pick("q"),
+    type: pick("type"),
     genre: pick("genre"),
     format: pick("format"),
     status: pick("status"),
@@ -53,10 +55,11 @@ export default async function DiscoverPage({
 }) {
   const params = await searchParams;
   const input = readInput(params);
+  const viewer = await getViewer();
 
   let initialPage: AnimePage | null = null;
   try {
-    const result = await getCatalogService().searchAnime(
+    const result = await getCatalogService().searchMedia(
       toAnimeSearchParams(input),
     );
     initialPage = result.data;
@@ -68,6 +71,7 @@ export default async function DiscoverPage({
   }
 
   const initialFilters: AnimeFilterState = {
+    mediaType: input.type ?? "anime",
     genre: input.genre,
     format: input.format,
     status: input.status,
@@ -84,6 +88,7 @@ export default async function DiscoverPage({
       initialPage={initialPage}
       initialQuery={input.query ?? ""}
       initialFilters={initialFilters}
+      adultAllowed={viewer?.showAdult === true}
     />
   );
 }

@@ -7,6 +7,7 @@ import {
   ANIME_RELEASE_STATUSES,
   ANIME_SEASONS,
   ANIME_SOURCES,
+  MEDIA_TYPES,
   type AnimeSearchParams,
   type AnimeSort,
 } from "@/types/anime";
@@ -49,6 +50,7 @@ const optionalEnum = <T extends readonly [string, ...string[]]>(values: T) =>
  */
 export const animeSearchParamsSchema = z.object({
   query: optionalText(MAX_SEARCH_LENGTH),
+  type: optionalEnum(MEDIA_TYPES),
   genre: optionalText(40),
   format: optionalEnum(ANIME_FORMATS),
   status: optionalEnum(ANIME_RELEASE_STATUSES),
@@ -92,6 +94,7 @@ export function parseAnimeSearchParams(
 
   return animeSearchParamsSchema.parse({
     query: get("q"),
+    type: get("type"),
     genre: get("genre"),
     format: get("format"),
     status: get("status"),
@@ -111,6 +114,7 @@ export function toAnimeSearchParams(
 ): AnimeSearchParams {
   return {
     query: input.query || undefined,
+    mediaType: input.type ?? "anime",
     genre: input.genre || undefined,
     format: input.format,
     status: input.status,
@@ -132,6 +136,7 @@ export function serializeAnimeSearchParams(
 ): URLSearchParams {
   const params = new URLSearchParams();
   if (input.query) params.set("q", input.query);
+  if (input.type && input.type !== "anime") params.set("type", input.type);
   if (input.genre) params.set("genre", input.genre);
   if (input.format) params.set("format", input.format);
   if (input.status) params.set("status", input.status);

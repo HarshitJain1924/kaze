@@ -2,7 +2,8 @@ import { todayIsoDate } from "@/lib/utils";
 import {
   computeStatusTransition,
   isFiniteEpisodeCount,
-  validateProgressAgainstEpisodes,
+  validateProgressAgainstTotal,
+  validateVolumesProgress,
 } from "@/lib/validation/library";
 import type { LibraryEntry, WatchStatus } from "@/types/library";
 
@@ -16,6 +17,7 @@ export class LibraryProgressError extends Error {
 export interface LibraryEntryPatch {
   status?: WatchStatus;
   progress?: number;
+  volumesProgress?: number;
   score?: number | null;
   notes?: string | null;
   startedAt?: string | null;
@@ -38,22 +40,32 @@ export function applyLibraryEntryUpdate(
   patch: LibraryEntryPatch,
   episodes: number | null,
   today: string = todayIsoDate(),
+  totalVolumes: number | null = null,
 ): LibraryEntryPatch {
   const next: LibraryEntryPatch = { ...patch };
+  const unit = current.mediaType === "manga" ? "chapter" : "episode";
 
   if (patch.progress !== undefined) {
-    if (!Number.isInteger(patch.progress) || patch.progress < 0) {
-      throw new LibraryProgressError(
-        "Progress must be a non-negative whole number",
-      );
-    }
-    const validation = validateProgressAgainstEpisodes(
+    const validation = validateProgressAgainstTotal(
       patch.progress,
       episodes,
+      unit,
     );
     if (!validation.ok) {
       throw new LibraryProgressError(
         validation.message ?? "Progress is outside the allowed range",
+      );
+    }
+  }
+
+  if (patch.volumesProgress !== undefined) {
+    const validation = validateVolumesProgress(
+      patch.volumesProgress,
+      totalVolumes,
+    );
+    if (!validation.ok) {
+      throw new LibraryProgressError(
+        validation.message ?? "Volume progress is outside the allowed range",
       );
     }
   }

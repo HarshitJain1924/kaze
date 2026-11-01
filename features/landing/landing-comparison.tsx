@@ -63,7 +63,7 @@ export function LandingComparison() {
             <span>The Purist Difference</span>
           </div>
           <h2 className="font-display text-3xl sm:text-4xl font-extrabold text-fg tracking-tight">
-            Built for anime purists, not ad networks.
+            Built for anime and manga purists, not ad networks.
           </h2>
           <p className="text-sm sm:text-base text-muted">
             See how Kaze compares against legacy tracking databases.
@@ -74,8 +74,8 @@ export function LandingComparison() {
         <div className="mt-12 overflow-hidden rounded-3xl border border-border-subtle bg-surface/70 shadow-2xl backdrop-blur-2xl">
           <div className="grid grid-cols-1 md:grid-cols-[1.2fr_1fr_1.3fr] border-b border-border-subtle bg-surface-2 p-4 text-xs font-bold uppercase tracking-wider text-muted">
             <div className="hidden md:block">Capability / Philosophy</div>
-            <div className="text-rose-400">Traditional Trackers (MAL / Forums)</div>
-            <div className="text-accent-strong">Kaze Anime Platform</div>
+            <div className="text-rose-400 light:text-rose-600">Traditional Trackers (MAL / Forums)</div>
+            <div className="text-accent-strong">Kaze Media Platform</div>
           </div>
 
           <div className="divide-y divide-border-subtle">

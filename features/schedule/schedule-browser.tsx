@@ -355,7 +355,7 @@ export function ScheduleBrowser({
             {/* Bento Pod 3: Watchlist Episodes */}
             <div className="flex flex-col rounded-2xl border border-border-subtle bg-surface-2/50 p-3 backdrop-blur-md">
               <div className="flex items-center gap-1.5 text-[11px] font-semibold text-purple-300 light:text-purple-700">
-                <FlameIcon className="h-3 w-3 text-purple-400" />
+                <FlameIcon className="h-3 w-3 text-purple-400 light:text-purple-700" />
                 <span>Watchlist Queue</span>
               </div>
               <div className="mt-1 flex items-baseline gap-1">
@@ -693,7 +693,7 @@ function ScheduleReleaseCard({
 
       {/* Poster Artwork with direct CDN delivery */}
       <Link
-        href={`/anime/${anime.id}`}
+        href={`/media/${anime.id}`}
         className="relative block h-[122px] w-[82px] shrink-0 overflow-hidden rounded-xl border border-border-subtle bg-surface-3 shadow-md"
         aria-label={`Open details for ${title}`}
       >
@@ -768,7 +768,7 @@ function ScheduleReleaseCard({
 
           {/* Anime Title */}
           <Link
-            href={`/anime/${anime.id}`}
+            href={`/media/${anime.id}`}
             className="mt-1 line-clamp-2-safe font-display text-sm font-semibold leading-snug text-fg transition-colors hover:text-accent-strong"
             title={title}
           >
@@ -796,7 +796,7 @@ function ScheduleReleaseCard({
                 type="button"
                 disabled={isPending || toggling}
                 onClick={handleMarkWatched}
-                className="inline-flex h-8 items-center gap-1.5 rounded-xl border border-emerald-500/30 bg-emerald-500/15 px-3 text-xs font-semibold text-emerald-400 transition-all hover:bg-emerald-500/25 active:scale-95"
+                className="inline-flex h-8 items-center gap-1.5 rounded-xl border border-emerald-500/30 bg-emerald-500/15 px-3 text-xs font-semibold text-emerald-400 light:text-emerald-700 transition-all hover:bg-emerald-500/25 active:scale-95"
                 aria-label={`Unmark Episode ${entry.episode}`}
               >
                 <CheckIcon className="h-3.5 w-3.5" />
@@ -841,7 +841,7 @@ function ScheduleReleaseCard({
             )
           ) : (
             <Link
-              href={`/anime/${anime.id}`}
+              href={`/media/${anime.id}`}
               className="inline-flex h-8 items-center gap-1 text-xs font-medium text-muted hover:text-fg"
             >
               View details →

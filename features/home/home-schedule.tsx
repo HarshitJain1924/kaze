@@ -431,7 +431,7 @@ function HomeScheduleCard({
 
       {/* Poster */}
       <Link
-        href={`/anime/${anime.id}`}
+        href={`/media/${anime.id}`}
         className="relative aspect-[2/3] w-14 shrink-0 overflow-hidden rounded-xl border border-border-subtle bg-surface-2 group/poster shadow-sm sm:w-16"
         aria-label={`Open ${title}`}
       >
@@ -468,7 +468,7 @@ function HomeScheduleCard({
           </div>
 
           <Link
-            href={`/anime/${anime.id}`}
+            href={`/media/${anime.id}`}
             className="mt-1 line-clamp-1 font-display text-sm font-semibold leading-snug text-fg transition-colors hover:text-accent-strong"
             title={title}
           >
@@ -542,7 +542,7 @@ function HomeScheduleCard({
             )
           ) : (
             <Link
-              href={`/anime/${anime.id}`}
+              href={`/media/${anime.id}`}
               className="inline-flex h-8 items-center gap-1 text-xs font-medium text-muted transition-colors hover:text-fg"
             >
               View details
@@ -551,7 +551,7 @@ function HomeScheduleCard({
           )}
 
           <Link
-            href={`/anime/${anime.id}`}
+            href={`/media/${anime.id}`}
             className="ml-auto inline-flex items-center gap-0.5 text-[11px] font-medium text-faint transition-colors hover:text-muted"
           >
             <span>Details</span>

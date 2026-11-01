@@ -50,7 +50,8 @@ export default async function DashboardPage() {
   const now = new Date();
   const currentWeek = getWeekRange(now);
 
-  const [seasonal, popular, trending, scheduleEntries] = await Promise.all([
+  const [seasonal, popular, trending, mangaTrending, scheduleEntries] =
+    await Promise.all([
     safeLoad("seasonal anime", () =>
       client.getSeasonalAnime(season, year, { perPage: 12 }),
     ),
@@ -60,13 +61,16 @@ export default async function DashboardPage() {
     safeLoad("trending anime", () =>
       client.getTrendingAnime({ perPage: 12 }),
     ),
+    safeLoad("trending manga", () =>
+      client.getTrendingManga({ perPage: 12 }),
+    ),
     safeLoadSchedule(() =>
       client.getAiringSchedule({
         airingAtGreater: currentWeek.queryAiringAtGreater,
         airingAtLesser: currentWeek.queryAiringAtLesser,
       }),
     ),
-  ]);
+    ]);
 
   const seasonQuery = `season=${season}&year=${year}`;
   const seasonalItems = seasonal?.items ?? [];
@@ -136,6 +140,7 @@ export default async function DashboardPage() {
         posters={heroSpotlightPosters}
         todayCount={todayEntries.length}
         todayLabel={todayLabel}
+        todayEntries={scheduleEntries}
         serverHour={now.getHours()}
       />
 
@@ -172,6 +177,16 @@ export default async function DashboardPage() {
             actionHref="/discover?sort=TRENDING_DESC"
             items={trending.items.slice(0, 6)}
             error={trending === null}
+          />
+        ) : null}
+
+        {mangaTrending?.items && mangaTrending.items.length > 0 ? (
+          <AnimeSection
+            title="Trending manga & manhwa"
+            description="Comics picking up momentum right now. Add one to start tracking chapters."
+            actionHref="/discover?type=manga&sort=TRENDING_DESC"
+            items={mangaTrending.items.slice(0, 6)}
+            error={mangaTrending === null}
           />
         ) : null}
       </div>

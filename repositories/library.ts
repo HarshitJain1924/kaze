@@ -6,6 +6,7 @@ import {
 } from "@/lib/library-rules";
 import { todayIsoDate } from "@/lib/utils";
 import { computeStatusTransition } from "@/lib/validation/library";
+import type { MediaType } from "@/types/anime";
 import type { Database } from "@/types/database";
 import type { LibraryEntry, WatchStatus, WatchedEpisode } from "@/types/library";
 
@@ -37,8 +38,10 @@ export class LibraryEntryNotFoundError extends Error {
 export interface NewLibraryEntry {
   userId: string;
   anilistId: number;
+  mediaType: MediaType;
   status: WatchStatus;
   progress: number;
+  volumesProgress: number;
   score: number | null;
   startedAt: string | null;
   completedAt: string | null;
@@ -98,8 +101,10 @@ export function toLibraryEntry(row: UserAnimeRow): LibraryEntry {
     id: row.id,
     userId: row.user_id,
     anilistId: row.anilist_id,
+    mediaType: row.media_type === "manga" ? "manga" : "anime",
     status: row.status,
     progress: row.progress,
+    volumesProgress: row.volumes_progress ?? 0,
     score: row.score,
     startedAt: row.started_at,
     completedAt: row.completed_at,
@@ -113,6 +118,7 @@ function toRowPatch(patch: LibraryEntryPatch) {
   return {
     status: patch.status,
     progress: patch.progress,
+    volumes_progress: patch.volumesProgress,
     score: patch.score,
     notes: patch.notes,
     started_at: patch.startedAt,
@@ -161,8 +167,10 @@ export function createSupabaseLibraryStore(
         .insert({
           user_id: entry.userId,
           anilist_id: entry.anilistId,
+          media_type: entry.mediaType,
           status: entry.status,
           progress: entry.progress,
+          volumes_progress: entry.volumesProgress,
           score: entry.score,
           started_at: entry.startedAt,
           completed_at: entry.completedAt,
@@ -354,7 +362,11 @@ export class LibraryRepository {
    */
   async add(
     userId: string,
-    input: { anilistId: number; status: WatchStatus },
+    input: {
+      anilistId: number;
+      mediaType?: MediaType;
+      status: WatchStatus;
+    },
   ): Promise<{ entry: LibraryEntry; created: boolean }> {
     const existing = await this.store.find(userId, input.anilistId);
     if (existing) {
@@ -370,8 +382,10 @@ export class LibraryRepository {
       const entry = await this.store.insert({
         userId,
         anilistId: input.anilistId,
+        mediaType: input.mediaType ?? "anime",
         status: input.status,
         progress: 0,
+        volumesProgress: 0,
         score: null,
         startedAt: transition.startedAt,
         completedAt: transition.completedAt,
@@ -397,13 +411,21 @@ export class LibraryRepository {
     anilistId: number,
     patch: LibraryEntryPatch,
     episodes: number | null,
+    totalVolumes: number | null = null,
   ): Promise<LibraryEntry> {
     const current = await this.store.find(userId, anilistId);
     if (!current) {
       throw new LibraryEntryNotFoundError(anilistId);
     }
 
-    return this.commit(userId, anilistId, current, patch, episodes);
+    return this.commit(
+      userId,
+      anilistId,
+      current,
+      patch,
+      episodes,
+      totalVolumes,
+    );
   }
 
   /**
@@ -417,8 +439,15 @@ export class LibraryRepository {
     current: LibraryEntry,
     patch: LibraryEntryPatch,
     episodes: number | null,
+    totalVolumes: number | null = null,
   ): Promise<LibraryEntry> {
-    const applied = applyLibraryEntryUpdate(current, patch, episodes);
+    const applied = applyLibraryEntryUpdate(
+      current,
+      patch,
+      episodes,
+      undefined,
+      totalVolumes,
+    );
     const updated = await this.store.update(userId, anilistId, applied);
     if (!updated) {
       throw new LibraryEntryNotFoundError(anilistId);
@@ -456,6 +485,12 @@ export class LibraryRepository {
     if (!current) {
       const created = await this.add(userId, { anilistId, status: "watching" });
       current = created.entry;
+    }
+
+    if (current.mediaType === "manga") {
+      throw new LibraryDataError(
+        "Episode tracking is not available for manga; update chapter progress instead",
+      );
     }
 
     if (watched) {
@@ -522,6 +557,12 @@ export class LibraryRepository {
       current = created.entry;
     }
 
+    if (current.mediaType === "manga") {
+      throw new LibraryDataError(
+        "Episode tracking is not available for manga; update chapter progress instead",
+      );
+    }
+
     const episodeNumbers = Array.from(
       { length: totalEpisodes },
       (_, i) => i + 1,
@@ -551,6 +592,12 @@ export class LibraryRepository {
     const current = await this.store.find(userId, anilistId);
     if (!current) {
       throw new LibraryEntryNotFoundError(anilistId);
+    }
+
+    if (current.mediaType === "manga") {
+      throw new LibraryDataError(
+        "Episode tracking is not available for manga; update chapter progress instead",
+      );
     }
 
     await this.store.removeAllEpisodes(userId, anilistId);

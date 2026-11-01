@@ -54,6 +54,7 @@ function mapSummaryFields(raw: ValidatedAnimeSummary) {
   const cover = raw.coverImage;
   return {
     id: raw.id,
+    mediaType: raw.type === "MANGA" ? ("manga" as const) : ("anime" as const),
     title: {
       romaji: raw.title.romaji,
       english: raw.title.english,
@@ -68,6 +69,11 @@ function mapSummaryFields(raw: ValidatedAnimeSummary) {
     format: raw.format,
     episodes:
       raw.episodes !== null && raw.episodes >= 0 ? raw.episodes : null,
+    chapters:
+      raw.chapters !== null && raw.chapters >= 0 ? raw.chapters : null,
+    volumes: raw.volumes !== null && raw.volumes >= 0 ? raw.volumes : null,
+    countryOfOrigin: raw.countryOfOrigin,
+    isAdult: raw.isAdult,
     averageScore:
       raw.averageScore !== null &&
       raw.averageScore >= 0 &&
@@ -100,8 +106,10 @@ export function mapAnime(raw: unknown): Anime | null {
   const relations: RelatedAnime[] = [];
 
   for (const edge of parsed.data.relations?.edges ?? []) {
-    // Relations can point at manga or other media types.
-    if (edge.node.type !== "ANIME") {
+    // Keep relations within the same media type. Anime pages show anime
+    // relations and manga pages show manga relations; both link to /media.
+    const currentRawType = parsed.data.type ?? "ANIME";
+    if (edge.node.type && edge.node.type !== currentRawType) {
       continue;
     }
     const node = mapAnimeSummary(edge.node);
@@ -181,7 +189,7 @@ export function mapAnimePage(raw: unknown, fallbackPage = 1): AnimePage {
   }
 
   if (rawItems.length > 0 && items.length === 0) {
-    throw new AniListError("AniList returned no readable anime entries");
+    throw new AniListError("AniList returned no readable media entries");
   }
 
   if (skipped > 0) {

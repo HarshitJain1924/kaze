@@ -1,3 +1,4 @@
+import type { MediaType } from "@/types/anime";
 import type { WatchStatus } from "@/types/library";
 
 export type Json =
@@ -52,8 +53,10 @@ export interface Database {
           id: string;
           user_id: string;
           anilist_id: number;
+          media_type: MediaType;
           status: WatchStatus;
           progress: number;
+          volumes_progress: number;
           score: number | null;
           started_at: string | null;
           completed_at: string | null;
@@ -65,8 +68,10 @@ export interface Database {
           id?: string;
           user_id: string;
           anilist_id: number;
+          media_type?: MediaType;
           status?: WatchStatus;
           progress?: number;
+          volumes_progress?: number;
           score?: number | null;
           started_at?: string | null;
           completed_at?: string | null;
@@ -78,8 +83,10 @@ export interface Database {
           id?: string;
           user_id?: string;
           anilist_id?: number;
+          media_type?: MediaType;
           status?: WatchStatus;
           progress?: number;
+          volumes_progress?: number;
           score?: number | null;
           started_at?: string | null;
           completed_at?: string | null;

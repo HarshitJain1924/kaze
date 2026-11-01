@@ -22,7 +22,10 @@ import {
   applyLibraryEntryUpdate,
   LibraryProgressError,
 } from "@/lib/library-rules";
-import { WATCH_STATUS_META, WATCH_STATUS_ORDER } from "@/lib/library-meta";
+import {
+  getWatchStatusMeta,
+  WATCH_STATUS_ORDER,
+} from "@/lib/library-meta";
 import { getDisplayTitle, todayIsoDate } from "@/lib/utils";
 import type { AnimeSummary } from "@/types/anime";
 import type {
@@ -34,6 +37,7 @@ import type {
 export interface LibraryMutationPatch {
   status?: WatchStatus;
   progress?: number;
+  volumesProgress?: number;
   score?: number | null;
   notes?: string | null;
 }
@@ -50,6 +54,8 @@ interface UpdateResponse {
 export interface LibraryContextValue {
   items: LibraryItem[];
   canWrite: boolean;
+  /** Account-level 18+ catalogue opt-in. */
+  showAdult: boolean;
   /** True when the server could not read the library at all. */
   loadError: boolean;
   pendingIds: ReadonlySet<number>;
@@ -96,11 +102,13 @@ export function LibraryProvider({
   children,
   initialItems,
   canWrite,
+  showAdult = false,
   loadError = false,
 }: {
   children: ReactNode;
   initialItems: LibraryItem[];
   canWrite: boolean;
+  showAdult?: boolean;
   loadError?: boolean;
 }) {
   const router = useRouter();
@@ -172,7 +180,7 @@ export function LibraryProvider({
   const requireSignIn = useCallback(() => {
     toast({
       title: "Sign in to build your library",
-      description: "Your watchlist stays in sync across your devices.",
+      description: "Your anime and manga library stays in sync across devices.",
     });
     const next = pathname ? `?next=${encodeURIComponent(pathname)}` : "";
     router.push(`/login${next}`);
@@ -208,8 +216,10 @@ export function LibraryProvider({
         id: optimisticId,
         userId: "",
         anilistId: anime.id,
+        mediaType: anime.mediaType ?? "anime",
         status,
         progress: 0,
+        volumesProgress: 0,
         score: null,
         startedAt:
           status === "watching" || status === "completed" ? today : null,
@@ -225,7 +235,11 @@ export function LibraryProvider({
       try {
         const data = await apiFetch<AddResponse>("/api/library", {
           method: "POST",
-          body: JSON.stringify({ anilistId: anime.id, status }),
+          body: JSON.stringify({
+            anilistId: anime.id,
+            mediaType: anime.mediaType ?? "anime",
+            status,
+          }),
         });
         setItems((current) =>
           current.map((item) =>
@@ -282,11 +296,23 @@ export function LibraryProvider({
       }
 
       const anime = animeMap.get(anilistId);
-      const episodes = anime?.episodes ?? null;
+      const mediaType = previous.mediaType ?? anime?.mediaType ?? "anime";
+      const units =
+        mediaType === "manga"
+          ? (anime?.chapters ?? null)
+          : (anime?.episodes ?? null);
+      const volumeTotal =
+        mediaType === "manga" ? (anime?.volumes ?? null) : null;
 
       let optimisticEntry: LibraryEntry;
       try {
-        const applied = applyLibraryEntryUpdate(previous, patch, episodes);
+        const applied = applyLibraryEntryUpdate(
+          previous,
+          patch,
+          units,
+          undefined,
+          volumeTotal,
+        );
         optimisticEntry = {
           ...previous,
           ...applied,
@@ -317,9 +343,16 @@ export function LibraryProvider({
             method: "PATCH",
             body: JSON.stringify({
               ...patch,
-              // Pass the episode total the page already rendered so the API
-              // does not have to re-query the catalogue provider.
-              ...(anime ? { totalEpisodes: anime.episodes } : {}),
+              // Pass the totals the page already rendered so the API does not
+              // have to re-query the catalogue provider.
+              ...(anime
+                ? mediaType === "manga"
+                  ? {
+                      totalChapters: anime.chapters ?? null,
+                      totalVolumes: anime.volumes ?? null,
+                    }
+                  : { totalEpisodes: anime.episodes }
+                : {}),
             }),
           },
         );
@@ -401,8 +434,10 @@ export function LibraryProvider({
             id: `optimistic-${anime.id}`,
             userId: "",
             anilistId: anime.id,
+            mediaType: anime.mediaType ?? "anime",
             status: "watching",
             progress: optimisticProgress,
+            volumesProgress: 0,
             score: null,
             startedAt: todayIsoDate(),
             completedAt: null,
@@ -633,6 +668,17 @@ export function LibraryProvider({
         return false;
       }
       const anime = animeMap.get(anilistId);
+      if (entry.mediaType === "manga") {
+        const chapters = anime?.chapters ?? null;
+        if (chapters !== null && entry.progress >= chapters) {
+          toast({
+            title: "You are at the final chapter",
+            description: `All ${chapters} chapters are marked as read.`,
+          });
+          return false;
+        }
+        return updateEntry(anilistId, { progress: entry.progress + 1 });
+      }
       const episodes = anime?.episodes ?? null;
       if (episodes === 0) {
         toast({
@@ -764,6 +810,7 @@ export function LibraryProvider({
     () => ({
       items,
       canWrite,
+      showAdult,
       loadError,
       pendingIds: pending,
       entryFor,
@@ -783,6 +830,7 @@ export function LibraryProvider({
       addToLibrary,
       animeFor,
       canWrite,
+      showAdult,
       clearAllEpisodes,
       entryFor,
       incrementProgress,
@@ -827,7 +875,7 @@ export function LibraryProvider({
               Cancel
             </Button>
             <Button variant="primary" onClick={handleAdd} disabled={dialogBusy}>
-              {dialogBusy ? "Adding…" : "Add anime"}
+              {dialogBusy ? "Adding…" : "Add title"}
             </Button>
           </>
         }
@@ -835,7 +883,9 @@ export function LibraryProvider({
         <div className="space-y-4">
           {addTarget ? (
             <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-muted">
-              <span>{WATCH_STATUS_META[addStatus].description}</span>
+              <span>
+                {getWatchStatusMeta(addTarget?.mediaType)[addStatus].description}
+              </span>
             </div>
           ) : null}
           <label className="block space-y-1.5">
@@ -851,14 +901,14 @@ export function LibraryProvider({
             >
               {WATCH_STATUS_ORDER.map((status) => (
                 <option key={status} value={status}>
-                  {WATCH_STATUS_META[status].label}
+                  {getWatchStatusMeta(addTarget?.mediaType)[status].label}
                 </option>
               ))}
             </Select>
           </label>
           <p className="text-xs leading-relaxed text-faint">
-            Episode progress, ratings and notes can be edited at any time from
-            the anime page or your library.
+            Progress, ratings and notes can be edited at any time from the
+            title page or your library.
           </p>
         </div>
       </Dialog>
@@ -883,12 +933,12 @@ export function LibraryProvider({
         loading={dialogBusy}
       >
         <p className="text-sm leading-relaxed text-muted">
-          Your episode progress
+          Your progress
           {removeEntryData?.score !== null &&
           removeEntryData?.score !== undefined
             ? ", rating"
             : ""}{" "}
-          and notes for this anime will be deleted. This cannot be undone.
+          and notes for this title will be deleted. This cannot be undone.
         </p>
       </ConfirmationDialog>
     </LibraryContext.Provider>

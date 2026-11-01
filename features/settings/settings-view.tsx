@@ -146,9 +146,10 @@ export function SettingsView({ viewer }: { viewer: Viewer }) {
   const { toast } = useToast();
   const { mode, resolved, design, setMode, setDesign } = useTheme();
   const { preferences, setPreference } = usePreferences();
-  const { items } = useLibrary();
+  const { items, showAdult } = useLibrary();
   const supabase = useMemo(() => getSupabaseBrowserClient(), []);
   const [signingOut, setSigningOut] = useState(false);
+  const [adultSaving, setAdultSaving] = useState(false);
   const [savedVisible, setSavedVisible] = useState(false);
   const savedTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -229,6 +230,45 @@ export function SettingsView({ viewer }: { viewer: Viewer }) {
     router.refresh();
   };
 
+  const handleAdultToggle = async () => {
+    if (!supabase) {
+      toast({
+        title: "Authentication is not configured",
+        description: "Add Supabase environment variables to manage adult titles.",
+        tone: "error",
+      });
+      return;
+    }
+    const next = !showAdult;
+    if (
+      !window.confirm(
+        next
+          ? "Enable adult titles? This will show 18+ manga and anime artwork and metadata across Kaze."
+          : "Hide all 18+ titles from Discover, your library and statistics?",
+      )
+    ) {
+      return;
+    }
+    setAdultSaving(true);
+    const { error } = await supabase.auth.updateUser({
+      data: { show_adult: next },
+    });
+    setAdultSaving(false);
+    if (error) {
+      toast({
+        title: "Could not update adult titles",
+        description: error.message,
+        tone: "error",
+      });
+      return;
+    }
+    router.refresh();
+    toast({
+      title: next ? "Adult titles enabled" : "Adult titles hidden",
+      tone: "success",
+    });
+  };
+
   const exportJson = () => {
     const payload = {
       app: "Kaze",
@@ -236,12 +276,16 @@ export function SettingsView({ viewer }: { viewer: Viewer }) {
       count: items.length,
       entries: items.map(({ entry, anime }) => ({
         anilistId: entry.anilistId,
+        mediaType: entry.mediaType ?? "anime",
         title: anime
           ? getDisplayTitle(anime.title, preferences.titleLanguage === "english")
           : null,
         titles: anime?.title ?? null,
         status: entry.status,
         progress: entry.progress,
+        chapters: anime?.chapters ?? null,
+        volumes: anime?.volumes ?? null,
+        volumesProgress: entry.volumesProgress ?? 0,
         episodes: anime?.episodes ?? null,
         score: entry.score,
         notes: entry.notes,
@@ -264,8 +308,12 @@ export function SettingsView({ viewer }: { viewer: Viewer }) {
     const header = [
       "title",
       "anilist_id",
+      "media_type",
       "status",
       "progress",
+      "chapters",
+      "volumes",
+      "volumes_progress",
       "episodes",
       "score",
       "notes",
@@ -285,8 +333,12 @@ export function SettingsView({ viewer }: { viewer: Viewer }) {
               )
             : "",
           entry.anilistId,
+          entry.mediaType ?? "anime",
           entry.status,
           entry.progress,
+          anime?.chapters ?? "",
+          anime?.volumes ?? "",
+          entry.volumesProgress ?? 0,
           anime?.episodes ?? "",
           entry.score ?? "",
           entry.notes ?? "",
@@ -700,7 +752,38 @@ export function SettingsView({ viewer }: { viewer: Viewer }) {
         </div>
       </SettingsSection>
 
-      {/* 4. Data Vault (Export & Backup) */}
+      {/* 4. Content & Adult Titles */}
+      <SettingsSection
+        title="Content & Adult Titles"
+        subtitle="Adult catalogue entries are hidden by default. Enabling them requires an 18+ confirmation and is saved to your account."
+      >
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <p className="text-sm font-semibold text-fg">
+              Show 18+ anime, manga and manhwa
+            </p>
+            <p className="mt-0.5 text-xs leading-relaxed text-muted">
+              {showAdult
+                ? "Adult titles are visible in Discover, your library and statistics."
+                : "Adult titles are hidden from guests, search, your library and statistics."}
+            </p>
+          </div>
+          <Button
+            variant={showAdult ? "secondary" : "primary"}
+            onClick={() => void handleAdultToggle()}
+            disabled={adultSaving}
+            className="shrink-0"
+          >
+            {adultSaving
+              ? "Saving…"
+              : showAdult
+                ? "Hide adult titles"
+                : "Enable adult titles"}
+          </Button>
+        </div>
+      </SettingsSection>
+
+      {/* 5. Data Vault (Export & Backup) */}
       <SettingsSection
         title="Personal Data Vault"
         subtitle="Download a complete snapshot of your library. Export formats are compatible with standard spreadsheet and database viewers."

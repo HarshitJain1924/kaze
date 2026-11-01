@@ -189,7 +189,7 @@ export function FeaturedAngularCard({
       <div className="relative z-10 flex flex-col gap-4 p-4 sm:flex-row sm:items-center sm:gap-6 sm:p-5 lg:p-6">
         {/* Poster Card */}
         <Link
-          href={`/anime/${anime.id}`}
+          href={`/media/${anime.id}`}
           className="group/poster relative aspect-[2/3] w-28 shrink-0 self-start sm:self-center overflow-hidden rounded-2xl border border-white/20 bg-surface-3 shadow-xl ring-1 ring-white/10 transition-transform duration-300 hover:scale-[1.02] sm:w-36 md:w-40"
           aria-label={`Open ${title}`}
         >
@@ -233,7 +233,7 @@ export function FeaturedAngularCard({
                 </div>
 
                 <Link
-                  href={`/anime/${anime.id}`}
+                  href={`/media/${anime.id}`}
                   className="mt-1 line-clamp-1 block font-display text-xl font-bold tracking-tight text-fg transition-colors hover:text-accent-strong sm:text-2xl"
                   title={title}
                 >
@@ -304,7 +304,7 @@ export function FeaturedAngularCard({
                       onMouseLeave={() => setShowMenu(false)}
                     >
                       <Link
-                        href={`/anime/${anime.id}`}
+                        href={`/media/${anime.id}`}
                         className="block rounded-lg px-2.5 py-1.5 text-xs font-medium text-fg hover:bg-surface-2"
                         onClick={() => setShowMenu(false)}
                       >
@@ -436,7 +436,7 @@ export function FeaturedAngularCard({
 
               {/* View Details Link */}
               <Link
-                href={`/anime/${anime.id}`}
+                href={`/media/${anime.id}`}
                 className="inline-flex h-10 items-center gap-1.5 rounded-xl border border-border bg-surface-3/60 px-3.5 text-xs font-semibold text-fg transition-all hover:bg-surface-3 active:scale-95 sm:h-11"
               >
                 <EyeIcon className="h-3.5 w-3.5 text-muted" />
@@ -457,6 +457,7 @@ export interface QueueCardProps {
   onSelect: () => void;
   onIncrement: (id: number, targetEpisode?: number) => void;
   isPending: boolean;
+  watchedEpisodes: number[];
   titleLanguage: "english" | "romaji";
 }
 
@@ -467,6 +468,7 @@ export function QueueCard({
   onSelect,
   onIncrement,
   isPending,
+  watchedEpisodes,
   titleLanguage,
 }: QueueCardProps) {
   const { entry, anime } = item;
@@ -474,7 +476,13 @@ export function QueueCard({
   const thumb = anime.coverImage.extraLarge ?? anime.coverImage.large;
 
   const total = anime.episodes;
-  const { nextEp, atEnd } = getNextEpisodeNumber(entry.progress, [], total);
+  // Honour per-episode records so a gap (e.g. 1 and 3 watched) points at 2,
+  // matching the featured player instead of skipping to progress + 1.
+  const { nextEp, atEnd } = getNextEpisodeNumber(
+    entry.progress,
+    watchedEpisodes,
+    total,
+  );
   const percent =
     total && total > 0
       ? Math.min(100, Math.round((entry.progress / total) * 100))
@@ -543,7 +551,7 @@ export function QueueCard({
           >
             {title}
           </p>
-          <p className="mt-0.5 text-[11px] text-muted">
+          <p className="mt-0.5 truncate text-[11px] text-muted">
             {total ? `${entry.progress}/${total} eps` : `${entry.progress} watched`}
             {percent !== null ? ` · ${percent}%` : ""}
           </p>
@@ -891,6 +899,7 @@ export function ContinueWatching({ todayEntries }: ContinueWatchingProps = {}) {
                             onSelect={() => setSelectedId(item.anime.id)}
                             onIncrement={(id, ep) => void incrementProgress(id, ep)}
                             isPending={pendingIds.has(item.anime.id)}
+                            watchedEpisodes={watchedEpisodesFor(item.anime.id)}
                             titleLanguage={preferences.titleLanguage}
                           />
                         </div>
@@ -925,6 +934,7 @@ export function ContinueWatching({ todayEntries }: ContinueWatchingProps = {}) {
                           onSelect={() => setSelectedId(item.anime.id)}
                           onIncrement={(id, ep) => void incrementProgress(id, ep)}
                           isPending={pendingIds.has(item.anime.id)}
+                          watchedEpisodes={watchedEpisodesFor(item.anime.id)}
                           titleLanguage={preferences.titleLanguage}
                         />
                       );

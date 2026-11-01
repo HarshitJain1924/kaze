@@ -53,7 +53,7 @@ function getOtakuTier(episodes: number): OtakuTier {
       level: "Tier VI",
       minEpisodes: 3000,
       nextMin: 5000,
-      badgeClass: "border-amber-400/50 bg-amber-500/15 text-amber-300",
+      badgeClass: "border-amber-400/50 bg-amber-500/15 text-amber-300 light:text-amber-700",
       accentColor: "#f59e0b",
     };
   }
@@ -63,7 +63,7 @@ function getOtakuTier(episodes: number): OtakuTier {
       level: "Tier V",
       minEpisodes: 1500,
       nextMin: 3000,
-      badgeClass: "border-purple-400/50 bg-purple-500/15 text-purple-300",
+      badgeClass: "border-purple-400/50 bg-purple-500/15 text-purple-300 light:text-purple-700",
       accentColor: "#a855f7",
     };
   }
@@ -73,7 +73,7 @@ function getOtakuTier(episodes: number): OtakuTier {
       level: "Tier IV",
       minEpisodes: 750,
       nextMin: 1500,
-      badgeClass: "border-violet-400/50 bg-violet-500/15 text-violet-300",
+      badgeClass: "border-violet-400/50 bg-violet-500/15 text-violet-300 light:text-violet-700",
       accentColor: "#8b5cf6",
     };
   }
@@ -83,7 +83,7 @@ function getOtakuTier(episodes: number): OtakuTier {
       level: "Tier III",
       minEpisodes: 250,
       nextMin: 750,
-      badgeClass: "border-cyan-400/50 bg-cyan-500/15 text-cyan-300",
+      badgeClass: "border-cyan-400/50 bg-cyan-500/15 text-cyan-300 light:text-cyan-700",
       accentColor: "#06b6d4",
     };
   }
@@ -93,7 +93,7 @@ function getOtakuTier(episodes: number): OtakuTier {
       level: "Tier II",
       minEpisodes: 50,
       nextMin: 250,
-      badgeClass: "border-emerald-400/50 bg-emerald-500/15 text-emerald-300",
+      badgeClass: "border-emerald-400/50 bg-emerald-500/15 text-emerald-300 light:text-emerald-700",
       accentColor: "#10b981",
     };
   }
@@ -102,7 +102,7 @@ function getOtakuTier(episodes: number): OtakuTier {
     level: "Tier I",
     minEpisodes: 0,
     nextMin: 50,
-    badgeClass: "border-white/20 bg-white/10 text-white/80",
+    badgeClass: "border-border bg-surface-3 text-fg/80",
     accentColor: "#71717a",
   };
 }
@@ -138,48 +138,48 @@ const STATUS_GLOWS: Record<WatchStatus, { border: string; bg: string; text: stri
   watching: {
     border: "hover:border-violet-500/50 hover:bg-violet-500/10",
     bg: "bg-violet-500/15",
-    text: "text-violet-300",
+    text: "text-violet-300 light:text-violet-700",
     dotShadow: "0 0 10px rgba(139, 92, 246, 0.8)",
   },
   completed: {
     border: "hover:border-emerald-500/50 hover:bg-emerald-500/10",
     bg: "bg-emerald-500/15",
-    text: "text-emerald-300",
+    text: "text-emerald-300 light:text-emerald-700",
     dotShadow: "0 0 10px rgba(16, 185, 129, 0.8)",
   },
   planning: {
     border: "hover:border-cyan-500/50 hover:bg-cyan-500/10",
     bg: "bg-cyan-500/15",
-    text: "text-cyan-300",
+    text: "text-cyan-300 light:text-cyan-700",
     dotShadow: "0 0 10px rgba(6, 182, 212, 0.8)",
   },
   on_hold: {
     border: "hover:border-amber-500/50 hover:bg-amber-500/10",
     bg: "bg-amber-500/15",
-    text: "text-amber-300",
+    text: "text-amber-300 light:text-amber-700",
     dotShadow: "0 0 10px rgba(245, 158, 11, 0.8)",
   },
   dropped: {
     border: "hover:border-rose-500/50 hover:bg-rose-500/10",
     bg: "bg-rose-500/15",
-    text: "text-rose-300",
+    text: "text-rose-300 light:text-rose-700",
     dotShadow: "0 0 10px rgba(244, 63, 94, 0.8)",
   },
 };
 
 const GENRE_STYLES: Record<string, { bg: string; text: string; bar: string }> = {
-  Action: { bg: "bg-rose-500/15 border-rose-500/30", text: "text-rose-300", bar: "bg-rose-500" },
-  Adventure: { bg: "bg-amber-500/15 border-amber-500/30", text: "text-amber-300", bar: "bg-amber-500" },
-  Fantasy: { bg: "bg-purple-500/15 border-purple-500/30", text: "text-purple-300", bar: "bg-purple-500" },
-  Comedy: { bg: "bg-yellow-500/15 border-yellow-500/30", text: "text-yellow-300", bar: "bg-yellow-500" },
-  Supernatural: { bg: "bg-violet-500/15 border-violet-500/30", text: "text-violet-300", bar: "bg-violet-500" },
-  Drama: { bg: "bg-sky-500/15 border-sky-500/30", text: "text-sky-300", bar: "bg-sky-500" },
-  "Sci-Fi": { bg: "bg-cyan-500/15 border-cyan-500/30", text: "text-cyan-300", bar: "bg-cyan-500" },
-  Romance: { bg: "bg-pink-500/15 border-pink-500/30", text: "text-pink-300", bar: "bg-pink-500" },
-  Mystery: { bg: "bg-indigo-500/15 border-indigo-500/30", text: "text-indigo-300", bar: "bg-indigo-500" },
-  "Slice of Life": { bg: "bg-emerald-500/15 border-emerald-500/30", text: "text-emerald-300", bar: "bg-emerald-500" },
-  Sports: { bg: "bg-orange-500/15 border-orange-500/30", text: "text-orange-300", bar: "bg-orange-500" },
-  Psychological: { bg: "bg-teal-500/15 border-teal-500/30", text: "text-teal-300", bar: "bg-teal-500" },
+  Action: { bg: "bg-rose-500/15 border-rose-500/30", text: "text-rose-300 light:text-rose-700", bar: "bg-rose-500" },
+  Adventure: { bg: "bg-amber-500/15 border-amber-500/30", text: "text-amber-300 light:text-amber-700", bar: "bg-amber-500" },
+  Fantasy: { bg: "bg-purple-500/15 border-purple-500/30", text: "text-purple-300 light:text-purple-700", bar: "bg-purple-500" },
+  Comedy: { bg: "bg-yellow-500/15 border-yellow-500/30", text: "text-yellow-300 light:text-yellow-700", bar: "bg-yellow-500" },
+  Supernatural: { bg: "bg-violet-500/15 border-violet-500/30", text: "text-violet-300 light:text-violet-700", bar: "bg-violet-500" },
+  Drama: { bg: "bg-sky-500/15 border-sky-500/30", text: "text-sky-300 light:text-sky-700", bar: "bg-sky-500" },
+  "Sci-Fi": { bg: "bg-cyan-500/15 border-cyan-500/30", text: "text-cyan-300 light:text-cyan-700", bar: "bg-cyan-500" },
+  Romance: { bg: "bg-pink-500/15 border-pink-500/30", text: "text-pink-300 light:text-pink-700", bar: "bg-pink-500" },
+  Mystery: { bg: "bg-indigo-500/15 border-indigo-500/30", text: "text-indigo-300 light:text-indigo-700", bar: "bg-indigo-500" },
+  "Slice of Life": { bg: "bg-emerald-500/15 border-emerald-500/30", text: "text-emerald-300 light:text-emerald-700", bar: "bg-emerald-500" },
+  Sports: { bg: "bg-orange-500/15 border-orange-500/30", text: "text-orange-300 light:text-orange-700", bar: "bg-orange-500" },
+  Psychological: { bg: "bg-teal-500/15 border-teal-500/30", text: "text-teal-300 light:text-teal-700", bar: "bg-teal-500" },
 };
 
 function getGenreStyle(genre: string) {
@@ -208,7 +208,7 @@ function StatKpiCard({
   iconClass: string;
 }) {
   return (
-    <div className="group relative overflow-hidden rounded-2xl border border-white/10 bg-[#121520] p-4 sm:p-5 shadow-md transition-all duration-300 hover:border-white/20 hover:bg-[#181c2b]">
+    <div className="group relative overflow-hidden rounded-2xl border border-border-subtle bg-surface p-4 sm:p-5 shadow-md transition-all duration-300 hover:border-border hover:bg-surface-2">
       <div
         aria-hidden="true"
         className="pointer-events-none absolute -right-6 -top-6 h-24 w-24 rounded-full opacity-20 blur-2xl transition-opacity group-hover:opacity-40"
@@ -216,10 +216,10 @@ function StatKpiCard({
       />
 
       <div className="flex items-center justify-between">
-        <span className="text-xs font-medium text-white/60">{label}</span>
+        <span className="text-xs font-medium text-muted">{label}</span>
         <div
           className={cn(
-            "flex h-8 w-8 items-center justify-center rounded-xl border border-white/10 bg-white/5 shadow-xs transition-transform duration-300 group-hover:scale-110",
+            "flex h-8 w-8 items-center justify-center rounded-xl border border-border-subtle bg-surface-2/70 shadow-xs transition-transform duration-300 group-hover:scale-110",
             iconClass,
           )}
         >
@@ -227,11 +227,11 @@ function StatKpiCard({
         </div>
       </div>
 
-      <p className="mt-3 font-display text-3xl sm:text-4xl font-bold tracking-tight text-white tabular-nums">
+      <p className="mt-3 font-display text-3xl sm:text-4xl font-bold tracking-tight text-fg tabular-nums">
         {typeof value === "number" ? value.toLocaleString("en-US") : value}
       </p>
 
-      <p className="mt-1 text-xs text-white/50">{subtext}</p>
+      <p className="mt-1 text-xs text-faint">{subtext}</p>
     </div>
   );
 }
@@ -330,7 +330,7 @@ function StatusDonutTelemetry({
             cy="90"
             r={radius}
             fill="none"
-            stroke="rgba(255, 255, 255, 0.08)"
+            stroke="var(--border-subtle)"
             strokeWidth={strokeWidth}
           />
 
@@ -362,23 +362,23 @@ function StatusDonutTelemetry({
         {/* Center Readout Telemetry Hub */}
         <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center select-none text-center">
           <span
-            className="font-display text-4xl sm:text-5xl font-bold tracking-tight text-white tabular-nums transition-all"
+            className="font-display text-4xl sm:text-5xl font-bold tracking-tight text-fg tabular-nums transition-all"
             style={{
-              color: hoveredMeta ? hoveredMeta.color : "#ffffff",
+              color: hoveredMeta ? hoveredMeta.color : "var(--fg)",
               textShadow: hoveredMeta ? `0 0 20px ${hoveredMeta.color}80` : undefined,
             }}
           >
             {displayCount}
           </span>
-          <span className="mt-0.5 text-xs font-bold uppercase tracking-wider text-white/60">
+          <span className="mt-0.5 text-xs font-bold uppercase tracking-wider text-muted">
             {displayLabel}
           </span>
           <span
             className={cn(
               "mt-2 inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-[10px] font-bold transition-colors",
               activeStatus
-                ? "border-white/20 bg-white/10 text-white"
-                : "border-emerald-500/30 bg-emerald-500/10 text-emerald-300",
+                ? "border-border bg-surface-3 text-fg"
+                : "border-emerald-500/30 bg-emerald-500/10 text-emerald-300 light:text-emerald-700",
             )}
           >
             <span
@@ -391,7 +391,7 @@ function StatusDonutTelemetry({
           </span>
         </div>
       </div>
-      <p className="mt-2 text-[11px] text-white/40">Hover ring segments or tiles to inspect</p>
+      <p className="mt-2 text-[11px] text-faint">Hover ring segments or tiles to inspect</p>
     </div>
   );
 }
@@ -458,7 +458,7 @@ function GenreRadarChart({
                 key={ring}
                 points={points}
                 fill="none"
-                stroke="rgba(255, 255, 255, 0.09)"
+                stroke="var(--border-subtle)"
                 strokeWidth={1}
                 strokeDasharray={ring < 1.0 ? "3 3" : undefined}
               />
@@ -476,7 +476,7 @@ function GenreRadarChart({
                 y1={cy}
                 x2={x}
                 y2={y}
-                stroke="rgba(255, 255, 255, 0.12)"
+                stroke="var(--border)"
                 strokeWidth={1}
               />
             );
@@ -514,7 +514,7 @@ function GenreRadarChart({
                   x={x}
                   y={y + 4}
                   textAnchor={anchor}
-                  fill={isHovered ? "#ffffff" : "rgba(255, 255, 255, 0.65)"}
+                  fill={isHovered ? "var(--fg)" : "var(--muted)"}
                   fontSize={10}
                   fontWeight={isHovered ? "bold" : "600"}
                   className="select-none font-sans"
@@ -549,8 +549,8 @@ function GenreRadarChart({
                   cx={p.x}
                   cy={p.y}
                   r={isHovered ? 5.5 : 3.5}
-                  fill={isHovered ? "#ffffff" : "#a78bfa"}
-                  stroke={isHovered ? "#8b5cf6" : "#ffffff"}
+                  fill={isHovered ? "var(--fg)" : "#a78bfa"}
+                  stroke={isHovered ? "#8b5cf6" : "var(--fg)"}
                   strokeWidth={2}
                   className="transition-all duration-200"
                 />
@@ -561,7 +561,7 @@ function GenreRadarChart({
 
         {/* Center Readout Telemetry */}
         <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center select-none text-center">
-          <span className="font-display text-2xl font-bold tracking-tight text-white tabular-nums">
+          <span className="font-display text-2xl font-bold tracking-tight text-fg tabular-nums">
             {hoveredGenre
               ? axes.find((a) => a.genre === hoveredGenre)?.count ?? ""
               : axes.length}
@@ -569,29 +569,42 @@ function GenreRadarChart({
           <span className="text-[10px] font-bold uppercase tracking-wider text-accent-strong">
             {hoveredGenre ?? "Core Genres"}
           </span>
-          <span className="text-[9px] text-white/40">
+          <span className="text-[9px] text-faint">
             {hoveredGenre ? "series tracked" : "affinity axes"}
           </span>
         </div>
       </div>
-      <p className="mt-2 text-[11px] text-white/40">Hover axes or cards to inspect affinity</p>
+      <p className="mt-2 text-[11px] text-faint">Hover axes or cards to inspect affinity</p>
     </div>
   );
 }
 
 export function StatsView() {
-  const { items, loadError } = useLibrary();
-  const stats = calculateStats(items);
+  const { items, loadError, showAdult } = useLibrary();
+  const [mediaFilter, setMediaFilter] = useState<"all" | "anime" | "manga">(
+    "all",
+  );
+  const visibleItems = useMemo(
+    () =>
+      items.filter(
+        (item) =>
+          (showAdult || !item.anime?.isAdult) &&
+          (mediaFilter === "all" ||
+            (item.entry.mediaType ?? "anime") === mediaFilter),
+      ),
+    [items, mediaFilter, showAdult],
+  );
+  const stats = calculateStats(visibleItems);
   const [hoveredStatus, setHoveredStatus] = useState<WatchStatus | null>(null);
   const [hoveredGenre, setHoveredGenre] = useState<string | null>(null);
 
   // Top banner for atmospheric header background
   const ambientBanner = useMemo(() => {
-    const withBanner = items
+    const withBanner = visibleItems
       .filter((it) => it.anime?.bannerImage)
       .sort((a, b) => (b.anime?.averageScore ?? 0) - (a.anime?.averageScore ?? 0));
     return withBanner[0]?.anime?.bannerImage ?? null;
-  }, [items]);
+  }, [visibleItems]);
 
   // Derived watch time
   const watchTime = useMemo(
@@ -687,12 +700,23 @@ export function StatsView() {
 
         <EmptyState
           icon={<ChartIcon className="h-6 w-6 text-accent-strong" />}
-          title="No anime in library yet"
-          description="Add anime to your library and log episode progress to unlock deep statistics, watch time analytics, genre mastery, and collector ranks."
+          title="No titles in this view"
+          description="Add anime or manga to your library and log progress to unlock statistics, genre mastery, and collector ranks."
           action={
-            <LinkButton href="/discover" variant="primary" size="sm">
-              Discover Anime
-            </LinkButton>
+            <div className="flex flex-wrap items-center justify-center gap-2">
+              {mediaFilter !== "all" ? (
+                <button
+                  type="button"
+                  onClick={() => setMediaFilter("all")}
+                  className="inline-flex h-9 items-center rounded-xl border border-border bg-surface-2 px-3 text-xs font-semibold text-fg transition-colors hover:bg-surface-3"
+                >
+                  Show all media
+                </button>
+              ) : null}
+              <LinkButton href="/discover" variant="primary" size="sm">
+                Discover titles
+              </LinkButton>
+            </div>
           }
         />
       </div>
@@ -706,7 +730,7 @@ export function StatsView() {
   return (
     <div className="space-y-7">
       {/* 1. Cinematic Hero Header & Collector Profile Showcase */}
-      <header className="group relative isolate overflow-hidden rounded-3xl border border-white/15 bg-black/85 p-6 shadow-2xl sm:p-8">
+      <header className="group relative isolate overflow-hidden rounded-3xl border border-border bg-black/85 light:bg-surface/90 p-6 shadow-2xl sm:p-8">
         {ambientBanner && isHttpUrl(ambientBanner) ? (
           <div
             aria-hidden="true"
@@ -722,8 +746,8 @@ export function StatsView() {
                 className="object-cover"
               />
             </div>
-            <div className="absolute inset-0 bg-gradient-to-r from-black via-black/90 to-black/40" />
-            <div className="absolute inset-0 bg-gradient-to-t from-black via-transparent to-transparent" />
+            <div className="absolute inset-0 bg-gradient-to-r from-black via-black/90 to-black/40 light:from-surface light:via-surface/90 light:to-surface/40" />
+            <div className="absolute inset-0 bg-gradient-to-t from-black via-transparent to-transparent light:from-surface/80" />
           </div>
         ) : null}
 
@@ -735,19 +759,43 @@ export function StatsView() {
               <span className="text-[11px] font-bold uppercase tracking-wider text-accent-strong">
                 Otaku Analytics
               </span>
-              <span className="text-white/30">·</span>
-              <span className="text-xs font-medium text-white/70">
+              <span className="text-faint">·</span>
+              <span className="text-xs font-medium text-muted">
                 Live Library Intelligence
               </span>
             </div>
 
-            <h1 className="font-display text-2xl font-bold tracking-tight text-white sm:text-3xl lg:text-4xl drop-shadow-sm">
-              Your Watching Statistics
+            <h1 className="font-display text-2xl font-bold tracking-tight text-fg sm:text-3xl lg:text-4xl drop-shadow-sm">
+              Your Media Statistics
             </h1>
 
-            <p className="text-xs leading-relaxed text-white/75 sm:text-sm">
-              Derived from <span className="font-semibold text-white">{stats.total} titles</span> in your library. Verified episode records, personal ratings, and genre signatures.
+            <p className="text-xs leading-relaxed text-fg/75 sm:text-sm">
+              Derived from <span className="font-semibold text-fg">{stats.total} titles</span> in your library. {stats.episodesWatched} episodes watched, {stats.chaptersRead} chapters read, {stats.volumesRead} volumes logged, plus personal ratings and genre signatures.
             </p>
+
+            <div
+              role="tablist"
+              aria-label="Filter statistics by media type"
+              className="inline-flex w-fit items-center gap-1 rounded-xl border border-border-subtle bg-surface-2 p-1"
+            >
+              {(["all", "anime", "manga"] as const).map((type) => (
+                <button
+                  key={type}
+                  type="button"
+                  role="tab"
+                  aria-selected={mediaFilter === type}
+                  onClick={() => setMediaFilter(type)}
+                  className={cn(
+                    "rounded-lg px-3 py-1.5 text-[11px] font-semibold capitalize transition-colors",
+                    mediaFilter === type
+                      ? "bg-accent text-accent-contrast"
+                      : "text-muted hover:bg-surface-3 hover:text-fg",
+                  )}
+                >
+                  {type === "all" ? "All media" : type}
+                </button>
+              ))}
+            </div>
 
             {/* Otaku Rank & Collector Tier Badge */}
             <div className="inline-flex flex-wrap items-center gap-3 pt-1">
@@ -759,14 +807,14 @@ export function StatsView() {
               >
                 <CrownIcon className="h-4 w-4" />
                 <span>{tier.name}</span>
-                <span className="rounded-md border border-white/20 bg-black/40 px-1.5 py-0.5 text-[10px] font-mono">
+                <span className="rounded-md border border-border bg-black/40 light:bg-surface-2 px-1.5 py-0.5 text-[10px] font-mono">
                   {tier.level}
                 </span>
               </div>
 
               {stats.episodesWatched < 3000 ? (
-                <div className="flex items-center gap-2 text-xs text-white/60">
-                  <div className="h-1.5 w-24 overflow-hidden rounded-full bg-white/10">
+                <div className="flex items-center gap-2 text-xs text-muted">
+                  <div className="h-1.5 w-24 overflow-hidden rounded-full bg-surface-3">
                     <div
                       className="h-full rounded-full bg-accent transition-all duration-500"
                       style={{ width: `${tierProgress}%` }}
@@ -781,26 +829,26 @@ export function StatsView() {
           </div>
 
           {/* Right Watch Time Showcase Deck */}
-          <div className="flex items-center gap-4 rounded-2xl border border-white/15 bg-white/5 p-4 sm:p-5 backdrop-blur-md shadow-xl lg:max-w-sm">
-            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-amber-400/30 bg-amber-500/15 text-amber-300 shadow-md">
+          <div className="flex items-center gap-4 rounded-2xl border border-border bg-surface-2/70 p-4 sm:p-5 backdrop-blur-md shadow-xl lg:max-w-sm">
+            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-amber-400/30 bg-amber-500/15 text-amber-300 light:text-amber-700 shadow-md">
               <ClockIcon className="h-6 w-6" />
             </div>
 
             <div className="min-w-0 flex-1">
               <div className="flex items-center justify-between">
-                <span className="text-[11px] font-bold uppercase tracking-wider text-amber-400">
+                <span className="text-[11px] font-bold uppercase tracking-wider text-amber-400 light:text-amber-600">
                   Total Watch Time
                 </span>
-                <span className="rounded-md border border-white/10 bg-white/5 px-1.5 py-0.5 text-[10px] font-semibold text-white/80">
+                <span className="rounded-md border border-border-subtle bg-surface-2/70 px-1.5 py-0.5 text-[10px] font-semibold text-fg/80">
                   {completionRate}% finished
                 </span>
               </div>
 
-              <p className="mt-0.5 font-display text-2xl sm:text-3xl font-bold tracking-tight text-white tabular-nums">
+              <p className="mt-0.5 font-display text-2xl sm:text-3xl font-bold tracking-tight text-fg tabular-nums">
                 {watchTime.formatted}
               </p>
 
-              <p className="text-[11px] text-white/60">
+              <p className="text-[11px] text-muted">
                 {watchTime.totalHours} hours across {stats.episodesWatched.toLocaleString("en-US")} episodes
               </p>
             </div>
@@ -824,7 +872,7 @@ export function StatsView() {
           value={stats.statusCounts.watching}
           subtext={`${stats.statusCounts.on_hold} on hold · active shows`}
           glowColor="#a855f7"
-          iconClass="text-purple-400"
+          iconClass="text-purple-400 light:text-purple-700"
         />
         <StatKpiCard
           icon={CheckIcon}
@@ -832,7 +880,7 @@ export function StatsView() {
           value={stats.statusCounts.completed}
           subtext={`${stats.statusCounts.dropped} dropped series`}
           glowColor="#10b981"
-          iconClass="text-emerald-400"
+          iconClass="text-emerald-400 light:text-emerald-700"
         />
         <StatKpiCard
           icon={ClockIcon}
@@ -844,26 +892,26 @@ export function StatsView() {
               : "100% verified progress"
           }
           glowColor="#f59e0b"
-          iconClass="text-amber-400"
+          iconClass="text-amber-400 light:text-amber-600"
         />
       </section>
 
       {/* 3. Modern Luxury Status Telemetry Matrix (Replaces Dated Corny Bar) */}
       <section
         aria-labelledby="status-telemetry"
-        className="space-y-5 rounded-3xl border border-white/10 bg-[#121520] p-5 sm:p-7 shadow-xl backdrop-blur-md"
+        className="space-y-5 rounded-3xl border border-border-subtle bg-surface p-5 sm:p-7 shadow-xl backdrop-blur-md"
       >
-        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-white/10 pb-4">
+        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border-subtle pb-4">
           <div className="flex items-center gap-2.5">
             <span className="flex h-2.5 w-2.5 rounded-full bg-accent-strong radar-live-dot" />
             <div>
               <h2
                 id="status-telemetry"
-                className="font-display text-lg sm:text-xl font-bold tracking-tight text-white"
+                className="font-display text-lg sm:text-xl font-bold tracking-tight text-fg"
               >
                 Library Status Telemetry
               </h2>
-              <p className="text-xs text-white/60">
+              <p className="text-xs text-muted">
                 Interactive radial ring gauge and live collection matrix
               </p>
             </div>
@@ -872,7 +920,7 @@ export function StatsView() {
           <div className="flex items-center gap-2">
             <Link
               href="/library"
-              className="inline-flex items-center gap-1.5 rounded-xl border border-white/15 bg-white/5 px-3 py-1.5 text-xs font-semibold text-white/80 hover:bg-white/10 hover:text-white transition-colors"
+              className="inline-flex items-center gap-1.5 rounded-xl border border-border bg-surface-2/70 px-3 py-1.5 text-xs font-semibold text-fg/80 hover:bg-surface-2 hover:text-fg transition-colors"
             >
               <span>View Full Library</span>
               <ChevronRightIcon className="h-3 w-3" />
@@ -883,7 +931,7 @@ export function StatsView() {
         {/* Radial Telemetry Showcase Layout */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-center">
           {/* Left: Futuristic Circular Ring Gauge */}
-          <div className="lg:col-span-5 flex justify-center border-b lg:border-b-0 lg:border-r border-white/10 pb-6 lg:pb-0 lg:pr-6">
+          <div className="lg:col-span-5 flex justify-center border-b lg:border-b-0 lg:border-r border-border-subtle pb-6 lg:pb-0 lg:pr-6">
             <StatusDonutTelemetry
               stats={stats}
               activeStatus={hoveredStatus}
@@ -910,8 +958,8 @@ export function StatsView() {
                   className={cn(
                     "group relative flex flex-col justify-between rounded-2xl border p-4 transition-all duration-300 shadow-sm",
                     isHovered
-                      ? "border-white/40 bg-white/15 scale-[1.02] shadow-xl ring-1 ring-white/20"
-                      : cn("border-white/10 bg-white/[0.03]", glow.border),
+                      ? "border-accent/60 bg-surface-3 scale-[1.02] shadow-xl ring-1 ring-accent/30"
+                      : cn("border-border-subtle bg-surface-2/50", glow.border),
                   )}
                 >
                   <div className="flex items-center justify-between">
@@ -923,22 +971,22 @@ export function StatsView() {
                           boxShadow: glow.dotShadow,
                         }}
                       />
-                      <span className="text-xs font-bold text-white/90 group-hover:text-white">
+                      <span className="text-xs font-bold text-fg/90 group-hover:text-fg">
                         {meta.label}
                       </span>
                     </div>
-                    <div className="flex h-7 w-7 items-center justify-center rounded-lg border border-white/10 bg-white/5 text-white/50 group-hover:text-white transition-colors">
+                    <div className="flex h-7 w-7 items-center justify-center rounded-lg border border-border-subtle bg-surface-2/70 text-faint group-hover:text-fg transition-colors">
                       <Icon className="h-3.5 w-3.5" />
                     </div>
                   </div>
 
                   <div className="mt-3 flex items-baseline justify-between">
-                    <span className="font-display text-2xl font-bold tracking-tight text-white tabular-nums">
+                    <span className="font-display text-2xl font-bold tracking-tight text-fg tabular-nums">
                       {count}
                     </span>
                     <span
                       className={cn(
-                        "rounded-md border border-white/10 bg-white/5 px-2 py-0.5 text-xs font-bold tabular-nums",
+                        "rounded-md border border-border-subtle bg-surface-2/70 px-2 py-0.5 text-xs font-bold tabular-nums",
                         glow.text,
                       )}
                     >
@@ -957,20 +1005,20 @@ export function StatsView() {
         {/* Ratings Distribution */}
         <section
           aria-labelledby="rating-distribution"
-          className="flex flex-col justify-between space-y-4 rounded-3xl border border-white/10 bg-[#121520] p-5 sm:p-6 shadow-lg backdrop-blur-md"
+          className="flex flex-col justify-between space-y-4 rounded-3xl border border-border-subtle bg-surface p-5 sm:p-6 shadow-lg backdrop-blur-md"
         >
           <div>
-            <div className="flex items-center justify-between border-b border-white/10 pb-3">
+            <div className="flex items-center justify-between border-b border-border-subtle pb-3">
               <div className="flex items-center gap-2">
-                <StarIcon className="h-4 w-4 fill-amber-400 text-amber-400" />
+                <StarIcon className="h-4 w-4 fill-amber-400 text-amber-400 light:text-amber-600" />
                 <h2
                   id="rating-distribution"
-                  className="font-display text-base sm:text-lg font-bold text-white"
+                  className="font-display text-base sm:text-lg font-bold text-fg"
                 >
                   Personal Ratings
                 </h2>
               </div>
-              <span className="rounded-lg border border-white/10 bg-white/5 px-2.5 py-1 text-xs font-semibold text-white/80 tabular-nums">
+              <span className="rounded-lg border border-border-subtle bg-surface-2/70 px-2.5 py-1 text-xs font-semibold text-fg/80 tabular-nums">
                 {stats.averageScore !== null
                   ? `Mean: ★ ${stats.averageScore}/10`
                   : "No scores yet"}
@@ -993,7 +1041,7 @@ export function StatsView() {
                         className="flex h-full flex-1 flex-col items-center justify-end gap-1.5"
                         title={`${bucket.count} anime rated ${bucket.score}/10`}
                       >
-                        <span className="text-[10px] font-bold tabular-nums text-white/70">
+                        <span className="text-[10px] font-bold tabular-nums text-muted">
                           {bucket.count > 0 ? bucket.count : ""}
                         </span>
                         <div
@@ -1003,14 +1051,14 @@ export function StatsView() {
                               ? "bg-amber-400 shadow-md shadow-amber-400/20"
                               : bucket.count > 0
                                 ? "bg-accent/80 hover:bg-accent"
-                                : "bg-white/5",
+                                : "bg-surface-2/70",
                           )}
                           style={{ height: `${height}%` }}
                         />
                         <span
                           className={cn(
                             "text-[11px] font-bold tabular-nums",
-                            isPeak ? "text-amber-300" : "text-white/50",
+                            isPeak ? "text-amber-300 light:text-amber-700" : "text-faint",
                           )}
                         >
                           {bucket.score}
@@ -1020,21 +1068,21 @@ export function StatsView() {
                   })}
                 </div>
 
-                <div className="flex items-center justify-between border-t border-white/10 pt-3 text-xs text-white/50">
+                <div className="flex items-center justify-between border-t border-border-subtle pt-3 text-xs text-faint">
                   <span>{stats.scoredCount} of {stats.total} titles scored</span>
                   <span>Personal 1–10 Ratings</span>
                 </div>
               </div>
             ) : (
               /* Enhanced Empty Ratings State */
-              <div className="mt-6 flex flex-col items-center justify-center rounded-2xl border border-dashed border-white/15 bg-white/[0.02] p-6 text-center">
-                <div className="flex h-12 w-12 items-center justify-center rounded-2xl border border-amber-400/30 bg-amber-500/10 text-amber-300 shadow-md">
-                  <StarIcon className="h-6 w-6 fill-amber-400/40 text-amber-400" />
+              <div className="mt-6 flex flex-col items-center justify-center rounded-2xl border border-dashed border-border bg-surface-2/40 p-6 text-center">
+                <div className="flex h-12 w-12 items-center justify-center rounded-2xl border border-amber-400/30 bg-amber-500/10 text-amber-300 light:text-amber-700 shadow-md">
+                  <StarIcon className="h-6 w-6 fill-amber-400/40 text-amber-400 light:text-amber-600" />
                 </div>
-                <h3 className="mt-3 font-display text-sm font-bold text-white">
+                <h3 className="mt-3 font-display text-sm font-bold text-fg">
                   No Personal Ratings Recorded Yet
                 </h3>
-                <p className="mt-1.5 max-w-sm text-xs leading-relaxed text-white/60">
+                <p className="mt-1.5 max-w-sm text-xs leading-relaxed text-muted">
                   Rate your anime from 1 to 10 in your library to unlock your personal rating curve, mean score analysis, and top-tier picks.
                 </p>
                 <Link
@@ -1053,34 +1101,34 @@ export function StatsView() {
         {formatCounts.length > 0 ? (
           <section
             aria-label="Format breakdown"
-            className="flex flex-col justify-between space-y-4 rounded-3xl border border-white/10 bg-[#121520] p-5 sm:p-6 shadow-lg backdrop-blur-md"
+            className="flex flex-col justify-between space-y-4 rounded-3xl border border-border-subtle bg-surface p-5 sm:p-6 shadow-lg backdrop-blur-md"
           >
             <div>
-              <div className="flex items-center justify-between border-b border-white/10 pb-3">
+              <div className="flex items-center justify-between border-b border-border-subtle pb-3">
                 <div className="flex items-center gap-2">
                   <FilmIcon className="h-4 w-4 text-accent-strong" />
-                  <h3 className="font-display text-base sm:text-lg font-bold text-white">
+                  <h3 className="font-display text-base sm:text-lg font-bold text-fg">
                     Media Formats
                   </h3>
                 </div>
-                <span className="text-xs text-white/50">{formatCounts.length} types</span>
+                <span className="text-xs text-faint">{formatCounts.length} types</span>
               </div>
 
               <div className="mt-4 space-y-2.5">
                 {formatCounts.map((fmt) => (
                   <div
                     key={fmt.format}
-                    className="flex items-center justify-between rounded-xl border border-white/5 bg-white/[0.02] p-3 text-xs"
+                    className="flex items-center justify-between rounded-xl border border-border-subtle bg-surface-2/40 p-3 text-xs"
                   >
                     <div className="flex items-center gap-2.5">
-                      <span className="rounded-lg border border-white/10 bg-white/5 px-2 py-0.5 font-bold text-accent-strong">
+                      <span className="rounded-lg border border-border-subtle bg-surface-2/70 px-2 py-0.5 font-bold text-accent-strong">
                         {fmt.label}
                       </span>
-                      <span className="text-white/70">
+                      <span className="text-muted">
                         {fmt.count} {fmt.count === 1 ? "title" : "titles"}
                       </span>
                     </div>
-                    <span className="font-bold tabular-nums text-white">
+                    <span className="font-bold tabular-nums text-fg">
                       {fmt.percent}%
                     </span>
                   </div>
@@ -1094,25 +1142,25 @@ export function StatsView() {
       {/* 5. Multidimensional Genre Affinity & Taste Matrix */}
       <section
         aria-labelledby="genre-affinity-matrix"
-        className="space-y-6 rounded-3xl border border-white/10 bg-[#121520] p-5 sm:p-7 shadow-xl backdrop-blur-md"
+        className="space-y-6 rounded-3xl border border-border-subtle bg-surface p-5 sm:p-7 shadow-xl backdrop-blur-md"
       >
-        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-white/10 pb-4">
+        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border-subtle pb-4">
           <div className="flex items-center gap-2.5">
-            <TrophyIcon className="h-5 w-5 text-amber-400" />
+            <TrophyIcon className="h-5 w-5 text-amber-400 light:text-amber-600" />
             <div>
               <h2
                 id="genre-affinity-matrix"
-                className="font-display text-lg sm:text-xl font-bold tracking-tight text-white"
+                className="font-display text-lg sm:text-xl font-bold tracking-tight text-fg"
               >
                 Genre Affinity & Taste Matrix
               </h2>
-              <p className="text-xs text-white/60">
+              <p className="text-xs text-muted">
                 Multidimensional radar telemetry across your catalogue&apos;s genre spectrum
               </p>
             </div>
           </div>
           <div className="flex items-center gap-2">
-            <span className="rounded-xl border border-amber-400/30 bg-amber-500/10 px-3 py-1 text-xs font-bold text-amber-300">
+            <span className="rounded-xl border border-amber-400/30 bg-amber-500/10 px-3 py-1 text-xs font-bold text-amber-300 light:text-amber-700">
               {stats.genreDistribution[0]?.genre ?? "Diverse"} Dominant
             </span>
           </div>
@@ -1121,7 +1169,7 @@ export function StatsView() {
         {/* Dual Panel Layout: Left Radar Web, Right Interactive Bento Matrix */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-center">
           {/* Left: Precision SVG Radar Web */}
-          <div className="lg:col-span-5 flex justify-center border-b lg:border-b-0 lg:border-r border-white/10 pb-6 lg:pb-0 lg:pr-6">
+          <div className="lg:col-span-5 flex justify-center border-b lg:border-b-0 lg:border-r border-border-subtle pb-6 lg:pb-0 lg:pr-6">
             <GenreRadarChart
               genres={stats.genreDistribution}
               hoveredGenre={hoveredGenre}
@@ -1131,7 +1179,7 @@ export function StatsView() {
 
           {/* Right: Modern Bento Grid of Genre Taste Pods */}
           <div className="lg:col-span-7 space-y-3">
-            <div className="flex items-center justify-between text-xs text-white/50 px-1">
+            <div className="flex items-center justify-between text-xs text-faint px-1">
               <span>Top {topGenres.length} Genre Pillars</span>
               <span>Sorted by catalogue density</span>
             </div>
@@ -1154,8 +1202,8 @@ export function StatsView() {
                       isHovered
                         ? "border-accent bg-accent/15 scale-[1.03] shadow-lg ring-1 ring-accent/30 z-10"
                         : isTop3
-                          ? "border-white/15 bg-white/[0.05] hover:border-white/30 hover:bg-white/[0.08]"
-                          : "border-white/5 bg-white/[0.02] hover:border-white/15 hover:bg-white/[0.05]",
+                          ? "border-border bg-surface-2/60 hover:border-border hover:bg-surface-2"
+                          : "border-border-subtle bg-surface-2/40 hover:border-border hover:bg-surface-2/60",
                     )}
                   >
                     <div className="flex items-center justify-between">
@@ -1168,22 +1216,22 @@ export function StatsView() {
                               ? "bg-cyan-400 text-black font-extrabold"
                               : index === 2
                                 ? "bg-purple-400 text-black font-extrabold"
-                                : "border border-white/10 bg-white/5 text-white/60",
+                                : "border border-border-subtle bg-surface-2/70 text-muted",
                         )}
                       >
                         #{index + 1}
                       </span>
-                      <span className="font-display text-base font-bold text-white tabular-nums">
-                        {genre.count} <span className="text-[10px] font-normal text-white/40">titles</span>
+                      <span className="font-display text-base font-bold text-fg tabular-nums">
+                        {genre.count} <span className="text-[10px] font-normal text-faint">titles</span>
                       </span>
                     </div>
 
                     <div className="mt-2.5">
-                      <h4 className="font-display text-sm font-bold text-white group-hover:text-accent-strong transition-colors line-clamp-1">
+                      <h4 className="font-display text-sm font-bold text-fg group-hover:text-accent-strong transition-colors line-clamp-1">
                         {genre.genre}
                       </h4>
-                      <p className="mt-0.5 text-[11px] font-medium text-white/50">
-                        <span className="font-bold text-white/80 tabular-nums">{share}%</span> of library
+                      <p className="mt-0.5 text-[11px] font-medium text-faint">
+                        <span className="font-bold text-fg/80 tabular-nums">{share}%</span> of library
                       </p>
                     </div>
 
@@ -1205,32 +1253,32 @@ export function StatsView() {
       {eraCounts.length > 0 ? (
         <section
           aria-label="Release era timeline"
-          className="space-y-4 rounded-3xl border border-white/10 bg-[#121520] p-5 sm:p-6 shadow-lg backdrop-blur-md"
+          className="space-y-4 rounded-3xl border border-border-subtle bg-surface p-5 sm:p-6 shadow-lg backdrop-blur-md"
         >
-          <div className="flex items-center justify-between border-b border-white/10 pb-3">
+          <div className="flex items-center justify-between border-b border-border-subtle pb-3">
             <div className="flex items-center gap-2">
-              <SparklesIcon className="h-4 w-4 text-cyan-400" />
-              <h3 className="font-display text-base font-bold text-white">
+              <SparklesIcon className="h-4 w-4 text-cyan-400 light:text-cyan-700" />
+              <h3 className="font-display text-base font-bold text-fg">
                 Release Eras
               </h3>
             </div>
-            <span className="text-xs text-white/50">Broadcast decade</span>
+            <span className="text-xs text-faint">Broadcast decade</span>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
             {eraCounts.map((era) => (
               <div
                 key={era.label}
-                className="flex flex-col justify-between rounded-xl border border-white/5 bg-white/[0.02] p-3.5 text-xs"
+                className="flex flex-col justify-between rounded-xl border border-border-subtle bg-surface-2/40 p-3.5 text-xs"
               >
                 <div className="flex items-center justify-between font-medium">
-                  <span className="text-white/90 font-semibold">{era.label}</span>
-                  <span className="tabular-nums font-bold text-white">
+                  <span className="text-fg/90 font-semibold">{era.label}</span>
+                  <span className="tabular-nums font-bold text-fg">
                     {era.percent}%
                   </span>
                 </div>
-                <p className="mt-1 text-[11px] text-white/50">{era.count} series</p>
-                <div className="mt-2.5 h-1.5 overflow-hidden rounded-full bg-white/10">
+                <p className="mt-1 text-[11px] text-faint">{era.count} series</p>
+                <div className="mt-2.5 h-1.5 overflow-hidden rounded-full bg-surface-3">
                   <div
                     className={cn("h-full rounded-full transition-all duration-300", era.color)}
                     style={{ width: `${era.percent}%` }}
@@ -1243,8 +1291,8 @@ export function StatsView() {
       ) : null}
 
       {/* 7. Data Integrity & Verification Footnote */}
-      <footer className="rounded-2xl border border-white/10 bg-white/[0.02] p-4 sm:p-5 text-xs text-white/60">
-        <div className="flex items-center gap-2 font-semibold text-white/90">
+      <footer className="rounded-2xl border border-border-subtle bg-surface-2/40 p-4 sm:p-5 text-xs text-muted">
+        <div className="flex items-center gap-2 font-semibold text-fg/90">
           <InfoIcon className="h-4 w-4 text-accent-strong" />
           <span>Library Data Integrity Guarantee</span>
         </div>

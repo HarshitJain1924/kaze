@@ -163,7 +163,7 @@ describe("AniListClient", () => {
     ) as { query: string; variables: Record<string, unknown> };
     // AniList treats an explicit null as "match nothing", so the argument is
     // absent from both the document and the variables.
-    expect(included.query).not.toContain("isAdult");
+    expect(included.query).not.toContain("isAdult: $isAdult");
     expect(included.variables.isAdult).toBeUndefined();
 
     await client.searchAnime({});

@@ -18,7 +18,6 @@ import { getNextEpisodeNumber } from "@/features/library/continue-watching";
 import { useLibrary } from "@/features/library/library-provider";
 import {
   cn,
-  formatEpisodeCount,
   formatFormat,
   formatShortIsoDate,
   getDisplayTitle,
@@ -60,13 +59,18 @@ export function LibraryList({ items }: { items: LibraryItem[] }) {
         const cover = anime
           ? anime.coverImage.extraLarge ?? anime.coverImage.large ?? null
           : null;
-        const total = anime?.episodes ?? null;
-        const { nextEp, atEnd } = getNextEpisodeNumber(
-          entry.progress,
-          watchedEpisodesFor(entry.anilistId),
-          total,
-        );
+        const manga = entry.mediaType === "manga" || anime?.mediaType === "manga";
+        const total = manga ? (anime?.chapters ?? null) : (anime?.episodes ?? null);
+        const nextInfo = manga
+          ? { nextEp: entry.progress + 1, atEnd: total !== null && entry.progress >= total }
+          : getNextEpisodeNumber(
+              entry.progress,
+              watchedEpisodesFor(entry.anilistId),
+              total,
+            );
+        const { nextEp, atEnd } = nextInfo;
         const isCompleted = entry.status === "completed" || atEnd;
+        const unitShort = manga ? "chapters" : "episodes";
         const percent =
           total && total > 0
             ? Math.min(100, Math.round((entry.progress / total) * 100))
@@ -85,7 +89,7 @@ export function LibraryList({ items }: { items: LibraryItem[] }) {
           >
             {/* Thumbnail Poster */}
             <Link
-              href={`/anime/${entry.anilistId}`}
+              href={`/media/${entry.anilistId}`}
               className="relative h-28 w-20 shrink-0 overflow-hidden rounded-xl bg-surface-3 shadow-sm transition-transform duration-200 group-hover:scale-[1.02]"
               aria-label={`Open details for ${title}`}
             >
@@ -122,12 +126,16 @@ export function LibraryList({ items }: { items: LibraryItem[] }) {
               <div>
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <Link
-                    href={`/anime/${entry.anilistId}`}
+                    href={`/media/${entry.anilistId}`}
                     className="line-clamp-1 font-display text-sm font-semibold text-fg transition-colors hover:text-accent-strong sm:text-base"
                   >
                     {title}
                   </Link>
-                  <StatusBadge status={entry.status} className="shrink-0" />
+                  <StatusBadge
+                    status={entry.status}
+                    mediaType={entry.mediaType}
+                    className="shrink-0"
+                  />
                 </div>
 
                 {/* Subtitle Metadata Chips */}
@@ -139,10 +147,12 @@ export function LibraryList({ items }: { items: LibraryItem[] }) {
                   )}
                   {yearText && <span>{yearText}</span>}
                   {total ? (
-                    <span>· {formatEpisodeCount(total, { short: true })}</span>
+                    <span>
+                      · {total} {unitShort}
+                    </span>
                   ) : null}
                   {entry.score ? (
-                    <span className="inline-flex items-center gap-1 font-semibold text-amber-400">
+                    <span className="inline-flex items-center gap-1 font-semibold text-amber-400 light:text-amber-600">
                       · <StarIcon className="h-3 w-3 fill-current" />
                       {entry.score}/10
                     </span>
@@ -155,7 +165,7 @@ export function LibraryList({ items }: { items: LibraryItem[] }) {
                 <div className="flex items-center justify-between text-xs text-muted">
                   <span className="font-medium tabular-nums text-fg">
                     {entry.progress}
-                    {total ? ` / ${total}` : ""} episodes watched
+                    {total ? ` / ${total}` : ""} {unitShort} {manga ? "read" : "watched"}
                     {total && total > 0 ? ` (${percent}%)` : ""}
                   </span>
                   <span className="text-[11px] text-faint">
@@ -181,9 +191,9 @@ export function LibraryList({ items }: { items: LibraryItem[] }) {
             {/* Right Action Controls Column */}
             <div className="flex items-center justify-end gap-2 pt-1 sm:flex-col sm:justify-center sm:pt-0">
               {isCompleted ? (
-                <div className="inline-flex h-9 items-center gap-1.5 rounded-xl border border-emerald-500/25 bg-emerald-500/10 px-3 text-xs font-semibold text-emerald-400">
+                <div className="inline-flex h-9 items-center gap-1.5 rounded-xl border border-emerald-500/25 bg-emerald-500/10 px-3 text-xs font-semibold text-emerald-400 light:text-emerald-700">
                   <CheckIcon className="h-3.5 w-3.5" />
-                  <span>Finished</span>
+                  <span>{manga ? "Finished" : "Finished"}</span>
                 </div>
               ) : (
                 <button
@@ -191,7 +201,7 @@ export function LibraryList({ items }: { items: LibraryItem[] }) {
                   disabled={pending}
                   onClick={() => void incrementProgress(entry.anilistId)}
                   className="inline-flex h-9 items-center gap-1.5 rounded-xl border border-accent/40 bg-accent/15 px-3.5 text-xs font-semibold text-fg transition-all duration-150 hover:border-accent hover:bg-accent hover:text-white active:scale-95 disabled:opacity-50"
-                  aria-label={`Add one watched episode to ${title}`}
+                  aria-label={`Add one ${manga ? "read chapter" : "watched episode"} to ${title}`}
                 >
                   {pending ? (
                     <span className="inline-flex items-center gap-1.5">
@@ -201,7 +211,7 @@ export function LibraryList({ items }: { items: LibraryItem[] }) {
                   ) : (
                     <>
                       <PlusIcon className="h-3.5 w-3.5 text-accent-strong" />
-                      <span>+ Ep {nextEp}</span>
+                      <span>+ {manga ? "Ch" : "Ep"} {nextEp}</span>
                     </>
                   )}
                 </button>
@@ -209,7 +219,7 @@ export function LibraryList({ items }: { items: LibraryItem[] }) {
 
               <div className="flex items-center gap-1">
                 <Link
-                  href={`/anime/${entry.anilistId}`}
+                  href={`/media/${entry.anilistId}`}
                   className="flex h-9 w-9 items-center justify-center rounded-xl border border-border-subtle bg-surface-2 text-faint transition-colors hover:border-border hover:text-fg"
                   aria-label={`View full details for ${title}`}
                   title="View anime details"

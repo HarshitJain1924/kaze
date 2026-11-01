@@ -61,13 +61,13 @@ export function MobileHeader({ viewer }: { viewer: Viewer | null }) {
             {resolved === "dark" ? (
               <MoonIcon className="h-4 w-4 text-purple-300 light:text-purple-700" />
             ) : (
-              <SunIcon className="h-4 w-4 text-amber-400" />
+              <SunIcon className="h-4 w-4 text-amber-400 light:text-amber-600" />
             )}
           </button>
 
           <Link
             href="/discover"
-            aria-label="Search anime"
+            aria-label="Search titles"
             className="flex h-9 w-9 items-center justify-center rounded-xl liquid-glass-interactive text-muted hover:text-fg active:scale-95"
           >
             <SearchIcon className="h-[18px] w-[18px]" />

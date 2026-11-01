@@ -31,7 +31,7 @@ export function AnimeEpisodeSection({ anime }: { anime: Anime }) {
             Sign in to track individual episodes and save your progress.
           </p>
           <LinkButton
-            href={`/login?next=${encodeURIComponent(`/anime/${anime.id}`)}`}
+            href={`/login?next=${encodeURIComponent(`/media/${anime.id}`)}`}
             variant="primary"
             size="sm"
             className="mt-3"

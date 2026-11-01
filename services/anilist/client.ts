@@ -7,6 +7,7 @@ import type {
   AnimeSearchParams,
   AnimeSeason,
   AnimeSummary,
+  MediaType,
 } from "@/types/anime";
 
 import { CircuitBreaker } from "./circuit-breaker";
@@ -23,10 +24,10 @@ import {
 } from "./map";
 import {
   AIRING_SCHEDULE_QUERY,
-  ANIME_BY_IDS_QUERY,
-  ANIME_DETAILS_QUERY,
-  SEARCH_ANIME_INCLUDING_ADULT_QUERY,
-  SEARCH_ANIME_QUERY,
+  MEDIA_BY_IDS_QUERY,
+  MEDIA_DETAILS_QUERY,
+  SEARCH_MEDIA_INCLUDING_ADULT_QUERY,
+  SEARCH_MEDIA_QUERY,
 } from "./queries";
 
 const ANILIST_ENDPOINT = "https://graphql.anilist.co";
@@ -441,7 +442,7 @@ export class AniListClient {
     return { ok: true, data: payload.data };
   }
 
-  async searchAnime(
+  async searchMedia(
     params: AnimeSearchParams = {},
     options: CallOptions = {},
   ): Promise<AnimePage> {
@@ -454,16 +455,24 @@ export class AniListClient {
     const search = params.query?.trim();
     const adultContent = params.adultContent ?? "filtered";
     const includeAdult = adultContent === "include";
+    const mediaType: MediaType = params.mediaType ?? "anime";
+    const formats = params.format
+      ? [params.format]
+      : mediaType === "manga"
+        ? ["MANGA", "ONE_SHOT"]
+        : undefined;
 
     const variables = {
       page,
       perPage,
       search: search ? search.slice(0, 120) : undefined,
-      genre: params.genre || undefined,
+      type: mediaType === "manga" ? "MANGA" : "ANIME",
+      formats,
       format: params.format || undefined,
+      genre: params.genre || undefined,
       status: params.status || undefined,
-      season: params.season || undefined,
-      seasonYear: params.seasonYear,
+      season: mediaType === "anime" ? params.season || undefined : undefined,
+      seasonYear: mediaType === "anime" ? params.seasonYear : undefined,
       source: params.source || undefined,
       countryOfOrigin: params.countryOfOrigin || undefined,
       // Omitted entirely for adult-inclusive searches, whose document has no
@@ -473,7 +482,7 @@ export class AniListClient {
     };
 
     const data = await this.execute<{ Page?: unknown }>(
-      includeAdult ? SEARCH_ANIME_INCLUDING_ADULT_QUERY : SEARCH_ANIME_QUERY,
+      includeAdult ? SEARCH_MEDIA_INCLUDING_ADULT_QUERY : SEARCH_MEDIA_QUERY,
       variables,
       options.ttlMs ?? TTL.search,
     );
@@ -481,7 +490,15 @@ export class AniListClient {
     return mapAnimePage(data.Page, page);
   }
 
-  async getAnimeById(
+  /** Backwards-compatible anime-only search. */
+  async searchAnime(
+    params: AnimeSearchParams = {},
+    options: CallOptions = {},
+  ): Promise<AnimePage> {
+    return this.searchMedia({ ...params, mediaType: "anime" }, options);
+  }
+
+  async getMediaById(
     id: number,
     options: CallOptions = {},
   ): Promise<Anime | null> {
@@ -492,7 +509,7 @@ export class AniListClient {
     let data: { Media?: unknown };
     try {
       data = await this.execute<{ Media?: unknown }>(
-        ANIME_DETAILS_QUERY,
+        MEDIA_DETAILS_QUERY,
         { id },
         options.ttlMs ?? TTL.details,
       );
@@ -513,13 +530,24 @@ export class AniListClient {
 
     const anime = mapAnime(data.Media);
     if (!anime) {
-      throw new AniListError("AniList returned unreadable anime details");
+      throw new AniListError("AniList returned unreadable media details");
     }
     return anime;
   }
 
-  /** Hydrates personal-library entries with provider metadata. */
-  async getAnimeByIds(ids: number[]): Promise<Map<number, AnimeSummary>> {
+  /** Backwards-compatible generic details; the caller can inspect mediaType. */
+  async getAnimeById(
+    id: number,
+    options: CallOptions = {},
+  ): Promise<Anime | null> {
+    return this.getMediaById(id, options);
+  }
+
+  /** Hydrates library entries with provider metadata for one media type. */
+  async getMediaByIds(
+    ids: number[],
+    mediaType: MediaType = "anime",
+  ): Promise<Map<number, AnimeSummary>> {
     const unique = [
       ...new Set(ids.filter((id) => Number.isInteger(id) && id > 0)),
     ];
@@ -528,8 +556,13 @@ export class AniListClient {
     for (let index = 0; index < unique.length; index += MAX_PER_PAGE) {
       const chunk = unique.slice(index, index + MAX_PER_PAGE);
       const data = await this.execute<{ Page?: unknown }>(
-        ANIME_BY_IDS_QUERY,
-        { ids: chunk, page: 1, perPage: chunk.length },
+        MEDIA_BY_IDS_QUERY,
+        {
+          ids: chunk,
+          type: mediaType === "manga" ? "MANGA" : "ANIME",
+          page: 1,
+          perPage: chunk.length,
+        },
         TTL.list,
       );
 
@@ -541,6 +574,14 @@ export class AniListClient {
     }
 
     return result;
+  }
+
+  async getAnimeByIds(ids: number[]): Promise<Map<number, AnimeSummary>> {
+    return this.getMediaByIds(ids, "anime");
+  }
+
+  async getMangaByIds(ids: number[]): Promise<Map<number, AnimeSummary>> {
+    return this.getMediaByIds(ids, "manga");
   }
 
   async getSeasonalAnime(
@@ -563,8 +604,9 @@ export class AniListClient {
   async getPopularAnime(
     options: CallOptions & { page?: number; perPage?: number } = {},
   ): Promise<AnimePage> {
-    return this.searchAnime(
+    return this.searchMedia(
       {
+        mediaType: "anime",
         sort: "POPULARITY_DESC",
         page: options.page ?? 1,
         perPage: options.perPage ?? 24,
@@ -576,8 +618,37 @@ export class AniListClient {
   async getTrendingAnime(
     options: CallOptions & { page?: number; perPage?: number } = {},
   ): Promise<AnimePage> {
-    return this.searchAnime(
+    return this.searchMedia(
       {
+        mediaType: "anime",
+        sort: "TRENDING_DESC",
+        page: options.page ?? 1,
+        perPage: options.perPage ?? 24,
+      },
+      { ttlMs: options.ttlMs ?? TTL.list },
+    );
+  }
+
+  async getPopularManga(
+    options: CallOptions & { page?: number; perPage?: number } = {},
+  ): Promise<AnimePage> {
+    return this.searchMedia(
+      {
+        mediaType: "manga",
+        sort: "POPULARITY_DESC",
+        page: options.page ?? 1,
+        perPage: options.perPage ?? 24,
+      },
+      { ttlMs: options.ttlMs ?? TTL.list },
+    );
+  }
+
+  async getTrendingManga(
+    options: CallOptions & { page?: number; perPage?: number } = {},
+  ): Promise<AnimePage> {
+    return this.searchMedia(
+      {
+        mediaType: "manga",
         sort: "TRENDING_DESC",
         page: options.page ?? 1,
         perPage: options.perPage ?? 24,

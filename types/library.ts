@@ -1,4 +1,4 @@
-import type { AnimeSummary } from "@/types/anime";
+import type { AnimeSummary, MediaType } from "@/types/anime";
 
 export const WATCH_STATUSES = [
   "watching",
@@ -21,8 +21,13 @@ export interface LibraryEntry {
   id: string;
   userId: string;
   anilistId: number;
+  /** Defaults to anime for rows created before manga support. */
+  mediaType?: MediaType;
   status: WatchStatus;
+  /** Episodes for anime, chapters for manga. */
   progress: number;
+  /** Volumes read; manga only, optional. */
+  volumesProgress?: number;
   score: number | null;
   startedAt: string | null;
   completedAt: string | null;
@@ -46,6 +51,29 @@ export interface LibraryItem {
   anime: AnimeSummary | null;
   /** List of episode numbers that have been individually marked as watched. */
   watchedEpisodes?: number[];
+}
+
+/** Human-facing unit labels for a library entry. */
+export function libraryUnit(entry: Pick<LibraryEntry, "mediaType">): {
+  mediaType: MediaType;
+  unit: "episode" | "chapter";
+  units: "episodes" | "chapters";
+  progressLabel: string;
+} {
+  const mediaType = entry.mediaType === "manga" ? "manga" : "anime";
+  return mediaType === "manga"
+    ? {
+        mediaType,
+        unit: "chapter",
+        units: "chapters",
+        progressLabel: "Chapter progress",
+      }
+    : {
+        mediaType,
+        unit: "episode",
+        units: "episodes",
+        progressLabel: "Episode progress",
+      };
 }
 
 export type LibrarySort = "recent" | "title" | "score" | "progress";

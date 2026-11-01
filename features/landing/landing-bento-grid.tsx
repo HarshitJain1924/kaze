@@ -197,7 +197,7 @@ export function LandingBentoGrid() {
             </div>
 
             <p className="mt-5 text-xs text-muted leading-relaxed">
-              Understand your anime palate with comprehensive radar metrics: total hours logged, genre affinity rankings, and completion velocity.
+              Understand your anime and manga palate with comprehensive radar metrics: episodes watched, chapters read, genre affinity rankings, and completion velocity.
             </p>
           </div>
 

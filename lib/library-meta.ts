@@ -1,3 +1,4 @@
+import type { MediaType } from "@/types/anime";
 import type { WatchStatus } from "@/types/library";
 
 interface WatchStatusMeta {
@@ -64,6 +65,63 @@ export const WATCH_STATUS_ORDER: WatchStatus[] = [
   "completed",
   "dropped",
 ];
+
+/** Manga uses reading language while keeping the same stored status values. */
+export const MANGA_STATUS_META: Record<WatchStatus, WatchStatusMeta> = {
+  ...WATCH_STATUS_META,
+  watching: {
+    ...WATCH_STATUS_META.watching,
+    label: "Reading",
+    shortLabel: "Reading",
+    description: "Currently reading chapters",
+    emptyTitle: "Nothing in progress",
+    emptyBody:
+      "Start a manga from your plan-to-read list, or add one from Discover.",
+  },
+  completed: {
+    ...WATCH_STATUS_META.completed,
+    description: "Finished reading",
+    emptyTitle: "No completed manga yet",
+    emptyBody:
+      "When you finish a manga or manhwa, mark it completed to build your record.",
+  },
+  planning: {
+    ...WATCH_STATUS_META.planning,
+    label: "Plan to Read",
+    shortLabel: "Plan to read",
+    description: "Saved for later",
+    emptyTitle: "Your reading list is empty",
+    emptyBody:
+      "Find a manga or manhwa in Discover and add it to your plan-to-read list.",
+  },
+  on_hold: {
+    ...WATCH_STATUS_META.on_hold,
+    description: "Paused for now",
+    emptyTitle: "Nothing on hold",
+    emptyBody:
+      "Paused manga will appear here so you can pick them up again later.",
+  },
+  dropped: {
+    ...WATCH_STATUS_META.dropped,
+    description: "Manga you stopped reading",
+    emptyTitle: "No dropped manga",
+    emptyBody:
+      "Manga you decide not to finish can be kept here without losing your notes.",
+  },
+};
+
+export function getWatchStatusMeta(
+  mediaType?: MediaType,
+): Record<WatchStatus, WatchStatusMeta> {
+  return mediaType === "manga" ? MANGA_STATUS_META : WATCH_STATUS_META;
+}
+
+export function getWatchStatusLabel(
+  status: WatchStatus,
+  mediaType?: MediaType,
+): string {
+  return getWatchStatusMeta(mediaType)[status].label;
+}
 
 export const LIBRARY_SORT_LABELS = {
   recent: "Recently updated",

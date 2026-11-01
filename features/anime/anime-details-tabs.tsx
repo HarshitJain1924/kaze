@@ -13,6 +13,8 @@ interface AnimeDetailsTabsProps {
   hasFranchise: boolean;
   franchiseCount: number;
   episodesCount: number | null;
+  showEpisodes?: boolean;
+  episodeLabel?: string;
 }
 
 type TabKey = "overview" | "franchise" | "episodes" | "details" | "all";
@@ -25,6 +27,8 @@ export function AnimeDetailsTabs({
   hasFranchise,
   franchiseCount,
   episodesCount,
+  showEpisodes = true,
+  episodeLabel = "Episodes",
 }: AnimeDetailsTabsProps) {
   const [activeTab, setActiveTab] = useState<TabKey>("overview");
 
@@ -79,6 +83,7 @@ export function AnimeDetailsTabs({
             </button>
           ) : null}
 
+          {showEpisodes ? (
           <button
             type="button"
             role="tab"
@@ -91,7 +96,7 @@ export function AnimeDetailsTabs({
                 : "text-muted hover:bg-surface-2 hover:text-fg",
             )}
           >
-            <span>Episodes</span>
+            <span>{episodeLabel}</span>
             {episodesCount ? (
               <span
                 className={cn(
@@ -105,6 +110,7 @@ export function AnimeDetailsTabs({
               </span>
             ) : null}
           </button>
+          ) : null}
 
           <button
             type="button"
@@ -137,19 +143,19 @@ export function AnimeDetailsTabs({
           <>
             {synopsisContent}
             {hasFranchise ? franchiseContent : null}
-            {episodesContent}
+            {showEpisodes ? episodesContent : null}
             {detailsContent}
           </>
         ) : activeTab === "overview" ? (
           <>
             {synopsisContent}
             {hasFranchise ? franchiseContent : null}
-            {episodesContent}
+            {showEpisodes ? episodesContent : null}
           </>
         ) : activeTab === "franchise" ? (
           franchiseContent
         ) : activeTab === "episodes" ? (
-          episodesContent
+          showEpisodes ? episodesContent : null
         ) : (
           detailsContent
         )}

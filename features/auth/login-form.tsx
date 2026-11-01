@@ -261,7 +261,7 @@ export function LoginForm({
       <div className="relative w-full max-w-md">
         <div className="pointer-events-none absolute -inset-1 rounded-3xl bg-emerald-500/15 blur-xl" />
         <div className="relative rounded-3xl border border-border bg-surface/90 p-6 sm:p-8 shadow-2xl backdrop-blur-2xl ring-1 ring-border">
-          <span className="flex h-12 w-12 items-center justify-center rounded-2xl border border-emerald-500/30 bg-emerald-500/15 text-emerald-400 shadow-inner">
+          <span className="flex h-12 w-12 items-center justify-center rounded-2xl border border-emerald-500/30 bg-emerald-500/15 text-emerald-400 light:text-emerald-700 shadow-inner">
             <CheckIcon className="h-6 w-6" />
           </span>
           <h1 className="mt-5 font-display text-2xl font-bold tracking-tight text-fg">

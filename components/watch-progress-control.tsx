@@ -7,6 +7,8 @@ import { Button } from "@/components/ui/button";
 import { inputClass } from "@/components/ui/field";
 import { cn, pluralize } from "@/lib/utils";
 
+type ProgressUnit = "episode" | "chapter" | "volume";
+
 export function WatchProgressControl({
   progress,
   episodes,
@@ -14,6 +16,7 @@ export function WatchProgressControl({
   disabled = false,
   compact = false,
   className,
+  unit = "episode",
 }: {
   progress: number;
   episodes: number | null;
@@ -21,7 +24,15 @@ export function WatchProgressControl({
   disabled?: boolean;
   compact?: boolean;
   className?: string;
+  unit?: ProgressUnit;
 }) {
+  const plural = unit === "episode" ? "episodes" : `${unit}s`;
+  const label =
+    unit === "episode"
+      ? "Episode progress"
+      : unit === "chapter"
+        ? "Chapter progress"
+        : "Volume progress";
   const inputRef = useRef<HTMLInputElement>(null);
 
   const max = episodes !== null && episodes > 0 ? episodes : null;
@@ -53,13 +64,13 @@ export function WatchProgressControl({
   return (
     <div className={cn("space-y-2", className)}>
       <div className="flex items-center justify-between gap-3">
-        <span className="text-xs font-medium text-muted">Episode progress</span>
+        <span className="text-xs font-medium text-muted">{label}</span>
         <span className="text-xs text-faint">
           {max !== null
-            ? `${progress} of ${max} ${pluralize(max, "episode")}`
+            ? `${progress} of ${max} ${pluralize(max, unit)}`
             : episodes === null
-              ? "Total episodes unknown"
-              : `${progress} watched`}
+              ? `Total ${plural} unknown`
+              : `${progress} ${unit === "episode" ? "watched" : "read"}`}
         </span>
       </div>
 
@@ -69,13 +80,13 @@ export function WatchProgressControl({
           size="icon"
           onClick={() => onChange(Math.max(0, progress - 1))}
           disabled={disabled || progress <= 0}
-          aria-label="Decrease episode progress"
+          aria-label={`Decrease ${unit} progress`}
         >
           <MinusIcon className="h-4 w-4" />
         </Button>
 
         <label className="sr-only" htmlFor={`progress-${progress}`}>
-          Episodes watched
+          {unit === "episode" ? "Episodes watched" : `${unit}s read`}
         </label>
         <input
           key={progress}
@@ -108,7 +119,7 @@ export function WatchProgressControl({
             onChange(max !== null ? Math.min(max, progress + 1) : progress + 1)
           }
           disabled={disabled || atEnd}
-          aria-label="Increase episode progress"
+          aria-label={`Increase ${unit} progress`}
         >
           <PlusIcon className="h-4 w-4" />
         </Button>

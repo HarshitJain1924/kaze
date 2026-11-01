@@ -87,13 +87,18 @@ export function LibraryItemCard({ item }: { item: LibraryItem }) {
     anime.coverImage.extraLarge ??
     anime.coverImage.large ??
     null;
-  const total = anime.episodes ?? null;
-  const { nextEp, atEnd } = getNextEpisodeNumber(
-    entry.progress,
-    watchedEpisodesFor(entry.anilistId),
-    total,
-  );
+  const manga = entry.mediaType === "manga" || anime.mediaType === "manga";
+  const total = manga ? (anime.chapters ?? null) : (anime.episodes ?? null);
+  const nextInfo = manga
+    ? { nextEp: entry.progress + 1, atEnd: total !== null && entry.progress >= total }
+    : getNextEpisodeNumber(
+        entry.progress,
+        watchedEpisodesFor(entry.anilistId),
+        total,
+      );
+  const { nextEp, atEnd } = nextInfo;
   const isCompleted = entry.status === "completed" || atEnd;
+  const unitShort = manga ? "ch" : "eps";
   const pending = pendingIds.has(entry.anilistId);
 
   const percent =
@@ -139,9 +144,8 @@ export function LibraryItemCard({ item }: { item: LibraryItem }) {
         />
 
         {/* Clickable Full Poster Link */}
-        <Link
-          href={`/anime/${anime.id}`}
-          aria-label={`View details for ${title}`}
+        <Link            href={`/media/${anime.id}`}
+            aria-label={`View details for ${title}`}
           className="absolute inset-0 z-10 rounded-xl focus:outline-none focus:ring-2 focus:ring-accent"
         />
 
@@ -175,7 +179,7 @@ export function LibraryItemCard({ item }: { item: LibraryItem }) {
           <div className="flex items-center justify-between px-2.5 pb-2 text-[11px] font-medium text-white/90 drop-shadow-sm">
             <span className="tabular-nums">
               {entry.progress}
-              {total ? ` / ${total}` : ""} eps
+              {total ? ` / ${total}` : ""} {unitShort}
             </span>
             {total && total > 0 ? (
               <span className="text-[10px] font-bold tabular-nums text-white/75">
@@ -204,7 +208,7 @@ export function LibraryItemCard({ item }: { item: LibraryItem }) {
       {/* Information & Action Section Below Poster */}
       <div className="mt-2.5 flex flex-1 flex-col">
         <Link
-          href={`/anime/${anime.id}`}
+          href={`/media/${anime.id}`}
           className="line-clamp-1 font-display text-[13px] font-semibold text-fg transition-colors hover:text-accent-strong sm:text-sm"
           title={title}
         >
@@ -215,6 +219,7 @@ export function LibraryItemCard({ item }: { item: LibraryItem }) {
           <span>{metaSubtitle || "Series"}</span>
           <StatusBadge
             status={entry.status}
+            mediaType={entry.mediaType}
             className="border-0 bg-transparent px-0 py-0 text-[11px]"
           />
         </div>
@@ -222,9 +227,13 @@ export function LibraryItemCard({ item }: { item: LibraryItem }) {
         {/* One-tap Next Episode Stepper Action */}
         <div className="mt-3 pt-0.5">
           {isCompleted ? (
-            <div className="inline-flex h-8 w-full items-center justify-center gap-1.5 rounded-lg border border-emerald-500/25 bg-emerald-500/10 px-2 text-xs font-semibold text-emerald-400">
+            <div className="inline-flex h-8 w-full items-center justify-center gap-1.5 rounded-lg border border-emerald-500/25 bg-emerald-500/10 px-2 text-xs font-semibold text-emerald-400 light:text-emerald-700">
               <CheckIcon className="h-3.5 w-3.5 shrink-0" />
-              <span>{total ? `All ${total} eps watched` : "Completed"}</span>
+              <span>
+                {total
+                  ? `All ${total} ${manga ? "chapters read" : "eps watched"}`
+                  : "Completed"}
+              </span>
             </div>
           ) : (
             <button
@@ -235,7 +244,7 @@ export function LibraryItemCard({ item }: { item: LibraryItem }) {
                 void incrementProgress(entry.anilistId);
               }}
               className="inline-flex h-8 w-full items-center justify-center gap-1.5 rounded-lg border border-accent/40 bg-accent/15 px-2 text-xs font-semibold text-fg transition-all duration-150 hover:border-accent hover:bg-accent hover:text-white active:scale-95 disabled:opacity-50"
-              aria-label={`Mark episode ${nextEp} watched for ${title}`}
+              aria-label={`Mark ${manga ? "chapter" : "episode"} ${nextEp} ${manga ? "read" : "watched"} for ${title}`}
             >
               {pending ? (
                 <span className="inline-flex items-center gap-1.5">
@@ -245,7 +254,7 @@ export function LibraryItemCard({ item }: { item: LibraryItem }) {
               ) : (
                 <>
                   <PlusIcon className="h-3.5 w-3.5 text-accent-strong" />
-                  <span>Episode {nextEp}</span>
+                  <span>{manga ? "Chapter" : "Episode"} {nextEp}</span>
                 </>
               )}
             </button>

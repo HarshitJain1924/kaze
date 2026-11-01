@@ -27,7 +27,13 @@ export async function POST(request: Request) {
 
   try {
     const repository = createLibraryRepository(auth.context.supabase);
-    const result = await repository.add(auth.context.viewer.id, parsed.data);
+    const result = await repository.add(auth.context.viewer.id, {
+      anilistId: parsed.data.anilistId,
+      ...(parsed.data.mediaType === "manga"
+        ? { mediaType: "manga" as const }
+        : {}),
+      status: parsed.data.status,
+    });
     return NextResponse.json(result, { status: result.created ? 201 : 200 });
   } catch (error) {
     return libraryErrorResponse(error);

@@ -87,7 +87,7 @@ export function HomeStatsStrip({
               {stats.statusCounts.watching}
             </p>
           </div>
-          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-purple-500/30 bg-purple-500/15 text-purple-400 shadow-xs">
+          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-purple-500/30 bg-purple-500/15 text-purple-400 light:text-purple-700 shadow-xs">
             <PlayIcon className="h-4 w-4 fill-current" />
           </span>
         </Link>
@@ -105,7 +105,7 @@ export function HomeStatsStrip({
               {stats.statusCounts.completed}
             </p>
           </div>
-          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-emerald-500/30 bg-emerald-500/15 text-emerald-400 shadow-xs">
+          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-emerald-500/30 bg-emerald-500/15 text-emerald-400 light:text-emerald-700 shadow-xs">
             <CheckIcon className="h-5 w-5" />
           </span>
         </Link>
@@ -123,7 +123,7 @@ export function HomeStatsStrip({
               {stats.episodesWatched.toLocaleString()}
             </p>
           </div>
-          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-amber-500/30 bg-amber-500/15 text-amber-400 shadow-xs">
+          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-amber-500/30 bg-amber-500/15 text-amber-400 light:text-amber-600 shadow-xs">
             <ListIcon className="h-5 w-5" />
           </span>
         </Link>

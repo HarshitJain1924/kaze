@@ -38,12 +38,15 @@ export function LibraryBrowser({
   /** This season's most-watched titles, shown only on a first run. */
   suggestions?: AnimeSummary[];
 }) {
-  const { items, loadError, pendingIds } = useLibrary();
+  const { items, loadError, pendingIds, showAdult } = useLibrary();
   const { preferences, setPreference } = usePreferences();
 
   const [status, setStatus] = useState<LibraryStatusFilter>(initialStatus);
   const [query, setQuery] = useState("");
   const [sort, setSort] = useState<LibrarySort>("recent");
+  const [mediaFilter, setMediaFilter] = useState<"all" | "anime" | "manga">(
+    "all",
+  );
 
   const view = preferences.libraryView;
 
@@ -111,6 +114,15 @@ export function LibraryBrowser({
       if (status !== "all" && item.entry.status !== status) {
         return false;
       }
+      if (!showAdult && item.anime?.isAdult) {
+        return false;
+      }
+      if (
+        mediaFilter !== "all" &&
+        (item.entry.mediaType ?? "anime") !== mediaFilter
+      ) {
+        return false;
+      }
       if (!needle) {
         return true;
       }
@@ -151,7 +163,7 @@ export function LibraryBrowser({
           );
       }
     });
-  }, [items, query, sort, status]);
+  }, [items, mediaFilter, query, showAdult, sort, status]);
 
   const selectStatus = (next: LibraryStatusFilter) => {
     setStatus(next);
@@ -195,7 +207,7 @@ export function LibraryBrowser({
                 <span className="h-2 w-2 rounded-full bg-accent radar-live-dot" />
                 <span>Personal Archive</span>
                 <span className="text-faint">/</span>
-                <span className="text-muted">Anime Vault</span>
+                <span className="text-muted">Media Vault</span>
               </div>
 
               <Link
@@ -216,13 +228,13 @@ export function LibraryBrowser({
               <p className="mt-1.5 max-w-2xl text-[13px] sm:text-sm text-muted">
                 Personal catalog of{" "}
                 <span className="font-semibold text-fg">
-                  {items.length} {items.length === 1 ? "series" : "series"}
+                  {items.length} {items.length === 1 ? "title" : "titles"}
                 </span>{" "}
-                across your watch history ·{" "}
+                across your anime and manga history ·{" "}
                 <span className="font-semibold text-fg tabular-nums">
                   {libraryTelemetry.totalEpisodesLogged.toLocaleString()}
                 </span>{" "}
-                episodes recorded.
+                units recorded.
               </p>
             </div>
 
@@ -300,7 +312,7 @@ export function LibraryBrowser({
               {/* Pod 4: Ratings or Volume Readout */}
               <div className="flex flex-col rounded-2xl border border-border-subtle bg-surface-2/50 p-3 backdrop-blur-md">
                 <div className="flex items-center gap-1.5 text-[11px] font-semibold text-amber-300 light:text-amber-700">
-                  <StarIcon className="h-3 w-3 fill-amber-400 text-amber-400" />
+                  <StarIcon className="h-3 w-3 fill-amber-400 text-amber-400 light:text-amber-600" />
                   <span>Personal Rating</span>
                 </div>
                 <div className="mt-1 flex items-baseline gap-1">
@@ -325,7 +337,7 @@ export function LibraryBrowser({
             My Library
           </h1>
           <p className="mt-1 text-sm text-muted">
-            Track anime to build your personal library.
+            Track anime, manga and manhwa in one private library.
           </p>
         </header>
       )}
@@ -336,6 +348,33 @@ export function LibraryBrowser({
           message="The database did not respond. Nothing has been deleted; try again in a moment."
           action={<RetryButton />}
         />
+      ) : null}
+
+      {/* Media type filter */}
+      {items.length > 0 ? (
+        <div
+          role="tablist"
+          aria-label="Filter library by media type"
+          className="inline-flex w-fit flex-wrap items-center gap-1 rounded-2xl border border-border-subtle bg-surface-2 p-1"
+        >
+          {(["all", "anime", "manga"] as const).map((type) => (
+            <button
+              key={type}
+              type="button"
+              role="tab"
+              aria-selected={mediaFilter === type}
+              onClick={() => setMediaFilter(type)}
+              className={cn(
+                "rounded-xl px-3.5 py-1.5 text-xs font-semibold capitalize transition-colors",
+                mediaFilter === type
+                  ? "bg-accent text-accent-contrast shadow-sm"
+                  : "text-muted hover:bg-surface-3 hover:text-fg",
+              )}
+            >
+              {type === "all" ? "All media" : type}
+            </button>
+          ))}
+        </div>
       ) : null}
 
       {/* Toolbar with status tabs, search & sort */}
@@ -363,12 +402,12 @@ export function LibraryBrowser({
                 <span>Getting Started</span>
               </div>
               <h2 className="font-display text-xl font-bold text-fg sm:text-2xl">
-                Your anime archive is waiting
+                Your media archive is waiting
               </h2>
               <p className="text-sm leading-relaxed text-muted">
-                Add titles you are currently watching, or queue up upcoming
-                series for the season. Log episodes with a single tap, score
-                completed shows, and track your watch velocity.
+                Add anime you are watching or manga you are reading, log
+                progress with a single tap, score completed titles, and keep
+                private notes across both media types.
               </p>
               <div className="pt-2">
                 <LinkButton
@@ -447,7 +486,7 @@ export function LibraryBrowser({
                 size="sm"
                 className="rounded-xl"
               >
-                Find anime in Discover
+                Find titles in Discover
               </LinkButton>
             )
           }

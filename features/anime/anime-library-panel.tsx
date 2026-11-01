@@ -28,6 +28,10 @@ export function AnimeLibraryPanel({ anime }: { anime: Anime }) {
 
   const entry = entryFor(anime.id);
   const pending = pendingIds.has(anime.id);
+  const manga = anime.mediaType === "manga";
+  const totalUnits = manga ? (anime.chapters ?? null) : anime.episodes;
+  const totalVolumes = manga ? (anime.volumes ?? null) : null;
+  const unitShort = manga ? "Ch" : "Ep";
 
   const [addStatus, setAddStatus] = useState<WatchStatus>("planning");
   const [adding, setAdding] = useState(false);
@@ -64,17 +68,19 @@ export function AnimeLibraryPanel({ anime }: { anime: Anime }) {
             Your library
           </h2>
         </div>
-        {entry ? <StatusBadge status={entry.status} /> : null}
+        {entry ? (
+          <StatusBadge status={entry.status} mediaType={anime.mediaType} />
+        ) : null}
       </div>
 
       {!canWrite ? (
         <div className="mt-4 space-y-3">
           <p className="text-sm leading-relaxed text-muted">
-            Sign in to track episodes, rate this anime and keep personal notes.
+            Sign in to track progress, rate this title and keep personal notes.
             Your library syncs across your devices.
           </p>
           <LinkButton
-            href={`/login?next=${encodeURIComponent(`/anime/${anime.id}`)}`}
+            href={`/login?next=${encodeURIComponent(`/media/${anime.id}`)}`}
             variant="primary"
             className="w-full"
           >
@@ -90,7 +96,7 @@ export function AnimeLibraryPanel({ anime }: { anime: Anime }) {
       ) : !entry ? (
         <div className="mt-4 space-y-4">
           <p className="text-sm leading-relaxed text-muted">
-            Add this title to keep track of episodes, personal ratings and
+            Add this title to keep track of your progress, personal ratings and
             notes.
           </p>
           <WatchStatusSelector
@@ -98,6 +104,7 @@ export function AnimeLibraryPanel({ anime }: { anime: Anime }) {
             onChange={setAddStatus}
             label="Add as"
             id="add-status"
+            mediaType={anime.mediaType}
           />
           <Button
             variant="primary"
@@ -118,12 +125,12 @@ export function AnimeLibraryPanel({ anime }: { anime: Anime }) {
             onChange={(status) => void updateEntry(anime.id, { status })}
             disabled={pending}
             id="entry-status"
+            mediaType={anime.mediaType}
           />
 
           {/* Quick Log Next Episode Action */}
           {entry.status === "watching" &&
-          anime.episodes !== null &&
-          entry.progress < anime.episodes ? (
+          (totalUnits === null || entry.progress < totalUnits) ? (
             <Button
               variant="primary"
               className="w-full justify-center gap-1.5 shadow-xs"
@@ -133,19 +140,24 @@ export function AnimeLibraryPanel({ anime }: { anime: Anime }) {
               disabled={pending}
             >
               <PlusIcon className="h-4 w-4" />
-              <span>Mark Ep {entry.progress + 1} Watched</span>
+              <span>
+                Mark {unitShort} {entry.progress + 1}{" "}
+                {manga ? "Read" : "Watched"}
+              </span>
             </Button>
           ) : null}
 
           {/* Visual Progress Bar with Percentage */}
-          {anime.episodes && anime.episodes > 0 ? (
+          {totalUnits && totalUnits > 0 ? (
             <div className="space-y-1.5 rounded-xl border border-border-subtle bg-surface-2/60 p-3">
               <div className="flex items-center justify-between text-xs">
-                <span className="font-medium text-fg">Watch progress</span>
+                <span className="font-medium text-fg">
+                  {manga ? "Reading progress" : "Watch progress"}
+                </span>
                 <span className="font-semibold tabular-nums text-accent-strong">
-                  {Math.round((entry.progress / anime.episodes) * 100)}%
+                  {Math.round((entry.progress / totalUnits) * 100)}%
                   <span className="ml-1 font-normal text-muted">
-                    ({entry.progress}/{anime.episodes} eps)
+                    ({entry.progress}/{totalUnits} {manga ? "ch" : "eps"})
                   </span>
                 </span>
               </div>
@@ -155,15 +167,15 @@ export function AnimeLibraryPanel({ anime }: { anime: Anime }) {
                   style={{
                     width: `${Math.min(
                       100,
-                      (entry.progress / anime.episodes) * 100,
+                      (entry.progress / totalUnits) * 100,
                     )}%`,
                   }}
                 />
               </div>
-              {entry.progress >= anime.episodes ? (
+              {entry.progress >= totalUnits ? (
                 <p className="flex items-center gap-1 pt-0.5 text-[11px] font-medium text-success">
                   <CheckIcon className="h-3.5 w-3.5" />
-                  All episodes completed
+                  All {manga ? "chapters read" : "episodes completed"}
                 </p>
               ) : null}
             </div>
@@ -171,10 +183,24 @@ export function AnimeLibraryPanel({ anime }: { anime: Anime }) {
 
           <WatchProgressControl
             progress={entry.progress}
-            episodes={anime.episodes}
+            episodes={totalUnits}
+            unit={manga ? "chapter" : "episode"}
             disabled={pending}
             onChange={(progress) => void updateEntry(anime.id, { progress })}
           />
+
+          {manga && (totalVolumes === null || totalVolumes > 0) ? (
+            <WatchProgressControl
+              progress={entry.volumesProgress ?? 0}
+              episodes={totalVolumes}
+              unit="volume"
+              disabled={pending}
+              compact
+              onChange={(volumesProgress) =>
+                void updateEntry(anime.id, { volumesProgress })
+              }
+            />
+          ) : null}
 
           <RatingControl
             score={entry.score}
@@ -222,7 +248,7 @@ export function AnimeLibraryPanel({ anime }: { anime: Anime }) {
 
           <div className="flex items-center justify-between gap-2 border-t border-border-subtle pt-3">
             <a
-              href={`https://anilist.co/anime/${anime.id}`}
+              href={`https://anilist.co/${manga ? "manga" : "anime"}/${anime.id}`}
               target="_blank"
               rel="noreferrer noopener"
               className="inline-flex items-center gap-1.5 text-xs text-faint transition-colors hover:text-fg"

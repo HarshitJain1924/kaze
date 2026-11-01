@@ -110,6 +110,7 @@ function buildQuery(
 ): string {
   const params = new URLSearchParams();
   if (query) params.set("q", query);
+  if (filters.mediaType === "manga") params.set("type", "manga");
   if (filters.genre) params.set("genre", filters.genre);
   if (filters.format) params.set("format", filters.format);
   if (filters.status) params.set("status", filters.status);
@@ -141,7 +142,7 @@ function DiscoverDetailedCard({ anime }: { anime: AnimeSummary }) {
     <article className="group relative flex flex-col sm:flex-row gap-4 p-3.5 sm:p-4 rounded-2xl border border-border-subtle bg-surface-2 transition-all duration-200 shadow-sm hover:border-border hover:bg-surface-3">
       {/* Poster */}
       <Link
-        href={`/anime/${anime.id}`}
+        href={`/media/${anime.id}`}
         className="relative aspect-[2/3] w-24 sm:w-28 shrink-0 overflow-hidden rounded-xl border border-white/15 bg-surface-3 shadow-md"
       >
         {cover && isHttpUrl(cover) ? (
@@ -192,7 +193,7 @@ function DiscoverDetailedCard({ anime }: { anime: AnimeSummary }) {
           </div>
 
           <h3 className="mt-2 font-display text-base sm:text-lg font-bold text-fg transition-colors group-hover:text-accent-strong line-clamp-1">
-            <Link href={`/anime/${anime.id}`}>
+            <Link href={`/media/${anime.id}`}>
               {title}
             </Link>
           </h3>
@@ -215,7 +216,7 @@ function DiscoverDetailedCard({ anime }: { anime: AnimeSummary }) {
         {/* Bottom Actions Row */}
         <div className="flex items-center justify-between gap-2 border-t border-border-subtle pt-2.5">
           <Link
-            href={`/anime/${anime.id}`}
+            href={`/media/${anime.id}`}
             className="inline-flex items-center gap-1 text-xs font-semibold text-accent-strong hover:underline"
           >
             <span>View Anime Details</span>
@@ -251,10 +252,12 @@ export function DiscoverBrowser({
   initialPage,
   initialQuery,
   initialFilters,
+  adultAllowed,
 }: {
   initialPage: AnimePage | null;
   initialQuery: string;
   initialFilters: AnimeFilterState;
+  adultAllowed: boolean;
 }) {
   const { preferences } = usePreferences();
   const [queryInput, setQueryInput] = useState(initialQuery);
@@ -307,7 +310,7 @@ export function DiscoverBrowser({
     setError(null);
 
     apiFetch<AnimePage>(
-      `/api/anime/search?${buildQuery(query, filters, page)}`,
+      `/api/media/search?${buildQuery(query, filters, page)}`,
       { signal: controller.signal },
     )
       .then((data) => {
@@ -343,13 +346,29 @@ export function DiscoverBrowser({
   const resetAll = () => {
     setQueryInput("");
     setQuery("");
-    setFilters({ sort: "POPULARITY_DESC" });
+    setFilters({
+      sort: "POPULARITY_DESC",
+      mediaType: filters.mediaType ?? "anime",
+    });
     setPage(1);
   };
 
   const clearQuery = () => {
     setQueryInput("");
     setQuery("");
+  };
+
+  const selectMediaType = (next: "anime" | "manga" | "manhwa") => {
+    setFilters((current) => ({
+      ...current,
+      mediaType: next === "anime" ? "anime" : "manga",
+      countryOfOrigin: next === "manhwa" ? "KR" : undefined,
+      season: undefined,
+      year: undefined,
+      source: undefined,
+      format: undefined,
+    }));
+    setPage(1);
   };
 
   const applyChannel = (channel: DiscoveryChannel) => {
@@ -466,8 +485,39 @@ export function DiscoverBrowser({
   const topCover = topAnime ? topAnime.coverImage.extraLarge ?? topAnime.coverImage.large : null;
   const topArtwork = topAnime ? topAnime.bannerImage ?? topCover : null;
 
+  const activeMediaTab =
+    filters.mediaType === "manga"
+      ? filters.countryOfOrigin === "KR"
+        ? "manhwa"
+        : "manga"
+      : "anime";
+
   return (
     <div className="space-y-6">
+      <div
+        role="tablist"
+        aria-label="Catalogue type"
+        className="inline-flex w-fit flex-wrap items-center gap-1 rounded-2xl border border-border-subtle bg-surface-2 p-1"
+      >
+        {(["anime", "manga", "manhwa"] as const).map((type) => (
+          <button
+            key={type}
+            type="button"
+            role="tab"
+            aria-selected={activeMediaTab === type}
+            onClick={() => selectMediaType(type)}
+            className={cn(
+              "rounded-xl px-4 py-2 text-xs font-semibold capitalize transition-colors",
+              activeMediaTab === type
+                ? "bg-accent text-accent-contrast shadow-sm"
+                : "text-muted hover:bg-surface-3 hover:text-fg",
+            )}
+          >
+            {type}
+          </button>
+        ))}
+      </div>
+
       {/* 1. Cinematic Discover Header & Ambient Showcase */}
       <header className="group relative isolate overflow-hidden rounded-3xl border border-border-subtle bg-surface-2 shadow-2xl transition-all">
         {topAnime && topArtwork && isHttpUrl(topArtwork) ? (
@@ -516,7 +566,7 @@ export function DiscoverBrowser({
             </div>
 
             <h1 className="mt-2 font-display text-2xl font-bold tracking-tight text-fg sm:text-3xl lg:text-4xl">
-              Discover Anime
+              Discover {activeMediaTab === "manhwa" ? "Manhwa" : activeMediaTab === "manga" ? "Manga" : "Anime"}
             </h1>
 
             <p className="mt-2 text-xs leading-relaxed text-muted sm:text-sm">
@@ -528,7 +578,7 @@ export function DiscoverBrowser({
           {topAnime ? (
             <div className="flex items-center gap-3.5 rounded-2xl border border-border-subtle bg-surface/70 p-3 shadow-xl backdrop-blur-md lg:max-w-sm">
               <Link
-                href={`/anime/${topAnime.id}`}
+                href={`/media/${topAnime.id}`}
                 className="group/spot relative aspect-[2/3] w-16 sm:w-20 shrink-0 overflow-hidden rounded-xl border border-white/20 shadow-md"
               >
                 {topCover && isHttpUrl(topCover) ? (
@@ -556,7 +606,7 @@ export function DiscoverBrowser({
                   Top Result
                 </span>
                 <Link
-                  href={`/anime/${topAnime.id}`}
+                  href={`/media/${topAnime.id}`}
                   className="mt-0.5 line-clamp-1 block font-display text-sm font-bold text-fg transition-colors hover:text-accent-strong"
                   title={getDisplayTitle(topAnime.title, preferences.titleLanguage === "english")}
                 >
@@ -568,7 +618,7 @@ export function DiscoverBrowser({
 
                 <div className="mt-2 flex items-center gap-2">
                   <Link
-                    href={`/anime/${topAnime.id}`}
+                    href={`/media/${topAnime.id}`}
                     className="inline-flex h-7 items-center gap-1 rounded-lg bg-accent px-2.5 text-[11px] font-bold text-accent-contrast shadow-sm hover:bg-accent-hover transition-colors"
                   >
                     <span>View Anime</span>
@@ -583,7 +633,9 @@ export function DiscoverBrowser({
 
       {/* 2. Quick Discovery Tag Pills (1-Tap Channels) */}
       <div className="no-scrollbar -mx-4 flex gap-2 overflow-x-auto px-4 pb-1 sm:-mx-0 sm:flex-wrap sm:overflow-visible sm:px-0">
-        {DISCOVERY_CHANNELS.map((channel) => {
+        {DISCOVERY_CHANNELS.filter(
+          (channel) => adultAllowed || channel.id !== "adult",
+        ).map((channel) => {
           const isActive = isChannelActive(channel);
           const IconComponent = channel.icon;
           return (
@@ -687,6 +739,7 @@ export function DiscoverBrowser({
               value={filters}
               onChange={updateFilters}
               onClear={resetAll}
+              adultAllowed={adultAllowed}
             />
           </div>
         ) : null}

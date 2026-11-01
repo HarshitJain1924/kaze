@@ -276,7 +276,7 @@ export function AnimeFranchiseSection({
         <div className="flex flex-wrap items-center gap-2 pt-1">
           {prequel ? (
             <Link
-              href={`/anime/${prequel.id}`}
+              href={`/media/${prequel.id}`}
               className="inline-flex min-w-0 flex-1 items-center justify-between gap-2 rounded-xl border border-border-subtle bg-surface-2/80 px-3 py-2 text-xs transition-all hover:border-accent/40 hover:bg-surface-3 sm:flex-initial"
             >
               <div className="flex items-center gap-2">
@@ -293,7 +293,7 @@ export function AnimeFranchiseSection({
 
           {sequel ? (
             <Link
-              href={`/anime/${sequel.id}`}
+              href={`/media/${sequel.id}`}
               className="inline-flex min-w-0 flex-1 items-center justify-between gap-2 rounded-xl border border-border-subtle bg-surface-2/80 px-3 py-2 text-xs transition-all hover:border-accent/40 hover:bg-surface-3 sm:flex-initial"
             >
               <div className="flex items-center gap-2">
@@ -336,7 +336,7 @@ export function AnimeFranchiseSection({
             >
               {/* Cover Poster */}
               <Link
-                href={`/anime/${item.id}`}
+                href={`/media/${item.id}`}
                 className="relative aspect-[2/3] w-14 shrink-0 overflow-hidden rounded-lg border border-border-subtle bg-surface-3 transition-transform duration-200 group-hover:scale-102"
               >
                 {cover && isHttpUrl(cover) ? (
@@ -381,7 +381,7 @@ export function AnimeFranchiseSection({
                 </div>
 
                 <Link
-                  href={`/anime/${item.id}`}
+                  href={`/media/${item.id}`}
                   className="mt-1 block line-clamp-1 text-xs font-semibold text-fg transition-colors hover:text-accent-strong"
                   title={title}
                 >

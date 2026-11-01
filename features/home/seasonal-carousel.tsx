@@ -134,7 +134,7 @@ export function SeasonalCarousel({
 
               {/* Clickable Full Link */}
               <Link
-                href={`/anime/${anime.id}`}
+                href={`/media/${anime.id}`}
                 aria-label={`View details for ${displayTitle}`}
                 className="absolute inset-0 z-10 rounded-2xl focus:outline-none focus:ring-2 focus:ring-accent"
               />

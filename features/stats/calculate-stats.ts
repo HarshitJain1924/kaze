@@ -13,8 +13,12 @@ export interface GenreCount {
 
 export interface LibraryStats {
   total: number;
+  animeCount: number;
+  mangaCount: number;
   statusCounts: Record<WatchStatus, number>;
   episodesWatched: number;
+  chaptersRead: number;
+  volumesRead: number;
   /** Entries whose provider episode total is missing or unknown. */
   entriesWithUnknownEpisodeTotals: number;
   /** Entries whose AniList metadata could not be loaded at all. */
@@ -48,6 +52,10 @@ export function calculateStats(items: LibraryItem[]): LibraryStats {
   const genreCounts = new Map<string, number>();
 
   let episodesWatched = 0;
+  let chaptersRead = 0;
+  let volumesRead = 0;
+  let animeCount = 0;
+  let mangaCount = 0;
   let entriesWithUnknownEpisodeTotals = 0;
   let missingMetadataCount = 0;
   let scoreTotal = 0;
@@ -59,11 +67,18 @@ export function calculateStats(items: LibraryItem[]): LibraryStats {
       statusCounts[entry.status] += 1;
     }
 
-    const episodesForEntry =
-      item.watchedEpisodes && item.watchedEpisodes.length > 0
-        ? item.watchedEpisodes.length
-        : entry.progress;
-    episodesWatched += episodesForEntry;
+    if (entry.mediaType === "manga") {
+      mangaCount += 1;
+      chaptersRead += entry.progress;
+      volumesRead += entry.volumesProgress ?? 0;
+    } else {
+      animeCount += 1;
+      const episodesForEntry =
+        item.watchedEpisodes && item.watchedEpisodes.length > 0
+          ? item.watchedEpisodes.length
+          : entry.progress;
+      episodesWatched += episodesForEntry;
+    }
 
     if (anime === null) {
       missingMetadataCount += 1;
@@ -103,8 +118,12 @@ export function calculateStats(items: LibraryItem[]): LibraryStats {
 
   return {
     total: items.length,
+    animeCount,
+    mangaCount,
     statusCounts,
     episodesWatched,
+    chaptersRead,
+    volumesRead,
     entriesWithUnknownEpisodeTotals,
     missingMetadataCount,
     scoredCount,

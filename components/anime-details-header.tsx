@@ -6,11 +6,15 @@ import { seasonLabel } from "@/lib/season";
 import {
   FORMAT_LABELS,
   RELEASE_STATUS_LABELS,
+  formatChapterCount,
+  formatCountry,
   formatEpisodeCount,
   formatPopularity,
   formatScore,
+  formatVolumeCount,
   getDisplayTitle,
   getSecondaryTitle,
+  isManga,
 } from "@/lib/utils";
 import type { Anime } from "@/types/anime";
 
@@ -30,6 +34,8 @@ export function AnimeDetailsHeader({
   const secondary = getSecondaryTitle(anime.title, title);
   const score = formatScore(anime.averageScore);
   const popularity = formatPopularity(anime.popularity);
+  const manga = isManga(anime);
+  const country = formatCountry(anime.countryOfOrigin);
   const season =
     anime.season && anime.seasonYear
       ? `${seasonLabel(anime.season)} ${anime.seasonYear}`
@@ -53,9 +59,22 @@ export function AnimeDetailsHeader({
             {RELEASE_STATUS_LABELS[anime.status]}
           </span>
         ) : null}
+        <span className="inline-flex items-center rounded-xl border border-accent/30 bg-accent-soft px-2.5 py-1 text-[11px] font-semibold text-accent-strong">
+          {manga ? "Manga" : "Anime"}
+        </span>
+        {anime.isAdult ? (
+          <span className="inline-flex items-center rounded-xl border border-rose-400/40 bg-rose-500/10 px-2.5 py-1 text-[11px] font-bold text-rose-500 light:text-rose-700">
+            18+
+          </span>
+        ) : null}
         {anime.format ? (
           <span className="inline-flex items-center rounded-xl liquid-glass-pill px-2.5 py-1 text-[11px] font-medium text-muted">
             {FORMAT_LABELS[anime.format]}
+          </span>
+        ) : null}
+        {country ? (
+          <span className="inline-flex items-center rounded-xl liquid-glass-pill px-2.5 py-1 text-[11px] font-medium text-muted">
+            {country}
           </span>
         ) : null}
         {season ? (
@@ -64,8 +83,15 @@ export function AnimeDetailsHeader({
           </span>
         ) : null}
         <span className="inline-flex items-center rounded-xl liquid-glass-pill px-2.5 py-1 text-[11px] font-medium text-muted">
-          {formatEpisodeCount(anime.episodes, { short: true })}
+          {manga
+            ? formatChapterCount(anime.chapters)
+            : formatEpisodeCount(anime.episodes, { short: true })}
         </span>
+        {manga && anime.volumes ? (
+          <span className="inline-flex items-center rounded-xl liquid-glass-pill px-2.5 py-1 text-[11px] font-medium text-muted">
+            {formatVolumeCount(anime.volumes)}
+          </span>
+        ) : null}
       </div>
 
       <h1 className="mt-3 font-display text-2xl font-semibold leading-tight tracking-tight text-fg sm:text-[32px] drop-shadow-sm">
@@ -119,7 +145,7 @@ export function AnimeDetailsHeader({
           </span>
           {prequel ? (
             <Link
-              href={`/anime/${prequel.id}`}
+              href={`/media/${prequel.id}`}
               className="inline-flex items-center gap-1.5 rounded-xl liquid-glass-interactive px-3 py-1 text-xs font-medium text-fg"
             >
               <ChevronLeftIcon className="h-3.5 w-3.5 text-muted" />
@@ -136,7 +162,7 @@ export function AnimeDetailsHeader({
 
           {sequel ? (
             <Link
-              href={`/anime/${sequel.id}`}
+              href={`/media/${sequel.id}`}
               className="inline-flex items-center gap-1.5 rounded-xl liquid-glass-interactive px-3 py-1 text-xs font-medium text-fg"
             >
               <span className="text-muted">Next:</span>

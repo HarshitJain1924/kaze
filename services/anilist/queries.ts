@@ -1,12 +1,15 @@
 /**
- * AniList GraphQL documents. Every query requests only the fields rendered
- * by the interface; the summary fragment is shared by search, discovery,
- * library hydration and related-anime lists.
+ * AniList GraphQL documents.
+ *
+ * Every query requests only the fields rendered by the interface. The media
+ * fragment is shared by anime, manga, search, library hydration and relations.
+ * AniList uses one `Media` entity for both, with `type: ANIME | MANGA`.
  */
 
-const ANIME_SUMMARY_FRAGMENT = /* GraphQL */ `
-  fragment AnimeSummary on Media {
+const MEDIA_SUMMARY_FRAGMENT = /* GraphQL */ `
+  fragment MediaSummary on Media {
     id
+    type
     title {
       romaji
       english
@@ -20,6 +23,10 @@ const ANIME_SUMMARY_FRAGMENT = /* GraphQL */ `
     bannerImage
     format
     episodes
+    chapters
+    volumes
+    countryOfOrigin
+    isAdult
     averageScore
     seasonYear
     status
@@ -31,18 +38,22 @@ const ANIME_SUMMARY_FRAGMENT = /* GraphQL */ `
  * AniList treats an explicit `isAdult: null` as "match nothing", and GraphQL
  * cannot omit a single argument through a variable, so adult-inclusive
  * searches use a separate document without the `isAdult` argument.
+ *
+ * `format_in` carries the comic format whitelist for manga (MANGA / ONE_SHOT)
+ * while remaining a normal, optional format filter for anime.
  */
-function buildSearchAnimeQuery(filterAdult: boolean): string {
+function buildSearchMediaQuery(filterAdult: boolean): string {
   const adultVariable = filterAdult ? "\n    $isAdult: Boolean" : "";
   const adultArgument = filterAdult ? "\n        isAdult: $isAdult" : "";
 
   return `
-  query SearchAnime(
+  query SearchMedia(
     $page: Int
     $perPage: Int
     $search: String
+    $type: MediaType
+    $formats: [MediaFormat]
     $genre: String
-    $format: MediaFormat
     $status: MediaStatus
     $season: MediaSeason
     $seasonYear: Int
@@ -58,35 +69,40 @@ function buildSearchAnimeQuery(filterAdult: boolean): string {
         total
       }
       media(
-        type: ANIME${adultArgument}
+        type: $type
+        format_in: $formats
         search: $search
         genre: $genre
-        format: $format
         status: $status
         season: $season
         seasonYear: $seasonYear
         source: $source
         countryOfOrigin: $countryOfOrigin
-        sort: $sort
+        sort: $sort${adultArgument}
       ) {
-        ...AnimeSummary
+        ...MediaSummary
       }
     }
   }
-  ${ANIME_SUMMARY_FRAGMENT}
+  ${MEDIA_SUMMARY_FRAGMENT}
 `;
 }
 
 /** Default search document: adult titles are excluded. */
-export const SEARCH_ANIME_QUERY = buildSearchAnimeQuery(true);
+export const SEARCH_MEDIA_QUERY = buildSearchMediaQuery(true);
 
 /** Adult titles are allowed; the document has no `isAdult` argument. */
-export const SEARCH_ANIME_INCLUDING_ADULT_QUERY = buildSearchAnimeQuery(false);
+export const SEARCH_MEDIA_INCLUDING_ADULT_QUERY = buildSearchMediaQuery(false);
 
-export const ANIME_DETAILS_QUERY = /* GraphQL */ `
-  query AnimeDetails($id: Int) {
-    Media(id: $id, type: ANIME) {
-      ...AnimeSummary
+/** Legacy aliases kept for callers that only search anime. */
+export const SEARCH_ANIME_QUERY = SEARCH_MEDIA_QUERY;
+export const SEARCH_ANIME_INCLUDING_ADULT_QUERY =
+  SEARCH_MEDIA_INCLUDING_ADULT_QUERY;
+
+export const MEDIA_DETAILS_QUERY = /* GraphQL */ `
+  query MediaDetails($id: Int) {
+    Media(id: $id) {
+      ...MediaSummary
       bannerImage
       description
       season
@@ -110,34 +126,20 @@ export const ANIME_DETAILS_QUERY = /* GraphQL */ `
         edges {
           relationType
           node {
-            id
-            type
-            title {
-              romaji
-              english
-              native
-            }
-            coverImage {
-              extraLarge
-              large
-              color
-            }
-            format
-            episodes
-            averageScore
-            seasonYear
-            status
-            genres
+            ...MediaSummary
           }
         }
       }
     }
   }
-  ${ANIME_SUMMARY_FRAGMENT}
+  ${MEDIA_SUMMARY_FRAGMENT}
 `;
 
-export const ANIME_BY_IDS_QUERY = /* GraphQL */ `
-  query AnimeByIds($ids: [Int], $page: Int, $perPage: Int) {
+/** Legacy alias: the details document resolves any AniList media type. */
+export const ANIME_DETAILS_QUERY = MEDIA_DETAILS_QUERY;
+
+export const MEDIA_BY_IDS_QUERY = /* GraphQL */ `
+  query MediaByIds($ids: [Int], $type: MediaType, $page: Int, $perPage: Int) {
     Page(page: $page, perPage: $perPage) {
       pageInfo {
         currentPage
@@ -145,13 +147,16 @@ export const ANIME_BY_IDS_QUERY = /* GraphQL */ `
         hasNextPage
         total
       }
-      media(type: ANIME, id_in: $ids, sort: ID) {
-        ...AnimeSummary
+      media(type: $type, id_in: $ids, sort: ID) {
+        ...MediaSummary
       }
     }
   }
-  ${ANIME_SUMMARY_FRAGMENT}
+  ${MEDIA_SUMMARY_FRAGMENT}
 `;
+
+/** Legacy alias kept for anime-only library hydration. */
+export const ANIME_BY_IDS_QUERY = MEDIA_BY_IDS_QUERY;
 
 export const AIRING_SCHEDULE_QUERY = /* GraphQL */ `
   query AiringSchedule(
@@ -180,10 +185,10 @@ export const AIRING_SCHEDULE_QUERY = /* GraphQL */ `
         episode
         mediaId
         media {
-          ...AnimeSummary
+          ...MediaSummary
         }
       }
     }
   }
-  ${ANIME_SUMMARY_FRAGMENT}
+  ${MEDIA_SUMMARY_FRAGMENT}
 `;

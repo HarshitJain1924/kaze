@@ -11,8 +11,8 @@ export async function resolveEpisodeCount(
   anilistId: number,
 ): Promise<number | null> {
   try {
-    const { data: anime } = await getCatalogService().getAnimeById(anilistId);
-    return anime?.episodes ?? null;
+    const { data: media } = await getCatalogService().getAnimeById(anilistId);
+    return media?.episodes ?? null;
   } catch (error) {
     console.warn(
       `[library] could not verify episode count for anime ${anilistId}`,
@@ -37,4 +37,46 @@ export async function resolveEpisodeTotal(
     return provided;
   }
   return resolveEpisodeCount(anilistId);
+}
+
+export interface MediaCounts {
+  episodes: number | null;
+  chapters: number | null;
+  volumes: number | null;
+}
+
+/** One provider lookup for a manga progress change. */
+export async function resolveMediaCounts(
+  anilistId: number,
+): Promise<MediaCounts> {
+  try {
+    const { data: media } = await getCatalogService().getMediaById(anilistId);
+    return {
+      episodes: media?.episodes ?? null,
+      chapters: media?.chapters ?? null,
+      volumes: media?.volumes ?? null,
+    };
+  } catch (error) {
+    console.warn(
+      `[library] could not verify media counts for ${anilistId}`,
+      error instanceof Error ? error.message : "catalog error",
+    );
+    return { episodes: null, chapters: null, volumes: null };
+  }
+}
+
+export async function resolveChapterTotal(
+  provided: number | null | undefined,
+  anilistId: number,
+): Promise<number | null> {
+  if (provided !== undefined) return provided;
+  return (await resolveMediaCounts(anilistId)).chapters;
+}
+
+export async function resolveVolumeTotal(
+  provided: number | null | undefined,
+  anilistId: number,
+): Promise<number | null> {
+  if (provided !== undefined) return provided;
+  return (await resolveMediaCounts(anilistId)).volumes;
 }

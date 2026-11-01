@@ -48,6 +48,7 @@ interface QuickDiscoveryTag {
 }
 
 const QUICK_DISCOVERY_TAGS: QuickDiscoveryTag[] = [
+  { label: "Manga", href: "/discover?type=manga", icon: SparklesIcon },
   { label: "Trending", href: "/discover?sort=TRENDING_DESC", icon: FlameIcon },
   { label: "Top Rated", href: "/discover?sort=SCORE_DESC", icon: TrophyIcon },
   { label: "Action", href: "/discover?genre=Action", icon: SwordsIcon },
@@ -138,7 +139,7 @@ export function HomeSearch({ popularAnime }: HomeSearchProps) {
       setError(null);
       try {
         const response = await fetch(
-          `/api/anime/search?q=${encodeURIComponent(debouncedQuery)}&perPage=8`,
+          `/api/media/search?q=${encodeURIComponent(debouncedQuery)}&perPage=8`,
           { signal: controller.signal },
         );
 
@@ -399,7 +400,7 @@ export function HomeSearch({ popularAnime }: HomeSearchProps) {
                     >
                       <div className="flex min-w-0 items-center gap-3">
                         <Link
-                          href={`/anime/${anime.id}`}
+                          href={`/media/${anime.id}`}
                           onClick={() => setIsOpen(false)}
                           className="relative aspect-[2/3] w-10 shrink-0 overflow-hidden rounded-lg border border-border-subtle bg-surface-3 shadow-xs"
                         >
@@ -416,7 +417,7 @@ export function HomeSearch({ popularAnime }: HomeSearchProps) {
 
                         <div className="min-w-0 flex-1">
                           <Link
-                            href={`/anime/${anime.id}`}
+                            href={`/media/${anime.id}`}
                             onClick={() => setIsOpen(false)}
                             className="line-clamp-1 text-[13px] font-semibold text-fg hover:text-accent-strong transition-colors"
                             title={title}
@@ -452,7 +453,7 @@ export function HomeSearch({ popularAnime }: HomeSearchProps) {
                           <div className="flex items-center gap-2">
                             <StatusBadge status={entry.status} />
                             <Link
-                              href={`/anime/${anime.id}`}
+                              href={`/media/${anime.id}`}
                               onClick={() => setIsOpen(false)}
                               className="rounded-lg border border-border px-2.5 py-1 text-[11px] font-medium text-muted hover:bg-surface-3 hover:text-fg"
                             >
@@ -545,7 +546,7 @@ export function HomeSearch({ popularAnime }: HomeSearchProps) {
                   >
                     {/* Poster Thumbnail with hover zoom & subtle border */}
                     <Link
-                      href={`/anime/${anime.id}`}
+                      href={`/media/${anime.id}`}
                       className="relative aspect-[2/3] w-12 shrink-0 overflow-hidden rounded-lg border border-border-subtle bg-surface-3 transition-transform duration-200 group-hover:scale-105 shadow-xs"
                       title={`View ${title}`}
                     >
@@ -565,7 +566,7 @@ export function HomeSearch({ popularAnime }: HomeSearchProps) {
                     {/* Title & metadata */}
                     <div className="min-w-0 flex-1">
                       <Link
-                        href={`/anime/${anime.id}`}
+                        href={`/media/${anime.id}`}
                         className="line-clamp-1 text-xs font-semibold text-fg transition-colors hover:text-accent-strong"
                         title={title}
                       >

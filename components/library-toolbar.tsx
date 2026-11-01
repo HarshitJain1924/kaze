@@ -22,7 +22,7 @@ const STATUS_PILL_CONFIG: Record<
   }
 > = {
   all: {
-    beacon: "bg-white/80",
+    beacon: "bg-fg/70",
     activeBorder: "border-accent/50 shadow-[0_0_12px_rgba(139,92,246,0.25)]",
     activeBg: "bg-accent-soft",
     activeText: "text-fg font-semibold",

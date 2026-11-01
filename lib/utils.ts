@@ -1,8 +1,9 @@
 import type {
   AnimeDate,
-  AnimeFormat,
   AnimeReleaseStatus,
   AnimeTitles,
+  MediaFormat,
+  MediaType,
 } from "@/types/anime";
 
 export function cn(
@@ -44,7 +45,7 @@ export function formatScore(score: number | null): string | null {
   return (score / 10).toFixed(1);
 }
 
-export const FORMAT_LABELS: Record<AnimeFormat, string> = {
+export const FORMAT_LABELS: Record<MediaFormat, string> = {
   TV: "TV",
   TV_SHORT: "TV Short",
   MOVIE: "Movie",
@@ -52,10 +53,43 @@ export const FORMAT_LABELS: Record<AnimeFormat, string> = {
   ONA: "ONA",
   SPECIAL: "Special",
   MUSIC: "Music",
+  MANGA: "Manga",
+  ONE_SHOT: "One-shot",
+  NOVEL: "Novel",
 };
 
-export function formatFormat(format: AnimeFormat | null): string | null {
+export function formatFormat(format: MediaFormat | null): string | null {
   return format ? FORMAT_LABELS[format] : null;
+}
+
+export function formatMediaType(mediaType?: MediaType): string {
+  return mediaType === "manga" ? "Manga" : "Anime";
+}
+
+export function formatChapterCount(chapters: number | null | undefined): string {
+  if (chapters === null || chapters === undefined) return "Chapters unknown";
+  return chapters === 1 ? "1 chapter" : `${chapters} chapters`;
+}
+
+export function formatVolumeCount(volumes: number | null | undefined): string {
+  if (volumes === null || volumes === undefined) return "Volumes unknown";
+  return volumes === 1 ? "1 volume" : `${volumes} volumes`;
+}
+
+const COUNTRY_LABELS: Record<string, string> = {
+  JP: "Japan",
+  KR: "South Korea",
+  CN: "China",
+  TW: "Taiwan",
+};
+
+export function formatCountry(country: string | null | undefined): string | null {
+  if (!country) return null;
+  return COUNTRY_LABELS[country] ?? country;
+}
+
+export function isManga(media: { mediaType?: MediaType } | null | undefined): boolean {
+  return media?.mediaType === "manga";
 }
 
 export const RELEASE_STATUS_LABELS: Record<AnimeReleaseStatus, string> = {

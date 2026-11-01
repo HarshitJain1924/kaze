@@ -247,7 +247,7 @@ export function HomeSidebar({
                 return (
                   <Link
                     key={entry.id}
-                    href={`/anime/${entry.mediaId}`}
+                    href={`/media/${entry.mediaId}`}
                     className="group flex items-center gap-2.5 rounded-xl border border-border-subtle bg-surface-2 p-2 transition-all hover:border-accent/40 hover:bg-surface-3"
                   >
                     <div className="relative aspect-[2/3] w-9 shrink-0 overflow-hidden rounded-lg border border-border-subtle bg-surface-3 shadow-xs">
@@ -341,7 +341,7 @@ export function HomeSidebar({
               return (
                 <Link
                   key={entry.id}
-                  href={`/anime/${anime.id}`}
+                  href={`/media/${anime.id}`}
                   className="group flex items-center gap-2.5 rounded-xl border border-border-subtle bg-surface-2 p-2 transition-all hover:border-accent/40 hover:bg-surface-3"
                 >
                   <div className="relative aspect-[2/3] w-9 shrink-0 overflow-hidden rounded-lg border border-border-subtle bg-surface-3 shadow-xs">

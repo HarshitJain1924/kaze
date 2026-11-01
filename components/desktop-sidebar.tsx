@@ -205,7 +205,7 @@ export function DesktopSidebar({ viewer }: { viewer: Viewer | null }) {
               {resolved === "dark" ? (
                 <MoonIcon className="h-4 w-4 text-purple-300 light:text-purple-700" />
               ) : (
-                <SunIcon className="h-4 w-4 text-amber-400" />
+                <SunIcon className="h-4 w-4 text-amber-400 light:text-amber-600" />
               )}
             </button>
             <div className="pointer-events-none absolute left-full ml-3 z-50 hidden items-center rounded-xl liquid-glass px-3 py-1.5 text-xs font-semibold text-fg shadow-2xl whitespace-nowrap group-hover:flex animate-fade">
@@ -261,7 +261,7 @@ export function DesktopSidebar({ viewer }: { viewer: Viewer | null }) {
                   className={cn(
                     "flex h-6 w-6 items-center justify-center rounded-lg transition-all",
                     mode === "system"
-                      ? "border border-white/20 bg-surface-3 text-fg shadow-xs"
+                      ? "border border-border bg-surface-3 text-fg shadow-xs"
                       : "text-faint hover:text-muted",
                   )}
                 >

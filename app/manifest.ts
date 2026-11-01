@@ -2,10 +2,10 @@ import type { MetadataRoute } from "next";
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: "Kaze — Anime Tracker",
+    name: "Kaze — Anime & Manga Tracker",
     short_name: "Kaze",
     description:
-      "Discover anime and keep a private, synced watchlist with episode progress, ratings and notes.",
+      "Discover anime, manga and manhwa, and keep a private, synced library with episode and chapter progress, ratings and notes.",
     id: "/",
     start_url: "/",
     scope: "/",

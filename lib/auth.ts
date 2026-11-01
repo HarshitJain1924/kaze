@@ -28,6 +28,7 @@ export const getViewer = cache(async (): Promise<Viewer | null> => {
       return {
         id: "00000000-0000-0000-0000-000000000001",
         email: "preview-developer@kaze.local",
+        showAdult: false,
         createdAt: "2026-01-01T00:00:00.000Z",
       };
     }
@@ -65,6 +66,7 @@ export const getViewer = cache(async (): Promise<Viewer | null> => {
     id: data.user.id,
     email: data.user.email ?? null,
     nickname,
+    showAdult: data.user.user_metadata?.show_adult === true,
     createdAt: data.user.created_at ?? null,
   };
 });

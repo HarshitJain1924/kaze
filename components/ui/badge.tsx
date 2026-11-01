@@ -1,17 +1,20 @@
-import { WATCH_STATUS_META } from "@/lib/library-meta";
+import { getWatchStatusMeta } from "@/lib/library-meta";
 import { cn } from "@/lib/utils";
+import type { MediaType } from "@/types/anime";
 import type { WatchStatus } from "@/types/library";
 
 export function StatusBadge({
   status,
   className,
   showLabel = true,
+  mediaType,
 }: {
   status: WatchStatus;
   className?: string;
   showLabel?: boolean;
+  mediaType?: MediaType;
 }) {
-  const meta = WATCH_STATUS_META[status];
+  const meta = getWatchStatusMeta(mediaType)[status];
   return (
     <span
       className={cn(

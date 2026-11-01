@@ -46,7 +46,7 @@ export function LandingSeasonalShowcase({
           {displayItems.map((anime) => (
             <Link
               key={anime.id}
-              href={`/anime/${anime.id}`}
+              href={`/media/${anime.id}`}
               className="group relative flex flex-col overflow-hidden rounded-2xl border border-border-subtle bg-surface/75 shadow-lg backdrop-blur-md transition-all duration-300 hover:scale-[1.03] hover:border-accent/50 hover:shadow-2xl hover:shadow-accent/15"
             >
               {/* Aspect Ratio 2:3 Poster Frame */}

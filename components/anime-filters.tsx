@@ -15,6 +15,7 @@ import {
   ANIME_RELEASE_STATUSES,
   ANIME_SEASONS,
   ANIME_SOURCES,
+  MANGA_FORMATS,
 } from "@/types/anime";
 import type {
   AnimeAdultFilter,
@@ -24,6 +25,8 @@ import type {
   AnimeSeason,
   AnimeSort,
   AnimeSource,
+  MediaFormat,
+  MediaType,
 } from "@/types/anime";
 
 export const ANIME_GENRES = [
@@ -59,7 +62,7 @@ export const SORT_OPTIONS: Array<{ value: AnimeSort; label: string }> = [
   { value: "TITLE_ROMAJI_DESC", label: "Title Z–A" },
 ];
 
-const FORMAT_LABELS: Record<AnimeFormat, string> = {
+const FORMAT_LABELS: Record<MediaFormat, string> = {
   TV: "TV series",
   TV_SHORT: "TV short",
   MOVIE: "Movie",
@@ -67,6 +70,9 @@ const FORMAT_LABELS: Record<AnimeFormat, string> = {
   ONA: "ONA",
   SPECIAL: "Special",
   MUSIC: "Music",
+  MANGA: "Manga",
+  ONE_SHOT: "One-shot",
+  NOVEL: "Novel",
 };
 
 export const STATUS_LABELS: Record<AnimeReleaseStatus, string> = {
@@ -102,6 +108,7 @@ export const ADULT_LABELS: Record<AnimeAdultFilter, string> = {
 };
 
 export interface AnimeFilterState {
+  mediaType?: MediaType;
   genre?: string;
   format?: AnimeFormat;
   status?: AnimeReleaseStatus;
@@ -117,10 +124,12 @@ function FilterFields({
   value,
   onChange,
   idPrefix,
+  adultAllowed,
 }: {
   value: AnimeFilterState;
   onChange: (patch: Partial<AnimeFilterState>) => void;
   idPrefix: string;
+  adultAllowed: boolean;
 }) {
   const years = useMemo(() => {
     const current = new Date().getFullYear();
@@ -180,11 +189,13 @@ function FilterFields({
           }
         >
           <option value="">All formats</option>
-          {ANIME_FORMATS.map((format) => (
-            <option key={format} value={format}>
-              {FORMAT_LABELS[format]}
-            </option>
-          ))}
+          {(value.mediaType === "manga" ? MANGA_FORMATS : ANIME_FORMATS).map(
+            (format) => (
+              <option key={format} value={format}>
+                {FORMAT_LABELS[format]}
+              </option>
+            ),
+          )}
         </Select>
       </div>
 
@@ -348,6 +359,7 @@ function FilterFields({
                 | undefined,
             })
           }
+          disabled={!adultAllowed}
         >
           <option value="">Hide adult</option>
           {ANIME_ADULT_FILTERS.filter((option) => option !== "filtered").map(
@@ -392,12 +404,14 @@ export function AnimeFilters({
   onClear,
   disabled = false,
   className,
+  adultAllowed = false,
 }: {
   value: AnimeFilterState;
   onChange: (patch: Partial<AnimeFilterState>) => void;
   onClear: () => void;
   disabled?: boolean;
   className?: string;
+  adultAllowed?: boolean;
 }) {
   const [sheetOpen, setSheetOpen] = useState(false);
 
@@ -418,6 +432,7 @@ export function AnimeFilters({
           value={value}
           onChange={onChange}
           idPrefix="desktop-filters"
+          adultAllowed={adultAllowed}
         />
       </div>
 
@@ -456,7 +471,7 @@ export function AnimeFilters({
       <Dialog
         open={sheetOpen}
         onClose={() => setSheetOpen(false)}
-        title="Filter anime"
+        title={value.mediaType === "manga" ? "Filter manga" : "Filter anime"}
         description="Refine by genre, format, release status, season, year, source material, country and adult content."
         mobileSheet
         footer={
@@ -480,6 +495,7 @@ export function AnimeFilters({
           value={value}
           onChange={onChange}
           idPrefix="sheet-filters"
+          adultAllowed={adultAllowed}
         />
       </Dialog>
     </div>

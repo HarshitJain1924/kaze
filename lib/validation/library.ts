@@ -1,6 +1,7 @@
 import { z } from "zod";
 
 import { todayIsoDate } from "@/lib/utils";
+import { MEDIA_TYPES, type MediaType } from "@/types/anime";
 import {
   MAX_NOTES_LENGTH,
   MAX_SCORE,
@@ -11,6 +12,7 @@ import {
 } from "@/types/library";
 
 export const watchStatusSchema = z.enum(WATCH_STATUSES);
+export const mediaTypeSchema = z.enum(MEDIA_TYPES);
 
 export const anilistIdSchema = z
   .number()
@@ -45,12 +47,20 @@ export const notesSchema = z
 
 export const addToLibrarySchema = z.object({
   anilistId: anilistIdSchema,
+  mediaType: mediaTypeSchema.default("anime"),
   status: watchStatusSchema.default("planning"),
 });
+
+export const volumesProgressSchema = z
+  .number()
+  .int("Volume progress must be a whole number")
+  .min(0, "Volume progress cannot be negative")
+  .max(100_000, "Volume progress is unrealistically high");
 
 export const entryFieldsSchema = z.object({
   status: watchStatusSchema.optional(),
   progress: progressSchema.optional(),
+  volumesProgress: volumesProgressSchema.optional(),
   score: scoreSchema.optional(),
   notes: notesSchema.optional(),
 });
@@ -58,6 +68,7 @@ export const entryFieldsSchema = z.object({
 const hasEntryChange = (value: z.infer<typeof entryFieldsSchema>) =>
   value.status !== undefined ||
   value.progress !== undefined ||
+  value.volumesProgress !== undefined ||
   value.score !== undefined ||
   value.notes !== undefined;
 
@@ -73,6 +84,9 @@ export const entryPatchSchema = entryFieldsSchema.refine(hasEntryChange, {
 export const entryUpdateRequestSchema = entryFieldsSchema
   .extend({
     totalEpisodes: z.number().int().positive().nullable().optional(),
+    totalChapters: z.number().int().positive().nullable().optional(),
+    totalVolumes: z.number().int().positive().nullable().optional(),
+    mediaType: mediaTypeSchema.optional(),
   })
   .refine(hasEntryChange, { message: "No changes were provided" });
 
@@ -101,6 +115,7 @@ export const notesUpdateSchema = z.object({
 });
 
 export type AddToLibraryInput = z.infer<typeof addToLibrarySchema>;
+export type { MediaType };
 export type UpdateEntryInput = z.infer<typeof updateEntrySchema>;
 
 export interface ProgressValidation {
@@ -112,26 +127,52 @@ export interface ProgressValidation {
  * Progress can only be bounded when the provider reports a real episode
  * count. Unknown counts must remain editable.
  */
-export function validateProgressAgainstEpisodes(
+export function validateProgressAgainstTotal(
   progress: number,
-  episodes: number | null,
+  total: number | null,
+  unit: "episode" | "chapter" = "episode",
 ): ProgressValidation {
   if (!Number.isInteger(progress) || progress < 0) {
     return { ok: false, message: "Progress must be a non-negative whole number" };
   }
-  if (episodes !== null && episodes > 0 && progress > episodes) {
+  if (total !== null && total > 0 && progress > total) {
     return {
       ok: false,
-      message: `Progress cannot exceed the known episode count (${episodes})`,
+      message: `Progress cannot exceed the known ${unit} count (${total})`,
     };
   }
   return { ok: true };
+}
+
+export function validateProgressAgainstEpisodes(
+  progress: number,
+  episodes: number | null,
+): ProgressValidation {
+  return validateProgressAgainstTotal(progress, episodes, "episode");
 }
 
 export function isFiniteEpisodeCount(
   episodes: number | null,
 ): episodes is number {
   return episodes !== null && Number.isInteger(episodes) && episodes > 0;
+}
+
+export const isFiniteUnitCount = isFiniteEpisodeCount;
+
+export function validateVolumesProgress(
+  volumesProgress: number,
+  totalVolumes: number | null,
+): ProgressValidation {
+  if (!Number.isInteger(volumesProgress) || volumesProgress < 0) {
+    return { ok: false, message: "Volume progress must be a non-negative whole number" };
+  }
+  if (totalVolumes !== null && totalVolumes > 0 && volumesProgress > totalVolumes) {
+    return {
+      ok: false,
+      message: `Volumes read cannot exceed the known volume count (${totalVolumes})`,
+    };
+  }
+  return { ok: true };
 }
 
 export interface StatusTransition {

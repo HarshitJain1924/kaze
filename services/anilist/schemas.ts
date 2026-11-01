@@ -4,6 +4,7 @@ import {
   ANIME_FORMATS,
   ANIME_RELEASE_STATUSES,
   ANIME_SEASONS,
+  MEDIA_FORMATS,
 } from "@/types/anime";
 
 /**
@@ -42,6 +43,23 @@ export const animeFormatSchema = z
   .nullish()
   .catch(null)
   .transform((value) => value ?? null);
+
+export const mediaFormatSchema = z
+  .enum(MEDIA_FORMATS)
+  .nullish()
+  .catch(null)
+  .transform((value) => value ?? null);
+
+const rawMediaTypeSchema = z
+  .enum(["ANIME", "MANGA"])
+  .nullish()
+  .catch(null);
+
+const booleanOrFalse = z
+  .boolean()
+  .nullish()
+  .catch(null)
+  .transform((value) => value === true);
 
 export const animeSeasonSchema = z
   .enum(ANIME_SEASONS)
@@ -82,11 +100,16 @@ const dateSchema = z
 
 export const animeSummarySchema = z.object({
   id: z.number().int().positive(),
+  type: rawMediaTypeSchema,
   title: titlesSchema,
   coverImage: coverImageSchema,
   bannerImage: stringOrNull.optional(),
-  format: animeFormatSchema,
+  format: mediaFormatSchema,
   episodes: intOrNull,
+  chapters: intOrNull,
+  volumes: intOrNull,
+  countryOfOrigin: stringOrNull,
+  isAdult: booleanOrFalse,
   averageScore: scoreOrNull,
   seasonYear: intOrNull,
   status: animeReleaseStatusSchema,
@@ -97,9 +120,7 @@ export const animeSummarySchema = z.object({
     .transform((value) => value ?? []),
 });
 
-const relationNodeSchema = animeSummarySchema.extend({
-  type: z.string().nullish().catch(null),
-});
+const relationNodeSchema = animeSummarySchema;
 
 const relationEdgeSchema = z.object({
   relationType: stringOrNull,

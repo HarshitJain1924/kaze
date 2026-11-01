@@ -10,6 +10,27 @@ export const ANIME_FORMATS = [
 
 export type AnimeFormat = (typeof ANIME_FORMATS)[number];
 
+/** AniList comic formats. Manhwa/manhua are MANGA with a Korean/Chinese origin. */
+export const MANGA_FORMATS = ["MANGA", "ONE_SHOT"] as const;
+
+export type MangaFormat = (typeof MANGA_FORMATS)[number];
+
+export const MEDIA_FORMATS = [
+  ...ANIME_FORMATS,
+  ...MANGA_FORMATS,
+  "NOVEL",
+] as const;
+
+export type MediaFormat = (typeof MEDIA_FORMATS)[number];
+
+export const MEDIA_TYPES = ["anime", "manga"] as const;
+
+export type MediaType = (typeof MEDIA_TYPES)[number];
+
+export function isMediaType(value: unknown): value is MediaType {
+  return value === "anime" || value === "manga";
+}
+
 export const ANIME_SEASONS = ["WINTER", "SPRING", "SUMMER", "FALL"] as const;
 
 export type AnimeSeason = (typeof ANIME_SEASONS)[number];
@@ -71,8 +92,14 @@ export interface AnimeSummary {
   title: AnimeTitles;
   coverImage: AnimeCoverImage;
   bannerImage?: string | null;
-  format: AnimeFormat | null;
+  /** Defaults to anime for metadata cached before manga support. */
+  mediaType?: MediaType;
+  format: MediaFormat | null;
   episodes: number | null;
+  chapters?: number | null;
+  volumes?: number | null;
+  countryOfOrigin?: string | null;
+  isAdult?: boolean;
   averageScore: number | null;
   seasonYear: number | null;
   status: AnimeReleaseStatus | null;
@@ -118,6 +145,8 @@ export type AnimeSort =
 
 export interface AnimeSearchParams {
   query?: string;
+  /** Defaults to anime. */
+  mediaType?: MediaType;
   genre?: string;
   format?: AnimeFormat;
   status?: AnimeReleaseStatus;

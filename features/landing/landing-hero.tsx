@@ -46,7 +46,7 @@ export function LandingHero({ viewer }: { viewer: Viewer | null }) {
         <div className="flex justify-center">
           <div className="inline-flex items-center gap-2 rounded-full border border-purple-500/30 bg-purple-500/10 px-4 py-1.5 text-xs font-semibold text-purple-300 light:text-purple-700 shadow-lg backdrop-blur-xl ring-1 ring-purple-500/20 animate-fade">
             <SparklesIcon className="h-3.5 w-3.5 text-accent-strong" />
-            <span>Personal Anime Sanctuary · Version 2.0</span>
+            <span>Anime, Manga & Manhwa Sanctuary · Version 2.0</span>
             <span className="hidden sm:inline text-faint/60">|</span>
             <span className="hidden sm:inline text-muted">
               AniList Live Edge Pipeline
@@ -57,7 +57,7 @@ export function LandingHero({ viewer }: { viewer: Viewer | null }) {
         {/* Main Title & Value Proposition */}
         <div className="mx-auto mt-6 max-w-4xl text-center">
           <h1 className="font-display text-4xl font-black leading-[1.1] tracking-tight text-fg sm:text-6xl lg:text-7xl drop-shadow-xl">
-            Your anime journey,{" "}
+            Your anime & manga journey,{" "}
             <span className="bg-gradient-to-r from-accent via-accent-strong to-accent-hover bg-clip-text text-transparent">
               elevated to cinema.
             </span>
@@ -102,7 +102,7 @@ export function LandingHero({ viewer }: { viewer: Viewer | null }) {
           {/* Micro Trust Telemetry Strip */}
           <div className="mt-7 flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-xs font-semibold text-muted/80">
             <span className="flex items-center gap-1.5">
-              <CheckIcon className="h-3.5 w-3.5 text-emerald-400" />
+              <CheckIcon className="h-3.5 w-3.5 text-emerald-400 light:text-emerald-600" />
               Zero Ads Forever
             </span>
             <span className="text-faint/50 hidden sm:inline">·</span>
@@ -112,12 +112,12 @@ export function LandingHero({ viewer }: { viewer: Viewer | null }) {
             </span>
             <span className="text-faint/50 hidden sm:inline">·</span>
             <span className="flex items-center gap-1.5">
-              <ClockIcon className="h-3.5 w-3.5 text-amber-400" />
+              <ClockIcon className="h-3.5 w-3.5 text-amber-400 light:text-amber-600" />
               Live Tokyo Broadcast Radar
             </span>
             <span className="text-faint/50 hidden sm:inline">·</span>
             <span className="flex items-center gap-1.5">
-              <ShieldCheckIcon className="h-3.5 w-3.5 text-purple-400" />
+              <ShieldCheckIcon className="h-3.5 w-3.5 text-purple-400 light:text-purple-700" />
               Supabase RLS Protection
             </span>
           </div>
@@ -153,7 +153,7 @@ export function LandingHero({ viewer }: { viewer: Viewer | null }) {
               <div className="relative rounded-2xl border border-border-subtle bg-surface p-5 shadow-xl backdrop-blur-xl space-y-4">
                 <div className="flex items-center justify-between">
                   <div className="inline-flex items-center gap-1.5 text-xs font-bold text-accent-strong uppercase tracking-wider">
-                    <FlameIcon className="h-3.5 w-3.5 text-rose-400" />
+                    <FlameIcon className="h-3.5 w-3.5 text-rose-400 light:text-rose-600" />
                     <span>Continue Watching Centerpiece</span>
                   </div>
                   <span className="rounded-md border border-purple-500/30 bg-purple-500/10 px-2 py-0.5 text-[11px] font-semibold text-purple-300 light:text-purple-700">
@@ -167,6 +167,7 @@ export function LandingHero({ viewer }: { viewer: Viewer | null }) {
                       src="/posters/120377.jpg"
                       alt="Cyberpunk: Edgerunners"
                       fill
+                      sizes="80px"
                       className="object-cover"
                     />
                     <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent" />
@@ -264,7 +265,7 @@ export function LandingHero({ viewer }: { viewer: Viewer | null }) {
                       <span className="font-semibold text-fg truncate max-w-[170px]">
                         Sousou no Frieren S2
                       </span>
-                      <span className="font-mono text-emerald-400 font-bold text-[11px]">
+                      <span className="font-mono text-emerald-400 light:text-emerald-700 font-bold text-[11px]">
                         In 5h 40m
                       </span>
                     </div>
@@ -285,7 +286,7 @@ export function LandingHero({ viewer }: { viewer: Viewer | null }) {
                     <p className="text-[10px] uppercase font-bold text-faint">
                       Total Time
                     </p>
-                    <p className="font-mono text-base font-extrabold text-emerald-400">
+                    <p className="font-mono text-base font-extrabold text-emerald-400 light:text-emerald-700">
                       384 Hours
                     </p>
                   </div>

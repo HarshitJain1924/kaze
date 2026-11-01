@@ -11,7 +11,7 @@ export function LandingFooter() {
           <div className="md:col-span-1 space-y-4">
             <Logo />
             <p className="text-xs leading-relaxed text-muted/80">
-              A quieter, cinematic anime sanctuary designed around artwork, 1-tap progress, and zero tracking.
+              A quieter, cinematic anime, manga and manhwa sanctuary designed around artwork, 1-tap progress, and zero tracking.
             </p>
             <div className="inline-flex items-center gap-2 rounded-full border border-emerald-500/30 bg-emerald-950/40 px-3 py-1 text-[11px] font-semibold text-emerald-300 light:bg-emerald-500/10 light:text-emerald-700">
               <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 radar-live-dot" />
@@ -105,9 +105,9 @@ export function LandingFooter() {
 
         {/* Bottom Credits & Copyright */}
         <div className="pt-8 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-faint">
-          <p>© {new Date().getFullYear()} Kaze Anime Sanctuary. All rights reserved.</p>
+          <p>© {new Date().getFullYear()} Kaze Media Sanctuary. All rights reserved.</p>
           <div className="flex items-center gap-4">
-            <span>Anime metadata powered by AniList GraphQL</span>
+            <span>Anime & manga metadata powered by AniList GraphQL</span>
             <span>·</span>
             <span>Secured with Supabase</span>
           </div>

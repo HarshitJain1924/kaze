@@ -3,7 +3,7 @@ import "server-only";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { createLibraryRepository } from "@/repositories/library";
 import { getCatalogService } from "@/services/catalog/catalog-service";
-import type { AnimeSummary } from "@/types/anime";
+import type { AnimeSummary, MediaType } from "@/types/anime";
 import type { LibraryItem } from "@/types/library";
 
 /**
@@ -63,23 +63,60 @@ export async function loadLibraryItems(
     }
   }
 
-  let animeById = new Map<number, AnimeSummary>();
-  try {
-    const hydrated = await getCatalogService().getAnimeByIds(
-      entries.map((entry) => entry.anilistId),
+  const idsByType: Record<MediaType, number[]> = {
+    anime: [],
+    manga: [],
+  };
+  for (const entry of entries) {
+    idsByType[entry.mediaType === "manga" ? "manga" : "anime"].push(
+      entry.anilistId,
     );
-    animeById = hydrated.data;
-  } catch (error) {
+  }
+
+  const mediaById = new Map<number, AnimeSummary>();
+  const [animeHydrated, mangaHydrated] = await Promise.allSettled([
+    idsByType.anime.length > 0
+      ? getCatalogService()
+          .getAnimeByIds(idsByType.anime)
+          .then((result) => result.data)
+      : Promise.resolve(new Map<number, AnimeSummary>()),
+    idsByType.manga.length > 0
+      ? getCatalogService()
+          .getMangaByIds(idsByType.manga)
+          .then((result) => result.data)
+      : Promise.resolve(new Map<number, AnimeSummary>()),
+  ]);
+
+  if (animeHydrated.status === "fulfilled") {
+    for (const [id, summary] of animeHydrated.value) {
+      mediaById.set(id, summary);
+    }
+  } else {
     console.error(
       "[library] could not hydrate anime metadata; entries kept without metadata",
-      error instanceof Error ? error.message : "Catalog request error",
+      animeHydrated.reason instanceof Error
+        ? animeHydrated.reason.message
+        : "Catalog request error",
+    );
+  }
+
+  if (mangaHydrated.status === "fulfilled") {
+    for (const [id, summary] of mangaHydrated.value) {
+      mediaById.set(id, summary);
+    }
+  } else {
+    console.error(
+      "[library] could not hydrate manga metadata; entries kept without metadata",
+      mangaHydrated.reason instanceof Error
+        ? mangaHydrated.reason.message
+        : "Catalog request error",
     );
   }
 
   return entries.map((entry) => ({
     entry,
-    anime: animeById.get(entry.anilistId) ?? null,
-    ...(rawEpisodesResult.ok
+    anime: mediaById.get(entry.anilistId) ?? null,
+    ...(rawEpisodesResult.ok && entry.mediaType !== "manga"
       ? { watchedEpisodes: episodesByAnime.get(entry.anilistId) ?? [] }
       : {}),
   }));

@@ -13,8 +13,12 @@ import {
   PlusIcon,
   StarIcon,
 } from "@/components/icons";
-import { usePreferences } from "@/components/providers/preferences-provider";
+import {
+  useActiveTimeZone,
+  usePreferences,
+} from "@/components/providers/preferences-provider";
 import { useLibrary } from "@/features/library/library-provider";
+import { toIsoDateString } from "@/lib/schedule";
 import { seasonLabel } from "@/lib/season";
 import {
   cn,
@@ -24,13 +28,31 @@ import {
   getDisplayTitle,
   isHttpUrl,
 } from "@/lib/utils";
-import type { AnimeSeason, AnimeSummary } from "@/types/anime";
+import type {
+  AiringScheduleEntry,
+  AnimeSeason,
+  AnimeSummary,
+} from "@/types/anime";
 import type { Viewer } from "@/types/viewer";
 
 function getGreetingWord(hour: number): string {
   if (hour < 12) return "morning";
   if (hour < 17) return "afternoon";
   return "evening";
+}
+
+function getHourInTimeZone(date: Date, timeZone: string): number {
+  try {
+    const parts = new Intl.DateTimeFormat("en-US", {
+      timeZone,
+      hour: "2-digit",
+      hourCycle: "h23",
+    }).formatToParts(date);
+    const hour = Number(parts.find((part) => part.type === "hour")?.value);
+    return Number.isFinite(hour) ? hour : date.getHours();
+  } catch {
+    return date.getHours();
+  }
 }
 
 function isHexColor(value: string | null): value is string {
@@ -44,6 +66,7 @@ interface HomeHeroProps {
   posters: AnimeSummary[];
   todayCount?: number;
   todayLabel?: string;
+  todayEntries?: AiringScheduleEntry[] | null;
   serverHour?: number;
   fallbackSummary?: string;
 }
@@ -55,10 +78,12 @@ export function HomeHero({
   posters,
   todayCount = 0,
   todayLabel,
+  todayEntries,
   serverHour,
   fallbackSummary,
 }: HomeHeroProps) {
   const { preferences } = usePreferences();
+  const { activeTimeZone, mounted } = useActiveTimeZone();
   const { items, entryFor, requestAdd } = useLibrary();
 
   // Top spotlight anime candidates (up to 5 for slideshow showcase)
@@ -80,10 +105,36 @@ export function HomeHero({
 
   const currentAnime = featuredList[activeIndex] ?? null;
 
+  // The server hour is only a hydration-safe fallback; after mount the
+  // greeting follows the viewer's active timezone, not the server clock.
   const greetingWord = useMemo(() => {
-    const hour = serverHour ?? new Date().getHours();
-    return getGreetingWord(hour);
-  }, [serverHour]);
+    if (!mounted) {
+      const hour = serverHour ?? new Date().getHours();
+      return getGreetingWord(hour);
+    }
+    return getGreetingWord(getHourInTimeZone(new Date(), activeTimeZone));
+  }, [activeTimeZone, mounted, serverHour]);
+
+  // "Today" must match the schedule widgets, which group by active timezone.
+  const today = useMemo<{ count: number; label: string | null }>(() => {
+    if (!mounted) {
+      return { count: todayCount, label: todayLabel ?? null };
+    }
+    const now = new Date();
+    const todayIso = toIsoDateString(now, activeTimeZone);
+    const count = (todayEntries ?? []).filter(
+      (entry) =>
+        toIsoDateString(new Date(entry.airingAt * 1000), activeTimeZone) ===
+        todayIso,
+    ).length;
+    const label = new Intl.DateTimeFormat("en-US", {
+      weekday: "long",
+      month: "long",
+      day: "numeric",
+      timeZone: activeTimeZone,
+    }).format(now);
+    return { count, label };
+  }, [activeTimeZone, mounted, todayCount, todayEntries, todayLabel]);
 
   const viewerName = useMemo(() => {
     if (preferences.nickname?.trim()) return preferences.nickname.trim();
@@ -117,7 +168,9 @@ export function HomeHero({
     if (fallbackSummary) return fallbackSummary;
 
     const episodesTodayText =
-      todayCount === 1 ? "1 episode airs today." : `${todayCount} episodes air today.`;
+      today.count === 1
+        ? "1 episode airs today."
+        : `${today.count} episodes air today.`;
 
     if (!viewer) {
       return `${episodesTodayText} Track your watch progress and follow the broadcast week.`;
@@ -134,7 +187,7 @@ export function HomeHero({
     }
 
     return `${episodesTodayText} Add anime to your library to track upcoming releases.`;
-  }, [fallbackSummary, todayCount, viewer, seriesBehind, episodesBehind, items]);
+  }, [fallbackSummary, today.count, viewer, seriesBehind, episodesBehind, items]);
 
   const activeTitle = currentAnime
     ? getDisplayTitle(currentAnime.title, preferences.titleLanguage === "english")
@@ -252,11 +305,11 @@ export function HomeHero({
             <span className="text-xs font-semibold uppercase tracking-wider text-accent-strong">
               Seasonal Spotlight · {seasonLabel(season)} {year}
             </span>
-            {todayLabel ? (
+            {today.label ? (
               <>
                 <span className="text-white/25">·</span>
                 <span className="text-xs font-medium text-white/70">
-                  {todayLabel}
+                  {today.label}
                 </span>
               </>
             ) : null}
@@ -277,7 +330,7 @@ export function HomeHero({
           <div className="flex flex-col gap-5 sm:flex-row sm:items-center sm:gap-6 lg:gap-8">
             {/* 4K Detail-Screen Style Vertical Poster Card */}
             <Link
-              href={`/anime/${currentAnime.id}`}
+              href={`/media/${currentAnime.id}`}
               className="group/poster relative aspect-[2/3] w-32 shrink-0 self-start sm:self-center overflow-hidden rounded-2xl border border-white/20 bg-surface-2 shadow-[0_20px_50px_rgba(0,0,0,0.7),inset_0_1px_1px_rgba(255,255,255,0.35)] ring-1 ring-white/15 transition-transform duration-300 hover:scale-[1.02] sm:w-44 lg:w-48"
               title={`View ${activeTitle}`}
             >
@@ -344,7 +397,7 @@ export function HomeHero({
                 {/* Clean Title without Japanese subtitles */}
                 <h1 className="mt-3 line-clamp-2 font-display text-2xl font-bold leading-tight tracking-tight text-white drop-shadow-md sm:text-3xl lg:text-[34px]">
                   <Link
-                    href={`/anime/${currentAnime.id}`}
+                    href={`/media/${currentAnime.id}`}
                     className="hover:text-accent-strong transition-colors"
                   >
                     {activeTitle}
@@ -382,7 +435,7 @@ export function HomeHero({
                     )}
 
                     <Link
-                      href={`/anime/${currentAnime.id}`}
+                      href={`/media/${currentAnime.id}`}
                       className="inline-flex h-9 items-center gap-1.5 rounded-xl border border-white/20 bg-black/40 px-3.5 text-xs font-semibold text-white shadow-sm backdrop-blur-md transition-all hover:border-white/40 hover:bg-black/60 active:scale-98"
                     >
                       <EyeIcon className="h-3.5 w-3.5 text-white/70" />
@@ -472,7 +525,7 @@ export function HomeHero({
         ) : (
           <div>
             <p className="text-xs font-medium tracking-wide text-muted">
-              {todayLabel ?? "Broadcast Schedule"}
+              {today.label ?? "Broadcast Schedule"}
             </p>
             <h1 className="mt-1 font-display text-2xl font-bold tracking-tight text-fg sm:text-3xl lg:text-[34px]">
               Good <span className="text-accent-strong">{greetingWord}</span>, {viewerName}

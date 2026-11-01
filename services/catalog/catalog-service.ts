@@ -94,11 +94,16 @@ interface FallbackPage {
 function toSummary(anime: Anime): AnimeSummary {
   return {
     id: anime.id,
+    mediaType: anime.mediaType,
     title: anime.title,
     coverImage: anime.coverImage,
     bannerImage: anime.bannerImage,
     format: anime.format,
     episodes: anime.episodes,
+    chapters: anime.chapters,
+    volumes: anime.volumes,
+    countryOfOrigin: anime.countryOfOrigin,
+    isAdult: anime.isAdult,
     averageScore: anime.averageScore,
     seasonYear: anime.seasonYear,
     status: anime.status,
@@ -214,6 +219,13 @@ export class CatalogService {
           return this.result(null, "anilist");
         }
 
+        // Kitsu relationships are anime-only. Manga details never use them.
+        if (anime.mediaType === "manga") {
+          this.metadataCache.putDetails(anime);
+          this.metadataCache.putSummary(toSummary(anime));
+          return this.result(anime, "anilist");
+        }
+
         // Opportunistically upgrade banner & poster images with high-resolution Kitsu assets
         try {
           const kitsu = await this.lookupKitsu(id);
@@ -280,6 +292,8 @@ export class CatalogService {
       });
     }
 
+    // Details reached here without a known media type, so the existing
+    // anime-only Kitsu mapping is the last safe fallback for an anime ID.
     const kitsu = await this.lookupKitsu(id);
     if (kitsu?.kind === "found") {
       this.metadataCache.putSummary(kitsu.summary);
@@ -290,7 +304,15 @@ export class CatalogService {
       return this.result(detailed, "kitsu");
     }
 
-    throw this.unavailable("Anime details are temporarily unavailable", signal);
+    throw this.unavailable(
+      "Media details are temporarily unavailable",
+      signal,
+    );
+  }
+
+  /** Generic details for either media type. */
+  getMediaById(id: number): Promise<CatalogResult<Anime | null>> {
+    return this.getAnimeById(id);
   }
 
   // -------------------------------------------------------------------
@@ -400,12 +422,202 @@ export class CatalogService {
     return this.result(result, provider, { stale, cachedAt });
   }
 
+  /**
+   * Manga library hydration. AniList is the only metadata provider for
+   * comics; cached summaries keep entries readable during an outage.
+   */
+  async getMangaByIds(
+    ids: number[],
+  ): Promise<CatalogResult<Map<number, AnimeSummary>>> {
+    const unique = [
+      ...new Set(ids.filter((id) => Number.isInteger(id) && id > 0)),
+    ];
+    const result = new Map<number, AnimeSummary>();
+    if (unique.length === 0) {
+      return this.result(result, "unavailable");
+    }
+
+    await this.metadataCache.ready();
+    let usedAniList = false;
+    let usedCache = false;
+    let stale = false;
+    let cachedAt: number | null = null;
+
+    const fresh = this.metadataCache.getSummaries(unique);
+    for (const [id, hit] of fresh.hits) {
+      result.set(id, hit.data);
+      usedCache = true;
+      stale = stale || hit.isStale;
+      cachedAt =
+        cachedAt === null ? hit.cachedAt : Math.min(cachedAt, hit.cachedAt);
+    }
+
+    const missing = unique.filter((id) => !result.has(id));
+    if (missing.length > 0 && !this.isUpstreamBlocked()) {
+      try {
+        const live = await this.anilistClient.getMangaByIds(missing);
+        for (const [id, summary] of live) {
+          result.set(id, summary);
+          usedAniList = true;
+        }
+        if (live.size > 0) {
+          this.metadataCache.putSummaries([...live.values()]);
+        }
+        this.noteAniListSuccess();
+      } catch {
+        // Preserve entries; the caller renders a metadata-unavailable state.
+      }
+    }
+
+    const stillMissing = unique.filter((id) => !result.has(id));
+    if (stillMissing.length > 0) {
+      const staleHits = this.metadataCache.getSummaries(stillMissing, {
+        allowStale: true,
+      });
+      for (const [id, hit] of staleHits.hits) {
+        result.set(id, hit.data);
+        usedCache = true;
+        stale = stale || hit.isStale;
+        cachedAt =
+          cachedAt === null ? hit.cachedAt : Math.min(cachedAt, hit.cachedAt);
+      }
+    }
+
+    const provider: CatalogProvider =
+      result.size === 0
+        ? "unavailable"
+        : usedAniList
+          ? "anilist"
+          : usedCache
+            ? "cache"
+            : "unavailable";
+
+    return this.result(result, provider, { stale, cachedAt });
+  }
+
   // -------------------------------------------------------------------
   // Search
   // -------------------------------------------------------------------
 
   async searchAnime(
     params: AnimeSearchParams = {},
+  ): Promise<CatalogResult<AnimePage>> {
+    return this.searchMedia({ ...params, mediaType: "anime" });
+  }
+
+  async searchMedia(
+    params: AnimeSearchParams = {},
+  ): Promise<CatalogResult<AnimePage>> {
+    if ((params.mediaType ?? "anime") === "anime") {
+      return this.searchAnimeOnly(params);
+    }
+    return this.searchManga(params);
+  }
+
+  private async searchManga(
+    params: AnimeSearchParams,
+  ): Promise<CatalogResult<AnimePage>> {
+    const page = Math.max(1, Math.trunc(params.page ?? 1));
+    const perPage = Math.max(1, Math.min(50, Math.trunc(params.perPage ?? 24)));
+
+    await this.metadataCache.ready();
+    const signal = this.newOutageSignal();
+
+    if (!this.isUpstreamBlocked()) {
+      try {
+        const pageResult = await this.anilistClient.searchMedia(params);
+        this.metadataCache.putSummaries(pageResult.items);
+        this.noteAniListSuccess();
+        return this.result(pageResult, "anilist");
+      } catch (error) {
+        if (!this.isOutageError(error)) throw error;
+        this.recordOutage(error, signal);
+      }
+    }
+
+    const search = params.query?.trim();
+    if (search) {
+      const hits = this.metadataCache.searchLocalHits(
+        search,
+        perPage * page,
+        { allowStale: true },
+      );
+      const mangaHits = hits.filter(
+        (hit) => hit.data.mediaType === "manga",
+      );
+      if (mangaHits.length > 0) {
+        return this.result(
+          cachedPage(
+            mangaHits.map((hit) => hit.data),
+            page,
+            perPage,
+          ),
+          "cache",
+          {
+            stale: mangaHits.some((hit) => hit.isStale),
+            cachedAt: Math.min(...mangaHits.map((hit) => hit.cachedAt)),
+          },
+        );
+      }
+    }
+
+    throw this.unavailable(
+      "The manga catalogue cannot answer this search right now",
+      signal,
+    );
+  }
+
+  async getPopularManga(
+    options: { page?: number; perPage?: number } = {},
+  ): Promise<CatalogResult<AnimePage>> {
+    return this.getMangaCollection("popular", options);
+  }
+
+  async getTrendingManga(
+    options: { page?: number; perPage?: number } = {},
+  ): Promise<CatalogResult<AnimePage>> {
+    return this.getMangaCollection("trending", options);
+  }
+
+  private async getMangaCollection(
+    kind: "popular" | "trending",
+    options: { page?: number; perPage?: number },
+  ): Promise<CatalogResult<AnimePage>> {
+    const page = Math.max(1, Math.trunc(options.page ?? 1));
+    const perPage = Math.max(1, Math.min(50, Math.trunc(options.perPage ?? 12)));
+    const signal = this.newOutageSignal();
+
+    if (this.isUpstreamBlocked()) {
+      throw this.unavailable(
+        kind === "popular"
+          ? "Popular manga are unavailable"
+          : "Trending manga are unavailable",
+        signal,
+      );
+    }
+
+    try {
+      const result =
+        kind === "popular"
+          ? await this.anilistClient.getPopularManga({ page, perPage })
+          : await this.anilistClient.getTrendingManga({ page, perPage });
+      this.metadataCache.putSummaries(result.items);
+      this.noteAniListSuccess();
+      return this.result(result, "anilist");
+    } catch (error) {
+      if (!this.isOutageError(error)) throw error;
+      this.recordOutage(error, signal);
+      throw this.unavailable(
+        kind === "popular"
+          ? "Popular manga are unavailable"
+          : "Trending manga are unavailable",
+        signal,
+      );
+    }
+  }
+
+  private async searchAnimeOnly(
+    params: AnimeSearchParams,
   ): Promise<CatalogResult<AnimePage>> {
     const page = Math.max(1, Math.trunc(params.page ?? 1));
     const perPage = Math.max(1, Math.min(50, Math.trunc(params.perPage ?? 24)));

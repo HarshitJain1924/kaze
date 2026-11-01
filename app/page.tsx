@@ -14,9 +14,9 @@ import { getCatalogService } from "@/services/catalog/catalog-service";
 import type { AnimeSummary } from "@/types/anime";
 
 export const metadata: Metadata = {
-  title: "Kaze · Personal Anime Sanctuary",
+  title: "Kaze · Anime & Manga Sanctuary",
   description:
-    "A quieter, cinematic way to track your anime journey. One-tap progress, live Tokyo simulcast radar, and private taste telemetry.",
+    "A quieter, cinematic way to track anime, manga and manhwa. One-tap progress, chapter tracking, live simulcast radar and private taste telemetry.",
 };
 
 export const dynamic = "force-dynamic";

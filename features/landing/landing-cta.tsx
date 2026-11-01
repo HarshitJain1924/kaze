@@ -18,6 +18,7 @@ export function LandingCta({ viewer }: { viewer: Viewer | null }) {
               src="/posters/120377.jpg"
               alt="Cyberpunk Backdrop"
               fill
+              sizes="100vw"
               className="object-cover object-top"
             />
             <div className="absolute inset-0 bg-gradient-to-t from-surface via-surface/85 to-surface/60" />
@@ -27,18 +28,18 @@ export function LandingCta({ viewer }: { viewer: Viewer | null }) {
           <div className="relative z-10 mx-auto max-w-2xl space-y-6">
             <div className="inline-flex items-center gap-2 rounded-full border border-purple-500/30 bg-purple-500/10 px-4 py-1.5 text-xs font-semibold text-purple-300 light:text-purple-700 backdrop-blur-md">
               <SparklesIcon className="h-3.5 w-3.5" />
-              <span>Begin Your Anime Sanctuary</span>
+              <span>Begin Your Media Sanctuary</span>
             </div>
 
             <h2 className="font-display text-3xl sm:text-5xl font-black text-fg tracking-tight leading-[1.15]">
-              Ready to experience anime{" "}
+              Ready to experience anime & manga{" "}
               <span className="bg-gradient-to-r from-accent via-accent-strong to-accent-hover bg-clip-text text-transparent">
                 the way it was meant to be?
               </span>
             </h2>
 
             <p className="text-sm sm:text-base text-muted leading-relaxed">
-              Join anime purists tracking their watchlist in pure cinema.
+              Join anime and manga readers tracking their library in pure cinema.
               One tap per episode. Real-time broadcast countdowns from Tokyo.
               Zero ads, zero data tracking.
             </p>

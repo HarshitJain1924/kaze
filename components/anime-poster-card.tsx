@@ -14,6 +14,7 @@ import {
   formatScore,
   getDisplayTitle,
   isHttpUrl,
+  isManga,
 } from "@/lib/utils";
 import type { AnimeSummary } from "@/types/anime";
 
@@ -72,10 +73,12 @@ export function AnimePosterCard({
   const yearText = anime.seasonYear ? String(anime.seasonYear) : null;
   const meta = [formatLabel, yearText].filter(Boolean).join(" · ");
 
-  const totalEpisodes = anime.episodes;
+  const manga = isManga(anime);
+  const totalUnits = manga ? (anime.chapters ?? null) : anime.episodes;
+  const unitShort = manga ? "ch" : "ep";
   const percent =
-    entry && totalEpisodes && totalEpisodes > 0
-      ? Math.min(100, Math.round((entry.progress / totalEpisodes) * 100))
+    entry && totalUnits && totalUnits > 0
+      ? Math.min(100, Math.round((entry.progress / totalUnits) * 100))
       : entry && entry.progress > 0
         ? 100
         : 0;
@@ -112,7 +115,7 @@ export function AnimePosterCard({
 
       {/* Full Poster Clickable Link */}
       <Link
-        href={`/anime/${anime.id}`}
+        href={`/media/${anime.id}`}
         aria-label={`View details for ${title}`}
         className="absolute inset-0 z-10 rounded-2xl focus:outline-none focus:ring-2 focus:ring-accent"
       />
@@ -128,11 +131,18 @@ export function AnimePosterCard({
           <span />
         )}
 
-        {formatLabel ? (
-          <span className="rounded-md border border-white/15 bg-black/80 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-white/90 backdrop-blur-md shadow-xs">
-            {formatLabel}
-          </span>
-        ) : null}
+        <span className="flex items-center gap-1">
+          {anime.isAdult ? (
+            <span className="rounded-md border border-rose-400/40 bg-black/85 px-1.5 py-0.5 text-[10px] font-bold text-rose-300 backdrop-blur-md">
+              18+
+            </span>
+          ) : null}
+          {formatLabel ? (
+            <span className="rounded-md border border-white/15 bg-black/80 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-white/90 backdrop-blur-md shadow-xs">
+              {formatLabel}
+            </span>
+          ) : null}
+        </span>
       </div>
 
       {/* Quick Add floating action button on hover */}
@@ -157,11 +167,12 @@ export function AnimePosterCard({
           <div className="flex items-center gap-1.5">
             <StatusBadge
               status={entry.status}
+              mediaType={anime.mediaType}
               className="border-white/15 bg-black/80 text-[10px] text-white/95 backdrop-blur-sm px-1.5 py-0.5"
             />
-            {totalEpisodes && totalEpisodes > 0 ? (
+            {totalUnits && totalUnits > 0 ? (
               <span className="text-[10px] font-semibold text-white/85 tabular-nums">
-                {entry.progress}/{totalEpisodes}
+                {entry.progress}/{totalUnits} {unitShort}
               </span>
             ) : null}
           </div>
@@ -176,13 +187,13 @@ export function AnimePosterCard({
 
         <div className="flex items-center justify-between text-[10px] font-medium text-white/70">
           <span>{meta}</span>
-          {entry && totalEpisodes && totalEpisodes > 0 ? (
+          {entry && totalUnits && totalUnits > 0 ? (
             <span className="tabular-nums text-white/60">{percent}%</span>
           ) : null}
         </div>
 
         {/* Flush progress line on poster */}
-        {entry && totalEpisodes && totalEpisodes > 0 ? (
+        {entry && totalUnits && totalUnits > 0 ? (
           <div className="h-1 w-full overflow-hidden rounded-full bg-white/20 mt-1">
             <div
               className={cn(

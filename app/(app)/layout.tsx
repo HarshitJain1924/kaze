@@ -42,6 +42,7 @@ export default async function AppLayout({
       key={librarySnapshotKey}
       initialItems={items}
       canWrite={viewer !== null}
+      showAdult={viewer?.showAdult === true}
       loadError={libraryError}
     >
       <AppShell viewer={viewer}>{children}</AppShell>
