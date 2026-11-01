@@ -208,6 +208,8 @@ export class CatalogService {
 
     await this.metadataCache.ready();
     const signal = this.newOutageSignal();
+    let liveError: unknown = null;
+    let liveOutage = false;
 
     if (!this.isUpstreamBlocked()) {
       try {
@@ -253,9 +255,13 @@ export class CatalogService {
           return this.result(null, "anilist");
         }
         if (!this.isOutageError(error)) {
-          throw error;
+          // Keep the error for the summary fallback below, but do not fail
+          // the page before trying cached metadata first.
+          liveError = error;
+        } else {
+          liveOutage = true;
+          this.recordOutage(error, signal);
         }
-        this.recordOutage(error, signal);
       }
     }
 
@@ -292,6 +298,24 @@ export class CatalogService {
       });
     }
 
+    if (
+      liveError &&
+      !this.isConfirmedSuspension(liveError) &&
+      !(liveError instanceof CircuitBreakerOpenError) &&
+      !(liveError instanceof AniListError && liveError.status === 429)
+    ) {
+      try {
+        const summary = await this.anilistClient.getMediaSummaryById(id);
+        if (summary) {
+          this.noteAniListSuccess();
+          this.metadataCache.putSummary(summary);
+          return this.result(this.summaryToDetailedAnime(summary), "anilist");
+        }
+      } catch {
+        // Preserve the original failure if the summary request also fails.
+      }
+    }
+
     // Details reached here without a known media type, so the existing
     // anime-only Kitsu mapping is the last safe fallback for an anime ID.
     const kitsu = await this.lookupKitsu(id);
@@ -302,6 +326,10 @@ export class CatalogService {
         detailed.bannerImage = kitsu.bannerImage;
       }
       return this.result(detailed, "kitsu");
+    }
+
+    if (liveError && !liveOutage) {
+      throw liveError;
     }
 
     throw this.unavailable(

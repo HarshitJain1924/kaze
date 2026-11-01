@@ -543,6 +543,24 @@ export class AniListClient {
     return this.getMediaById(id, options);
   }
 
+  /**
+   * Lightweight details fallback. Used when the full details document fails
+   * but the catalogue can still resolve the title's summary fields.
+   */
+  async getMediaSummaryById(id: number): Promise<AnimeSummary | null> {
+    if (!Number.isInteger(id) || id <= 0) {
+      throw new AniListError("Invalid anime id");
+    }
+
+    const data = await this.execute<{ Page?: unknown }>(
+      MEDIA_BY_IDS_QUERY,
+      { ids: [id], page: 1, perPage: 1 },
+      TTL.list,
+    );
+    const page = data.Page as { media?: unknown } | undefined;
+    return mapAnimeList(page?.media ?? [])[0] ?? null;
+  }
+
   /** Hydrates library entries with provider metadata for one media type. */
   async getMediaByIds(
     ids: number[],

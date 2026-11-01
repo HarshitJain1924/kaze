@@ -112,8 +112,8 @@ export default async function AnimeDetailsPage({ params }: PageProps) {
         </Link>
         <ErrorState
           className="mt-6"
-          title="Could not load this anime"
-          message="Upstream catalogue did not respond. Your library and progress are safe."
+          title="Could not load this title"
+          message="The catalogue did not respond. Your library and progress are safe. Try again in a moment."
           action={<RetryButton />}
         />
       </div>
