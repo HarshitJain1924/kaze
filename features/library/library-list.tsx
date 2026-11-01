@@ -19,6 +19,7 @@ import { useLibrary } from "@/features/library/library-provider";
 import {
   cn,
   formatFormat,
+  formatMediaKind,
   formatShortIsoDate,
   getDisplayTitle,
   isHttpUrl,
@@ -79,7 +80,11 @@ export function LibraryList({ items }: { items: LibraryItem[] }) {
               : 0;
         const pending = pendingIds.has(entry.anilistId);
 
-        const formatText = anime ? formatFormat(anime.format) : null;
+        const formatText = anime
+          ? manga
+            ? formatMediaKind(anime)
+            : formatFormat(anime.format)
+          : null;
         const yearText = anime?.seasonYear ? String(anime.seasonYear) : null;
 
         return (

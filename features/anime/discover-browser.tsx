@@ -57,9 +57,11 @@ import {
   cn,
   formatEpisodeCount,
   formatFormat,
+  formatMediaKind,
   formatScore,
   getDisplayTitle,
   isHttpUrl,
+  isManga,
 } from "@/lib/utils";
 import type { AnimePage, AnimeSort, AnimeSummary } from "@/types/anime";
 
@@ -135,7 +137,9 @@ function DiscoverDetailedCard({ anime }: { anime: AnimeSummary }) {
   const title = getDisplayTitle(anime.title, preferences.titleLanguage === "english");
   const cover = anime.coverImage.extraLarge ?? anime.coverImage.large;
   const score = formatScore(anime.averageScore);
-  const formatLabel = formatFormat(anime.format);
+  const formatLabel = isManga(anime)
+    ? formatMediaKind(anime)
+    : formatFormat(anime.format);
   const entry = entryFor(anime.id);
 
   return (
@@ -613,7 +617,7 @@ export function DiscoverBrowser({
                   {getDisplayTitle(topAnime.title, preferences.titleLanguage === "english")}
                 </Link>
                 <p className="mt-0.5 text-[11px] text-muted">
-                  {formatFormat(topAnime.format)} {topAnime.seasonYear ? `· ${topAnime.seasonYear}` : ""} {topAnime.episodes ? `· ${topAnime.episodes} eps` : ""}
+                  {isManga(topAnime) ? formatMediaKind(topAnime) : formatFormat(topAnime.format)} {topAnime.seasonYear ? `· ${topAnime.seasonYear}` : ""} {isManga(topAnime) ? (topAnime.chapters ? `· ${topAnime.chapters} ch` : "") : topAnime.episodes ? `· ${topAnime.episodes} eps` : ""}
                 </p>
 
                 <div className="mt-2 flex items-center gap-2">
@@ -621,7 +625,7 @@ export function DiscoverBrowser({
                     href={`/media/${topAnime.id}`}
                     className="inline-flex h-7 items-center gap-1 rounded-lg bg-accent px-2.5 text-[11px] font-bold text-accent-contrast shadow-sm hover:bg-accent-hover transition-colors"
                   >
-                    <span>View Anime</span>
+                    <span>View {isManga(topAnime) ? formatMediaKind(topAnime) : "Anime"}</span>
                     <ChevronRightIcon className="h-3 w-3" />
                   </Link>
                 </div>

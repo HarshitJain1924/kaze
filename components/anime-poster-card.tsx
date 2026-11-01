@@ -11,6 +11,7 @@ import { useLibrary } from "@/features/library/library-provider";
 import {
   cn,
   formatFormat,
+  formatMediaKind,
   formatScore,
   getDisplayTitle,
   isHttpUrl,
@@ -69,11 +70,12 @@ export function AnimePosterCard({
   );
   const cover = anime.coverImage.extraLarge ?? anime.coverImage.large;
   const score = formatScore(anime.averageScore);
-  const formatLabel = formatFormat(anime.format);
+  const manga = isManga(anime);
+  const formatLabel = manga
+    ? formatMediaKind(anime)
+    : formatFormat(anime.format);
   const yearText = anime.seasonYear ? String(anime.seasonYear) : null;
   const meta = [formatLabel, yearText].filter(Boolean).join(" · ");
-
-  const manga = isManga(anime);
   const totalUnits = manga ? (anime.chapters ?? null) : anime.episodes;
   const unitShort = manga ? "ch" : "ep";
   const percent =

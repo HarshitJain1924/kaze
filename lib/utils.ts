@@ -66,6 +66,21 @@ export function formatMediaType(mediaType?: MediaType): string {
   return mediaType === "manga" ? "Manga" : "Anime";
 }
 
+/** Display label for the actual medium, distinguishing Korean/Chinese comics. */
+export function formatMediaKind(
+  media:
+    | { mediaType?: MediaType; countryOfOrigin?: string | null }
+    | null
+    | undefined,
+): string {
+  if (media?.mediaType !== "manga") return "Anime";
+  if (media.countryOfOrigin === "KR") return "Manhwa";
+  if (media.countryOfOrigin === "CN" || media.countryOfOrigin === "TW") {
+    return "Manhua";
+  }
+  return "Manga";
+}
+
 export function formatChapterCount(chapters: number | null | undefined): string {
   if (chapters === null || chapters === undefined) return "Chapters unknown";
   return chapters === 1 ? "1 chapter" : `${chapters} chapters`;

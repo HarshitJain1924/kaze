@@ -20,6 +20,7 @@ import { useLibrary } from "@/features/library/library-provider";
 import {
   cn,
   formatFormat,
+  formatMediaKind,
   formatScore,
   getDisplayTitle,
   isHttpUrl,
@@ -115,7 +116,9 @@ export function LibraryItemCard({ item }: { item: LibraryItem }) {
         ? { value: formatScore(anime.averageScore), isPersonal: false }
         : null;
 
-  const formatText = formatFormat(anime.format);
+  const formatText = manga
+    ? formatMediaKind(anime)
+    : formatFormat(anime.format);
   const yearText = anime.seasonYear ? String(anime.seasonYear) : null;
   const metaSubtitle = [formatText, yearText].filter(Boolean).join(" · ");
 

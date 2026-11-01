@@ -17,6 +17,7 @@ import { seasonLabel } from "@/lib/season";
 import {
   formatAnimeDate,
   formatFormat,
+  formatMediaKind,
   formatRelationType,
   getDisplayTitle,
 } from "@/lib/utils";
@@ -252,7 +253,7 @@ export default async function AnimeDetailsPage({ params }: PageProps) {
             <>
               <span className="text-faint">/</span>
               <span className="rounded bg-surface-3 px-1.5 py-0.5 text-[10px] font-semibold uppercase text-fg shadow-xs">
-                {formatFormat(anime.format)}
+                {manga ? formatMediaKind(anime) : formatFormat(anime.format)}
               </span>
             </>
           ) : null}
@@ -362,9 +363,13 @@ export default async function AnimeDetailsPage({ params }: PageProps) {
                     </h2>
                     <dl className="mt-3 grid grid-cols-2 gap-x-6 gap-y-4 rounded-xl border border-border-subtle bg-surface/60 p-4 sm:grid-cols-3">
                       <div>
-                        <dt className="text-xs text-faint">Format</dt>
+                        <dt className="text-xs text-faint">
+                          {manga ? "Medium" : "Format"}
+                        </dt>
                         <dd className="mt-1 text-sm text-fg">
-                          {anime.format ?? "Unknown"}
+                          {manga
+                            ? formatMediaKind(anime)
+                            : (formatFormat(anime.format) ?? "Unknown")}
                         </dd>
                       </div>
                       {manga ? (

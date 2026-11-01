@@ -11,6 +11,7 @@ import {
   formatEpisodeCount,
   formatPopularity,
   formatScore,
+  formatMediaKind,
   formatVolumeCount,
   getDisplayTitle,
   getSecondaryTitle,
@@ -60,14 +61,14 @@ export function AnimeDetailsHeader({
           </span>
         ) : null}
         <span className="inline-flex items-center rounded-xl border border-accent/30 bg-accent-soft px-2.5 py-1 text-[11px] font-semibold text-accent-strong">
-          {manga ? "Manga" : "Anime"}
+          {formatMediaKind(anime)}
         </span>
         {anime.isAdult ? (
           <span className="inline-flex items-center rounded-xl border border-rose-400/40 bg-rose-500/10 px-2.5 py-1 text-[11px] font-bold text-rose-500 light:text-rose-700">
             18+
           </span>
         ) : null}
-        {anime.format ? (
+        {anime.format && (!manga || anime.format === "ONE_SHOT") ? (
           <span className="inline-flex items-center rounded-xl liquid-glass-pill px-2.5 py-1 text-[11px] font-medium text-muted">
             {FORMAT_LABELS[anime.format]}
           </span>
