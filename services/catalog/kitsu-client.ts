@@ -6,6 +6,7 @@ import type {
 
 const KITSU_BASE = "https://kitsu.io/api/edge";
 const ANILIST_SITE = "anilist/anime";
+const ANILIST_MANGA_SITE = "anilist/manga";
 
 /**
  * Kitsu rejects `page[limit]` above 20 with HTTP 400 (verified against the
@@ -189,15 +190,15 @@ function attributesOf(resource: KitsuResource): Record<string, unknown> {
   return isRecord(resource.attributes) ? resource.attributes : {};
 }
 
-function isAniListSite(value: unknown): boolean {
+function isAniListSite(value: unknown, expectedSite: string = ANILIST_SITE): boolean {
   return (
     typeof value === "string" &&
-    value.trim().toLowerCase() === ANILIST_SITE
+    value.trim().toLowerCase() === expectedSite.toLowerCase()
   );
 }
 
 /**
- * Converts a Kitsu anime resource into Kaze's provider-independent summary.
+ * Converts a Kitsu anime or manga resource into Kaze's provider-independent summary.
  * The supplied `anilistId` is the canonical AniList ID — a Kitsu ID is never
  * used as a substitute.
  */
@@ -220,8 +221,11 @@ export function mapKitsuAnime(
     return null;
   }
 
+  const isMangaResource = resource.type === "manga";
+
   return {
     id: anilistId,
+    mediaType: isMangaResource ? "manga" : "anime",
     title: { english, romaji, native },
     coverImage: {
       extraLarge:
@@ -236,8 +240,12 @@ export function mapKitsuAnime(
         null,
       color: null,
     },
-    format: mapKitsuFormat(attrs.subtype),
-    episodes: parseEpisodeCount(attrs.episodeCount),
+    format: isMangaResource
+      ? (mapKitsuFormat(attrs.subtype) ?? "MANGA")
+      : mapKitsuFormat(attrs.subtype),
+    episodes: isMangaResource ? null : parseEpisodeCount(attrs.episodeCount),
+    chapters: parseEpisodeCount(attrs.chapterCount),
+    volumes: parseEpisodeCount(attrs.volumeCount),
     averageScore: parseScore(attrs.averageRating),
     seasonYear: parseStartYear(attrs.startDate),
     status: mapKitsuStatus(attrs.status),
@@ -325,11 +333,12 @@ export class KitsuClient {
     return [];
   }
 
-  private async fetchAnimeResource(
+  private async fetchResource(
+    type: "anime" | "manga",
     kitsuId: number,
   ): Promise<KitsuResource | null> {
     try {
-      const payload = await this.fetchJson(`/anime/${kitsuId}`);
+      const payload = await this.fetchJson(`/${type}/${kitsuId}`);
       const data = payload.data;
       return isRecord(data) ? data : null;
     } catch (error) {
@@ -340,21 +349,31 @@ export class KitsuClient {
     }
   }
 
+  private async fetchAnimeResource(
+    kitsuId: number,
+  ): Promise<KitsuResource | null> {
+    return this.fetchResource("anime", kitsuId);
+  }
+
   /**
-   * Resolves an anime by its canonical AniList ID through Kitsu's external
-   * mapping table. Returns a discriminated outcome instead of `null` so that
-   * "no mapping" is distinguishable from "provider down".
+   * Resolves media (anime or manga) by its canonical AniList ID through Kitsu's
+   * external mapping table. Returns a discriminated outcome instead of `null`
+   * so that "no mapping" is distinguishable from "provider down".
    */
-  async getAnimeByAnilistId(
+  async getMediaByAnilistId(
     anilistId: number,
+    mediaType: "anime" | "manga" = "anime",
   ): Promise<KitsuLookupResult> {
     if (!Number.isInteger(anilistId) || anilistId <= 0) {
       return { kind: "not_mapped", reason: "incomplete_mapping" };
     }
 
+    const site = mediaType === "manga" ? ANILIST_MANGA_SITE : ANILIST_SITE;
+    const targetType = mediaType === "manga" ? "manga" : "anime";
+
     try {
       const params = new URLSearchParams({
-        "filter[externalSite]": ANILIST_SITE,
+        "filter[externalSite]": site,
         "filter[externalId]": String(anilistId),
         include: "item",
         "page[limit]": "10",
@@ -364,7 +383,7 @@ export class KitsuClient {
       const mappings = this.listData(payload).filter((resource) => {
         const attrs = attributesOf(resource);
         return (
-          isAniListSite(attrs.externalSite) &&
+          isAniListSite(attrs.externalSite, site) &&
           String(attrs.externalId ?? "") === String(anilistId)
         );
       });
@@ -376,7 +395,7 @@ export class KitsuClient {
       const kitsuIds = new Set<number>();
       for (const mapping of mappings) {
         for (const ref of relationshipRefs(mapping, "item")) {
-          if (ref.type !== "anime") continue;
+          if (ref.type !== targetType) continue;
           const id = Number(ref.id);
           if (Number.isInteger(id) && id > 0) {
             kitsuIds.add(id);
@@ -396,9 +415,9 @@ export class KitsuClient {
       const kitsuId = [...kitsuIds][0] as number;
       const included = (payload.included ?? []).find(
         (resource) =>
-          resource.type === "anime" && resource.id === String(kitsuId),
+          resource.type === targetType && resource.id === String(kitsuId),
       );
-      const resource = included ?? (await this.fetchAnimeResource(kitsuId));
+      const resource = included ?? (await this.fetchResource(targetType, kitsuId));
       if (!resource) {
         return { kind: "not_mapped", reason: "incomplete_mapping" };
       }
@@ -420,6 +439,18 @@ export class KitsuClient {
     } catch (error) {
       return { kind: "error", error: toKitsuError(error) };
     }
+  }
+
+  async getAnimeByAnilistId(
+    anilistId: number,
+  ): Promise<KitsuLookupResult> {
+    return this.getMediaByAnilistId(anilistId, "anime");
+  }
+
+  async getMangaByAnilistId(
+    anilistId: number,
+  ): Promise<KitsuLookupResult> {
+    return this.getMediaByAnilistId(anilistId, "manga");
   }
 
   /** First verified AniList mapping for a Kitsu search result, if unambiguous. */

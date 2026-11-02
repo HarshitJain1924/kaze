@@ -89,7 +89,6 @@ export function FeaturedAngularCard({
   const title = getDisplayTitle(anime.title, titleLanguage === "english");
   const cover = anime.coverImage.extraLarge ?? anime.coverImage.large;
   const banner = anime.bannerImage ?? null;
-  const backdropArt = banner ?? cover ?? null;
   const accentColor = anime.coverImage.color ?? null;
 
   const manga = isManga(anime);
@@ -170,21 +169,30 @@ export function FeaturedAngularCard({
           </div>
         ) : null}
 
-        {backdropArt && isHttpUrl(backdropArt) ? (
+        {banner && isHttpUrl(banner) ? (
           <div className="absolute inset-0">
             <Image
-              src={backdropArt}
+              src={banner}
               alt=""
               fill
               unoptimized
               sizes="100vw"
-              className={cn(
-                "object-cover object-[center_20%] sm:object-[center_25%] transition-opacity duration-500",
-                banner
-                  ? "opacity-85 dark:opacity-80"
-                  : "opacity-40 blur-xs",
-              )}
+              className="object-cover object-[center_20%] sm:object-[center_25%] opacity-85 dark:opacity-80 transition-opacity duration-500"
             />
+          </div>
+        ) : cover && isHttpUrl(cover) ? (
+          <div className="absolute right-0 top-0 bottom-0 w-2/3 sm:w-1/2 overflow-hidden pointer-events-none select-none">
+            <div className="relative h-full w-full">
+              <Image
+                src={cover}
+                alt=""
+                fill
+                unoptimized
+                sizes="(max-width: 640px) 66vw, 50vw"
+                className="object-cover object-top opacity-35 dark:opacity-30 transition-opacity duration-500"
+              />
+              <div className="absolute inset-0 bg-gradient-to-r from-surface via-surface/60 to-transparent" />
+            </div>
           </div>
         ) : null}
 

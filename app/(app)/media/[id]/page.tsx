@@ -20,6 +20,7 @@ import {
   formatMediaKind,
   formatRelationType,
   getDisplayTitle,
+  isHttpUrl,
 } from "@/lib/utils";
 import {
   getCatalogService,
@@ -168,20 +169,22 @@ export default async function AnimeDetailsPage({ params }: PageProps) {
   const endDate = formatAnimeDate(anime.endDate);
   const relationGroups = groupRelations(anime.relations);
   const displayTitle = getDisplayTitle(anime.title, true);
-  const heroImage = anime.bannerImage ?? cover;
+  const hasBanner = Boolean(anime.bannerImage && isHttpUrl(anime.bannerImage));
+  const accentColor = anime.coverImage.color ?? null;
 
   return (
     <div className="relative -mx-4 -mt-5 sm:-mx-6 lg:-mx-10 lg:-mt-8">
-      {/* Ambient Hero Backdrop (Full-bleed, seamless organic blend into page background) */}
-      <div
-        aria-hidden="true"
-        className="pointer-events-none absolute inset-x-0 top-0 h-[480px] sm:h-[540px] lg:h-[580px] overflow-hidden select-none -z-10"
-      >
-        {/* Ambient atmospheric aura (diffused saturated color bleeding into surroundings) */}
-        {heroImage ? (
-          <div className="absolute inset-0 scale-110 blur-[70px] saturate-[1.6] brightness-105 opacity-30 dark:opacity-25">
+      {/* Hero Backdrop Presentation */}
+      {hasBanner && anime.bannerImage ? (
+        /* Full-Viewport Fixed Background Wallpaper for landscape banners (scaled full vh, stays fixed on scroll) */
+        <div
+          aria-hidden="true"
+          className="pointer-events-none fixed inset-0 z-0 h-screen w-screen overflow-hidden select-none"
+        >
+          {/* Ambient atmospheric aura: soft diffused color backlight */}
+          <div className="absolute inset-0 scale-110 blur-[100px] saturate-[1.6] brightness-105 opacity-30 dark:opacity-20 pointer-events-none">
             <Image
-              src={heroImage}
+              src={anime.bannerImage}
               alt=""
               fill
               priority
@@ -189,10 +192,8 @@ export default async function AnimeDetailsPage({ params }: PageProps) {
               className="object-cover"
             />
           </div>
-        ) : null}
 
-        {/* Hero banner artwork */}
-        {anime.bannerImage ? (
+          {/* Full-viewport landscape artwork (fixed wallpaper) */}
           <div className="relative h-full w-full">
             <Image
               src={anime.bannerImage}
@@ -201,35 +202,91 @@ export default async function AnimeDetailsPage({ params }: PageProps) {
               priority
               unoptimized
               sizes="100vw"
-              className="object-cover object-center opacity-100"
+              className="object-cover object-top opacity-85 dark:opacity-60 dark:brightness-[0.9] dark:contrast-[1.05] transition-opacity"
             />
           </div>
-        ) : cover ? (
-          <div className="relative h-full w-full">
-            <Image
-              src={cover}
-              alt=""
-              fill
-              priority
-              unoptimized
-              sizes="100vw"
-              className="scale-105 object-cover object-center opacity-40 blur-lg"
+
+          {/* Dynamic color tint from anime dominant color */}
+          {accentColor ? (
+            <div
+              className="absolute inset-0 opacity-20 dark:opacity-15 mix-blend-screen pointer-events-none"
+              style={{
+                background: `radial-gradient(circle at 75% 25%, ${accentColor} 0%, transparent 65%)`,
+              }}
             />
-          </div>
-        ) : (
-          <div className="absolute inset-0 bg-[radial-gradient(80%_140%_at_20%_0%,var(--accent-soft),transparent_70%)]" />
-        )}
+          ) : null}
 
-        {/* Seamless multi-directional gradient blending into surroundings */}
-        {/* Soft horizontal wash so centered artwork shines while text has liquid-glass backing */}
-        <div className="absolute inset-0 bg-gradient-to-r from-bg/75 via-bg/25 via-30% via-transparent to-transparent" />
+          {/* Ambient dark overlay so white-backdrop banners (like manga/manhwa) don't sear in dark mode */}
+          <div className="absolute inset-0 hidden dark:block bg-black/25 pointer-events-none" />
 
-        {/* Smooth top scrim for breadcrumb visibility */}
-        <div className="absolute inset-x-0 top-0 h-24 bg-gradient-to-b from-black/40 via-black/10 to-transparent" />
+          {/* Top scrim for breadcrumb and header contrast */}
+          <div className="absolute inset-x-0 top-0 h-28 bg-gradient-to-b from-black/60 via-black/25 to-transparent pointer-events-none" />
 
-        {/* Smooth organic bottom fade that dissolves into page body without hard lines */}
-        <div className="absolute inset-0 bg-gradient-to-t from-bg/95 via-bg/55 via-25% via-transparent to-transparent" />
-      </div>
+          {/* Soft horizontal ambient wash: keeps left metadata & vertical poster legible */}
+          <div className="absolute inset-0 bg-gradient-to-r from-bg/75 via-bg/35 via-45% to-transparent pointer-events-none" />
+
+          {/* Full-page vertical fade: keeps content and text 100% readable while scrolling */}
+          <div className="absolute inset-0 bg-gradient-to-t from-bg via-bg/65 via-40% to-transparent pointer-events-none" />
+        </div>
+      ) : (
+        /* Local Hero Stage for vertical posters (kept as is, scrolling naturally with the header) */
+        <div
+          aria-hidden="true"
+          className="pointer-events-none absolute inset-x-0 top-0 h-[280px] sm:h-[340px] lg:h-[390px] overflow-hidden select-none -z-10"
+        >
+          {/* Ambient atmospheric aura from cover colors */}
+          {cover ? (
+            <div className="absolute inset-0 scale-125 blur-[90px] saturate-150 opacity-25 dark:opacity-20 pointer-events-none">
+              <Image
+                src={cover}
+                alt=""
+                fill
+                priority
+                sizes="100vw"
+                className="object-cover"
+              />
+            </div>
+          ) : null}
+
+          {/* Visible vertical poster showcase on the right side of the hero stage */}
+          {cover ? (
+            <div className="absolute right-0 sm:right-6 lg:right-16 top-0 bottom-0 w-[240px] sm:w-[320px] lg:w-[400px] overflow-hidden pointer-events-none select-none">
+              <div className="relative h-full w-full">
+                <Image
+                  src={cover}
+                  alt=""
+                  fill
+                  priority
+                  unoptimized
+                  sizes="(max-width: 640px) 240px, (max-width: 1024px) 320px, 400px"
+                  className="object-cover object-top opacity-60 dark:opacity-45 brightness-95 contrast-105 transition-opacity"
+                />
+                {/* Smooth horizontal gradient to dissolve into page background on the left */}
+                <div className="absolute inset-0 bg-gradient-to-r from-bg via-bg/40 via-25% to-transparent" />
+                {/* Smooth vertical scrims (top scrim & bottom dissolve into page) */}
+                <div className="absolute inset-x-0 top-0 h-16 bg-gradient-to-b from-bg/90 to-transparent" />
+                <div className="absolute inset-x-0 bottom-0 h-28 bg-gradient-to-t from-bg via-bg/85 to-transparent" />
+              </div>
+            </div>
+          ) : (
+            <div className="absolute inset-0 bg-[radial-gradient(80%_140%_at_20%_0%,var(--accent-soft),transparent_70%)]" />
+          )}
+
+          {/* Dynamic color tint from anime dominant color */}
+          {accentColor ? (
+            <div
+              className="absolute inset-0 opacity-20 dark:opacity-15 mix-blend-screen pointer-events-none"
+              style={{
+                background: `radial-gradient(circle at 75% 25%, ${accentColor} 0%, transparent 65%)`,
+              }}
+            />
+          ) : null}
+
+          {/* Ambient fade when showcasing vertical cover on the right */}
+          <div className="absolute inset-0 bg-gradient-to-r from-bg via-bg/85 via-45% to-transparent pointer-events-none" />
+          <div className="absolute inset-x-0 bottom-0 h-32 bg-gradient-to-t from-bg via-bg/80 via-40% to-transparent pointer-events-none" />
+        </div>
+      )}
 
       {/* Hero Foreground Content */}
       <div className="relative z-10 mx-auto max-w-[1560px] px-4 pt-4 sm:px-6 sm:pt-6 lg:px-10 lg:pt-6">

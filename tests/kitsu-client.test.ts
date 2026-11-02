@@ -338,4 +338,53 @@ describe("KitsuClient", () => {
     });
     expect(fetchMock).not.toHaveBeenCalled();
   });
+
+  it("resolves manga mappings using anilist/manga external site and returns landscape banner", async () => {
+    const fetchMock = vi.fn(async (url: string) => {
+      expect(url).toContain("filter%5BexternalSite%5D=anilist%2Fmanga");
+      expect(url).toContain("filter%5BexternalId%5D=126297");
+      return jsonResponse({
+        data: [
+          {
+            id: "324691",
+            type: "mappings",
+            attributes: {
+              externalSite: "anilist/manga",
+              externalId: "126297",
+            },
+            relationships: {
+              item: { data: { type: "manga", id: "58010" } },
+            },
+          },
+        ],
+        included: [
+          {
+            type: "manga",
+            id: "58010",
+            attributes: {
+              canonicalTitle: "Teenage Mercenary",
+              subtype: "manhwa",
+              chapterCount: 150,
+              volumeCount: 5,
+              coverImage: {
+                original: "https://media.kitsu.app/manga/58010/cover.png",
+              },
+              posterImage: {
+                large: "https://media.kitsu.app/manga/58010/poster.jpg",
+              },
+            },
+          },
+        ],
+      });
+    });
+
+    const result = await clientWith(fetchMock).getMangaByAnilistId(126297);
+    expect(result.kind).toBe("found");
+    if (result.kind !== "found") return;
+
+    expect(result.summary.id).toBe(126297);
+    expect(result.summary.mediaType).toBe("manga");
+    expect(result.bannerImage).toBe("https://media.kitsu.app/manga/58010/cover.png");
+    expect(result.summary.chapters).toBe(150);
+  });
 });

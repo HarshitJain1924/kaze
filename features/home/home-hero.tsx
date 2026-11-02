@@ -250,17 +250,20 @@ export function HomeHero({
             />
           </div>
         ) : activeCover && isHttpUrl(activeCover) ? (
-          <div className="absolute inset-0">
-            <Image
-              key={`hero-cover-${currentAnime?.id}`}
-              src={activeCover}
-              alt=""
-              fill
-              priority
-              unoptimized
-              sizes="100vw"
-              className="scale-105 object-cover object-center opacity-50 blur-md transition-opacity duration-700 ease-out"
-            />
+          <div className="absolute right-0 top-0 bottom-0 w-3/4 sm:w-3/5 lg:w-1/2 overflow-hidden pointer-events-none select-none">
+            <div className="relative h-full w-full">
+              <Image
+                key={`hero-cover-${currentAnime?.id}`}
+                src={activeCover}
+                alt=""
+                fill
+                priority
+                unoptimized
+                sizes="(max-width: 640px) 75vw, 50vw"
+                className="object-cover object-top opacity-60 dark:opacity-45 transition-opacity duration-700 ease-out"
+              />
+              <div className="absolute inset-0 bg-gradient-to-r from-black via-black/50 to-transparent" />
+            </div>
           </div>
         ) : (
           <div className="absolute inset-0">

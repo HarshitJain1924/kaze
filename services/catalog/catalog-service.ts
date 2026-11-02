@@ -160,11 +160,11 @@ export class CatalogService {
   private suspensionConfirmedAt: number | null = null;
 
   private readonly kitsuInFlight = new Map<
-    number,
+    string,
     Promise<KitsuLookupResult | null>
   >();
   /** IDs known to have no usable Kitsu mapping, to avoid repeat lookups. */
-  private readonly kitsuMisses = new Map<number, number>();
+  private readonly kitsuMisses = new Map<string, number>();
   private lastKitsuWarningAt = 0;
   /** Short-lived cache for degraded search results to avoid fallback storms. */
   private readonly fallbackSearches = new TtlCache<FallbackPage>(
@@ -221,18 +221,13 @@ export class CatalogService {
           return this.result(null, "anilist");
         }
 
-        // Kitsu relationships are anime-only. Manga details never use them.
-        if (anime.mediaType === "manga") {
-          this.metadataCache.putDetails(anime);
-          this.metadataCache.putSummary(toSummary(anime));
-          return this.result(anime, "anilist");
-        }
-
-        // Opportunistically upgrade banner & poster images with high-resolution Kitsu assets
+        // Opportunistically upgrade banner & poster images with high-resolution Kitsu assets (works for both anime and manga)
         try {
-          const kitsu = await this.lookupKitsu(id);
+          const kitsu = await this.lookupKitsu(id, anime.mediaType ?? "anime");
           if (kitsu?.kind === "found") {
-            if (kitsu.bannerImage) {
+            if (kitsu.bannerImage && !anime.bannerImage) {
+              anime.bannerImage = kitsu.bannerImage;
+            } else if (kitsu.bannerImage) {
               anime.bannerImage = kitsu.bannerImage;
             }
             if (kitsu.summary.coverImage.extraLarge) {
@@ -1067,22 +1062,24 @@ export class CatalogService {
    */
   private async lookupKitsu(
     id: number,
+    mediaType: "anime" | "manga" = "anime",
   ): Promise<KitsuLookupResult | null> {
-    const missUntil = this.kitsuMisses.get(id);
+    const key = `${mediaType}:${id}`;
+    const missUntil = this.kitsuMisses.get(key);
     if (missUntil !== undefined && this.now() < missUntil) {
       return null;
     }
 
-    const existing = this.kitsuInFlight.get(id);
+    const existing = this.kitsuInFlight.get(key);
     if (existing) {
       return existing;
     }
 
     const request = this.kitsuClient
-      .getAnimeByAnilistId(id)
+      .getMediaByAnilistId(id, mediaType)
       .then((result) => {
         if (result.kind === "not_mapped" || result.kind === "ambiguous") {
-          this.kitsuMisses.set(id, this.now() + KITSU_MISS_TTL_MS);
+          this.kitsuMisses.set(key, this.now() + KITSU_MISS_TTL_MS);
         }
         if (result.kind === "error") {
           this.warnKitsu(result.error.message);
@@ -1096,10 +1093,10 @@ export class CatalogService {
         return null;
       })
       .finally(() => {
-        this.kitsuInFlight.delete(id);
+        this.kitsuInFlight.delete(key);
       });
 
-    this.kitsuInFlight.set(id, request);
+    this.kitsuInFlight.set(key, request);
     return request;
   }
 
