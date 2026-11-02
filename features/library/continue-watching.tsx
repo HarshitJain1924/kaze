@@ -22,7 +22,14 @@ import { useToast } from "@/components/providers/toast-provider";
 import { useActiveTimeZone, usePreferences } from "@/components/providers/preferences-provider";
 import { useLibrary } from "@/features/library/library-provider";
 import { formatAiringTime, toIsoDateString } from "@/lib/schedule";
-import { cn, formatFormat, getDisplayTitle, isHttpUrl } from "@/lib/utils";
+import {
+  cn,
+  formatFormat,
+  formatMediaKind,
+  getDisplayTitle,
+  isHttpUrl,
+  isManga,
+} from "@/lib/utils";
 import { seasonLabel } from "@/lib/season";
 import type { AiringScheduleEntry, AnimeSeason, AnimeSummary } from "@/types/anime";
 import type { LibraryItem } from "@/types/library";
@@ -82,9 +89,11 @@ export function FeaturedAngularCard({
   const title = getDisplayTitle(anime.title, titleLanguage === "english");
   const cover = anime.coverImage.extraLarge ?? anime.coverImage.large;
   const banner = anime.bannerImage ?? null;
+  const backdropArt = banner ?? cover ?? null;
   const accentColor = anime.coverImage.color ?? null;
 
-  const total = anime.episodes;
+  const manga = isManga(anime);
+  const total = manga ? (anime.chapters ?? null) : anime.episodes;
   const { nextEp, atEnd } = getNextEpisodeNumber(
     entry.progress,
     watchedEpisodes,
@@ -102,7 +111,11 @@ export function FeaturedAngularCard({
       : null;
 
   // Metadata chips
-  const formatLabel = anime.format ? formatFormat(anime.format) : null;
+  const formatLabel = manga
+    ? formatMediaKind(anime)
+    : anime.format
+      ? formatFormat(anime.format)
+      : null;
   const animeSeason = (anime as unknown as { season?: AnimeSeason | null })
     .season;
   const seasonLabelText =
@@ -130,14 +143,14 @@ export function FeaturedAngularCard({
     await updateEntry(anime.id, { progress: prevEp });
     toast({
       title: "Progress updated",
-      description: `${title}: Episode ${prevEp}`,
+      description: `${title}: ${manga ? "Chapter" : "Episode"} ${prevEp}`,
     });
   };
 
   return (
     <article
       aria-label={`Featured: ${title}`}
-      className="group relative isolate overflow-hidden rounded-3xl border border-border-subtle bg-surface-2 shadow-xl transition-all"
+      className="group relative isolate overflow-hidden rounded-3xl border border-white/20 dark:border-white/10 bg-surface/75 dark:bg-surface/50 backdrop-blur-xl shadow-xl transition-all"
     >
       {/* Ambient Artwork Backdrop */}
       <div
@@ -145,7 +158,7 @@ export function FeaturedAngularCard({
         className="pointer-events-none absolute inset-0 select-none overflow-hidden z-0"
       >
         {cover && isHttpUrl(cover) ? (
-          <div className="absolute inset-0 scale-125 blur-3xl saturate-200 opacity-20 dark:opacity-30">
+          <div className="absolute inset-0 scale-125 blur-3xl saturate-200 opacity-20 dark:opacity-35">
             <Image
               src={banner ?? cover}
               alt=""
@@ -157,15 +170,20 @@ export function FeaturedAngularCard({
           </div>
         ) : null}
 
-        {banner && isHttpUrl(banner) ? (
+        {backdropArt && isHttpUrl(backdropArt) ? (
           <div className="absolute inset-0">
             <Image
-              src={banner}
+              src={backdropArt}
               alt=""
               fill
               unoptimized
               sizes="100vw"
-              className="object-cover object-[center_30%] opacity-25"
+              className={cn(
+                "object-cover object-[center_20%] sm:object-[center_25%] transition-opacity duration-500",
+                banner
+                  ? "opacity-85 dark:opacity-80"
+                  : "opacity-40 blur-xs",
+              )}
             />
           </div>
         ) : null}
@@ -173,16 +191,16 @@ export function FeaturedAngularCard({
         {/* Dynamic color tint */}
         {accentColor ? (
           <div
-            className="absolute inset-0 opacity-20 mix-blend-screen"
+            className="absolute inset-0 opacity-20 dark:opacity-25 mix-blend-screen"
             style={{
               background: `radial-gradient(circle at 85% 25%, ${accentColor} 0%, transparent 65%)`,
             }}
           />
         ) : null}
 
-        {/* Multi-directional gradients */}
-        <div className="absolute inset-0 bg-gradient-to-r from-surface via-surface/95 via-45% to-surface/50" />
-        <div className="absolute inset-0 bg-gradient-to-t from-surface via-transparent to-transparent" />
+        {/* Multi-directional gradients: protect text on the left, let artwork shine through clearly on the right */}
+        <div className="absolute inset-0 bg-gradient-to-r from-surface via-surface/90 via-45% to-surface/15 dark:to-transparent" />
+        <div className="absolute inset-0 bg-gradient-to-t from-surface/85 via-surface/40 via-30% to-transparent sm:hidden" />
       </div>
 
       {/* Foreground Content */}
@@ -210,7 +228,7 @@ export function FeaturedAngularCard({
           {/* Floating next episode pill */}
           <span className="absolute left-2 top-2 z-10 inline-flex items-center gap-1 rounded-lg border border-white/20 bg-black/80 px-2 py-0.5 text-[10px] font-bold text-accent-strong backdrop-blur-md shadow-sm">
             <PlayIcon className="h-2.5 w-2.5 fill-current" />
-            <span>Next: Ep {atEnd ? total : nextEp}</span>
+            <span>Next: {manga ? "Ch" : "Ep"} {atEnd ? total : nextEp}</span>
           </span>
         </Link>
 
@@ -222,9 +240,9 @@ export function FeaturedAngularCard({
                 <div className="flex flex-wrap items-center gap-2">
                   <span className="flex h-2 w-2 rounded-full bg-accent-strong radar-live-dot" />
                   <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-accent-strong">
-                    Continue Watching
+                    {manga ? "Continue Reading" : "Continue Watching"}
                   </p>
-                  {airingToday ? (
+                  {!manga && airingToday ? (
                     <span className="inline-flex items-center gap-1 rounded-md border border-emerald-500/40 bg-emerald-950/70 px-2 py-0.5 text-[10px] font-bold text-emerald-300 shadow-xs">
                       <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 radar-live-dot" />
                       Episode {airingToday.episode} Airs Today ({formatAiringTime(airingToday.airingAt, activeTimeZone)})
@@ -242,8 +260,8 @@ export function FeaturedAngularCard({
 
                 <p className="mt-1 text-xs font-medium text-muted sm:text-[13px]">
                   {total !== null && total > 0
-                    ? `Up next: episode ${atEnd ? total : nextEp} of ${total}`
-                    : `Up next: episode ${nextEp}`}
+                    ? `Up next: ${manga ? "chapter" : "episode"} ${atEnd ? total : nextEp} of ${total}`
+                    : `Up next: ${manga ? "chapter" : "episode"} ${nextEp}`}
                 </p>
               </div>
 
@@ -368,7 +386,8 @@ export function FeaturedAngularCard({
                 <span className="font-bold tabular-nums text-fg">
                   {watchedCount}
                 </span>
-                {total && total > 0 ? ` / ${total}` : ""} episodes watched
+                {total && total > 0 ? ` / ${total}` : ""}{" "}
+                {manga ? "chapters read" : "episodes watched"}
               </span>
               <span className="font-semibold tabular-nums text-accent-strong">
                 {percent !== null ? `${percent}% Complete` : "Ongoing series"}
@@ -406,18 +425,21 @@ export function FeaturedAngularCard({
                 ) : (
                   <>
                     <PlayIcon className="h-4 w-4 fill-current" />
-                    <span>Mark Episode {nextEp} Watched</span>
+                    <span>
+                      Mark {manga ? "Chapter" : "Episode"} {nextEp}{" "}
+                      {manga ? "Read" : "Watched"}
+                    </span>
                   </>
                 )}
               </button>
 
-              {/* Quick Undo / Decrement Stepper (-1 ep) */}
+              {/* Quick Undo / Decrement Stepper (-1 ep/ch) */}
               {entry.progress > 0 && !atEnd ? (
                 <button
                   type="button"
                   disabled={isPending}
                   onClick={handleDecrement}
-                  title="Undo last episode (-1)"
+                  title={`Undo last ${manga ? "chapter" : "episode"} (-1)`}
                   className="flex h-10 w-10 sm:h-11 sm:w-11 items-center justify-center rounded-xl border border-border bg-surface-3/60 text-muted transition-all hover:bg-surface-3 hover:text-fg active:scale-95"
                 >
                   <MinusIcon className="h-4 w-4" />
@@ -475,7 +497,8 @@ export function QueueCard({
   const title = getDisplayTitle(anime.title, titleLanguage === "english");
   const thumb = anime.coverImage.extraLarge ?? anime.coverImage.large;
 
-  const total = anime.episodes;
+  const manga = isManga(anime);
+  const total = manga ? (anime.chapters ?? null) : anime.episodes;
   // Honour per-episode records so a gap (e.g. 1 and 3 watched) points at 2,
   // matching the featured player instead of skipping to progress + 1.
   const { nextEp, atEnd } = getNextEpisodeNumber(
@@ -515,14 +538,14 @@ export function QueueCard({
         <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/30 to-transparent" />
 
         {/* Top-left next episode or Airing Today tag */}
-        {airingToday ? (
+        {!manga && airingToday ? (
           <span className="absolute left-2 top-2 inline-flex items-center gap-1 rounded-md border border-emerald-500/40 bg-emerald-950/90 px-1.5 py-0.5 text-[10px] font-bold text-emerald-300 backdrop-blur-md shadow-sm">
             <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 radar-live-dot" />
             <span>Ep {airingToday.episode} Today</span>
           </span>
         ) : (
           <span className="absolute left-2 top-2 inline-flex items-center gap-1 rounded-md border border-white/20 bg-black/75 px-1.5 py-0.5 text-[10px] font-bold text-amber-300 backdrop-blur-md">
-            <span>Ep {atEnd ? total : nextEp}</span>
+            <span>{manga ? "Ch" : "Ep"} {atEnd ? total : nextEp}</span>
           </span>
         )}
 
@@ -552,7 +575,7 @@ export function QueueCard({
             {title}
           </p>
           <p className="mt-0.5 truncate text-[11px] text-muted">
-            {total ? `${entry.progress}/${total} eps` : `${entry.progress} watched`}
+            {total ? `${entry.progress}/${total} ${manga ? "ch" : "eps"}` : `${entry.progress} ${manga ? "read" : "watched"}`}
             {percent !== null ? ` · ${percent}%` : ""}
           </p>
         </div>
@@ -565,7 +588,7 @@ export function QueueCard({
             e.stopPropagation();
             onIncrement(anime.id, nextEp);
           }}
-          title={`Mark episode ${nextEp} watched`}
+          title={`Mark ${manga ? "chapter" : "episode"} ${nextEp} ${manga ? "read" : "watched"}`}
           className={cn(
             "flex h-7 shrink-0 items-center gap-1 rounded-lg px-2 text-[11px] font-bold transition-all active:scale-95",
             atEnd
@@ -578,7 +601,7 @@ export function QueueCard({
           ) : (
             <PlayIcon className="h-2.5 w-2.5 fill-current" />
           )}
-          <span>{atEnd ? "Done" : `+Ep`}</span>
+          <span>{atEnd ? "Done" : `+${manga ? "Ch" : "Ep"}`}</span>
         </button>
       </div>
     </article>
@@ -634,9 +657,15 @@ export function ContinueWatching({ todayEntries }: ContinueWatchingProps = {}) {
         return aAiring.airingAt - bAiring.airingAt;
       }
 
-      // 2. Unwatched vs completed
-      const aHasMore = a.anime.episodes === null || a.entry.progress < a.anime.episodes;
-      const bHasMore = b.anime.episodes === null || b.entry.progress < b.anime.episodes;
+      // 2. Uncompleted vs completed
+      const aTotal = isManga(a.anime)
+        ? (a.anime.chapters ?? null)
+        : a.anime.episodes;
+      const bTotal = isManga(b.anime)
+        ? (b.anime.chapters ?? null)
+        : b.anime.episodes;
+      const aHasMore = aTotal === null || a.entry.progress < aTotal;
+      const bHasMore = bTotal === null || b.entry.progress < bTotal;
       if (aHasMore && !bHasMore) return -1;
       if (!aHasMore && bHasMore) return 1;
 
@@ -701,8 +730,17 @@ export function ContinueWatching({ todayEntries }: ContinueWatchingProps = {}) {
 
   const gridItems = showAllGrid ? watching : watching.slice(0, 6);
 
+  const hasAnime = watching.some((it) => !isManga(it.anime));
+  const hasManga = watching.some((it) => isManga(it.anime));
+  const sectionTitle =
+    hasAnime && hasManga
+      ? "Continue watching & reading"
+      : hasManga
+        ? "Continue reading"
+        : "Continue watching";
+
   return (
-    <section aria-label="Continue watching" className="space-y-4">
+    <section aria-label={sectionTitle} className="space-y-4">
       {/* Section Header */}
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-2">
@@ -710,7 +748,7 @@ export function ContinueWatching({ todayEntries }: ContinueWatchingProps = {}) {
             href="/library?status=watching"
             className="group inline-flex items-center gap-1.5 font-display text-base font-bold tracking-tight text-fg transition-colors hover:text-accent-strong sm:text-lg"
           >
-            <span>Continue watching</span>
+            <span>{sectionTitle}</span>
             <ChevronRightIcon className="h-4 w-4 text-muted transition-transform group-hover:translate-x-0.5" />
           </Link>
           {watching.length > 0 ? (
@@ -799,13 +837,13 @@ export function ContinueWatching({ todayEntries }: ContinueWatchingProps = {}) {
           compact
           icon={<PlayIcon className="h-5 w-5" />}
           title="Nothing in progress"
-          description="Mark an anime as Watching and it will appear here with one-tap episode updates."
+          description="Mark an anime as Watching or a manga as Reading and it will appear here with one-tap updates."
           action={
             <Link
               href="/discover"
               className="inline-flex h-8 items-center rounded-lg border border-border bg-surface-2 px-3 text-[13px] font-medium text-fg transition-colors hover:border-accent/50 hover:bg-surface-3"
             >
-              Browse anime
+              Browse catalog
             </Link>
           }
         />

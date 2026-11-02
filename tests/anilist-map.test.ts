@@ -149,14 +149,24 @@ describe("mapAnime", () => {
     expect(anime?.startDate).toEqual({ year: 2013, month: 4, day: 7 });
   });
 
-  it("excludes spoiler tags and non-anime relations", () => {
+  it("excludes spoiler tags but keeps cross-media relations", () => {
     const anime = mapAnime(rawDetails);
     expect(anime?.tags).toEqual(["Military", "Tragedy"]);
-    expect(anime?.relations).toHaveLength(1);
-    expect(anime?.relations[0]).toMatchObject({
-      id: 16499,
-      relationType: "SEQUEL",
-    });
+    expect(anime?.relations).toHaveLength(2);
+    expect(anime?.relations).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          id: 16499,
+          relationType: "SEQUEL",
+          mediaType: "anime",
+        }),
+        expect.objectContaining({
+          id: 30001,
+          relationType: "ADAPTATION",
+          mediaType: "manga",
+        }),
+      ]),
+    );
   });
 
   it("returns null for unusable details", () => {

@@ -44,9 +44,9 @@ export function LibraryBrowser({
   const [status, setStatus] = useState<LibraryStatusFilter>(initialStatus);
   const [query, setQuery] = useState("");
   const [sort, setSort] = useState<LibrarySort>("recent");
-  const [mediaFilter, setMediaFilter] = useState<"all" | "anime" | "manga">(
-    "all",
-  );
+  const [mediaFilter, setMediaFilter] = useState<
+    "all" | "anime" | "manga" | "manhwa"
+  >("all");
 
   const view = preferences.libraryView;
 
@@ -117,11 +117,18 @@ export function LibraryBrowser({
       if (!showAdult && item.anime?.isAdult) {
         return false;
       }
-      if (
-        mediaFilter !== "all" &&
-        (item.entry.mediaType ?? "anime") !== mediaFilter
-      ) {
-        return false;
+      if (mediaFilter === "anime") {
+        if ((item.entry.mediaType ?? "anime") !== "anime") return false;
+      } else if (mediaFilter === "manga") {
+        if (item.entry.mediaType !== "manga") return false;
+        if (item.anime?.countryOfOrigin === "KR") return false;
+      } else if (mediaFilter === "manhwa") {
+        if (
+          item.entry.mediaType !== "manga" ||
+          item.anime?.countryOfOrigin !== "KR"
+        ) {
+          return false;
+        }
       }
       if (!needle) {
         return true;
@@ -357,7 +364,7 @@ export function LibraryBrowser({
           aria-label="Filter library by media type"
           className="inline-flex w-fit flex-wrap items-center gap-1 rounded-2xl border border-border-subtle bg-surface-2 p-1"
         >
-          {(["all", "anime", "manga"] as const).map((type) => (
+          {(["all", "anime", "manga", "manhwa"] as const).map((type) => (
             <button
               key={type}
               type="button"

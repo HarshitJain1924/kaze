@@ -106,12 +106,9 @@ export function mapAnime(raw: unknown): Anime | null {
   const relations: RelatedAnime[] = [];
 
   for (const edge of parsed.data.relations?.edges ?? []) {
-    // Keep relations within the same media type. Anime pages show anime
-    // relations and manga pages show manga relations; both link to /media.
-    const currentRawType = parsed.data.type ?? "ANIME";
-    if (edge.node.type && edge.node.type !== currentRawType) {
-      continue;
-    }
+    // Keep every connected release, including cross-media franchise entries
+    // such as an anime's manga adaptation or a manga's anime adaptation.
+    // All related cards link to the canonical /media route.
     const node = mapAnimeSummary(edge.node);
     if (!node) {
       continue;

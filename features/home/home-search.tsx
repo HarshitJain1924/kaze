@@ -29,9 +29,11 @@ import { useLibrary } from "@/features/library/library-provider";
 import {
   cn,
   formatFormat,
+  formatMediaKind,
   formatScore,
   getDisplayTitle,
   isHttpUrl,
+  isManga,
 } from "@/lib/utils";
 import type { AnimeSummary } from "@/types/anime";
 
@@ -49,6 +51,7 @@ interface QuickDiscoveryTag {
 
 const QUICK_DISCOVERY_TAGS: QuickDiscoveryTag[] = [
   { label: "Manga", href: "/discover?type=manga", icon: SparklesIcon },
+  { label: "Manhwa", href: "/discover?type=manga&country=KR", icon: SparklesIcon },
   { label: "Trending", href: "/discover?sort=TRENDING_DESC", icon: FlameIcon },
   { label: "Top Rated", href: "/discover?sort=SCORE_DESC", icon: TrophyIcon },
   { label: "Action", href: "/discover?genre=Action", icon: SwordsIcon },
@@ -65,6 +68,7 @@ export function HomeSearch({ popularAnime }: HomeSearchProps) {
 
   const [query, setQuery] = useState("");
   const [debouncedQuery, setDebouncedQuery] = useState("");
+  const [mediaType, setMediaType] = useState<"anime" | "manga" | "manhwa">("anime");
   const [results, setResults] = useState<AnimeSummary[]>([]);
   const [loading, setLoading] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
@@ -138,13 +142,19 @@ export function HomeSearch({ popularAnime }: HomeSearchProps) {
       setLoading(true);
       setError(null);
       try {
-        const response = await fetch(
-          `/api/media/search?q=${encodeURIComponent(debouncedQuery)}&perPage=8`,
-          { signal: controller.signal },
-        );
+        let url = `/api/media/search?q=${encodeURIComponent(debouncedQuery)}&perPage=8`;
+        if (mediaType === "manga") {
+          url += "&type=manga";
+        } else if (mediaType === "manhwa") {
+          url += "&type=manga&country=KR";
+        } else {
+          url += "&type=anime";
+        }
+
+        const response = await fetch(url, { signal: controller.signal });
 
         if (!response.ok) {
-          throw new Error("Failed to search anime");
+          throw new Error(`Failed to search ${mediaType}`);
         }
 
         const data = await response.json();
@@ -152,7 +162,7 @@ export function HomeSearch({ popularAnime }: HomeSearchProps) {
         setActiveIndex(-1);
       } catch (err: unknown) {
         if ((err as Error)?.name === "AbortError") return;
-        setError("Unable to search anime right now.");
+        setError(`Unable to search ${mediaType} right now.`);
         setResults([]);
       } finally {
         setLoading(false);
@@ -164,7 +174,7 @@ export function HomeSearch({ popularAnime }: HomeSearchProps) {
     return () => {
       controller.abort();
     };
-  }, [debouncedQuery]);
+  }, [debouncedQuery, mediaType]);
 
   const handleAdd = useCallback(
     async (anime: AnimeSummary) => {
@@ -263,31 +273,61 @@ export function HomeSearch({ popularAnime }: HomeSearchProps) {
               Quick Find & Track
             </h2>
             <p className="text-xs text-muted">
-              Instant AniList search or 1-tap track trending anime without leaving home
+              Instant AniList search across anime, manga, and manhwa
             </p>
           </div>
         </div>
 
         <div className="flex items-center gap-3">
+          {/* Media Type Tabs */}
+          <div
+            role="tablist"
+            aria-label="Catalogue type"
+            className="inline-flex items-center rounded-xl border border-border-subtle bg-surface-2 p-0.5 text-xs"
+          >
+            {(["anime", "manga", "manhwa"] as const).map((type) => (
+              <button
+                key={type}
+                type="button"
+                role="tab"
+                aria-selected={mediaType === type}
+                onClick={() => {
+                  setMediaType(type);
+                  if (query.trim()) {
+                    setIsOpen(true);
+                  }
+                }}
+                className={cn(
+                  "rounded-lg px-2.5 py-1 text-xs font-semibold capitalize transition-all",
+                  mediaType === type
+                    ? "bg-accent text-accent-contrast shadow-xs"
+                    : "text-muted hover:text-fg hover:bg-surface-3",
+                )}
+              >
+                {type}
+              </button>
+            ))}
+          </div>
+
           <button
             type="button"
             onClick={() => setShowSuggestions(!showSuggestions)}
-            className="text-xs font-medium text-muted hover:text-fg transition-colors"
+            className="hidden sm:inline text-xs font-medium text-muted hover:text-fg transition-colors"
           >
             {showSuggestions ? "Hide suggestions" : "Show suggestions"}
           </button>
           <span className="hidden text-border sm:inline">|</span>
           <Link
-            href="/discover"
+            href={`/discover${mediaType === "manhwa" ? "?type=manga&country=KR" : mediaType === "manga" ? "?type=manga" : ""}`}
             className="hidden items-center gap-1 text-xs font-medium text-accent-strong transition-colors hover:underline sm:inline-flex"
           >
-            <span>Explore all anime</span>
+            <span>Explore all {mediaType}</span>
             <ChevronRightIcon className="h-3.5 w-3.5" />
           </Link>
         </div>
       </div>
 
-      {/* Full-width interactive anime search bar */}
+      {/* Full-width interactive media search bar */}
       <div className="relative">
         <div className="relative flex items-center">
           <SearchIcon className="pointer-events-none absolute left-3.5 h-4 w-4 text-faint" />
@@ -296,7 +336,7 @@ export function HomeSearch({ popularAnime }: HomeSearchProps) {
             ref={inputRef}
             type="search"
             role="searchbox"
-            aria-label="Search anime to track or explore"
+            aria-label={`Search ${mediaType} to track or explore`}
             value={query}
             onChange={(e) => {
               setQuery(e.target.value);
@@ -308,7 +348,13 @@ export function HomeSearch({ popularAnime }: HomeSearchProps) {
               }
             }}
             onKeyDown={handleKeyDown}
-            placeholder="Search anime to track (e.g. Frieren, Solo Leveling, Bleach, Jujutsu Kaisen)..."
+            placeholder={
+              mediaType === "manhwa"
+                ? "Search manhwa to track (e.g. Solo Leveling, Omniscient Reader, Tower of God)..."
+                : mediaType === "manga"
+                  ? "Search manga to track (e.g. Berserk, One Piece, Chainsaw Man, Vagabond)..."
+                  : "Search anime to track (e.g. Frieren, Solo Leveling, Bleach, Jujutsu Kaisen)..."
+            }
             autoComplete="off"
             spellCheck={false}
             className="h-11 w-full rounded-xl border border-border bg-surface-2 pl-10 pr-24 text-sm font-normal text-fg placeholder:text-faint transition-all focus:border-accent focus:bg-surface-3 focus:outline-none focus:ring-2 focus:ring-accent/25 [&::-webkit-search-cancel-button]:appearance-none [&::-webkit-search-cancel-button]:hidden [&::-webkit-search-decoration]:appearance-none"
@@ -371,7 +417,7 @@ export function HomeSearch({ popularAnime }: HomeSearchProps) {
               <div className="py-6 text-center text-xs text-danger">{error}</div>
             ) : results.length === 0 ? (
               <div className="py-6 text-center text-xs text-muted">
-                No anime found matching &quot;{debouncedQuery}&quot;.
+                No {mediaType} found matching &quot;{debouncedQuery}&quot;.
               </div>
             ) : (
               <div className="space-y-1">
@@ -432,18 +478,33 @@ export function HomeSearch({ popularAnime }: HomeSearchProps) {
                                 {score}
                               </span>
                             ) : null}
-                            {anime.format ? (
+                            {isManga(anime) ? (
                               <>
                                 <span>·</span>
-                                <span>{formatFormat(anime.format)}</span>
+                                <span>{formatMediaKind(anime)}</span>
+                                {anime.chapters ? (
+                                  <>
+                                    <span>·</span>
+                                    <span>{anime.chapters} ch</span>
+                                  </>
+                                ) : null}
                               </>
-                            ) : null}
-                            {anime.episodes ? (
+                            ) : (
                               <>
-                                <span>·</span>
-                                <span>{anime.episodes} eps</span>
+                                {anime.format ? (
+                                  <>
+                                    <span>·</span>
+                                    <span>{formatFormat(anime.format)}</span>
+                                  </>
+                                ) : null}
+                                {anime.episodes ? (
+                                  <>
+                                    <span>·</span>
+                                    <span>{anime.episodes} eps</span>
+                                  </>
+                                ) : null}
                               </>
-                            ) : null}
+                            )}
                           </div>
                         </div>
                       </div>
@@ -451,7 +512,7 @@ export function HomeSearch({ popularAnime }: HomeSearchProps) {
                       <div className="shrink-0">
                         {isTracked && entry ? (
                           <div className="flex items-center gap-2">
-                            <StatusBadge status={entry.status} />
+                            <StatusBadge status={entry.status} mediaType={anime.mediaType} />
                             <Link
                               href={`/media/${anime.id}`}
                               onClick={() => setIsOpen(false)}

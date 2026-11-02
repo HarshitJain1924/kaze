@@ -18,10 +18,12 @@ import { useLibrary } from "@/features/library/library-provider";
 import {
   cn,
   formatFormat,
+  formatMediaKind,
   formatRelationType,
   formatScore,
   getDisplayTitle,
   isHttpUrl,
+  isManga,
 } from "@/lib/utils";
 import type { Anime, RelatedAnime } from "@/types/anime";
 
@@ -84,8 +86,14 @@ export function AnimeFranchiseSection({
         id: currentAnime.id,
         title: currentAnime.title,
         coverImage: currentAnime.coverImage,
+        bannerImage: currentAnime.bannerImage,
+        mediaType: currentAnime.mediaType,
         format: currentAnime.format,
         episodes: currentAnime.episodes,
+        chapters: currentAnime.chapters,
+        volumes: currentAnime.volumes,
+        countryOfOrigin: currentAnime.countryOfOrigin,
+        isAdult: currentAnime.isAdult,
         averageScore: currentAnime.averageScore,
         seasonYear: currentAnime.seasonYear,
         status: currentAnime.status,
@@ -320,8 +328,14 @@ export function AnimeFranchiseSection({
           const title = getDisplayTitle(item.title, preferEnglish);
           const cover = item.coverImage.extraLarge ?? item.coverImage.large;
           const score = formatScore(item.averageScore);
+          const manga = isManga(item);
+          const formatLabel = manga
+            ? formatMediaKind(item)
+            : formatFormat(item.format);
+          const unitCount = manga ? item.chapters : item.episodes;
+          const unitLabel = manga ? "ch" : "eps";
           const relationLabel = isCurrent
-            ? "Current Season"
+            ? "Current"
             : formatRelationType(item.relationType) ?? "Related";
 
           return (
@@ -395,13 +409,13 @@ export function AnimeFranchiseSection({
                       {score}
                     </span>
                   ) : null}
-                  {item.format ? (
-                    <span>{formatFormat(item.format)}</span>
-                  ) : null}
-                  {item.episodes ? (
+                  {formatLabel ? <span>{formatLabel}</span> : null}
+                  {unitCount ? (
                     <>
                       <span>·</span>
-                      <span>{item.episodes} eps</span>
+                      <span>
+                        {unitCount} {unitLabel}
+                      </span>
                     </>
                   ) : null}
                 </div>

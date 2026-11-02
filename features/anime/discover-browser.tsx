@@ -72,6 +72,7 @@ interface DiscoveryChannel {
   label: string;
   icon: React.ComponentType<{ className?: string }>;
   filters: Partial<AnimeFilterState>;
+  animeOnly?: boolean;
 }
 
 const DISCOVERY_CHANNELS: DiscoveryChannel[] = [
@@ -81,9 +82,9 @@ const DISCOVERY_CHANNELS: DiscoveryChannel[] = [
   { id: "favourites", label: "Fan Favourites", icon: CrownIcon, filters: { sort: "FAVOURITES_DESC" } },
   { id: "airing", label: "Airing Now", icon: PlayIcon, filters: { status: "RELEASING" } },
   { id: "upcoming", label: "Upcoming", icon: CalendarIcon, filters: { status: "NOT_YET_RELEASED" } },
-  { id: "fall-2026", label: "Fall 2026", icon: LeafIcon, filters: { season: "FALL", year: 2026 } },
-  { id: "movies", label: "Anime Movies", icon: FilmIcon, filters: { format: "MOVIE" } },
-  { id: "ova", label: "OVAs & Specials", icon: ZapIcon, filters: { format: "OVA" } },
+  { id: "fall-2026", label: "Fall 2026", icon: LeafIcon, filters: { season: "FALL", year: 2026 }, animeOnly: true },
+  { id: "movies", label: "Anime Movies", icon: FilmIcon, filters: { format: "MOVIE" }, animeOnly: true },
+  { id: "ova", label: "OVAs & Specials", icon: ZapIcon, filters: { format: "OVA" }, animeOnly: true },
   { id: "light-novels", label: "Light Novels", icon: BookmarkIcon, filters: { source: "LIGHT_NOVEL" } },
   { id: "action", label: "Action", icon: SwordsIcon, filters: { genre: "Action" } },
   { id: "fantasy", label: "Fantasy", icon: WandIcon, filters: { genre: "Fantasy" } },
@@ -707,10 +708,16 @@ export function DiscoverBrowser({
       {/* 2. Quick Discovery Tag Pills (1-Tap Channels) */}
       <div className="no-scrollbar -mx-4 flex gap-2 overflow-x-auto px-4 pb-1 sm:-mx-0 sm:flex-wrap sm:overflow-visible sm:px-0">
         {DISCOVERY_CHANNELS.filter(
-          (channel) => adultAllowed || channel.id !== "adult",
+          (channel) =>
+            (adultAllowed || channel.id !== "adult") &&
+            (activeMediaTab === "anime" || !channel.animeOnly),
         ).map((channel) => {
           const isActive = isChannelActive(channel);
           const IconComponent = channel.icon;
+          const label =
+            channel.id === "airing" && activeMediaTab !== "anime"
+              ? "Publishing"
+              : channel.label;
           return (
             <button
               key={channel.id}
@@ -729,7 +736,7 @@ export function DiscoverBrowser({
                   isActive ? "text-accent-contrast" : "text-accent-strong",
                 )}
               />
-              <span>{channel.label}</span>
+              <span>{label}</span>
             </button>
           );
         })}
@@ -743,10 +750,10 @@ export function DiscoverBrowser({
             <input
               type="search"
               role="searchbox"
-              aria-label="Search anime by title"
+              aria-label={`Search ${activeMediaTab} by title`}
               value={queryInput}
               onChange={(e) => setQueryInput(e.target.value)}
-              placeholder="Search anime by title in English or Romaji…"
+              placeholder={`Search ${activeMediaTab === "manhwa" ? "manhwa" : activeMediaTab === "manga" ? "manga" : "anime"} by title in English or Romaji…`}
               autoComplete="off"
               spellCheck={false}
               className="h-11 w-full rounded-xl border border-border bg-surface-3/50 pl-10 pr-20 text-sm text-fg placeholder:text-faint transition-colors focus:border-accent focus:bg-surface-3 focus:outline-none focus:ring-1 focus:ring-accent [&::-webkit-search-cancel-button]:appearance-none [&::-webkit-search-cancel-button]:hidden [&::-webkit-search-decoration]:appearance-none"

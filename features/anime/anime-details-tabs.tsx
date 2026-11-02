@@ -69,7 +69,7 @@ export function AnimeDetailsTabs({
                   : "text-muted hover:bg-surface-2 hover:text-fg",
               )}
             >
-              <span>Seasons & Franchise</span>
+              <span>Franchise & Related</span>
               <span
                 className={cn(
                   "rounded-full px-1.5 py-0.2 text-[10px]",
