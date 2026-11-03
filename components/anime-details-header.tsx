@@ -2,6 +2,7 @@ import Link from "next/link";
 import type { ReactNode } from "react";
 
 import { ChevronLeftIcon, ChevronRightIcon, StarIcon } from "@/components/icons";
+import { AnimeTrailerModal } from "@/features/anime/anime-trailer-modal";
 import { seasonLabel } from "@/lib/season";
 import {
   FORMAT_LABELS,
@@ -92,6 +93,16 @@ export function AnimeDetailsHeader({
           <span className="inline-flex items-center rounded-xl liquid-glass-pill px-2.5 py-1 text-[11px] font-medium text-muted">
             {formatVolumeCount(anime.volumes)}
           </span>
+        ) : null}
+        {anime.studios && anime.studios.length > 0 && anime.studios[0] ? (
+          <span className="inline-flex items-center rounded-xl liquid-glass-pill px-2.5 py-1 text-[11px] font-medium text-muted">
+            {anime.studios[0].name}
+          </span>
+        ) : null}
+        {anime.trailer?.id && anime.trailer.site === "youtube" ? (
+          <div className="ml-auto inline-flex items-center">
+            <AnimeTrailerModal trailer={anime.trailer} title={title} />
+          </div>
         ) : null}
       </div>
 

@@ -110,6 +110,50 @@ export interface RelatedAnime extends AnimeSummary {
   relationType: string | null;
 }
 
+export interface VoiceActor {
+  id: number;
+  name: {
+    full: string;
+    native?: string | null;
+  };
+  image: string | null;
+  language?: string | null;
+}
+
+export interface AnimeCharacter {
+  id: number;
+  name: {
+    full: string;
+    native?: string | null;
+  };
+  image: string | null;
+  role: "MAIN" | "SUPPORTING" | "BACKGROUND" | string;
+  voiceActor: VoiceActor | null;
+}
+
+export interface AnimeStudio {
+  id: number;
+  name: string;
+  isMain?: boolean;
+}
+
+import type { AnimeTheme } from "@/types/theme";
+
+export interface AnimeTrailer {
+  id: string | null;
+  site: string | null;
+  thumbnail: string | null;
+}
+
+export interface AnimeExternalLink {
+  id: number;
+  url: string;
+  site: string;
+  type: string | null;
+  icon: string | null;
+  color: string | null;
+}
+
 export interface Anime extends AnimeSummary {
   bannerImage: string | null;
   synopsis: string | null;
@@ -121,6 +165,12 @@ export interface Anime extends AnimeSummary {
   startDate: AnimeDate | null;
   endDate: AnimeDate | null;
   relations: RelatedAnime[];
+  characters?: AnimeCharacter[];
+  studios?: AnimeStudio[];
+  trailer?: AnimeTrailer | null;
+  recommendations?: AnimeSummary[];
+  externalLinks?: AnimeExternalLink[];
+  themes?: AnimeTheme[];
 }
 
 export interface AnimePage {

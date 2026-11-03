@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import type { ComponentType, SVGProps } from "react";
 
 import {
+  BookmarkIcon,
   CalendarIcon,
   ChartIcon,
   CompassIcon,
@@ -41,6 +42,7 @@ const NAV_ITEMS: NavItem[] = [
   { href: "/discover", label: "Discover", icon: CompassIcon },
   { href: "/schedule", label: "Schedule", icon: CalendarIcon },
   { href: "/library", label: "My Library", icon: LibraryIcon },
+  { href: "/lists", label: "Custom Lists", icon: BookmarkIcon },
   { href: "/stats", label: "Statistics", icon: ChartIcon },
 ];
 

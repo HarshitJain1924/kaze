@@ -130,6 +130,61 @@ export const MEDIA_DETAILS_QUERY = /* GraphQL */ `
           }
         }
       }
+      studios(isMain: true) {
+        nodes {
+          id
+          name
+        }
+      }
+      trailer {
+        id
+        site
+        thumbnail
+      }
+      externalLinks {
+        id
+        url
+        site
+        type
+        icon
+        color
+      }
+      characters(sort: [ROLE, RELEVANCE, ID], perPage: 12) {
+        edges {
+          role
+          node {
+            id
+            name {
+              full
+              native
+            }
+            image {
+              medium
+              large
+            }
+          }
+          voiceActors(language: JAPANESE, sort: [RELEVANCE, ID]) {
+            id
+            name {
+              full
+              native
+            }
+            image {
+              medium
+              large
+            }
+            languageV2
+          }
+        }
+      }
+      recommendations(sort: [RATING_DESC, ID], perPage: 8) {
+        nodes {
+          rating
+          mediaRecommendation {
+            ...MediaSummary
+          }
+        }
+      }
     }
   }
   ${MEDIA_SUMMARY_FRAGMENT}

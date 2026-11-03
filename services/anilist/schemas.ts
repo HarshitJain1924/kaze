@@ -127,6 +127,75 @@ const relationEdgeSchema = z.object({
   node: relationNodeSchema,
 });
 
+const voiceActorSchema = z.object({
+  id: z.number().int(),
+  name: z.object({
+    full: z.string(),
+    native: stringOrNull.optional(),
+  }),
+  image: z
+    .object({
+      medium: stringOrNull.optional(),
+      large: stringOrNull.optional(),
+    })
+    .nullish()
+    .catch(null),
+  languageV2: stringOrNull.optional(),
+});
+
+const characterNodeSchema = z.object({
+  id: z.number().int(),
+  name: z.object({
+    full: z.string(),
+    native: stringOrNull.optional(),
+  }),
+  image: z
+    .object({
+      medium: stringOrNull.optional(),
+      large: stringOrNull.optional(),
+    })
+    .nullish()
+    .catch(null),
+});
+
+const characterEdgeSchema = z.object({
+  role: z.string().nullish().catch(null),
+  node: characterNodeSchema,
+  voiceActors: z
+    .array(voiceActorSchema)
+    .nullish()
+    .catch(null)
+    .transform((value) => value ?? []),
+});
+
+const studioNodeSchema = z.object({
+  id: z.number().int(),
+  name: z.string(),
+});
+
+const recommendationNodeSchema = z.object({
+  rating: z.number().int().nullish().catch(null),
+  mediaRecommendation: animeSummarySchema.nullish().catch(null),
+});
+
+const trailerSchema = z
+  .object({
+    id: stringOrNull.optional(),
+    site: stringOrNull.optional(),
+    thumbnail: stringOrNull.optional(),
+  })
+  .nullish()
+  .catch(null);
+
+const externalLinkSchema = z.object({
+  id: z.number().int(),
+  url: z.string(),
+  site: z.string(),
+  type: stringOrNull.optional(),
+  icon: stringOrNull.optional(),
+  color: stringOrNull.optional(),
+});
+
 export const animeSchema = animeSummarySchema.extend({
   bannerImage: stringOrNull,
   description: stringOrNull,
@@ -135,6 +204,27 @@ export const animeSchema = animeSummarySchema.extend({
   popularity: intOrNull,
   startDate: dateSchema,
   endDate: dateSchema,
+  studios: z
+    .object({
+      nodes: z
+        .array(studioNodeSchema)
+        .nullish()
+        .catch(null)
+        .transform((value) => value ?? []),
+    })
+    .nullish()
+    .catch(null),
+  trailer: trailerSchema,
+  characters: z
+    .object({
+      edges: z
+        .array(characterEdgeSchema)
+        .nullish()
+        .catch(null)
+        .transform((value) => value ?? []),
+    })
+    .nullish()
+    .catch(null),
   tags: z
     .array(
       z.object({
@@ -145,7 +235,7 @@ export const animeSchema = animeSummarySchema.extend({
     .nullish()
     .catch(null)
     .transform((value) => value ?? []),
-  relations: z
+    relations: z
     .object({
       edges: z
         .array(relationEdgeSchema)
@@ -155,6 +245,21 @@ export const animeSchema = animeSummarySchema.extend({
     })
     .nullish()
     .catch(null),
+  recommendations: z
+    .object({
+      nodes: z
+        .array(recommendationNodeSchema)
+        .nullish()
+        .catch(null)
+        .transform((value) => value ?? []),
+    })
+    .nullish()
+    .catch(null),
+  externalLinks: z
+    .array(externalLinkSchema)
+    .nullish()
+    .catch(null)
+    .transform((value) => value ?? []),
 });
 
 export const pageInfoSchema = z.object({

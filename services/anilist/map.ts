@@ -2,10 +2,15 @@ import { stripHtml, isHttpUrl } from "@/lib/utils";
 import type {
   AiringScheduleEntry,
   Anime,
+  AnimeCharacter,
   AnimeDate,
+  AnimeExternalLink,
   AnimePage,
+  AnimeStudio,
   AnimeSummary,
+  AnimeTrailer,
   RelatedAnime,
+  VoiceActor,
 } from "@/types/anime";
 
 import { AniListError } from "./errors";
@@ -116,6 +121,71 @@ export function mapAnime(raw: unknown): Anime | null {
     relations.push({ ...node, relationType: edge.relationType });
   }
 
+  const characters: AnimeCharacter[] = [];
+  for (const edge of parsed.data.characters?.edges ?? []) {
+    if (!edge.node?.id || !edge.node?.name?.full) continue;
+    const vaRaw = edge.voiceActors?.[0] ?? null;
+    const voiceActor: VoiceActor | null = vaRaw
+      ? {
+          id: vaRaw.id,
+          name: {
+            full: vaRaw.name.full,
+            native: vaRaw.name.native ?? null,
+          },
+          image: sanitizeImage(vaRaw.image?.large ?? vaRaw.image?.medium ?? null),
+          language: vaRaw.languageV2 ?? "Japanese",
+        }
+      : null;
+
+    characters.push({
+      id: edge.node.id,
+      name: {
+        full: edge.node.name.full,
+        native: edge.node.name.native ?? null,
+      },
+      image: sanitizeImage(edge.node.image?.large ?? edge.node.image?.medium ?? null),
+      role: edge.role ?? "SUPPORTING",
+      voiceActor,
+    });
+  }
+
+  const studios: AnimeStudio[] = (parsed.data.studios?.nodes ?? []).map((s) => ({
+    id: s.id,
+    name: s.name,
+    isMain: true,
+  }));
+
+  const trailer: AnimeTrailer | null = parsed.data.trailer?.id
+    ? {
+        id: parsed.data.trailer.id.trim(),
+        site: parsed.data.trailer.site?.trim() ?? "youtube",
+        thumbnail: sanitizeImage(parsed.data.trailer.thumbnail ?? null),
+      }
+    : null;
+
+  const recommendations: AnimeSummary[] = [];
+  const seenRecs = new Set<number>();
+  for (const node of parsed.data.recommendations?.nodes ?? []) {
+    if (node.mediaRecommendation && !seenRecs.has(node.mediaRecommendation.id)) {
+      seenRecs.add(node.mediaRecommendation.id);
+      const mapped = mapAnimeSummary(node.mediaRecommendation);
+      if (mapped) {
+        recommendations.push(mapped);
+      }
+    }
+  }
+
+  const externalLinks: AnimeExternalLink[] = (parsed.data.externalLinks ?? [])
+    .filter((link) => isHttpUrl(link.url))
+    .map((link) => ({
+      id: link.id,
+      url: link.url,
+      site: link.site,
+      type: link.type ?? null,
+      icon: sanitizeImage(link.icon ?? null),
+      color: link.color ?? null,
+    }));
+
   return {
     ...summary,
     bannerImage: sanitizeImage(parsed.data.bannerImage),
@@ -133,6 +203,11 @@ export function mapAnime(raw: unknown): Anime | null {
     startDate: mapDate(parsed.data.startDate),
     endDate: mapDate(parsed.data.endDate),
     relations: dedupeRelations(relations),
+    characters,
+    studios,
+    trailer,
+    recommendations,
+    externalLinks,
   };
 }
 

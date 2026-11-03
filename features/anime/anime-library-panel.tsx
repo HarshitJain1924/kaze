@@ -3,7 +3,8 @@
 import Link from "next/link";
 import { useState } from "react";
 
-import { CheckIcon, ExternalIcon, PlusIcon, TrashIcon } from "@/components/icons";
+import { BookmarkIcon, CheckIcon, ExternalIcon, PlusIcon, TrashIcon } from "@/components/icons";
+import { AddToListModal } from "@/components/add-to-list-modal";
 import { RatingControl } from "@/components/rating-control";
 import { StatusBadge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -36,6 +37,7 @@ export function AnimeLibraryPanel({ anime }: { anime: Anime }) {
   const [addStatus, setAddStatus] = useState<WatchStatus>("planning");
   const [adding, setAdding] = useState(false);
   const [draftNotes, setDraftNotes] = useState<string | null>(null);
+  const [isListModalOpen, setIsListModalOpen] = useState(false);
 
   const notes = draftNotes ?? entry?.notes ?? "";
   const notesDirty =
@@ -269,6 +271,22 @@ export function AnimeLibraryPanel({ anime }: { anime: Anime }) {
           </div>
         </div>
       )}
+      <div className="mt-4 border-t border-border-subtle pt-3">
+        <button
+          type="button"
+          onClick={() => setIsListModalOpen(true)}
+          className="w-full inline-flex items-center justify-center gap-2 rounded-xl border border-border bg-surface-2/60 px-3 py-2 text-xs font-semibold text-fg transition-all hover:bg-surface-3 hover:border-accent/40 active:scale-98 shadow-xs"
+        >
+          <BookmarkIcon className="h-3.5 w-3.5 text-accent" />
+          <span>Add to Curated List</span>
+        </button>
+      </div>
+
+      <AddToListModal
+        anime={anime}
+        isOpen={isListModalOpen}
+        onClose={() => setIsListModalOpen(false)}
+      />
     </section>
   );
 }

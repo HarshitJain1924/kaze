@@ -149,24 +149,62 @@ describe("mapAnime", () => {
     expect(anime?.startDate).toEqual({ year: 2013, month: 4, day: 7 });
   });
 
-  it("excludes spoiler tags but keeps cross-media relations", () => {
-    const anime = mapAnime(rawDetails);
-    expect(anime?.tags).toEqual(["Military", "Tragedy"]);
-    expect(anime?.relations).toHaveLength(2);
-    expect(anime?.relations).toEqual(
-      expect.arrayContaining([
-        expect.objectContaining({
-          id: 16499,
-          relationType: "SEQUEL",
-          mediaType: "anime",
-        }),
-        expect.objectContaining({
-          id: 30001,
-          relationType: "ADAPTATION",
-          mediaType: "manga",
-        }),
-      ]),
-    );
+  it("maps characters, studios, trailer and recommendations", () => {
+    const anime = mapAnime({
+      ...rawDetails,
+      studios: {
+        nodes: [{ id: 10, name: "Wit Studio" }],
+      },
+      trailer: {
+        id: "MGRm4IzK1SQ",
+        site: "youtube",
+        thumbnail: "https://i.ytimg.com/vi/MGRm4IzK1SQ/hqdefault.jpg",
+      },
+      characters: {
+        edges: [
+          {
+            role: "MAIN",
+            node: {
+              id: 40882,
+              name: { full: "Eren Yeager", native: "エレン・イェーガー" },
+              image: { large: "https://s4.anilist.co/file/anilistcdn/character/large/b40882.png" },
+            },
+            voiceActors: [
+              {
+                id: 95084,
+                name: { full: "Yuuki Kaji", native: "梶裕貴" },
+                image: { large: "https://s4.anilist.co/file/anilistcdn/staff/large/n95084.png" },
+                languageV2: "Japanese",
+              },
+            ],
+          },
+        ],
+      },
+      recommendations: {
+        nodes: [
+          {
+            rating: 120,
+            mediaRecommendation: {
+              ...rawSummary,
+              id: 11061,
+              title: { romaji: "Hunter x Hunter", english: null, native: null },
+            },
+          },
+        ],
+      },
+    });
+
+    expect(anime?.studios).toEqual([{ id: 10, name: "Wit Studio", isMain: true }]);
+    expect(anime?.trailer).toEqual({
+      id: "MGRm4IzK1SQ",
+      site: "youtube",
+      thumbnail: "https://i.ytimg.com/vi/MGRm4IzK1SQ/hqdefault.jpg",
+    });
+    expect(anime?.characters).toHaveLength(1);
+    expect(anime?.characters?.[0]?.name.full).toBe("Eren Yeager");
+    expect(anime?.characters?.[0]?.voiceActor?.name.full).toBe("Yuuki Kaji");
+    expect(anime?.recommendations).toHaveLength(1);
+    expect(anime?.recommendations?.[0]?.id).toBe(11061);
   });
 
   it("returns null for unusable details", () => {

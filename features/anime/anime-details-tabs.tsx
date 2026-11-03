@@ -9,23 +9,35 @@ interface AnimeDetailsTabsProps {
   synopsisContent: ReactNode;
   franchiseContent: ReactNode;
   episodesContent: ReactNode;
+  charactersContent?: ReactNode;
+  themesContent?: ReactNode;
   detailsContent: ReactNode;
   hasFranchise: boolean;
   franchiseCount: number;
+  hasCharacters?: boolean;
+  charactersCount?: number;
+  hasThemes?: boolean;
+  themesCount?: number;
   episodesCount: number | null;
   showEpisodes?: boolean;
   episodeLabel?: string;
 }
 
-type TabKey = "overview" | "franchise" | "episodes" | "details" | "all";
+type TabKey = "overview" | "characters" | "themes" | "franchise" | "episodes" | "details" | "all";
 
 export function AnimeDetailsTabs({
   synopsisContent,
   franchiseContent,
   episodesContent,
+  charactersContent,
+  themesContent,
   detailsContent,
   hasFranchise,
   franchiseCount,
+  hasCharacters = false,
+  charactersCount = 0,
+  hasThemes = false,
+  themesCount = 0,
   episodesCount,
   showEpisodes = true,
   episodeLabel = "Episodes",
@@ -55,6 +67,64 @@ export function AnimeDetailsTabs({
           >
             Overview
           </button>
+
+          {hasCharacters && charactersContent ? (
+            <button
+              type="button"
+              role="tab"
+              aria-selected={activeTab === "characters"}
+              onClick={() => setActiveTab("characters")}
+              className={cn(
+                "inline-flex items-center gap-1.5 rounded-xl px-4 py-2 text-xs font-semibold transition-all",
+                activeTab === "characters"
+                  ? "bg-accent text-accent-contrast shadow-[inset_0_1px_1px_rgba(255,255,255,0.35),0_4px_12px_rgba(139,92,246,0.35)]"
+                  : "text-muted hover:bg-surface-2 hover:text-fg",
+              )}
+            >
+              <span>Characters</span>
+              {charactersCount ? (
+                <span
+                  className={cn(
+                    "rounded-full px-1.5 py-0.2 text-[10px]",
+                    activeTab === "characters"
+                      ? "bg-accent-contrast/20 text-accent-contrast"
+                      : "bg-surface-3 text-faint",
+                  )}
+                >
+                  {charactersCount}
+                </span>
+              ) : null}
+            </button>
+          ) : null}
+
+          {hasThemes && themesContent ? (
+            <button
+              type="button"
+              role="tab"
+              aria-selected={activeTab === "themes"}
+              onClick={() => setActiveTab("themes")}
+              className={cn(
+                "inline-flex items-center gap-1.5 rounded-xl px-4 py-2 text-xs font-semibold transition-all",
+                activeTab === "themes"
+                  ? "bg-accent text-accent-contrast shadow-[inset_0_1px_1px_rgba(255,255,255,0.35),0_4px_12px_rgba(139,92,246,0.35)]"
+                  : "text-muted hover:bg-surface-2 hover:text-fg",
+              )}
+            >
+              <span>Themes & Music</span>
+              {themesCount ? (
+                <span
+                  className={cn(
+                    "rounded-full px-1.5 py-0.2 text-[10px]",
+                    activeTab === "themes"
+                      ? "bg-accent-contrast/20 text-accent-contrast"
+                      : "bg-surface-3 text-faint",
+                  )}
+                >
+                  {themesCount}
+                </span>
+              ) : null}
+            </button>
+          ) : null}
 
           {hasFranchise ? (
             <button
@@ -142,6 +212,8 @@ export function AnimeDetailsTabs({
         {activeTab === "all" ? (
           <>
             {synopsisContent}
+            {hasThemes ? themesContent : null}
+            {hasCharacters ? charactersContent : null}
             {hasFranchise ? franchiseContent : null}
             {showEpisodes ? episodesContent : null}
             {detailsContent}
@@ -149,9 +221,15 @@ export function AnimeDetailsTabs({
         ) : activeTab === "overview" ? (
           <>
             {synopsisContent}
+            {hasThemes ? themesContent : null}
+            {hasCharacters ? charactersContent : null}
             {hasFranchise ? franchiseContent : null}
             {showEpisodes ? episodesContent : null}
           </>
+        ) : activeTab === "themes" ? (
+          themesContent
+        ) : activeTab === "characters" ? (
+          charactersContent
         ) : activeTab === "franchise" ? (
           franchiseContent
         ) : activeTab === "episodes" ? (

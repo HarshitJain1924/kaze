@@ -8,7 +8,11 @@ import { AnimePosterCard } from "@/components/anime-poster-card";
 import { ArrowLeftIcon, ExternalIcon } from "@/components/icons";
 import { ErrorState } from "@/components/error-state";
 import { RetryButton } from "@/components/retry-button";
+import { AnimeStreamingLinks } from "@/components/anime-streaming-links";
 import { AnimeDetailsTabs } from "@/features/anime/anime-details-tabs";
+import { AnimeCharacters } from "@/features/anime/anime-characters";
+import { AnimeMusicJukebox } from "@/features/anime/anime-music-jukebox";
+import { AnimeRecommendations } from "@/features/anime/anime-recommendations";
 import { AnimeEpisodeSection } from "@/features/anime/anime-episode-section";
 import { AnimeFranchiseSection } from "@/features/anime/anime-franchise-section";
 import { AnimeLibraryPanel } from "@/features/anime/anime-library-panel";
@@ -26,6 +30,7 @@ import {
   getCatalogService,
   type CatalogResult,
 } from "@/services/catalog/catalog-service";
+import { fetchAnimeThemes } from "@/services/catalog/themes-client";
 import type { Anime, RelatedAnime } from "@/types/anime";
 
 interface PageProps {
@@ -171,6 +176,18 @@ export default async function AnimeDetailsPage({ params }: PageProps) {
   const displayTitle = getDisplayTitle(anime.title, true);
   const hasBanner = Boolean(anime.bannerImage && isHttpUrl(anime.bannerImage));
   const accentColor = anime.coverImage.color ?? null;
+
+  let themes: import("@/types/theme").AnimeTheme[] = [];
+  if (!manga) {
+    try {
+      themes = await fetchAnimeThemes(
+        anime.id,
+        anime.title.romaji ?? anime.title.english ?? undefined,
+      );
+    } catch {
+      // Non-fatal
+    }
+  }
 
   return (
     <div className="relative -mx-4 -mt-5 sm:-mx-6 lg:-mx-10 lg:-mt-8">
@@ -347,7 +364,7 @@ export default async function AnimeDetailsPage({ params }: PageProps) {
             )}
           </div>
 
-          <div className="min-w-0 flex-1 sm:pt-1">
+          <div className="min-w-0 max-w-2xl xl:max-w-3xl flex-1 sm:pt-1">
             <div className="liquid-glass rounded-3xl p-5 sm:p-7 border border-border">
               <AnimeDetailsHeader anime={anime} />
             </div>
@@ -403,11 +420,31 @@ export default async function AnimeDetailsPage({ params }: PageProps) {
                       </p>
                     </div>
                   ) : null}
+
+                  {anime.externalLinks && anime.externalLinks.length > 0 ? (
+                    <div className="mt-6 border-t border-border-subtle pt-5">
+                      <AnimeStreamingLinks links={anime.externalLinks} />
+                    </div>
+                  ) : null}
                 </section>
               }
               franchiseContent={
                 <AnimeFranchiseSection currentAnime={anime} />
               }
+              themesContent={
+                themes.length > 0 ? (
+                  <AnimeMusicJukebox themes={themes} animeTitle={displayTitle} />
+                ) : null
+              }
+              hasThemes={themes.length > 0}
+              themesCount={themes.length}
+              charactersContent={
+                anime.characters && anime.characters.length > 0 ? (
+                  <AnimeCharacters characters={anime.characters} />
+                ) : null
+              }
+              hasCharacters={Boolean(anime.characters && anime.characters.length > 0)}
+              charactersCount={anime.characters?.length ?? 0}
               episodesContent={<AnimeEpisodeSection anime={anime} />}
               detailsContent={
                 <div className="space-y-6">
@@ -490,6 +527,14 @@ export default async function AnimeDetailsPage({ params }: PageProps) {
                           </dd>
                         </div>
                       ) : null}
+                      {anime.studios && anime.studios.length > 0 ? (
+                        <div>
+                          <dt className="text-xs text-faint">Studio</dt>
+                          <dd className="mt-1 text-sm text-fg">
+                            {anime.studios.map((s) => s.name).join(", ")}
+                          </dd>
+                        </div>
+                      ) : null}
                     </dl>
                   </section>
 
@@ -529,6 +574,15 @@ export default async function AnimeDetailsPage({ params }: PageProps) {
               showEpisodes={!manga}
               episodeLabel={manga ? "Chapters" : "Episodes"}
             />
+
+            {anime.recommendations && anime.recommendations.length > 0 ? (
+              <div className="mt-10 border-t border-border-subtle pt-8">
+                <AnimeRecommendations
+                  recommendations={anime.recommendations}
+                  title={`More Like ${displayTitle}`}
+                />
+              </div>
+            ) : null}
           </div>
 
           <aside className="lg:sticky lg:top-6 lg:self-start">

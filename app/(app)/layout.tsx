@@ -1,7 +1,9 @@
 import type { ReactNode } from "react";
 
 import { AppShell } from "@/components/app-shell";
+import { MediaPlayerProvider } from "@/components/providers/media-player-provider";
 import { LibraryProvider } from "@/features/library/library-provider";
+import { CustomListsProvider } from "@/features/lists/lists-provider";
 import { loadLibraryItems } from "@/features/library/load-library";
 import { getViewer } from "@/lib/auth";
 import type { LibraryItem } from "@/types/library";
@@ -45,7 +47,11 @@ export default async function AppLayout({
       showAdult={viewer?.showAdult === true}
       loadError={libraryError}
     >
-      <AppShell viewer={viewer}>{children}</AppShell>
+      <CustomListsProvider>
+        <MediaPlayerProvider>
+          <AppShell viewer={viewer}>{children}</AppShell>
+        </MediaPlayerProvider>
+      </CustomListsProvider>
     </LibraryProvider>
   );
 }

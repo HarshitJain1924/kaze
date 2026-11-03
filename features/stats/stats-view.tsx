@@ -26,6 +26,7 @@ import { RetryButton } from "@/components/retry-button";
 import { LinkButton } from "@/components/ui/link-button";
 import { calculateStats } from "@/features/stats/calculate-stats";
 import type { LibraryStats } from "@/features/stats/calculate-stats";
+import { KazeWrappedModal } from "@/features/stats/kaze-wrapped-modal";
 import { useLibrary } from "@/features/library/library-provider";
 import { WATCH_STATUS_META, WATCH_STATUS_ORDER } from "@/lib/library-meta";
 import { cn, formatFormat, isHttpUrl } from "@/lib/utils";
@@ -597,6 +598,7 @@ export function StatsView() {
   const stats = calculateStats(visibleItems);
   const [hoveredStatus, setHoveredStatus] = useState<WatchStatus | null>(null);
   const [hoveredGenre, setHoveredGenre] = useState<string | null>(null);
+  const [isWrappedOpen, setIsWrappedOpen] = useState(false);
 
   // Top banner for atmospheric header background
   const ambientBanner = useMemo(() => {
@@ -828,29 +830,45 @@ export function StatsView() {
             </div>
           </div>
 
-          {/* Right Watch Time Showcase Deck */}
-          <div className="flex items-center gap-4 rounded-2xl border border-border bg-surface-2/70 p-4 sm:p-5 backdrop-blur-md shadow-xl lg:max-w-sm">
-            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-amber-400/30 bg-amber-500/15 text-amber-300 light:text-amber-700 shadow-md">
-              <ClockIcon className="h-6 w-6" />
-            </div>
+          {/* Right Action & Watch Time Showcase Deck */}
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 lg:max-w-md">
+            <button
+              type="button"
+              onClick={() => setIsWrappedOpen(true)}
+              className="group relative flex items-center justify-center gap-2.5 overflow-hidden rounded-2xl border border-accent/40 bg-gradient-to-r from-accent/25 to-purple-600/25 p-4 text-xs font-bold text-accent-strong shadow-lg shadow-accent/15 transition-all hover:scale-[1.02] active:scale-[0.98] hover:border-accent hover:text-fg backdrop-blur-md"
+            >
+              <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-accent text-accent-contrast shadow-md transition-transform group-hover:rotate-12">
+                <SparklesIcon className="h-4 w-4" />
+              </span>
+              <div className="text-left">
+                <p className="font-display text-sm font-extrabold tracking-tight">Kaze Wrapped</p>
+                <p className="text-[10px] font-medium text-muted">Generate Taste Story</p>
+              </div>
+            </button>
 
-            <div className="min-w-0 flex-1">
-              <div className="flex items-center justify-between">
-                <span className="text-[11px] font-bold uppercase tracking-wider text-amber-400 light:text-amber-600">
-                  Total Watch Time
-                </span>
-                <span className="rounded-md border border-border-subtle bg-surface-2/70 px-1.5 py-0.5 text-[10px] font-semibold text-fg/80">
-                  {completionRate}% finished
-                </span>
+            <div className="flex items-center gap-4 rounded-2xl border border-border bg-surface-2/70 p-4 sm:p-5 backdrop-blur-md shadow-xl flex-1">
+              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-amber-400/30 bg-amber-500/15 text-amber-300 light:text-amber-700 shadow-md">
+                <ClockIcon className="h-6 w-6" />
               </div>
 
-              <p className="mt-0.5 font-display text-2xl sm:text-3xl font-bold tracking-tight text-fg tabular-nums">
-                {watchTime.formatted}
-              </p>
+              <div className="min-w-0 flex-1">
+                <div className="flex items-center justify-between">
+                  <span className="text-[11px] font-bold uppercase tracking-wider text-amber-400 light:text-amber-600">
+                    Total Watch Time
+                  </span>
+                  <span className="rounded-md border border-border-subtle bg-surface-2/70 px-1.5 py-0.5 text-[10px] font-semibold text-fg/80">
+                    {completionRate}% finished
+                  </span>
+                </div>
 
-              <p className="text-[11px] text-muted">
-                {watchTime.totalHours} hours across {stats.episodesWatched.toLocaleString("en-US")} episodes
-              </p>
+                <p className="mt-0.5 font-display text-2xl sm:text-3xl font-bold tracking-tight text-fg tabular-nums">
+                  {watchTime.formatted}
+                </p>
+
+                <p className="text-[11px] text-muted">
+                  {watchTime.totalHours} hours across {stats.episodesWatched.toLocaleString("en-US")} episodes
+                </p>
+              </div>
             </div>
           </div>
         </div>
@@ -1300,6 +1318,13 @@ export function StatsView() {
           Watch time calculations are calculated using verified broadcast runtimes (~24 minutes per standard TV episode) based on your real logged progress. No fabricated streaks or synthetic numbers are ever displayed.
         </p>
       </footer>
+
+      <KazeWrappedModal
+        stats={stats}
+        items={visibleItems}
+        isOpen={isWrappedOpen}
+        onClose={() => setIsWrappedOpen(false)}
+      />
     </div>
   );
 }
