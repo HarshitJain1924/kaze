@@ -22,13 +22,22 @@ const CHROME_CANDIDATES = [
   "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
 ].filter(Boolean);
 
-const PAGES = ["/", "/discover", "/schedule", "/anime/154587", "/login"];
+const PAGES = [
+  "/",
+  "/dashboard",
+  "/discover",
+  "/schedule",
+  "/anime/154587",
+  "/login",
+];
 const VIEWPORTS = [
+  { width: 360, height: 800, name: "mobile-360" },
   { width: 320, height: 700, name: "mobile-320" },
   { width: 390, height: 844, name: "mobile-390" },
   { width: 768, height: 1024, name: "tablet-768" },
   { width: 1024, height: 800, name: "laptop-1024" },
   { width: 1440, height: 900, name: "desktop-1440" },
+  { width: 1920, height: 1080, name: "desktop-1920" },
 ];
 
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));

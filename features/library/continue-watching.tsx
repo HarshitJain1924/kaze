@@ -88,8 +88,6 @@ export function FeaturedAngularCard({
 
   const title = getDisplayTitle(anime.title, titleLanguage === "english");
   const cover = anime.coverImage.extraLarge ?? anime.coverImage.large;
-  const banner = anime.bannerImage ?? null;
-  const accentColor = anime.coverImage.color ?? null;
 
   const manga = isManga(anime);
   const total = manga ? (anime.chapters ?? null) : anime.episodes;
@@ -147,73 +145,11 @@ export function FeaturedAngularCard({
   };
 
   return (
-    <article
-      aria-label={`Featured: ${title}`}
-      className="group relative isolate overflow-hidden border-y border-border bg-bg"
-    >
-      {/* Ambient Artwork Backdrop */}
-      <div
-        aria-hidden="true"
-        className="pointer-events-none absolute inset-0 z-0 hidden select-none overflow-hidden"
-      >
-        {cover && isHttpUrl(cover) ? (
-          <div className="absolute inset-0 scale-125 blur-3xl saturate-200 opacity-20 dark:opacity-35">
-            <Image
-              src={banner ?? cover}
-              alt=""
-              fill
-              sizes="100vw"
-              className="object-cover"
-            />
-          </div>
-        ) : null}
-
-        {banner && isHttpUrl(banner) ? (
-          <div className="absolute inset-0">
-            <Image
-              src={banner}
-              alt=""
-              fill
-              sizes="100vw"
-              className="object-cover object-[center_20%] sm:object-[center_25%] opacity-85 dark:opacity-80 transition-opacity duration-500"
-            />
-          </div>
-        ) : cover && isHttpUrl(cover) ? (
-          <div className="absolute right-0 top-0 bottom-0 w-2/3 sm:w-1/2 overflow-hidden pointer-events-none select-none">
-            <div className="relative h-full w-full">
-              <Image
-                src={cover}
-                alt=""
-                fill
-                sizes="(max-width: 640px) 66vw, 50vw"
-                className="object-cover object-top opacity-35 dark:opacity-30 transition-opacity duration-500"
-              />
-              <div className="absolute inset-0 bg-gradient-to-r from-surface via-surface/60 to-transparent" />
-            </div>
-          </div>
-        ) : null}
-
-        {/* Dynamic color tint */}
-        {accentColor ? (
-          <div
-            className="absolute inset-0 opacity-20 dark:opacity-25 mix-blend-screen"
-            style={{
-              background: `radial-gradient(circle at 85% 25%, ${accentColor} 0%, transparent 65%)`,
-            }}
-          />
-        ) : null}
-
-        {/* Multi-directional gradients: protect text on the left, let artwork shine through clearly on the right */}
-        <div className="absolute inset-0 bg-gradient-to-r from-surface via-surface/90 via-45% to-surface/15 dark:to-transparent" />
-        <div className="absolute inset-0 bg-gradient-to-t from-surface/85 via-surface/40 via-30% to-transparent sm:hidden" />
-      </div>
-
-      {/* Foreground Content */}
-      <div className="relative z-10 flex flex-col gap-4 p-4 sm:flex-row sm:items-center sm:gap-6 sm:p-5 lg:p-6">
-        {/* Poster Card */}
+    <article className="border-y border-border bg-bg">
+      <div className="grid gap-6 py-6 sm:grid-cols-[156px_minmax(0,1fr)] sm:items-start lg:grid-cols-[264px_minmax(0,1fr)] lg:gap-10 lg:py-8">
         <Link
           href={`/media/${anime.id}`}
-          className="group/poster relative aspect-[2/3] w-24 shrink-0 self-start overflow-hidden border border-border bg-surface-3 transition-colors sm:w-32 sm:self-center md:w-36"
+          className="group/poster relative aspect-[2/3] w-full max-w-[210px] justify-self-start overflow-hidden border border-border bg-surface-3 sm:max-w-none"
           aria-label={`Open ${title}`}
         >
           {cover && isHttpUrl(cover) ? (
@@ -222,57 +158,39 @@ export function FeaturedAngularCard({
               alt=""
               fill
               priority
-              sizes="(max-width: 640px) 112px, 160px"
-              className="object-cover transition-transform duration-500 group-hover/poster:scale-105"
+              sizes="(max-width: 640px) 210px, 264px"
+              className="object-cover transition-transform duration-500 group-hover/poster:scale-[1.02]"
             />
           ) : (
             <span className="absolute inset-0 bg-surface-3" />
           )}
 
-          {/* Floating next episode pill */}
-          <span className="absolute left-2 top-2 z-10 inline-flex items-center gap-1 bg-bg/90 px-1.5 py-1 text-[9px] font-semibold uppercase tracking-[0.08em] text-accent-strong">
-            <PlayIcon className="h-2.5 w-2.5 fill-current" />
-            <span>Next: {manga ? "Ch" : "Ep"} {atEnd ? total : nextEp}</span>
+          <span className="absolute inset-x-0 bottom-0 bg-bg/90 px-2.5 py-2 text-[9px] font-semibold uppercase tracking-[0.1em] text-accent-strong">
+            Next {manga ? "chapter" : "episode"}{" "}
+            {atEnd ? total : nextEp}
           </span>
         </Link>
 
-        {/* Info & Action Deck */}
-        <div className="flex min-w-0 flex-1 flex-col justify-between gap-4">
+        <div className="flex min-w-0 flex-col justify-between gap-6">
           <div>
-            <div className="flex items-start justify-between gap-3">
-              <div className="min-w-0 flex-1">
-                <div className="flex flex-wrap items-center gap-2">
-                  <span className="flex h-2 w-2 rounded-full bg-accent-strong radar-live-dot" />
-                  <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-accent-strong">
-                    {manga ? "Continue Reading" : "Continue Watching"}
-                  </p>
-                  {!manga && airingToday ? (
-                    <span className="inline-flex items-center gap-1 rounded-md border border-emerald-500/40 bg-emerald-950/70 px-2 py-0.5 text-[10px] font-bold text-emerald-300 shadow-xs">
-                      <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 radar-live-dot" />
-                      Episode {airingToday.episode} Airs Today ({formatAiringTime(airingToday.airingAt, activeTimeZone)})
-                    </span>
-                  ) : null}
-                </div>
-
-                <Link
-                  href={`/media/${anime.id}`}
-                  className="mt-1 line-clamp-1 block font-display text-xl font-bold tracking-tight text-fg transition-colors hover:text-accent-strong sm:text-2xl"
-                  title={title}
-                >
-                  {title}
-                </Link>
-
-                <p className="mt-1 text-xs font-medium text-muted sm:text-[13px]">
-                  {total !== null && total > 0
-                    ? `Up next: ${manga ? "chapter" : "episode"} ${atEnd ? total : nextEp} of ${total}`
-                    : `Up next: ${manga ? "chapter" : "episode"} ${nextEp}`}
+            <div className="flex flex-wrap items-start justify-between gap-3">
+              <div className="min-w-0">
+                <p className="text-[9px] font-semibold uppercase tracking-[0.2em] text-accent-strong">
+                  {manga ? "Continue reading" : "Continue watching"}
                 </p>
+                <h2 className="mt-1.5 text-balance font-display text-[28px] font-semibold leading-[1.04] tracking-[-0.045em] text-fg sm:text-[34px] lg:text-[38px]">
+                  <Link
+                    href={`/media/${anime.id}`}
+                    className="transition-colors hover:text-accent-strong"
+                  >
+                    {title}
+                  </Link>
+                </h2>
               </div>
 
-              {/* Top Options Bar with Prev/Next series cycling */}
-              <div className="flex shrink-0 items-center gap-1.5 pt-0.5">
+              <div className="flex shrink-0 items-center gap-1">
                 {onPrevItem && onNextItem ? (
-                  <div className="flex items-center gap-0.5 mr-1">
+                  <>
                     <button
                       type="button"
                       onClick={onPrevItem}
@@ -291,18 +209,18 @@ export function FeaturedAngularCard({
                     >
                       <ChevronRightIcon className="h-3.5 w-3.5" />
                     </button>
-                  </div>
+                  </>
                 ) : null}
 
                 <button
                   type="button"
                   onClick={handleToggleBookmark}
-                  aria-label={isBookmarked ? "Remove bookmark" : "Bookmark anime"}
+                  aria-label={isBookmarked ? "Remove bookmark" : "Bookmark title"}
                   className={cn(
-                    "flex h-8 w-8 items-center justify-center rounded-xl border transition-colors active:scale-95",
+                    "flex h-8 w-8 items-center justify-center border transition-colors",
                     isBookmarked
-                      ? "border-accent/50 bg-accent/20 text-accent-strong"
-                      : "border-border-subtle bg-surface-3/60 text-muted hover:bg-surface-3 hover:text-fg",
+                      ? "border-accent/50 text-accent-strong"
+                      : "border-border text-muted hover:bg-surface-2 hover:text-fg",
                   )}
                 >
                   <BookmarkIcon
@@ -315,7 +233,8 @@ export function FeaturedAngularCard({
                     type="button"
                     onClick={() => setShowMenu((prev) => !prev)}
                     aria-label="More options"
-                    className="flex h-8 w-8 items-center justify-center rounded-xl border border-border-subtle bg-surface-3/60 text-muted transition-colors hover:bg-surface-3 hover:text-fg active:scale-95"
+                    aria-expanded={showMenu}
+                    className="flex h-8 w-8 items-center justify-center border border-border text-muted transition-colors hover:bg-surface-2 hover:text-fg"
                   >
                     <MoreHorizontalIcon className="h-4 w-4" />
                   </button>
@@ -358,115 +277,115 @@ export function FeaturedAngularCard({
               </div>
             </div>
 
-            {/* Metadata Badges */}
-            <div className="mt-3 flex flex-wrap items-center gap-1.5">
-              {formatLabel ? (
-                <span className="rounded-lg border border-border-subtle bg-surface-3/60 px-2.5 py-0.5 text-[11px] font-medium text-muted">
-                  {formatLabel}
-                </span>
-              ) : null}
-
+            <p className="mt-3 flex flex-wrap items-center gap-x-2 gap-y-1 text-[10px] font-medium uppercase tracking-[0.1em] text-muted">
+              {formatLabel ? <span>{formatLabel}</span> : null}
               {seasonLabelText ? (
-                <span className="rounded-lg border border-border-subtle bg-surface-3/60 px-2.5 py-0.5 text-[11px] font-medium text-muted">
-                  {seasonLabelText}
-                </span>
+                <>
+                  <span className="text-border">/</span>
+                  <span>{seasonLabelText}</span>
+                </>
               ) : null}
-
               {genres.map((genre) => (
-                <span
-                  key={genre}
-                  className="rounded-lg border border-border-subtle bg-surface-3/60 px-2.5 py-0.5 text-[11px] font-medium text-faint"
-                >
+                <span key={genre} className="text-faint">
+                  <span className="mr-2 text-border">/</span>
                   {genre}
                 </span>
               ))}
+            </p>
+
+            {!manga && airingToday ? (
+              <p className="mt-2 text-[10px] font-medium text-success">
+                Episode {airingToday.episode} airs today ·{" "}
+                {formatAiringTime(airingToday.airingAt, activeTimeZone)}
+              </p>
+            ) : null}
+
+            <p className="mt-5 text-[12px] leading-relaxed text-muted">
+              {total !== null && total > 0
+                ? `Up next: ${manga ? "chapter" : "episode"} ${atEnd ? total : nextEp} of ${total}.`
+                : `Up next: ${manga ? "chapter" : "episode"} ${nextEp}.`}
+            </p>
+
+            <div className="mt-4 max-w-xl">
+              <div className="flex items-baseline justify-between gap-4 text-[10px] uppercase tracking-[0.08em] text-faint">
+                <span>
+                  <span className="font-mono font-semibold tabular-nums text-fg">
+                    {watchedCount}
+                  </span>
+                  {total && total > 0 ? ` / ${total}` : ""}{" "}
+                  {manga ? "chapters read" : "episodes watched"}
+                </span>
+                <span className="font-mono tabular-nums text-accent-strong">
+                  {percent !== null ? `${percent}%` : "Ongoing"}
+                </span>
+              </div>
+              <div className="mt-2 h-[3px] w-full overflow-hidden bg-surface-3">
+                <div
+                  className="h-full bg-accent-strong transition-[width] duration-300"
+                  style={{
+                    width: `${percent ?? (watchedCount > 0 ? 30 : 0)}%`,
+                  }}
+                />
+              </div>
             </div>
           </div>
 
-          {/* Progress & Controls */}
-          <div>
-            <div className="flex items-baseline justify-between text-xs sm:text-sm">
-              <span className="text-muted">
-                <span className="font-bold tabular-nums text-fg">
-                  {watchedCount}
-                </span>
-                {total && total > 0 ? ` / ${total}` : ""}{" "}
-                {manga ? "chapters read" : "episodes watched"}
-              </span>
-              <span className="font-semibold tabular-nums text-accent-strong">
-                {percent !== null ? `${percent}% Complete` : "Ongoing series"}
-              </span>
-            </div>
+          <div className="flex flex-wrap items-center gap-3">
+            <button
+              type="button"
+              disabled={isPending || atEnd}
+              onClick={() => onIncrement(anime.id, nextEp)}
+              className={cn(
+                "flex h-11 min-w-[220px] flex-1 items-center justify-center gap-2 px-5 text-[11px] font-semibold uppercase tracking-[0.08em] transition-colors sm:flex-none",
+                atEnd
+                  ? "cursor-default border border-border text-muted"
+                  : "bg-accent text-accent-contrast hover:bg-accent-hover disabled:opacity-60",
+              )}
+            >
+              {atEnd ? (
+                <>
+                  <CheckIcon className="h-4 w-4 text-success" />
+                  All caught up
+                </>
+              ) : isPending ? (
+                "Updating progress…"
+              ) : (
+                <>
+                  <PlayIcon className="h-3.5 w-3.5 fill-current" />
+                  Mark {manga ? "chapter" : "episode"} {nextEp}{" "}
+                  {manga ? "read" : "watched"}
+                </>
+              )}
+            </button>
 
-            {/* Glowing progress bar */}
-            <div className="mt-2 h-1.5 w-full overflow-hidden bg-surface-3">
-              <div
-                className="h-full bg-accent-strong transition-[width] duration-300"
-                style={{ width: `${percent ?? (watchedCount > 0 ? 30 : 0)}%` }}
-              />
-            </div>
-
-            {/* Action buttons */}
-            <div className="mt-4 flex flex-wrap items-center gap-2">
-              <button
-                type="button"
-                disabled={isPending || atEnd}
-                onClick={() => onIncrement(anime.id, nextEp)}
-                className={cn(
-                  "flex h-10 min-w-[190px] flex-1 items-center justify-center gap-2 px-5 text-[11px] font-semibold uppercase tracking-[0.06em] transition-colors sm:h-11",
-                  atEnd
-                    ? "cursor-default border border-border text-muted"
-                    : "bg-accent text-accent-contrast hover:bg-accent-hover hover:shadow-lg disabled:opacity-60",
-                )}
-              >
-                {atEnd ? (
-                  <>
-                    <CheckIcon className="h-4 w-4 text-success" />
-                    <span>All caught up!</span>
-                  </>
-                ) : isPending ? (
-                  <span>Updating progress…</span>
-                ) : (
-                  <>
-                    <PlayIcon className="h-4 w-4 fill-current" />
-                    <span>
-                      Mark {manga ? "Chapter" : "Episode"} {nextEp}{" "}
-                      {manga ? "Read" : "Watched"}
-                    </span>
-                  </>
-                )}
-              </button>
-
-              {/* Quick Undo / Decrement Stepper (-1 ep/ch) */}
+            <div className="flex items-center gap-1.5">
               {entry.progress > 0 && !atEnd ? (
                 <button
                   type="button"
                   disabled={isPending}
                   onClick={handleDecrement}
-                  title={`Undo last ${manga ? "chapter" : "episode"} (-1)`}
-                  className="flex h-10 w-10 items-center justify-center border border-border text-muted transition-colors hover:bg-surface-2 hover:text-fg sm:h-11 sm:w-11"
+                  title={`Undo last ${manga ? "chapter" : "episode"}`}
+                  aria-label={`Undo last ${manga ? "chapter" : "episode"}`}
+                  className="flex h-10 w-10 items-center justify-center border border-border text-muted transition-colors hover:bg-surface-2 hover:text-fg disabled:opacity-50"
                 >
                   <MinusIcon className="h-4 w-4" />
                 </button>
               ) : null}
-
-              {/* Quick Edit Progress Modal Trigger */}
               <button
                 type="button"
                 onClick={() => requestAdd(anime)}
-                title="Adjust status & progress"
-                className="flex h-10 w-10 items-center justify-center border border-border text-muted transition-colors hover:bg-surface-2 hover:text-fg sm:h-11 sm:w-11"
+                title="Adjust status and progress"
+                aria-label="Adjust status and progress"
+                className="flex h-10 w-10 items-center justify-center border border-border text-muted transition-colors hover:bg-surface-2 hover:text-fg"
               >
                 <SlidersIcon className="h-4 w-4" />
               </button>
-
-              {/* View Details Link */}
               <Link
                 href={`/media/${anime.id}`}
-                className="inline-flex h-10 items-center gap-1.5 border border-border px-3.5 text-[10px] font-semibold uppercase tracking-[0.06em] text-fg transition-colors hover:bg-surface-2 sm:h-11"
+                className="inline-flex h-10 items-center gap-1.5 px-2 text-[10px] font-semibold uppercase tracking-[0.08em] text-muted transition-colors hover:text-fg"
               >
-                <EyeIcon className="h-3.5 w-3.5 text-muted" />
-                <span>Details</span>
+                <EyeIcon className="h-3.5 w-3.5" />
+                Details
               </Link>
             </div>
           </div>
@@ -517,96 +436,80 @@ export function QueueCard({
 
   return (
     <article
-      onClick={onSelect}
       className={cn(
-        "group/q relative flex cursor-pointer select-none flex-col justify-between overflow-hidden border transition-colors",
+        "group/q relative flex items-center gap-3 border-b border-border px-1 py-3 transition-colors",
         isActive
-          ? "border-accent bg-accent-soft/30"
-          : "border-border-subtle bg-surface hover:border-border hover:bg-surface-2",
+          ? "border-l-2 border-l-accent bg-accent-soft/25 pl-2"
+          : "hover:bg-surface/40",
       )}
     >
-      {/* Artwork with integrated progress bar */}
-      <div className="relative aspect-[16/10] w-full overflow-hidden bg-surface-3">
+      <button
+        type="button"
+        onClick={onSelect}
+        aria-label={`Feature ${title}`}
+        aria-pressed={isActive}
+        className="relative aspect-[2/3] w-10 shrink-0 overflow-hidden border border-border bg-surface-2"
+      >
         {thumb && isHttpUrl(thumb) ? (
           <Image
             src={thumb}
             alt=""
             fill
-            sizes="192px"
-            className="object-cover transition-transform duration-300 group-hover/q:scale-105"
+            sizes="40px"
+            className="object-cover"
           />
         ) : (
-          <div className="absolute inset-0 bg-surface-3" />
+          <span className="absolute inset-0 bg-surface-3" />
         )}
-        <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/30 to-transparent" />
+      </button>
 
-        {/* Top-left next episode or Airing Today tag */}
-        {!manga && airingToday ? (
-          <span className="absolute left-2 top-2 inline-flex items-center gap-1 rounded-md border border-emerald-500/40 bg-emerald-950/90 px-1.5 py-0.5 text-[10px] font-bold text-emerald-300 backdrop-blur-md shadow-sm">
-            <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 radar-live-dot" />
-            <span>Ep {airingToday.episode} Today</span>
-          </span>
-        ) : (
-          <span className="absolute left-2 top-2 inline-flex items-center gap-1 rounded-md border border-white/20 bg-black/75 px-1.5 py-0.5 text-[10px] font-bold text-amber-300 backdrop-blur-md">
-            <span>{manga ? "Ch" : "Ep"} {atEnd ? total : nextEp}</span>
-          </span>
-        )}
-
-        {/* Active badge */}
-        {isActive ? (
-          <span className="absolute right-2 top-2 inline-flex items-center gap-1 rounded-md border border-accent/40 bg-accent px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider text-white backdrop-blur-md shadow-xs">
-            <span>Viewing</span>
-          </span>
-        ) : null}
-
-        {/* Integrated Progress Bar along bottom of image */}
-        <div className="absolute inset-x-0 bottom-0 h-1.5 bg-white/20">
-          <div
-            className="h-full bg-accent transition-all duration-300"
-            style={{ width: `${percent ?? (entry.progress > 0 ? 30 : 0)}%` }}
+      <button
+        type="button"
+        onClick={onSelect}
+        className="min-w-0 flex-1 text-left"
+      >
+        <span className="block truncate font-display text-xs font-medium text-fg transition-colors group-hover/q:text-accent-strong">
+          {title}
+        </span>
+        <span className="mt-1 block truncate text-[10px] text-muted">
+          {total
+            ? `${entry.progress}/${total} ${manga ? "ch" : "eps"}`
+            : `${entry.progress} ${manga ? "read" : "watched"}`}
+          {percent !== null ? ` · ${percent}%` : ""}
+          {airingToday ? " · airs today" : ""}
+        </span>
+        <span className="mt-1.5 block h-[2px] w-full bg-surface-3">
+          <span
+            className="block h-full bg-accent-strong/80"
+            style={{
+              width: `${percent ?? (entry.progress > 0 ? 30 : 0)}%`,
+            }}
           />
-        </div>
-      </div>
+        </span>
+      </button>
 
-      {/* Info & 1-tap quick advance */}
-      <div className="flex items-center justify-between gap-2 p-2.5">
-        <div className="min-w-0 flex-1">
-          <p
-            className="line-clamp-1 font-display text-xs font-bold text-fg transition-colors group-hover/q:text-accent-strong"
-            title={title}
-          >
-            {title}
-          </p>
-          <p className="mt-0.5 truncate text-[11px] text-muted">
-            {total ? `${entry.progress}/${total} ${manga ? "ch" : "eps"}` : `${entry.progress} ${manga ? "read" : "watched"}`}
-            {percent !== null ? ` · ${percent}%` : ""}
-          </p>
-        </div>
-
-        {/* Quick increment button */}
-        <button
-          type="button"
-          disabled={isPending || atEnd}
-          onClick={(e) => {
-            e.stopPropagation();
-            onIncrement(anime.id, nextEp);
-          }}
-          title={`Mark ${manga ? "chapter" : "episode"} ${nextEp} ${manga ? "read" : "watched"}`}
-          className={cn(
-            "flex h-7 shrink-0 items-center gap-1 rounded-lg px-2 text-[11px] font-bold transition-all active:scale-95",
-            atEnd
-              ? "border border-border-subtle bg-surface-3 text-faint"
-              : "border border-accent/40 bg-accent/20 text-accent-strong hover:bg-accent hover:text-accent-contrast shadow-xs",
-          )}
-        >
-          {atEnd ? (
-            <CheckIcon className="h-3 w-3 text-success" />
-          ) : (
-            <PlayIcon className="h-2.5 w-2.5 fill-current" />
-          )}
-          <span>{atEnd ? "Done" : `+${manga ? "Ch" : "Ep"}`}</span>
-        </button>
-      </div>
+      <button
+        type="button"
+        disabled={isPending || atEnd}
+        onClick={(e) => {
+          e.stopPropagation();
+          onIncrement(anime.id, nextEp);
+        }}
+        title={`Mark ${manga ? "chapter" : "episode"} ${nextEp} ${manga ? "read" : "watched"}`}
+        aria-label={`Mark ${manga ? "chapter" : "episode"} ${nextEp} ${manga ? "read" : "watched"}`}
+        className={cn(
+          "flex h-8 w-8 shrink-0 items-center justify-center border transition-colors",
+          atEnd
+            ? "border-border text-faint"
+            : "border-border text-accent-strong hover:border-accent hover:bg-accent-soft",
+        )}
+      >
+        {atEnd ? (
+          <CheckIcon className="h-3 w-3 text-success" />
+        ) : (
+          <PlayIcon className="h-2.5 w-2.5 fill-current" />
+        )}
+      </button>
     </article>
   );
 }
@@ -743,13 +646,16 @@ export function ContinueWatching({ todayEntries }: ContinueWatchingProps = {}) {
         : "Continue watching";
 
   return (
-    <section aria-label={sectionTitle} className="space-y-4">
+    <section aria-label={sectionTitle} className="space-y-4 sm:space-y-5 border-t border-border pt-4 sm:pt-5">
       {/* Section Header */}
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <div className="flex items-center gap-2">
+        <div>
+          <p className="text-[9px] font-semibold uppercase tracking-[0.2em] text-accent-strong">
+            Personal activity
+          </p>
           <Link
             href="/library?status=watching"
-            className="group inline-flex items-center gap-1.5 font-display text-base font-bold tracking-tight text-fg transition-colors hover:text-accent-strong sm:text-lg"
+            className="group mt-1 inline-flex items-center gap-1.5 font-display text-2xl font-semibold tracking-[-0.035em] text-fg transition-colors hover:text-accent-strong sm:text-[28px]"
           >
             <span>{sectionTitle}</span>
             <ChevronRightIcon className="h-4 w-4 text-muted transition-transform group-hover:translate-x-0.5" />
@@ -870,7 +776,7 @@ export function ContinueWatching({ todayEntries }: ContinueWatchingProps = {}) {
               <div className="flex items-center justify-between px-1">
                 <div className="flex items-center gap-2">
                   <span className="text-[11px] font-semibold uppercase tracking-wider text-muted">
-                    Up next in your queue ({watching.length})
+                    Supporting queue ({watching.length})
                   </span>
                   <span className="text-[11px] text-faint hidden sm:inline">
                     · Click any title to view
@@ -931,7 +837,7 @@ export function ContinueWatching({ todayEntries }: ContinueWatchingProps = {}) {
                       return (
                         <div
                           key={item.entry.id}
-                          className="w-44 sm:w-48 shrink-0 snap-start"
+                          className="w-60 shrink-0 snap-start"
                         >
                           <QueueCard
                             item={item}

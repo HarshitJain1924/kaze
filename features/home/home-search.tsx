@@ -6,8 +6,10 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import {
   CheckIcon,
+  ChevronDownIcon,
   ChevronRightIcon,
   CloseIcon,
+  CompassIcon,
   FlameIcon,
   HeartIcon,
   LoaderIcon,
@@ -39,6 +41,7 @@ import type { AnimeSummary } from "@/types/anime";
 
 interface HomeSearchProps {
   popularAnime: AnimeSummary[];
+  popularManga?: AnimeSummary[];
 }
 
 const PAGE_SIZE = 4;
@@ -50,18 +53,18 @@ interface QuickDiscoveryTag {
 }
 
 const QUICK_DISCOVERY_TAGS: QuickDiscoveryTag[] = [
-  { label: "Manga", href: "/discover?type=manga", icon: SparklesIcon },
-  { label: "Manhwa", href: "/discover?type=manga&country=KR", icon: SparklesIcon },
   { label: "Trending", href: "/discover?sort=TRENDING_DESC", icon: FlameIcon },
   { label: "Top Rated", href: "/discover?sort=SCORE_DESC", icon: TrophyIcon },
+  { label: "Airing Today", href: "/schedule", icon: ZapIcon },
   { label: "Action", href: "/discover?genre=Action", icon: SwordsIcon },
   { label: "Romance", href: "/discover?genre=Romance", icon: HeartIcon },
   { label: "Fantasy", href: "/discover?genre=Fantasy", icon: WandIcon },
   { label: "Isekai", href: "/discover?genre=Isekai", icon: SparklesIcon },
-  { label: "Airing Today", href: "/schedule", icon: ZapIcon },
+  { label: "Manga", href: "/discover?type=manga", icon: SparklesIcon },
+  { label: "Manhwa", href: "/discover?type=manga&country=KR", icon: SparklesIcon },
 ];
 
-export function HomeSearch({ popularAnime }: HomeSearchProps) {
+export function HomeSearch({ popularAnime, popularManga }: HomeSearchProps) {
   const { preferences } = usePreferences();
   const { entryFor, addToLibrary } = useLibrary();
   const { toast } = useToast();
@@ -76,12 +79,14 @@ export function HomeSearch({ popularAnime }: HomeSearchProps) {
   const [activeIndex, setActiveIndex] = useState(-1);
   const [addingId, setAddingId] = useState<number | null>(null);
 
-  // Pagination / cycle offset for quick recommendations
+  // Suggestions state: explicitly opt-in, collapsed by default
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const [showBrowse, setShowBrowse] = useState(false);
   const [pageIndex, setPageIndex] = useState(0);
-  const [showSuggestions, setShowSuggestions] = useState(true);
 
   const containerRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const browseRef = useRef<HTMLDivElement>(null);
 
   const isMac =
     typeof navigator !== "undefined" &&
@@ -102,14 +107,21 @@ export function HomeSearch({ popularAnime }: HomeSearchProps) {
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, []);
 
-  // Click outside to dismiss results
+  // Click outside to dismiss search results & browse popover
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as Node;
       if (
         containerRef.current &&
-        !containerRef.current.contains(event.target as Node)
+        !containerRef.current.contains(target)
       ) {
         setIsOpen(false);
+      }
+      if (
+        browseRef.current &&
+        !browseRef.current.contains(target)
+      ) {
+        setShowBrowse(false);
       }
     };
 
@@ -203,6 +215,7 @@ export function HomeSearch({ popularAnime }: HomeSearchProps) {
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === "Escape") {
       setIsOpen(false);
+      setShowBrowse(false);
       return;
     }
 
@@ -223,15 +236,26 @@ export function HomeSearch({ popularAnime }: HomeSearchProps) {
     }
   };
 
-  // Smart Untracked Recommendations Pool:
-  // Dynamically prioritize anime not yet tracked in the user's library.
-  const untrackedAnime = useMemo(() => {
-    return popularAnime.filter((anime) => !entryFor(anime.id));
-  }, [popularAnime, entryFor]);
+  // Recommendations pool resolved by selected media type without duplicate network requests
+  const sourcePool = useMemo(() => {
+    if (mediaType === "manhwa") {
+      const mangaPool = popularManga && popularManga.length > 0 ? popularManga : popularAnime;
+      const manhwa = mangaPool.filter((item) => item.countryOfOrigin === "KR");
+      return manhwa.length > 0 ? manhwa : mangaPool;
+    }
+    if (mediaType === "manga") {
+      return popularManga && popularManga.length > 0 ? popularManga : popularAnime;
+    }
+    return popularAnime;
+  }, [mediaType, popularAnime, popularManga]);
 
-  const displayedAnime = useMemo(() => {
-    // If we have untracked anime, pick from them
-    const source = untrackedAnime.length > 0 ? untrackedAnime : popularAnime;
+  // Smart Untracked Recommendations: Prioritize titles not yet in user library
+  const untrackedItems = useMemo(() => {
+    return sourcePool.filter((item) => !entryFor(item.id));
+  }, [sourcePool, entryFor]);
+
+  const displayedItems = useMemo(() => {
+    const source = untrackedItems.length > 0 ? untrackedItems : sourcePool;
     if (source.length === 0) return [];
 
     const total = source.length;
@@ -243,47 +267,43 @@ export function HomeSearch({ popularAnime }: HomeSearchProps) {
 
     const items: AnimeSummary[] = [];
     for (let i = 0; i < PAGE_SIZE; i++) {
-      const anime = source[(startIndex + i) % total];
-      if (anime) {
-        items.push(anime);
+      const item = source[(startIndex + i) % total];
+      if (item) {
+        items.push(item);
       }
     }
     return items;
-  }, [untrackedAnime, popularAnime, pageIndex]);
+  }, [untrackedItems, sourcePool, pageIndex]);
 
   const handleShuffle = () => {
     setPageIndex((prev) => prev + 1);
   };
 
-  const allTracked = popularAnime.length > 0 && untrackedAnime.length === 0;
+  const allTracked = sourcePool.length > 0 && untrackedItems.length === 0;
 
   return (
     <div
       ref={containerRef}
-      className="relative z-30 border-t border-border pt-6"
+      className="relative z-30 pt-0.5 sm:pt-1"
     >
-      {/* Header with authentic Japanese anime flavor & quick catalog access */}
-      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border-subtle/70 pb-3">
-        <div className="flex items-center gap-2.5">
-          <span className="flex h-6 w-6 items-center justify-center border border-accent/30 text-accent-strong">
-            <SparkIcon className="h-4 w-4" />
-          </span>
-          <div>
-            <h2 className="font-display text-xl font-semibold tracking-[-0.03em] text-fg sm:text-2xl">
+      {/* Compact Utility Bar Header */}
+      <div className="mb-1.5 sm:mb-2 flex flex-wrap items-center justify-between gap-x-3 gap-y-1.5">
+        {/* Left: Compact Heading & Inline Media Selector */}
+        <div className="flex flex-wrap items-center gap-2 sm:gap-2.5">
+          <div className="flex items-center gap-1.5 text-accent-strong">
+            <SparkIcon className="h-3.5 w-3.5 shrink-0" />
+            <h2 className="text-[11px] sm:text-xs font-semibold uppercase tracking-[0.14em] text-fg">
               Quick Find & Track
             </h2>
-            <p className="mt-0.5 text-[11px] text-muted">
-              Instant AniList search across anime, manga, and manhwa
-            </p>
           </div>
-        </div>
 
-        <div className="flex items-center gap-3">
-          {/* Media Type Tabs */}
+          <span className="text-border-subtle select-none">/</span>
+
+          {/* Inline Anime / Manga / Manhwa Selector */}
           <div
             role="tablist"
             aria-label="Catalogue type"
-            className="inline-flex items-center gap-1 border-b border-border text-[11px]"
+            className="inline-flex items-center border border-border/80 bg-surface/50 p-0.5 text-[11px]"
           >
             {(["anime", "manga", "manhwa"] as const).map((type) => (
               <button
@@ -298,37 +318,129 @@ export function HomeSearch({ popularAnime }: HomeSearchProps) {
                   }
                 }}
                 className={cn(
-                  "border-b-2 px-3 py-2 text-[11px] font-medium capitalize transition-colors",
+                  "px-2 py-0.5 text-[11px] font-medium capitalize transition-colors",
                   mediaType === type
-                    ? "border-accent text-accent-strong"
-                    : "border-transparent text-muted hover:text-fg",
+                    ? "bg-surface-3 text-accent-strong font-semibold shadow-xs"
+                    : "text-muted hover:text-fg hover:bg-surface-2/60",
                 )}
               >
                 {type}
               </button>
             ))}
           </div>
+        </div>
 
+        {/* Right: Secondary Browse & Explicit Suggestions Toggle */}
+        <div className="flex items-center gap-2">
+          {/* Subtle inline browse shortcuts (non-competing, only on wider viewports) */}
+          <div className="hidden lg:flex items-center gap-1.5 text-[11px] text-faint">
+            <span className="text-[10px] uppercase tracking-wider text-faint">Browse:</span>
+            <Link
+              href="/discover?sort=TRENDING_DESC"
+              className="text-muted hover:text-fg transition-colors"
+            >
+              Trending
+            </Link>
+            <span className="text-border-subtle">·</span>
+            <Link
+              href="/discover?sort=SCORE_DESC"
+              className="text-muted hover:text-fg transition-colors"
+            >
+              Top Rated
+            </Link>
+            <span className="text-border-subtle">·</span>
+            <Link
+              href="/schedule"
+              className="text-muted hover:text-fg transition-colors"
+            >
+              Airing
+            </Link>
+          </div>
+
+          {/* Secondary Browse Dropdown Menu */}
+          <div className="relative" ref={browseRef}>
+            <button
+              type="button"
+              onClick={() => setShowBrowse((prev) => !prev)}
+              aria-expanded={showBrowse}
+              className={cn(
+                "inline-flex items-center gap-1 border px-2 py-1 text-[11px] font-medium transition-colors",
+                showBrowse
+                  ? "border-accent bg-surface-2 text-accent-strong"
+                  : "border-border/80 bg-surface/40 text-muted hover:border-border hover:text-fg",
+              )}
+            >
+              <CompassIcon className="h-3 w-3 text-faint" />
+              <span>Browse</span>
+              <ChevronDownIcon
+                className={cn(
+                  "h-3 w-3 transition-transform duration-150",
+                  showBrowse && "rotate-180",
+                )}
+              />
+            </button>
+
+            {showBrowse ? (
+              <div className="absolute right-0 top-full z-50 mt-1.5 w-64 border border-border bg-bg/95 p-2 shadow-2xl backdrop-blur-md">
+                <div className="px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-faint">
+                  Browse Catalogue
+                </div>
+                <div className="grid grid-cols-2 gap-1 py-1">
+                  {QUICK_DISCOVERY_TAGS.map((tag) => {
+                    const Icon = tag.icon;
+                    return (
+                      <Link
+                        key={tag.label}
+                        href={tag.href}
+                        onClick={() => setShowBrowse(false)}
+                        className="flex items-center gap-1.5 px-2 py-1.5 text-xs text-muted transition-colors hover:bg-surface-2 hover:text-fg"
+                      >
+                        <Icon className="h-3.5 w-3.5 text-accent-strong shrink-0" />
+                        <span className="truncate">{tag.label}</span>
+                      </Link>
+                    );
+                  })}
+                </div>
+                <div className="mt-1 border-t border-border-subtle pt-1.5 px-2">
+                  <Link
+                    href={`/discover${mediaType === "manhwa" ? "?type=manga&country=KR" : mediaType === "manga" ? "?type=manga" : ""}`}
+                    onClick={() => setShowBrowse(false)}
+                    className="flex items-center justify-between text-[11px] font-medium text-accent-strong hover:underline"
+                  >
+                    <span>Explore all {mediaType}</span>
+                    <ChevronRightIcon className="h-3 w-3" />
+                  </Link>
+                </div>
+              </div>
+            ) : null}
+          </div>
+
+          {/* Explicit Suggestions control */}
           <button
             type="button"
-            onClick={() => setShowSuggestions(!showSuggestions)}
-            className="hidden sm:inline text-xs font-medium text-muted hover:text-fg transition-colors"
+            onClick={() => setShowSuggestions((prev) => !prev)}
+            aria-expanded={showSuggestions}
+            className={cn(
+              "inline-flex items-center gap-1.5 border px-2.5 py-1 text-[11px] font-medium transition-colors",
+              showSuggestions
+                ? "border-accent bg-accent-soft text-accent-strong font-semibold"
+                : "border-border/80 bg-surface/40 text-muted hover:border-border hover:text-fg",
+            )}
           >
-            {showSuggestions ? "Hide suggestions" : "Show suggestions"}
+            <SparklesIcon className="h-3 w-3 text-accent-strong" />
+            <span>Suggestions</span>
+            <ChevronDownIcon
+              className={cn(
+                "h-3 w-3 transition-transform duration-150",
+                showSuggestions && "rotate-180",
+              )}
+            />
           </button>
-          <span className="hidden text-border sm:inline">|</span>
-          <Link
-            href={`/discover${mediaType === "manhwa" ? "?type=manga&country=KR" : mediaType === "manga" ? "?type=manga" : ""}`}
-            className="hidden items-center gap-1 text-xs font-medium text-accent-strong transition-colors hover:underline sm:inline-flex"
-          >
-            <span>Explore all {mediaType}</span>
-            <ChevronRightIcon className="h-3.5 w-3.5" />
-          </Link>
         </div>
       </div>
 
-      {/* Full-width interactive media search bar */}
-      <div className="relative mt-5">
+      {/* Primary Search Input */}
+      <div className="relative">
         <div className="relative flex items-center">
           <SearchIcon className="pointer-events-none absolute left-3.5 h-4 w-4 text-faint" />
 
@@ -357,7 +469,7 @@ export function HomeSearch({ popularAnime }: HomeSearchProps) {
             }
             autoComplete="off"
             spellCheck={false}
-            className="h-12 w-full border border-border bg-transparent pl-10 pr-24 text-sm font-normal text-fg placeholder:text-faint transition-colors focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent/30 [&::-webkit-search-cancel-button]:appearance-none [&::-webkit-search-cancel-button]:hidden [&::-webkit-search-decoration]:appearance-none"
+            className="h-10 sm:h-11 w-full border border-border bg-surface/30 pl-10 pr-24 text-sm font-normal text-fg placeholder:text-faint transition-colors focus:border-accent focus:bg-surface/50 focus:outline-none focus:ring-1 focus:ring-accent/30 [&::-webkit-search-cancel-button]:appearance-none [&::-webkit-search-cancel-button]:hidden [&::-webkit-search-decoration]:appearance-none"
           />
 
           <div className="absolute right-3 flex items-center gap-1.5">
@@ -373,41 +485,21 @@ export function HomeSearch({ popularAnime }: HomeSearchProps) {
                   inputRef.current?.focus();
                 }}
                 aria-label="Clear search"
-                className="flex h-8 w-8 items-center justify-center text-faint transition-colors hover:text-fg"
+                className="flex h-7 w-7 items-center justify-center text-faint transition-colors hover:text-fg"
               >
                 <CloseIcon className="h-3 w-3" />
               </button>
             ) : (
-              <kbd className="hidden px-1.5 py-0.5 font-mono text-[10px] font-medium text-faint sm:inline-block">
+              <kbd className="hidden border border-border/60 bg-surface-2/60 px-1.5 py-0.5 font-mono text-[10px] font-medium text-faint sm:inline-block">
                 {isMac ? "⌘ K" : "Ctrl K"}
               </kbd>
             )}
           </div>
         </div>
 
-        {/* Quick Genre & Category Discovery Tag Pills */}
-        <div className="no-scrollbar mt-2.5 flex items-center gap-1.5 overflow-x-auto pb-0.5">
-          <span className="shrink-0 text-[11px] font-medium text-faint mr-1">
-            Browse:
-          </span>
-          {QUICK_DISCOVERY_TAGS.map((tag) => {
-            const Icon = tag.icon;
-            return (
-              <Link
-                key={tag.label}
-                href={tag.href}
-                className="inline-flex shrink-0 items-center gap-1.5 border-b border-transparent px-2 py-1 text-[10px] font-medium uppercase tracking-[0.08em] text-muted transition-colors hover:border-accent hover:text-fg"
-              >
-                <Icon className="h-3 w-3 text-accent-strong" />
-                <span>{tag.label}</span>
-              </Link>
-            );
-          })}
-        </div>
-
-        {/* Search results popover anchored cleanly underneath the input */}
+        {/* Search Results Popover (Strict Priority over suggestions) */}
         {isOpen && debouncedQuery ? (
-          <div className="absolute left-0 right-0 top-full z-50 mt-1 max-h-[380px] overflow-y-auto border border-border bg-bg p-1 shadow-xl">
+          <div className="absolute left-0 right-0 top-full z-50 mt-1 max-h-[380px] overflow-y-auto border border-border bg-bg p-1 shadow-2xl">
             {loading && results.length === 0 ? (
               <div className="flex items-center justify-center gap-2 py-8 text-xs text-muted">
                 <LoaderIcon className="h-4 w-4 animate-spin text-accent-strong" />
@@ -548,22 +640,22 @@ export function HomeSearch({ popularAnime }: HomeSearchProps) {
         ) : null}
       </div>
 
-      {/* Dynamic Trending Quick-Track Cards */}
-      {showSuggestions ? (
-        <div className="pt-1">
-          <div className="mb-2.5 flex items-center justify-between">
+      {/* Expandable Suggestions Drawer (Opt-in; yields when search results are active) */}
+      {showSuggestions && !(isOpen && debouncedQuery) ? (
+        <div className="mt-2.5 border border-border/80 bg-surface/30 p-2.5 sm:p-3">
+          <div className="mb-2 flex items-center justify-between gap-2 border-b border-border-subtle/80 pb-2">
             <div className="flex items-center gap-2">
-              <span className="text-[11px] font-semibold uppercase tracking-wider text-faint">
-                {untrackedAnime.length > 0
-                  ? "Recommended for you · Untracked anime"
-                  : "Trending Quick-Track"}
+              <span className="text-[10px] font-semibold uppercase tracking-[0.14em] text-accent-strong">
+                {untrackedItems.length > 0
+                  ? `Recommended for you · Untracked ${mediaType}`
+                  : `Trending ${mediaType}`}
               </span>
-              {popularAnime.length > PAGE_SIZE ? (
+              {sourcePool.length > PAGE_SIZE ? (
                 <button
                   type="button"
                   onClick={handleShuffle}
                   title="Cycle to next recommendations"
-                  className="inline-flex items-center gap-1 border-b border-transparent px-1.5 py-1 text-[10px] font-medium text-muted transition-colors hover:border-accent hover:text-fg"
+                  className="inline-flex items-center gap-1 border border-border/80 bg-surface/60 px-1.5 py-0.5 text-[10px] font-medium text-muted transition-colors hover:border-accent hover:text-fg"
                 >
                   <RefreshIcon className="h-3 w-3" />
                   <span>Shuffle</span>
@@ -571,24 +663,41 @@ export function HomeSearch({ popularAnime }: HomeSearchProps) {
               ) : null}
             </div>
 
-            <span className="text-[11px] text-faint hidden sm:inline">
-              1-click add to planning
-            </span>
+            <div className="flex items-center gap-2">
+              <span className="hidden text-[10px] text-faint sm:inline">
+                1-click add to planning
+              </span>
+              <button
+                type="button"
+                onClick={() => setShowSuggestions(false)}
+                className="inline-flex items-center gap-1 border-b border-transparent text-[10px] font-medium text-muted hover:border-accent hover:text-fg transition-colors"
+                aria-label="Collapse suggestions"
+              >
+                <CloseIcon className="h-3 w-3" />
+                <span>Collapse</span>
+              </button>
+            </div>
           </div>
 
           {allTracked ? (
-            <div className="flex items-center justify-between border-y border-border px-3 py-3 text-xs text-muted">
+            <div className="flex items-center justify-between px-2 py-2 text-xs text-muted">
               <div className="flex items-center gap-2">
-                <CheckIcon className="h-4 w-4 text-success" />
-                <span>You&apos;ve tracked all top trending recommendations! Use the search bar above to track any anime.</span>
+                <CheckIcon className="h-4 w-4 text-success shrink-0" />
+                <span>
+                  You&apos;ve tracked all top recommendations! Use the search bar
+                  above to track any title.
+                </span>
               </div>
-              <Link href="/discover" className="text-accent-strong hover:underline text-xs font-medium">
+              <Link
+                href={`/discover${mediaType === "manhwa" ? "?type=manga&country=KR" : mediaType === "manga" ? "?type=manga" : ""}`}
+                className="text-accent-strong hover:underline text-xs font-medium shrink-0 ml-2"
+              >
                 Browse catalog &rarr;
               </Link>
             </div>
           ) : (
-            <div className="grid grid-cols-1 border-t border-border sm:grid-cols-2 lg:grid-cols-4">
-              {displayedAnime.map((anime) => {
+            <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-4">
+              {displayedItems.map((anime) => {
                 const cover =
                   anime.coverImage.extraLarge ?? anime.coverImage.large;
                 const title = getDisplayTitle(
@@ -603,12 +712,12 @@ export function HomeSearch({ popularAnime }: HomeSearchProps) {
                 return (
                   <div
                     key={anime.id}
-                    className="group relative flex items-center gap-3 border-b border-border p-3 transition-colors hover:bg-surface/50 sm:border-r sm:last:border-r-0"
+                    className="group relative flex items-center gap-2.5 border border-border/60 bg-surface/40 p-2 transition-colors hover:border-border hover:bg-surface-2/60"
                   >
-                    {/* Poster Thumbnail with hover zoom & subtle border */}
+                    {/* Poster Thumbnail */}
                     <Link
                       href={`/media/${anime.id}`}
-                      className="relative aspect-[2/3] w-12 shrink-0 overflow-hidden border border-border bg-surface-3"
+                      className="relative aspect-[2/3] w-10 shrink-0 overflow-hidden border border-border bg-surface-3"
                       title={`View ${title}`}
                     >
                       {cover && isHttpUrl(cover) ? (
@@ -616,7 +725,7 @@ export function HomeSearch({ popularAnime }: HomeSearchProps) {
                           src={cover}
                           alt=""
                           fill
-                          sizes="48px"
+                          sizes="40px"
                           className="object-cover"
                         />
                       ) : (
@@ -634,10 +743,10 @@ export function HomeSearch({ popularAnime }: HomeSearchProps) {
                         {title}
                       </Link>
 
-                      <div className="mt-0.5 flex items-center gap-1.5 text-[11px] text-muted">
+                      <div className="mt-0.5 flex items-center gap-1.5 text-[10px] text-muted">
                         {score ? (
                           <span className="flex items-center gap-0.5 font-medium text-warning">
-                            <StarIcon className="h-3 w-3 fill-warning text-warning" />
+                            <StarIcon className="h-2.5 w-2.5 fill-warning text-warning" />
                             {score}
                           </span>
                         ) : null}
@@ -652,14 +761,19 @@ export function HomeSearch({ popularAnime }: HomeSearchProps) {
                             <span>·</span>
                             <span>{anime.episodes} ep</span>
                           </>
+                        ) : anime.chapters ? (
+                          <>
+                            <span>·</span>
+                            <span>{anime.chapters} ch</span>
+                          </>
                         ) : null}
                       </div>
 
                       {/* Action button */}
-                      <div className="mt-1.5">
+                      <div className="mt-1">
                         {isTracked ? (
-                          <span className="inline-flex items-center gap-1 text-[10px] font-medium uppercase tracking-[0.08em] text-accent-strong">
-                            <CheckIcon className="h-3 w-3" />
+                          <span className="inline-flex items-center gap-1 text-[9px] font-medium uppercase tracking-[0.08em] text-accent-strong">
+                            <CheckIcon className="h-2.5 w-2.5" />
                             <span>In library</span>
                           </span>
                         ) : (
@@ -667,12 +781,12 @@ export function HomeSearch({ popularAnime }: HomeSearchProps) {
                             type="button"
                             disabled={isAdding}
                             onClick={() => void handleAdd(anime)}
-                            className="inline-flex h-7 items-center gap-1 border border-border px-2 text-[10px] font-semibold uppercase tracking-[0.08em] text-fg transition-colors hover:border-accent hover:text-accent-strong disabled:opacity-60"
+                            className="inline-flex h-6 items-center gap-1 border border-border bg-surface-2/80 px-2 text-[9px] font-semibold uppercase tracking-[0.08em] text-fg transition-colors hover:border-accent hover:text-accent-strong disabled:opacity-60"
                           >
                             {isAdding ? (
-                              <LoaderIcon className="h-3 w-3 animate-spin" />
+                              <LoaderIcon className="h-2.5 w-2.5 animate-spin" />
                             ) : (
-                              <PlusIcon className="h-3 w-3" />
+                              <PlusIcon className="h-2.5 w-2.5" />
                             )}
                             <span>{isAdding ? "Adding…" : "Track"}</span>
                           </button>

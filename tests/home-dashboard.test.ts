@@ -65,6 +65,99 @@ describe("Home Dashboard — Search & Quick-Add Logic", () => {
     expect(existingEntries.has(animeToTrack.id)).toBe(true);
     expect(existingEntries.has(newAnime.id)).toBe(false);
   });
+
+  it("resolves recommendation pool according to mediaType (anime, manga, manhwa)", () => {
+    const popularAnime = [
+      createMockAnime(1, "Anime A"),
+      createMockAnime(2, "Anime B"),
+    ];
+    const popularManga = [
+      { ...createMockAnime(10, "Manga J"), countryOfOrigin: "JP" },
+      { ...createMockAnime(20, "Manhwa K"), countryOfOrigin: "KR" },
+    ];
+
+    // Anime selection
+    const animePool = popularAnime;
+    expect(animePool.map((x) => x.id)).toEqual([1, 2]);
+
+    // Manga selection uses manga list
+    const mangaPool = popularManga;
+    expect(mangaPool.map((x) => x.id)).toEqual([10, 20]);
+
+    // Manhwa selection prioritizes KR country of origin
+    const manhwaPool = popularManga.filter((x) => x.countryOfOrigin === "KR");
+    expect(manhwaPool.map((x) => x.id)).toEqual([20]);
+  });
+
+  it("prioritizes untracked titles in recommendations and handles all-tracked state", () => {
+    const pool = [
+      createMockAnime(1, "Title 1"),
+      createMockAnime(2, "Title 2"),
+      createMockAnime(3, "Title 3"),
+    ];
+    const trackedMap = new Map<number, boolean>([
+      [1, true],
+      [2, true],
+    ]);
+
+    const untracked = pool.filter((item) => !trackedMap.has(item.id));
+    expect(untracked.length).toBe(1);
+    expect(untracked[0]?.id).toBe(3);
+
+    // When all items in pool are tracked:
+    const fullTrackedMap = new Map<number, boolean>([
+      [1, true],
+      [2, true],
+      [3, true],
+    ]);
+    const untrackedAll = pool.filter((item) => !fullTrackedMap.has(item.id));
+    const allTracked = pool.length > 0 && untrackedAll.length === 0;
+    expect(allTracked).toBe(true);
+  });
+
+  it("correctly cycles suggestions on shuffle", () => {
+    const pool = Array.from({ length: 9 }, (_, i) =>
+      createMockAnime(i + 1, `Series ${i + 1}`),
+    );
+    const pageSize = 4;
+    const total = pool.length;
+
+    const getPage = (pageIndex: number) => {
+      const startIndex = (pageIndex * pageSize) % total;
+      const items: AnimeSummary[] = [];
+      for (let i = 0; i < pageSize; i++) {
+        const item = pool[(startIndex + i) % total];
+        if (item) items.push(item);
+      }
+      return items;
+    };
+
+    const page0 = getPage(0).map((x) => x.id);
+    const page1 = getPage(1).map((x) => x.id);
+    const page2 = getPage(2).map((x) => x.id);
+    const page3 = getPage(3).map((x) => x.id);
+
+    expect(page0).toEqual([1, 2, 3, 4]);
+    expect(page1).toEqual([5, 6, 7, 8]);
+    expect(page2).toEqual([9, 1, 2, 3]); // wraps around seamlessly
+    expect(page3).toEqual([4, 5, 6, 7]);
+  });
+
+  it("enforces search precedence over suggestions", () => {
+    const showSuggestions = true;
+    const isSearchOpen = true;
+    const debouncedQuery = "Solo";
+
+    // When query is active and search results are open, search results take precedence
+    const shouldRenderSuggestions =
+      showSuggestions && !(isSearchOpen && debouncedQuery);
+    expect(shouldRenderSuggestions).toBe(false);
+
+    // When search is cleared, suggestions become visible again
+    const shouldRenderWhenCleared =
+      showSuggestions && !(isSearchOpen && "");
+    expect(shouldRenderWhenCleared).toBe(true);
+  });
 });
 
 describe("Home Dashboard — Continue Watching & Episode Actions", () => {

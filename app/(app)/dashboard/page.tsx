@@ -1,4 +1,5 @@
-import { AnimeSection } from "@/features/home/anime-section";
+import { ReadingShelf } from "@/features/home/reading-shelf";
+import { TrendingIndex } from "@/features/home/trending-index";
 import { HomeHero } from "@/features/home/home-hero";
 import { HomeSchedule } from "@/features/home/home-schedule";
 import { HomeSearch } from "@/features/home/home-search";
@@ -7,6 +8,12 @@ import { SeasonalCarousel } from "@/features/home/seasonal-carousel";
 import { ContinueWatching } from "@/features/library/continue-watching";
 import { RecentlyUpdated } from "@/features/library/recently-updated";
 import { getViewer } from "@/lib/auth";
+import {
+  curateReadingTable,
+  deduplicateSeasonal,
+  deduplicateTrending,
+  selectSpotlightCandidates,
+} from "@/lib/discovery";
 import { getWeekRange, toIsoDateString } from "@/lib/schedule";
 import { getCurrentSeason, seasonLabel } from "@/lib/season";
 import {
@@ -53,72 +60,58 @@ export default async function DashboardPage() {
 
   const [seasonal, popular, trending, mangaTrending, scheduleEntries] =
     await Promise.all([
-    safeLoad("seasonal anime", () =>
-      client.getSeasonalAnime(season, year, { perPage: 12 }),
-    ),
-    safeLoad("popular anime", () =>
-      client.getPopularAnime({ perPage: 12 }),
-    ),
-    safeLoad("trending anime", () =>
-      client.getTrendingAnime({ perPage: 12 }),
-    ),
-    safeLoad("trending manga", () =>
-      client.getTrendingManga({ perPage: 12 }),
-    ),
-    safeLoadSchedule(() =>
-      client.getAiringSchedule({
-        airingAtGreater: currentWeek.queryAiringAtGreater,
-        airingAtLesser: currentWeek.queryAiringAtLesser,
-      }),
-    ),
+      safeLoad("seasonal anime", () =>
+        client.getSeasonalAnime(season, year, { perPage: 18 }),
+      ),
+      safeLoad("popular anime", () => client.getPopularAnime({ perPage: 12 })),
+      safeLoad("trending anime", () =>
+        client.getTrendingAnime({ perPage: 18 }),
+      ),
+      safeLoad("trending manga", () =>
+        client.getTrendingManga({ perPage: 18 }),
+      ),
+      safeLoadSchedule(() =>
+        client.getAiringSchedule({
+          airingAtGreater: currentWeek.queryAiringAtGreater,
+          airingAtLesser: currentWeek.queryAiringAtLesser,
+        }),
+      ),
     ]);
 
   const seasonQuery = `season=${season}&year=${year}`;
   const seasonalItems = seasonal?.items ?? [];
   const popularItems = popular?.items ?? [];
   const trendingItems = trending?.items ?? [];
+  const mangaItems = mangaTrending?.items ?? [];
 
-  // Candidate pool of top popular, trending and seasonal anime for quick-tracking
+  // Candidate pool of top popular, trending and seasonal anime for quick-tracking.
   const quickAddPool = [
     ...popularItems,
     ...trendingItems,
     ...seasonalItems,
   ].reduce<AnimeSummary[]>((acc, item) => {
-    if (!acc.some((x) => x.id === item.id)) {
-      acc.push(item);
-    }
+    if (!acc.some((x) => x.id === item.id)) acc.push(item);
     return acc;
   }, []);
 
-  const heroCandidates = [
-    ...seasonalItems,
-    ...trendingItems,
-    ...popularItems,
-  ].reduce<AnimeSummary[]>((acc, item) => {
-    if (!acc.some((x) => x.id === item.id)) {
-      acc.push(item);
-    }
-    return acc;
-  }, []);
-
-  const bannerPriority = [
-    ...heroCandidates.filter((item) => Boolean(item.bannerImage)),
-    ...heroCandidates.filter((item) => !item.bannerImage),
-  ];
-
-  const blackCloverIndex = bannerPriority.findIndex(
-    (item) =>
-      item.id === 195604 ||
-      item.title.english?.toLowerCase().includes("black clover"),
+  // 1. Curate spotlight candidates for the Seasonal Feature hero with cinematic banners & genre diversity
+  const heroSpotlightPosters = selectSpotlightCandidates(
+    seasonalItems,
+    trendingItems,
+    popularItems,
+    { currentYear: year },
   );
-  if (blackCloverIndex > 0) {
-    const [blackClover] = bannerPriority.splice(blackCloverIndex, 1);
-    if (blackClover) {
-      bannerPriority.unshift(blackClover);
-    }
-  }
 
-  const heroSpotlightPosters = bannerPriority.slice(0, 5);
+  const primaryHeroId = heroSpotlightPosters[0]?.id;
+
+  // 2. Deduplicate seasonal catalogue so it opens with distinct highlights rather than repeating hero as #1
+  const curatedSeasonalItems = deduplicateSeasonal(seasonalItems, primaryHeroId);
+
+  // 3. Deduplicate trending ranked list so the #1 hero is not redundantly repeated
+  const curatedTrendingItems = deduplicateTrending(trendingItems, primaryHeroId, 6);
+
+  // 4. Curate the reading table with balanced representation of Manga & Manhwa
+  const curatedReadingItems = curateReadingTable(mangaItems, 6);
 
   const todayIso = toIsoDateString(now);
   const todayEntries = (scheduleEntries ?? []).filter(
@@ -131,72 +124,89 @@ export default async function DashboardPage() {
     day: "numeric",
   }).format(now);
 
+  const seasonLabelText = `${seasonLabel(season)} ${year}`;
+
   return (
     <div className="space-y-8 sm:space-y-10">
-      {/* 1. Cinematic Hero Spotlight Banner */}
-      <HomeHero
-        viewer={viewer}
-        season={season}
-        year={year}
-        posters={heroSpotlightPosters}
-        todayCount={todayEntries.length}
-        todayLabel={todayLabel}
-        todayEntries={scheduleEntries}
-        serverHour={now.getHours()}
-      />
+      {/* Top Header Region: Personal Archive & Quick Search */}
+      <div className="space-y-3.5 sm:space-y-4">
+        {/* A. Compact personal introduction and real library ledger */}
+        <HomeStatsStrip
+          todayEntries={scheduleEntries}
+          todayLabel={todayLabel}
+          seasonLabelText={seasonLabelText}
+        />
 
-      {/* 2. Main Dashboard Stream */}
-      <div className="space-y-8 sm:space-y-10">
-        <HomeSearch popularAnime={quickAddPool} />
+        {/* B. Utility band: search and discovery shortcuts */}
+        <HomeSearch
+          popularAnime={quickAddPool}
+          popularManga={mangaTrending?.items ?? []}
+        />
+      </div>
 
-        {viewer ? (
-          <HomeStatsStrip todayEntries={scheduleEntries} />
-        ) : null}
+      {/* C. The visual anchor: personal in-progress activity */}
+      {viewer ? <ContinueWatching todayEntries={scheduleEntries} /> : null}
 
-        {viewer ? (
-          <ContinueWatching todayEntries={scheduleEntries} />
-        ) : null}
-
+      {/* D. Personal activity paired with the broadcast week */}
+      <div
+        className={
+          viewer
+            ? "grid gap-10 xl:grid-cols-[minmax(0,1.3fr)_minmax(360px,0.7fr)]"
+            : undefined
+        }
+      >
         {viewer ? <RecentlyUpdated /> : null}
-
         <HomeSchedule
+          compact={viewer !== null}
           week={currentWeek}
           initialEntries={scheduleEntries}
           initialNow={currentWeek.generatedAtMs}
         />
+      </div>
+
+      {/* E. Discovery journal, deliberately secondary to the personal archive */}
+      <section aria-labelledby="discovery-heading" className="space-y-8">
+        <header className="border-t border-border pt-5">
+          <p className="text-[9px] font-semibold uppercase tracking-[0.2em] text-accent-strong">
+            Discovery
+          </p>
+          <div className="mt-1 flex flex-wrap items-baseline justify-between gap-x-6 gap-y-2">
+            <h2
+              id="discovery-heading"
+              className="font-display text-[26px] font-semibold tracking-[-0.04em] text-fg sm:text-[32px]"
+            >
+              Beyond your shelf
+            </h2>
+            <p className="text-[11px] text-muted">
+              The season, the conversation, and the reading table.
+            </p>
+          </div>
+        </header>
+
+        <HomeHero
+          viewer={viewer}
+          season={season}
+          year={year}
+          posters={heroSpotlightPosters}
+          todayCount={todayEntries.length}
+          todayLabel={todayLabel}
+          todayEntries={scheduleEntries}
+          serverHour={now.getHours()}
+        />
 
         <SeasonalCarousel
-          title={`${seasonLabel(season)} ${year} anime`}
+          title={`${seasonLabelText} anime`}
           description="This season's most popular series, specials and films."
           actionHref={`/discover?${seasonQuery}`}
-          items={seasonal?.items ?? null}
+          items={curatedSeasonalItems.length > 0 ? curatedSeasonalItems : (seasonal?.items ?? null)}
           error={seasonal === null}
         />
 
-        {trending?.items && trending.items.length > 0 ? (
-          <AnimeSection
-            eyebrow="Discovery / Anime"
-            title="Trending this week"
-            description="What is picking up momentum right now across the community."
-            actionHref="/discover?sort=TRENDING_DESC"
-            items={trending.items.slice(0, 6)}
-            error={trending === null}
-          />
-        ) : null}
-
-        {mangaTrending?.items && mangaTrending.items.length > 0 ? (
-          <AnimeSection
-            eyebrow="Reading room / Manga & Manhwa"
-            title="Trending manga & manhwa"
-            metaMode="below"
-            description="Comics picking up momentum right now. Add one to start tracking chapters."
-            actionHref="/discover?type=manga&sort=TRENDING_DESC"
-            items={mangaTrending.items.slice(0, 6)}
-            error={mangaTrending === null}
-          />
-        ) : null}
-      </div>
+        <div className="grid gap-10 xl:grid-cols-[minmax(0,1.08fr)_minmax(0,0.92fr)]">
+          <TrendingIndex items={curatedTrendingItems} />
+          <ReadingShelf items={curatedReadingItems} />
+        </div>
+      </section>
     </div>
   );
 }
-

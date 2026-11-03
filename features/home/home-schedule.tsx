@@ -32,6 +32,8 @@ interface HomeScheduleProps {
   initialEntries: AiringScheduleEntry[] | null;
   /** Server render time; keeps the first client render identical. */
   initialNow: number;
+  /** Narrow side-column treatment: the day strip scrolls instead of squeezing. */
+  compact?: boolean;
 }
 
 /** The dashboard shows the shape of a day and links out; the full page holds
@@ -52,6 +54,7 @@ export function HomeSchedule({
   week,
   initialEntries,
   initialNow,
+  compact = false,
 }: HomeScheduleProps) {
   const nowMs = useNow(initialNow);
   const { preferences } = usePreferences();
@@ -183,7 +186,12 @@ export function HomeSchedule({
       />
 
       {/* Week selector: 7 evenly sized day tiles with Japanese Kanji accents */}
-      <div className="no-scrollbar -mx-1 flex gap-2 overflow-x-auto px-1 py-1 sm:grid sm:grid-cols-7 sm:gap-2.5">
+      <div
+        className={cn(
+          "no-scrollbar -mx-1 flex gap-2 overflow-x-auto px-1 py-1",
+          !compact && "sm:grid sm:grid-cols-7 sm:gap-2.5",
+        )}
+      >
         {days.map((day) => {
           const isSelected = day.date === selectedDate;
           const dayWatchingCount = day.entries.filter((e) =>

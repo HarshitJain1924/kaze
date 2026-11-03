@@ -18,6 +18,7 @@ import {
   usePreferences,
 } from "@/components/providers/preferences-provider";
 import { useLibrary } from "@/features/library/library-provider";
+import { calculatePersonalContext } from "@/lib/discovery";
 import { toIsoDateString } from "@/lib/schedule";
 import { seasonLabel } from "@/lib/season";
 import {
@@ -97,6 +98,7 @@ export function HomeHero({
   // Auto-advance spotlight every 8 seconds unless user is hovering
   useEffect(() => {
     if (featuredList.length <= 1 || isHovered) return;
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
     const interval = setInterval(() => {
       setActiveIndex((prev) => (prev + 1) % featuredList.length);
     }, 8000);
@@ -144,50 +146,23 @@ export function HomeHero({
     return username ? username.charAt(0).toUpperCase() + username.slice(1) : "Otaku";
   }, [preferences.nickname, viewer]);
 
-  // Compute how many episodes behind the user is across currently watching anime
-  const { episodesBehind, seriesBehind } = useMemo(() => {
-    let epCount = 0;
-    let seriesCount = 0;
-
-    for (const item of items) {
-      if (item.entry.status === "watching" && item.anime) {
-        const total = item.anime.episodes;
-        const progress = item.entry.progress;
-        if (total !== null && total > 0 && progress < total) {
-          const behind = total - progress;
-          epCount += behind;
-          seriesCount += 1;
-        }
-      }
-    }
-
-    return { episodesBehind: epCount, seriesBehind: seriesCount };
-  }, [items]);
-
-  const summaryText = useMemo(() => {
-    if (fallbackSummary) return fallbackSummary;
-
-    const episodesTodayText =
-      today.count === 1
-        ? "1 episode airs today."
-        : `${today.count} episodes air today.`;
-
-    if (!viewer) {
-      return `${episodesTodayText} Track your watch progress and follow the broadcast week.`;
-    }
-
-    if (seriesBehind > 0) {
-      const epWord = episodesBehind === 1 ? "episode" : "episodes";
-      const seriesWord = seriesBehind === 1 ? "series" : "series";
-      return `${episodesTodayText} You're ${episodesBehind} ${epWord} behind across ${seriesBehind} ${seriesWord}.`;
-    }
-
-    if (items.some((it) => it.entry.status === "watching")) {
-      return `${episodesTodayText} You're all caught up on your tracked series.`;
-    }
-
-    return `${episodesTodayText} Add anime to your library to track upcoming releases.`;
-  }, [fallbackSummary, today.count, viewer, seriesBehind, episodesBehind, items]);
+  const { summaryText } = useMemo(() => {
+    return calculatePersonalContext({
+      viewer,
+      items,
+      todayEntries,
+      activeTimeZone,
+      titleLanguage: preferences.titleLanguage,
+      fallbackSummary,
+    });
+  }, [
+    viewer,
+    items,
+    todayEntries,
+    activeTimeZone,
+    preferences.titleLanguage,
+    fallbackSummary,
+  ]);
 
   const activeTitle = currentAnime
     ? getDisplayTitle(currentAnime.title, preferences.titleLanguage === "english")
@@ -203,9 +178,6 @@ export function HomeHero({
     : null;
   const activeColor = currentAnime?.coverImage.color ?? null;
   const currentEntry = currentAnime ? entryFor(currentAnime.id) : null;
-
-  // The artwork for the backdrop: prefer widescreen 4K banner, fallback to cover, then hero banner
-  const backdropArt = activeBanner ?? activeCover ?? "/hero-banner.jpg";
 
   const artwork = activeBanner ?? activeCover ?? "/hero-banner.jpg";
   const artworkIsRemote = isHttpUrl(artwork);
@@ -289,14 +261,14 @@ export function HomeHero({
                     ) : null}
                   </div>
 
-                  <h1 className="mt-3 text-balance font-display text-[26px] font-semibold leading-[1.04] tracking-[-0.045em] text-fg sm:text-[34px] lg:text-[34px] xl:text-[40px]">
+                  <h2 className="mt-3 text-balance font-display text-[26px] font-semibold leading-[1.04] tracking-[-0.045em] text-fg sm:text-[34px] lg:text-[34px] xl:text-[40px]">
                     <Link
                       href={`/media/${currentAnime.id}`}
                       className="transition-colors hover:text-accent-strong"
                     >
                       {activeTitle}
                     </Link>
-                  </h1>
+                  </h2>
 
                   {currentAnime.genres?.length ? (
                     <p className="mt-2 line-clamp-1 text-[11px] text-faint">
@@ -317,9 +289,9 @@ export function HomeHero({
                 <p className="text-[9px] font-semibold uppercase tracking-[0.2em] text-accent-strong">
                   {today.label ?? "Broadcast week"}
                 </p>
-                <h1 className="mt-2 font-display text-3xl font-semibold tracking-[-0.04em] text-fg">
+                <h2 className="mt-2 font-display text-3xl font-semibold tracking-[-0.04em] text-fg">
                   Good {greetingWord}, {viewerName}
-                </h1>
+                </h2>
                 <p className="mt-3 text-sm leading-relaxed text-muted">
                   {summaryText}
                 </p>
