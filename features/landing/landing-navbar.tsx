@@ -1,98 +1,129 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
-import { CloseIcon, ListIcon, SparklesIcon } from "@/components/icons";
-import { Logo } from "@/components/logo";
+import { CloseIcon, ListIcon } from "@/components/icons";
 import type { Viewer } from "@/types/viewer";
+
+import { LandingAppearanceControl } from "./landing-appearance-control";
 
 export function LandingNavbar({ viewer }: { viewer: Viewer | null }) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const menuButtonRef = useRef<HTMLButtonElement>(null);
+  const mobilePanelRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!mobileMenuOpen) return;
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setMobileMenuOpen(false);
+        menuButtonRef.current?.focus();
+      }
+    };
+
+    document.addEventListener("keydown", handleKeyDown);
+    mobilePanelRef.current?.querySelector<HTMLAnchorElement>("a")?.focus();
+
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, [mobileMenuOpen]);
+
+  const closeMenu = () => setMobileMenuOpen(false);
 
   return (
-    <header className="sticky top-4 z-50 mx-auto w-full max-w-6xl px-4 sm:px-6">
-      <div className="relative flex items-center justify-between gap-3 rounded-full border border-border bg-surface/80 px-4 py-2.5 shadow-2xl backdrop-blur-2xl ring-1 ring-border-subtle transition-all">
-        {/* Brand Logo (Logo already renders its own home link) */}
-        <Logo className="select-none" />
+    <header className="sticky top-0 z-50 border-b border-[color:var(--landing-rule)] bg-[var(--landing-paper)]">
+      <div className="mx-auto flex h-[68px] max-w-[1440px] items-center justify-between gap-5 px-5 sm:px-8 lg:px-12">
+        <Link
+          href="/"
+          aria-label="Kaze home"
+          className="group flex shrink-0 items-center gap-2.5"
+        >
+          <span
+            aria-hidden="true"
+            className="h-2 w-2 bg-[var(--landing-accent)] transition-transform duration-300 group-hover:rotate-45"
+          />
+          <span className="landing-display text-[24px] font-semibold leading-none tracking-[-0.045em] text-[var(--landing-ink)]">
+            Kaze
+          </span>
+          <span className="landing-mono hidden text-[9px] text-[var(--landing-faint)] sm:inline">
+            Index
+          </span>
+        </Link>
 
-        {/* Center Desktop Navigation Links */}
-        <nav className="hidden lg:flex items-center gap-1 rounded-full border border-border-subtle bg-surface-2/60 px-2 py-1 text-xs font-semibold text-muted">
+        <nav aria-label="Primary" className="hidden items-center gap-6 lg:flex">
           <a
-            href="#features"
-            className="rounded-full px-3 py-1 hover:text-fg hover:bg-surface-3 transition-colors"
+            href="#season"
+            className="text-[12px] font-medium text-[var(--landing-muted)] transition-colors hover:text-[var(--landing-ink)]"
           >
-            Features
+            The season
           </a>
           <a
-            href="#radar"
-            className="rounded-full px-3 py-1 hover:text-fg hover:bg-surface-3 transition-colors"
+            href="#formats"
+            className="text-[12px] font-medium text-[var(--landing-muted)] transition-colors hover:text-[var(--landing-ink)]"
           >
-            Airing Radar
+            Formats
           </a>
           <a
-            href="#dna"
-            className="rounded-full px-3 py-1 hover:text-fg hover:bg-surface-3 transition-colors"
+            href="#shelf"
+            className="text-[12px] font-medium text-[var(--landing-muted)] transition-colors hover:text-[var(--landing-ink)]"
           >
-            Taste DNA
-          </a>
-          <a
-            href="#compare"
-            className="rounded-full px-3 py-1 hover:text-fg hover:bg-surface-3 transition-colors"
-          >
-            Why Kaze
+            The shelf
           </a>
           <Link
             href="/discover"
-            className="rounded-full px-3 py-1 text-accent-strong hover:text-fg hover:bg-surface-3 transition-colors"
+            className="text-[12px] font-medium text-[var(--landing-muted)] transition-colors hover:text-[var(--landing-ink)]"
           >
             Catalogue
           </Link>
+          <Link
+            href="/schedule"
+            className="text-[12px] font-medium text-[var(--landing-muted)] transition-colors hover:text-[var(--landing-ink)]"
+          >
+            Schedule
+          </Link>
         </nav>
 
-        {/* Right CTA Actions */}
-        <div className="flex shrink-0 items-center gap-2 sm:gap-3">
-          {/* Live AniList Pipeline Indicator */}
-          <div className="hidden xl:inline-flex items-center gap-1.5 rounded-full border border-emerald-500/30 bg-emerald-950/40 px-3 py-1 text-[11px] font-semibold text-emerald-300 light:bg-emerald-500/10 light:text-emerald-700">
-            <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 radar-live-dot" />
-            <span>AniList GraphQL Live</span>
-          </div>
+        <div className="flex shrink-0 items-center gap-2.5">
+          <LandingAppearanceControl className="hidden md:inline-flex" />
 
           {viewer ? (
             <Link
               href="/dashboard"
-              className="inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full bg-accent px-3 py-1.5 text-xs font-bold text-accent-contrast shadow-lg shadow-accent/25 hover:bg-accent-hover transition-all active:scale-95 sm:px-4"
+              className="landing-accent-bg inline-flex h-9 items-center gap-2 px-3.5 text-[11px] font-semibold tracking-[0.02em] transition-opacity hover:opacity-85"
             >
               <span>Dashboard</span>
-              <span aria-hidden="true">→</span>
+              <span aria-hidden="true">↗</span>
             </Link>
           ) : (
-            <div className="flex shrink-0 items-center gap-2">
+            <>
               <Link
                 href="/login"
-                className="hidden lg:inline-flex whitespace-nowrap rounded-full px-3.5 py-1.5 text-xs font-semibold text-muted hover:text-fg transition-colors"
+                className="hidden text-[12px] font-medium text-[var(--landing-muted)] transition-colors hover:text-[var(--landing-ink)] sm:inline-flex"
               >
-                Sign In
+                Sign in
               </Link>
               <Link
                 href="/login"
-                className="inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full bg-accent px-3 py-1.5 text-xs font-bold text-accent-contrast shadow-lg shadow-accent/25 hover:bg-accent-hover transition-all active:scale-95 sm:px-4"
+                className="landing-accent-bg inline-flex h-9 items-center gap-2 px-3.5 text-[11px] font-semibold tracking-[0.02em] transition-opacity hover:opacity-85"
               >
-                <SparklesIcon className="h-3.5 w-3.5 shrink-0" />
                 <span>
-                  <span className="sm:hidden">Start</span>
-                  <span className="hidden sm:inline">Enter Sanctuary</span>
+                  Start
+                  <span className="hidden sm:inline"> your index</span>
                 </span>
+                <span aria-hidden="true">↗</span>
               </Link>
-            </div>
+            </>
           )}
 
-          {/* Mobile Menu Hamburger */}
           <button
+            ref={menuButtonRef}
             type="button"
-            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            className="lg:hidden flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-border-subtle text-muted hover:text-fg"
-            aria-label="Toggle navigation menu"
+            onClick={() => setMobileMenuOpen((open) => !open)}
+            aria-expanded={mobileMenuOpen}
+            aria-controls="landing-mobile-menu"
+            aria-label={mobileMenuOpen ? "Close menu" : "Open menu"}
+            className="flex h-9 w-9 items-center justify-center border border-[color:var(--landing-rule)] text-[var(--landing-muted)] transition-colors hover:border-[var(--landing-accent)] hover:text-[var(--landing-ink)] lg:hidden"
           >
             {mobileMenuOpen ? (
               <CloseIcon className="h-4 w-4" />
@@ -103,73 +134,68 @@ export function LandingNavbar({ viewer }: { viewer: Viewer | null }) {
         </div>
       </div>
 
-      {/* Mobile Drawer Dropdown */}
-      {mobileMenuOpen && (
-        <div className="mt-2 flex flex-col gap-2 rounded-2xl border border-border bg-surface/95 p-4 shadow-2xl backdrop-blur-2xl lg:hidden animate-fade">
-          <a
-            href="#features"
-            onClick={() => setMobileMenuOpen(false)}
-            className="rounded-xl px-3 py-2 text-sm font-semibold text-muted hover:bg-surface-2 hover:text-fg"
-          >
-            Features
-          </a>
-          <a
-            href="#radar"
-            onClick={() => setMobileMenuOpen(false)}
-            className="rounded-xl px-3 py-2 text-sm font-semibold text-muted hover:bg-surface-2 hover:text-fg"
-          >
-            Airing Radar
-          </a>
-          <a
-            href="#dna"
-            onClick={() => setMobileMenuOpen(false)}
-            className="rounded-xl px-3 py-2 text-sm font-semibold text-muted hover:bg-surface-2 hover:text-fg"
-          >
-            Taste DNA Telemetry
-          </a>
-          <a
-            href="#compare"
-            onClick={() => setMobileMenuOpen(false)}
-            className="rounded-xl px-3 py-2 text-sm font-semibold text-muted hover:bg-surface-2 hover:text-fg"
-          >
-            Why Kaze
-          </a>
-          <Link
-            href="/discover"
-            onClick={() => setMobileMenuOpen(false)}
-            className="rounded-xl px-3 py-2 text-sm font-semibold text-accent-strong hover:bg-surface-2 hover:text-fg"
-          >
-            Explore Discover Catalogue →
-          </Link>
+      {mobileMenuOpen ? (
+        <div
+          ref={mobilePanelRef}
+          id="landing-mobile-menu"
+          className="border-t border-[color:var(--landing-rule)] bg-[var(--landing-paper)] px-5 pb-6 pt-3 sm:px-8 lg:hidden"
+        >
+          <nav aria-label="Mobile" className="mx-auto grid max-w-[1440px]">
+            {[
+              { href: "#season", label: "The season" },
+              { href: "#formats", label: "Formats" },
+              { href: "#shelf", label: "The shelf" },
+              { href: "/discover", label: "Catalogue" },
+              { href: "/schedule", label: "Schedule" },
+            ].map((item) => (
+              <a
+                key={item.href}
+                href={item.href}
+                onClick={closeMenu}
+                className="border-b border-[color:var(--landing-rule)] py-3.5 text-[15px] font-medium text-[var(--landing-ink)]"
+              >
+                {item.label}
+              </a>
+            ))}
+          </nav>
 
-          <div className="border-t border-border-subtle pt-3 flex flex-col gap-2">
+          <div className="mx-auto mt-4 flex max-w-[1440px] items-center justify-between border-t border-[color:var(--landing-rule)] pt-4">
+            <span className="landing-mono text-[8px] text-[var(--landing-faint)]">
+              Appearance
+            </span>
+            <LandingAppearanceControl />
+          </div>
+
+          <div className="mx-auto mt-4 flex max-w-[1440px] flex-col gap-2">
             {viewer ? (
               <Link
                 href="/dashboard"
-                className="flex items-center justify-center rounded-xl bg-accent py-2 text-xs font-bold text-accent-contrast shadow-md"
+                onClick={closeMenu}
+                className="landing-accent-bg flex h-10 items-center justify-center text-[12px] font-semibold"
               >
-                Go to Dashboard →
+                Open your dashboard ↗
               </Link>
             ) : (
               <>
                 <Link
                   href="/login"
-                  className="flex items-center justify-center rounded-xl border border-border-subtle bg-surface-2 py-2 text-xs font-semibold text-fg"
+                  onClick={closeMenu}
+                  className="flex h-10 items-center justify-center border border-[color:var(--landing-rule)] text-[12px] font-medium text-[var(--landing-ink)]"
                 >
-                  Sign In
+                  Sign in
                 </Link>
                 <Link
                   href="/login"
-                  className="flex items-center justify-center rounded-xl bg-accent py-2 text-xs font-bold text-accent-contrast shadow-md"
+                  onClick={closeMenu}
+                  className="landing-accent-bg flex h-10 items-center justify-center text-[12px] font-semibold"
                 >
-                  Create Vault Free →
+                  Start your index ↗
                 </Link>
               </>
             )}
           </div>
         </div>
-      )}
+      ) : null}
     </header>
   );
 }
-

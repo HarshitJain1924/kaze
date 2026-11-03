@@ -1,0 +1,70 @@
+<svg viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <!-- Celestial Moon Radial Glow -->
+    <radialGradient id="icon-moon" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#a78bfa" stop-opacity="0.85"/>
+      <stop offset="45%" stop-color="#7c3aed" stop-opacity="0.55"/>
+      <stop offset="90%" stop-color="#7c3aed" stop-opacity="0.2"/>
+      <stop offset="100%" stop-color="#7c3aed" stop-opacity="0"/>
+    </radialGradient>
+
+    <!-- Wind Slash Gradient -->
+    <linearGradient id="icon-wind" x1="110" y1="350" x2="380" y2="300" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#7c3aed" stop-opacity="0.2"/>
+      <stop offset="35%" stop-color="#7c3aed"/>
+      <stop offset="75%" stop-color="#a78bfa"/>
+      <stop offset="100%" stop-color="#7c3aed" stop-opacity="0.8"/>
+    </linearGradient>
+
+    <!-- Squircle Rim-Light -->
+    <linearGradient id="icon-rim" x1="50" y1="30" x2="460" y2="480" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#ffffff" stop-opacity="0.28"/>
+      <stop offset="40%" stop-color="#7c3aed" stop-opacity="0.35"/>
+      <stop offset="100%" stop-color="#7c3aed" stop-opacity="0.85"/>
+    </linearGradient>
+
+    <!-- Ambient Glow -->
+    <filter id="icon-glow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="6" stdDeviation="10" flood-color="#7c3aed" flood-opacity="0.45"/>
+    </filter>
+  </defs>
+
+  <!-- 1. The Squircle Base (Deep Obsidian) -->
+  <rect x="24" y="24" width="464" height="464" rx="108" fill="#121520"/>
+  <rect x="26" y="26" width="460" height="460" rx="106" fill="none" stroke="url(#icon-rim)" stroke-width="4"/>
+
+  <!-- 2. The Celestial Moon (Tsuki) -->
+  <circle cx="256" cy="216" r="118" fill="url(#icon-moon)"/>
+  <circle cx="256" cy="216" r="114" fill="#7c3aed" fill-opacity="0.16"/>
+
+  <!-- 3. The Torii Gate Silhouette -->
+  <g fill="#080911" fill-opacity="0.82">
+    <path d="M174 172C205 167 307 167 338 172C344 173 344 179 337 180.5C313 183 199 183 175 180.5C168 179 168 173 174 172Z"/>
+    <rect x="187" y="190" width="138" height="13" rx="2.5"/>
+    <rect x="248" y="177" width="16" height="15"/>
+    <path d="M202 201L195 298H208L213 201H202Z"/>
+    <path d="M310 201L317 298H304L299 201H310Z"/>
+  </g>
+
+  <!-- 4. Wind Slash - Back Arc -->
+  <path d="M288 276C350 276 390 302 370 328C350 348 288 348 242 333C222 325 212 318 227 315C252 312 324 317 344 307C360 297 334 284 288 284Z" 
+        fill="url(#icon-wind)" filter="url(#icon-glow)"/>
+
+  <!-- 5. The Katana "K" Lettermark -->
+  <g filter="url(#icon-glow)">
+    <path d="M168 238C158 230 152 218 162 218H188V388H162C152 388 155 375 168 368V238Z" fill="#ffffff"/>
+    <path d="M188 218H206V388H188V218Z" fill="#f1f5f9" fill-opacity="0.88"/>
+    <path d="M196 312L295 226C303 218 318 218 328 218V238L232 325L196 312Z" fill="#ffffff"/>
+    <path d="M216 302L315 388H346V371L254 290L216 302Z" fill="#f1f5f9" fill-opacity="0.94"/>
+  </g>
+
+  <!-- 6. Wind Slash - Front Foreground Blade -->
+  <path d="M108 354C158 344 209 324 260 304C235 314 184 334 133 346C113 351 103 354 108 354Z" 
+        fill="#a78bfa" filter="url(#icon-glow)"/>
+
+  <!-- 7. The Autumn Maple Leaf (Momiji) -->
+  <g transform="translate(348, 230) rotate(22) scale(1.6)" filter="url(#icon-glow)">
+    <path d="M10 0L12 7L18 4L14 10L20 12L13 14L15 20L10 15L5 20L7 14L0 12L6 10L2 4L8 7L10 0Z" fill="#a78bfa"/>
+    <path d="M10 15L8 23" stroke="#7c3aed" stroke-width="1.8" stroke-linecap="round"/>
+  </g>
+</svg>

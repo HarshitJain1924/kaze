@@ -1,22 +1,28 @@
 import type { Metadata } from "next";
 
-import { LandingBentoGrid } from "@/features/landing/landing-bento-grid";
-import { LandingComparison } from "@/features/landing/landing-comparison";
 import { LandingCta } from "@/features/landing/landing-cta";
 import { LandingFooter } from "@/features/landing/landing-footer";
+import { LandingFormatShowcase } from "@/features/landing/landing-format-showcase";
 import { LandingHero } from "@/features/landing/landing-hero";
-import { LandingMarqueeStrip } from "@/features/landing/landing-marquee-strip";
 import { LandingNavbar } from "@/features/landing/landing-navbar";
-import { LandingSeasonalShowcase } from "@/features/landing/landing-seasonal-showcase";
+import { LandingProductStory } from "@/features/landing/landing-product-story";
+import { LandingSeasonalIndex } from "@/features/landing/landing-seasonal-index";
+import { splitMangaByOrigin } from "@/features/landing/landing-media";
 import { getViewer } from "@/lib/auth";
 import { getCurrentSeason, seasonLabel } from "@/lib/season";
 import { getCatalogService } from "@/services/catalog/catalog-service";
 import type { AnimeSummary } from "@/types/anime";
 
 export const metadata: Metadata = {
-  title: "Kaze · Anime & Manga Sanctuary",
+  title: "Kaze — A private index for anime, manga & manhwa",
   description:
-    "A quieter, cinematic way to track anime, manga and manhwa. One-tap progress, chapter tracking, live simulcast radar and private taste telemetry.",
+    "Keep anime, manga and manhwa in one quiet, private library. Track episodes and chapters, follow the airing week, and understand your taste without ads or noise.",
+  openGraph: {
+    title: "Kaze — A private index for anime, manga & manhwa",
+    description:
+      "One private library for anime, manga and manhwa. Episode and chapter tracking, a live airing calendar, and statistics built from your own history.",
+    type: "website",
+  },
 };
 
 export const dynamic = "force-dynamic";
@@ -26,52 +32,109 @@ export default async function LandingPage() {
   const { season, year } = getCurrentSeason();
   const client = getCatalogService();
 
-  let seasonalItems: AnimeSummary[] = [];
+  const [seasonalResult, mangaResult, manhwaResult] = await Promise.allSettled([
+    client.getSeasonalAnime(season, year, { perPage: 12 }),
+    client.searchMedia({
+      mediaType: "manga",
+      countryOfOrigin: "JP",
+      sort: "TRENDING_DESC",
+      perPage: 8,
+    }),
+    client.searchMedia({
+      mediaType: "manga",
+      countryOfOrigin: "KR",
+      sort: "TRENDING_DESC",
+      perPage: 8,
+    }),
+  ]);
 
-  try {
-    const seasonalResult = await client.getSeasonalAnime(season, year, {
-      perPage: 12,
-    });
-    seasonalItems = seasonalResult.data.items ?? [];
-  } catch (error) {
+  const seasonalItems =
+    seasonalResult.status === "fulfilled"
+      ? (seasonalResult.value.data.items ?? [])
+      : [];
+
+  const japaneseManga =
+    mangaResult.status === "fulfilled" ? (mangaResult.value.data.items ?? []) : [];
+  const koreanManhwa =
+    manhwaResult.status === "fulfilled"
+      ? (manhwaResult.value.data.items ?? [])
+      : [];
+
+  if (seasonalResult.status === "rejected") {
     console.error(
       "[landing] could not load seasonal anime preview:",
-      error instanceof Error ? error.message : "unknown error",
+      seasonalResult.reason instanceof Error
+        ? seasonalResult.reason.message
+        : "unknown error",
+    );
+  }
+  if (mangaResult.status === "rejected") {
+    console.error(
+      "[landing] could not load manga preview:",
+      mangaResult.reason instanceof Error
+        ? mangaResult.reason.message
+        : "unknown error",
+    );
+  }
+  if (manhwaResult.status === "rejected") {
+    console.error(
+      "[landing] could not load manhwa preview:",
+      manhwaResult.reason instanceof Error
+        ? manhwaResult.reason.message
+        : "unknown error",
     );
   }
 
+  const { manga: mangaItems } = splitMangaByOrigin(japaneseManga);
+  const { manhwa: manhwaItems } = splitMangaByOrigin(koreanManhwa);
+
+  // Keep the hero and seasonal index from repeating the same lead artwork.
+  const formatAnime =
+    seasonalItems[5] ?? seasonalItems[2] ?? seasonalItems[0] ?? null;
+  const previewItems = [
+    seasonalItems[6] ?? seasonalItems[3] ?? seasonalItems[0],
+    mangaItems[0],
+    manhwaItems[0],
+  ].filter((item): item is AnimeSummary => Boolean(item));
+
   return (
-    <div className="min-h-dvh bg-bg text-fg selection:bg-accent selection:text-white">
-      {/* 1. Floating Capsule Glass Navigation Header */}
+    <div className="landing-shell min-h-dvh">
+      <a
+        href="#main"
+        className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-[100] focus:border focus:border-[var(--landing-rule)] focus:bg-[var(--landing-paper)] focus:px-4 focus:py-2 focus:text-sm focus:text-[var(--landing-ink)]"
+      >
+        Skip to content
+      </a>
+
       <LandingNavbar viewer={viewer} />
 
-      {/* 2. Cinematic Hero Section with Interactive 3D Mockup */}
-      <LandingHero viewer={viewer} />
+      <main id="main">
+        <LandingHero
+          viewer={viewer}
+          featured={seasonalItems.slice(0, 5)}
+          season={seasonLabel(season)}
+          year={year}
+        />
 
-      {/* 3. Dual-Track Infinite Auto-scrolling Poster Marquee */}
-      <LandingMarqueeStrip />
-
-      {/* 4. The 4 Core Architectural Pillars Bento Grid */}
-      <LandingBentoGrid />
-
-      {/* 5. The Anime Purist Difference (Comparison Matrix) */}
-      <LandingComparison />
-
-      {/* 6. Live Seasonal Catalog Showcase */}
-      {seasonalItems.length > 0 ? (
-        <LandingSeasonalShowcase
-          items={seasonalItems}
+        <LandingSeasonalIndex
+          items={seasonalItems.slice(1)}
+          season={season}
           seasonLabel={seasonLabel(season)}
           year={year}
         />
-      ) : null}
 
-      {/* 7. Grand Sanctuary Call to Action */}
-      <LandingCta viewer={viewer} />
+        <LandingFormatShowcase
+          anime={formatAnime}
+          manga={mangaItems}
+          manhwa={manhwaItems}
+        />
 
-      {/* 8. Cinematic Footer */}
-      <LandingFooter />
+        <LandingProductStory viewer={viewer} items={previewItems} />
+
+        <LandingCta viewer={viewer} />
+      </main>
+
+      <LandingFooter viewer={viewer} />
     </div>
   );
 }
-

@@ -1,297 +1,230 @@
-"use client";
-
 import Image from "next/image";
 import Link from "next/link";
-import { useState } from "react";
 
-import {
-  CheckIcon,
-  ClockIcon,
-  FlameIcon,
-  PlayIcon,
-  PlusIcon,
-  RefreshIcon,
-  ShieldCheckIcon,
-  SparklesIcon,
-  StarIcon,
-  ZapIcon,
-} from "@/components/icons";
-import { cn } from "@/lib/utils";
+import { CompassIcon, StarIcon } from "@/components/icons";
+import { formatFormat, formatScore, isHttpUrl } from "@/lib/utils";
+import type { AnimeSummary } from "@/types/anime";
 import type { Viewer } from "@/types/viewer";
 
-export function LandingHero({ viewer }: { viewer: Viewer | null }) {
-  const [demoEp, setDemoEp] = useState(3);
-  const totalDemoEps = 10;
-  const demoPct = Math.round((demoEp / totalDemoEps) * 100);
+function displayTitle(item: AnimeSummary): string {
+  return (
+    item.title.english ??
+    item.title.romaji ??
+    item.title.native ??
+    "Untitled"
+  );
+}
 
-  const handleStepDemo = () => {
-    if (demoEp < totalDemoEps) {
-      setDemoEp((prev) => prev + 1);
-    }
-  };
+function coverFor(item: AnimeSummary): string | null {
+  return item.coverImage.extraLarge ?? item.coverImage.large;
+}
 
-  const handleResetDemo = () => {
-    setDemoEp(3);
-  };
+export function LandingHero({
+  viewer,
+  featured,
+  season,
+  year,
+}: {
+  viewer: Viewer | null;
+  featured: AnimeSummary[];
+  season: string;
+  year: number;
+}) {
+  const lead = featured[0] ?? null;
+  const second = featured[1] ?? null;
+  const leadCover = lead ? coverFor(lead) : null;
+  const secondCover = second ? coverFor(second) : null;
+  const leadTitle = lead ? displayTitle(lead) : null;
+  const secondTitle = second ? displayTitle(second) : null;
+  const leadScore = lead ? formatScore(lead.averageScore) : null;
+  const leadMeta = lead
+    ? [formatFormat(lead.format), lead.seasonYear ? String(lead.seasonYear) : null]
+        .filter(Boolean)
+        .join(" · ")
+    : null;
 
   return (
-    <section className="relative overflow-hidden pt-12 pb-20 sm:pt-16 sm:pb-28">
-      {/* Atmospheric Ambient Glows */}
-      <div className="pointer-events-none absolute -top-40 left-1/2 -translate-x-1/2 h-[500px] w-[900px] rounded-full bg-accent/15 blur-[160px]" />
-      <div className="pointer-events-none absolute top-1/3 -left-32 h-[400px] w-[400px] rounded-full bg-purple-600/10 blur-[140px]" />
-      <div className="pointer-events-none absolute top-1/2 -right-32 h-[450px] w-[450px] rounded-full bg-cyan-500/10 blur-[150px]" />
-
-      <div className="relative mx-auto max-w-6xl px-4 sm:px-6">
-        {/* Top Eyebrow Badge */}
-        <div className="flex justify-center">
-          <div className="inline-flex items-center gap-2 rounded-full border border-purple-500/30 bg-purple-500/10 px-4 py-1.5 text-xs font-semibold text-purple-300 light:text-purple-700 shadow-lg backdrop-blur-xl ring-1 ring-purple-500/20 animate-fade">
-            <SparklesIcon className="h-3.5 w-3.5 text-accent-strong" />
-            <span>Anime, Manga & Manhwa Sanctuary · Version 2.0</span>
-            <span className="hidden sm:inline text-faint/60">|</span>
-            <span className="hidden sm:inline text-muted">
-              AniList Live Edge Pipeline
-            </span>
-          </div>
-        </div>
-
-        {/* Main Title & Value Proposition */}
-        <div className="mx-auto mt-6 max-w-4xl text-center">
-          <h1 className="font-display text-4xl font-black leading-[1.1] tracking-tight text-fg sm:text-6xl lg:text-7xl drop-shadow-xl">
-            Your anime & manga journey,{" "}
-            <span className="bg-gradient-to-r from-accent via-accent-strong to-accent-hover bg-clip-text text-transparent">
-              elevated to cinema.
-            </span>
-          </h1>
-
-          <p className="mx-auto mt-6 max-w-2xl text-base leading-relaxed text-muted sm:text-lg lg:text-xl">
-            Stop logging episodes into clunky spreadsheets and ad-infested forums.
-            Track your simulcasts in 1-tap, watch live broadcast countdowns from Tokyo,
-            and keep your watch history in a private, account-scoped vault.
-          </p>
-
-          {/* CTA Button Cluster */}
-          <div className="mt-8 flex flex-col sm:flex-row items-center justify-center gap-3.5">
-            {viewer ? (
-              <Link
-                href="/dashboard"
-                className="w-full sm:w-auto inline-flex items-center justify-center gap-2 rounded-2xl bg-accent px-8 py-4 text-sm font-bold text-accent-contrast shadow-xl shadow-accent/25 hover:bg-accent-hover hover:scale-[1.02] active:scale-95 transition-all"
-              >
-                <span>Launch Sanctuary Dashboard</span>
-                <span className="text-base">→</span>
-              </Link>
-            ) : (
-              <Link
-                href="/login"
-                className="w-full sm:w-auto inline-flex items-center justify-center gap-2 rounded-2xl bg-accent px-8 py-4 text-sm font-bold text-accent-contrast shadow-xl shadow-accent/25 hover:bg-accent-hover hover:scale-[1.02] active:scale-95 transition-all"
-              >
-                <SparklesIcon className="h-4 w-4" />
-                <span>Start Tracking Free</span>
-                <span className="text-base">→</span>
-              </Link>
-            )}
-
-            <Link
-              href="/discover"
-              className="w-full sm:w-auto inline-flex items-center justify-center gap-2 rounded-2xl border border-border-subtle bg-surface/80 px-6 py-4 text-sm font-bold text-fg backdrop-blur-xl hover:bg-surface-2 hover:border-border transition-all active:scale-95"
-            >
-              <PlayIcon className="h-4 w-4 text-accent-strong" />
-              <span>Explore Live Catalogue</span>
-            </Link>
-          </div>
-
-          {/* Micro Trust Telemetry Strip */}
-          <div className="mt-7 flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-xs font-semibold text-muted/80">
-            <span className="flex items-center gap-1.5">
-              <CheckIcon className="h-3.5 w-3.5 text-emerald-400 light:text-emerald-600" />
-              Zero Ads Forever
-            </span>
-            <span className="text-faint/50 hidden sm:inline">·</span>
-            <span className="flex items-center gap-1.5">
-              <ZapIcon className="h-3.5 w-3.5 text-accent-strong" />
-              1-Tap Episode Stepper
-            </span>
-            <span className="text-faint/50 hidden sm:inline">·</span>
-            <span className="flex items-center gap-1.5">
-              <ClockIcon className="h-3.5 w-3.5 text-amber-400 light:text-amber-600" />
-              Live Tokyo Broadcast Radar
-            </span>
-            <span className="text-faint/50 hidden sm:inline">·</span>
-            <span className="flex items-center gap-1.5">
-              <ShieldCheckIcon className="h-3.5 w-3.5 text-purple-400 light:text-purple-700" />
-              Supabase RLS Protection
-            </span>
-          </div>
-        </div>
-
-        {/* 3. Living Interface Showcase Window (Interactive Perspective Mockup) */}
-        <div className="relative mt-12 sm:mt-16">
-          {/* Neon Ring Halo Behind Showcase */}
-          <div className="pointer-events-none absolute -inset-2 rounded-3xl bg-gradient-to-r from-accent/30 via-purple-600/20 to-cyan-500/20 blur-2xl opacity-75" />
-
-          {/* Browser Chrome Window Container */}
-          <div className="relative rounded-3xl border border-border bg-surface/95 shadow-[0_25px_60px_-15px_rgba(0,0,0,0.35)] backdrop-blur-3xl overflow-hidden ring-1 ring-border-subtle">
-            {/* Top Chrome Window Toolbar */}
-            <div className="flex items-center justify-between border-b border-border-subtle bg-surface-2 px-4 py-3">
-              <div className="flex items-center gap-2">
-                <span className="h-3 w-3 rounded-full bg-rose-500/80 shadow-[0_0_8px_rgba(244,63,94,0.6)]" />
-                <span className="h-3 w-3 rounded-full bg-amber-500/80 shadow-[0_0_8px_rgba(245,158,11,0.6)]" />
-                <span className="h-3 w-3 rounded-full bg-emerald-500/80 shadow-[0_0_8px_rgba(16,185,129,0.6)]" />
-                <span className="ml-3 hidden sm:inline-block text-xs font-mono text-faint">
-                  kaze.app/sanctuary
-                </span>
+    <section className="overflow-hidden border-b border-[color:var(--landing-rule)]">
+      <div className="mx-auto max-w-[1440px] px-5 py-12 sm:px-8 sm:py-16 lg:px-12 lg:py-20">
+        <div className="grid gap-12 lg:grid-cols-12 lg:gap-0">
+          <div className="flex flex-col justify-between lg:col-span-5 lg:pr-12">
+            <div>
+              <div className="flex items-center gap-3">
+                <span
+                  aria-hidden="true"
+                  className="h-px w-9 bg-[var(--landing-accent)]"
+                />
+                <p className="landing-mono text-[9px] text-[var(--landing-muted)]">
+                  Personal index / 01
+                </p>
               </div>
 
-              <div className="inline-flex items-center gap-2 rounded-full border border-border-subtle bg-surface px-3 py-1 text-[11px] font-semibold text-muted">
-                <span className="h-2 w-2 rounded-full bg-accent-strong animate-pulse" />
-                <span>Interactive Live Demo · Try clicking below!</span>
+              <h1
+                className="landing-serif mt-8 max-w-[10ch] text-[var(--landing-ink)]"
+                style={{
+                  fontSize: "clamp(3.35rem, 7.6vw, 7.4rem)",
+                  lineHeight: 0.86,
+                }}
+              >
+                Keep the stories{" "}
+                <span className="landing-accent">you return to.</span>
+              </h1>
+
+              <p className="mt-8 max-w-[32rem] text-[15px] leading-7 text-[var(--landing-muted)] sm:text-[17px]">
+                Anime, manga and manhwa in one quiet, private library. Log an
+                episode in a tap, follow the week&apos;s broadcasts, and see the
+                shape of your taste — without ads or noise.
+              </p>
+
+              <div className="mt-8 flex flex-col gap-2.5 sm:flex-row">
+                {viewer ? (
+                  <Link
+                    href="/dashboard"
+                    className="landing-accent-bg inline-flex h-11 items-center justify-center gap-3 px-5 text-[12px] font-semibold transition-opacity hover:opacity-85"
+                  >
+                    Open your dashboard
+                    <span aria-hidden="true">↗</span>
+                  </Link>
+                ) : (
+                  <Link
+                    href="/login"
+                    className="landing-accent-bg inline-flex h-11 items-center justify-center gap-3 px-5 text-[12px] font-semibold transition-opacity hover:opacity-85"
+                  >
+                    Start your index
+                    <span aria-hidden="true">↗</span>
+                  </Link>
+                )}
+
+                <Link
+                  href="/discover"
+                  className="inline-flex h-11 items-center justify-center gap-2.5 border border-[color:var(--landing-rule)] px-5 text-[12px] font-medium text-[var(--landing-ink)] transition-colors hover:border-[var(--landing-accent)]"
+                >
+                  <CompassIcon className="h-3.5 w-3.5 text-[var(--landing-accent)]" />
+                  Browse the catalogue
+                </Link>
+              </div>
+
+              <p className="landing-mono mt-6 text-[9px] leading-5 text-[var(--landing-faint)]">
+                Live catalogue from AniList · Free to start · No ads
+              </p>
+            </div>
+
+            <div className="mt-12 hidden items-center justify-between border-t border-[color:var(--landing-rule)] pt-4 lg:flex">
+              <span className="landing-mono text-[9px] text-[var(--landing-faint)]">
+                Season {season} {year}
+              </span>
+              <a
+                href="#season"
+                className="landing-mono text-[9px] text-[var(--landing-muted)] transition-colors hover:text-[var(--landing-ink)]"
+              >
+                Scroll to the index ↓
+              </a>
+            </div>
+          </div>
+
+          <div className="min-w-0 lg:col-span-7 lg:border-l lg:border-[color:var(--landing-rule)] lg:pl-12">
+            <div className="grid grid-cols-12 gap-3">
+              <Link
+                href={lead ? `/media/${lead.id}` : "/discover"}
+                className="group col-span-12 sm:col-span-7"
+              >
+                <div className="relative aspect-[4/5] overflow-hidden border border-[color:var(--landing-rule)] bg-[var(--landing-paper-2)]">
+                  {leadCover && isHttpUrl(leadCover) ? (
+                    <Image
+                      src={leadCover}
+                      alt={leadTitle ?? "Seasonal artwork"}
+                      fill
+                      priority
+                      loading="eager"
+                      unoptimized
+                      sizes="(max-width: 640px) 100vw, (max-width: 1024px) 55vw, 38vw"
+                      className="object-cover transition-transform duration-700 ease-out group-hover:scale-[1.025]"
+                    />
+                  ) : (
+                    <Image
+                      src="/hero-banner.jpg"
+                      alt="Kaze seasonal artwork"
+                      fill
+                      priority
+                      sizes="(max-width: 640px) 100vw, (max-width: 1024px) 60vw, 42vw"
+                      className="object-cover transition-transform duration-700 ease-out group-hover:scale-[1.025]"
+                    />
+                  )}
+                  <div
+                    aria-hidden="true"
+                    className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/5 to-transparent"
+                  />
+
+                  <div className="absolute inset-x-0 bottom-0 flex items-end justify-between gap-4 p-4 text-white sm:p-5">
+                    <div className="min-w-0">
+                      <p className="landing-mono text-[9px] text-white/65">
+                        {lead ? "Current season" : "Catalogue preview"} /{" "}
+                        {lead ? season : year}
+                      </p>
+                      {leadTitle ? (
+                        <p className="landing-serif mt-1 truncate text-xl sm:text-2xl">
+                          {leadTitle}
+                        </p>
+                      ) : null}
+                      {leadMeta ? (
+                        <p className="landing-mono mt-1 text-[9px] text-white/65">
+                          {leadMeta}
+                        </p>
+                      ) : null}
+                    </div>
+                    {leadScore ? (
+                      <span className="landing-mono flex shrink-0 items-center gap-1 border border-white/25 px-2 py-1 text-[9px] text-white/90">
+                        <StarIcon className="h-2.5 w-2.5 fill-current" />
+                        {leadScore}
+                      </span>
+                    ) : null}
+                  </div>
+                </div>
+              </Link>
+
+              <div className="col-span-5 hidden min-w-0 flex-col justify-end sm:flex">
+                {second ? (
+                  <Link href={`/media/${second.id}`} className="group">
+                    <div className="relative aspect-[2/3] overflow-hidden border border-[color:var(--landing-rule)] bg-[var(--landing-paper-2)]">
+                      {secondCover && isHttpUrl(secondCover) ? (
+                        <Image
+                          src={secondCover}
+                          alt={secondTitle ?? "Seasonal artwork"}
+                          fill
+                          unoptimized
+                          sizes="(max-width: 1024px) 24vw, 16vw"
+                          className="object-cover transition-transform duration-700 ease-out group-hover:scale-[1.025]"
+                        />
+                      ) : (
+                        <div className="absolute inset-0 flex items-center justify-center bg-[var(--landing-paper-2)] p-3 text-center">
+                          <span className="landing-mono text-[8px] leading-4 text-[var(--landing-faint)]">
+                            Artwork unavailable
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                    <p className="landing-mono mt-2 truncate text-[9px] text-[var(--landing-faint)]">
+                      {secondTitle ?? "Season archive"}
+                    </p>
+                  </Link>
+                ) : (
+                  <div className="border border-[color:var(--landing-rule)] p-4">
+                    <p className="landing-mono text-[9px] leading-5 text-[var(--landing-faint)]">
+                      The current season, collected from the live AniList
+                      catalogue.
+                    </p>
+                  </div>
+                )}
               </div>
             </div>
 
-            {/* Inner Dashboard Preview Grid */}
-            <div className="p-4 sm:p-6 lg:p-8 grid gap-5 lg:grid-cols-[1.25fr_1fr]">
-              {/* Left Live Card: Interactive Continue Watching Stepper */}
-              <div className="relative rounded-2xl border border-border-subtle bg-surface p-5 shadow-xl backdrop-blur-xl space-y-4">
-                <div className="flex items-center justify-between">
-                  <div className="inline-flex items-center gap-1.5 text-xs font-bold text-accent-strong uppercase tracking-wider">
-                    <FlameIcon className="h-3.5 w-3.5 text-rose-400 light:text-rose-600" />
-                    <span>Continue Watching Centerpiece</span>
-                  </div>
-                  <span className="rounded-md border border-purple-500/30 bg-purple-500/10 px-2 py-0.5 text-[11px] font-semibold text-purple-300 light:text-purple-700">
-                    ONA · Trigger
-                  </span>
-                </div>
-
-                <div className="flex gap-4 items-center">
-                  <div className="relative h-28 w-20 shrink-0 overflow-hidden rounded-xl border border-white/10 shadow-md">
-                    <Image
-                      src="/posters/120377.jpg"
-                      alt="Cyberpunk: Edgerunners"
-                      fill
-                      sizes="80px"
-                      className="object-cover"
-                    />
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent" />
-                    <span className="absolute bottom-1 left-1 inline-flex items-center gap-0.5 rounded bg-black/80 px-1 py-0.5 text-[10px] font-bold text-amber-400">
-                      <StarIcon className="h-2.5 w-2.5 fill-amber-400" /> 8.8
-                    </span>
-                  </div>
-
-                  <div className="min-w-0 flex-1 space-y-2">
-                    <div>
-                      <h3 className="truncate font-display text-base sm:text-lg font-bold text-fg">
-                        Cyberpunk: Edgerunners
-                      </h3>
-                      <p className="text-xs text-muted">
-                        Up next: Episode {demoEp < totalDemoEps ? demoEp + 1 : demoEp} of {totalDemoEps}
-                      </p>
-                    </div>
-
-                    {/* Dynamic Progress Bar */}
-                    <div className="space-y-1">
-                      <div className="flex items-center justify-between text-xs">
-                        <span className="font-semibold text-fg">
-                          {demoEp} / {totalDemoEps} eps watched
-                        </span>
-                        <span className="font-mono font-bold text-accent-strong">
-                          {demoPct}%
-                        </span>
-                      </div>
-                      <div className="h-2.5 w-full overflow-hidden rounded-full bg-surface-3">
-                        <div
-                          className="h-full rounded-full bg-gradient-to-r from-accent to-purple-400 shadow-[0_0_12px_rgba(167,139,250,0.8)] transition-all duration-300 ease-out"
-                          style={{ width: `${demoPct}%` }}
-                        />
-                      </div>
-                    </div>
-
-                    {/* Stepper Button */}
-                    <div className="flex items-center gap-2 pt-1">
-                      <button
-                        type="button"
-                        onClick={handleStepDemo}
-                        disabled={demoEp >= totalDemoEps}
-                        className={cn(
-                          "flex items-center justify-center gap-1.5 rounded-xl px-4 py-2 text-xs font-bold text-accent-contrast shadow-md transition-all active:scale-95",
-                          demoEp < totalDemoEps
-                            ? "bg-accent hover:bg-accent-hover shadow-accent/30"
-                            : "bg-surface-3 text-faint cursor-not-allowed",
-                        )}
-                      >
-                        <PlusIcon className="h-3.5 w-3.5 stroke-[2.5]" />
-                        <span>
-                          {demoEp < totalDemoEps
-                            ? `Mark Episode ${demoEp + 1} Watched`
-                            : "Completed Series!"}
-                        </span>
-                      </button>
-
-                      <button
-                        type="button"
-                        onClick={handleResetDemo}
-                        title="Reset demo progress"
-                        className="flex h-8 w-8 items-center justify-center rounded-xl border border-border-subtle bg-surface-2 text-faint hover:text-fg transition-colors"
-                      >
-                        <RefreshIcon className="h-3.5 w-3.5" />
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Right Side: Airing Radar & Telemetry Snapshot */}
-              <div className="space-y-3">
-                {/* Airing Today Radar Card */}
-                <div className="rounded-2xl border border-border-subtle bg-surface p-3.5 shadow-md backdrop-blur-md">
-                  <div className="flex items-center justify-between pb-2 border-b border-border-subtle">
-                    <div className="flex items-center gap-2">
-                      <span className="h-2 w-2 rounded-full bg-emerald-400 radar-live-dot" />
-                      <span className="text-xs font-bold text-fg uppercase tracking-wider">
-                        Tokyo Broadcast Radar
-                      </span>
-                    </div>
-                    <span className="text-[11px] text-faint">Auto-synced</span>
-                  </div>
-
-                  <div className="mt-2 space-y-1.5">
-                    <div className="flex items-center justify-between rounded-lg bg-surface-2/60 px-2.5 py-1.5 text-xs">
-                      <span className="font-semibold text-fg truncate max-w-[170px]">
-                        Chainsaw Man: Reze-hen
-                      </span>
-                      <span className="font-mono text-accent-strong font-bold text-[11px]">
-                        In 2h 15m
-                      </span>
-                    </div>
-                    <div className="flex items-center justify-between rounded-lg bg-surface-2/60 px-2.5 py-1.5 text-xs">
-                      <span className="font-semibold text-fg truncate max-w-[170px]">
-                        Sousou no Frieren S2
-                      </span>
-                      <span className="font-mono text-emerald-400 light:text-emerald-700 font-bold text-[11px]">
-                        In 5h 40m
-                      </span>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Vault Telemetry DNA Card */}
-                <div className="grid grid-cols-2 gap-2.5">
-                  <div className="rounded-2xl border border-border-subtle bg-surface p-3 text-center">
-                    <p className="text-[10px] uppercase font-bold text-faint">
-                      Vault Episodes
-                    </p>
-                    <p className="font-mono text-base font-extrabold text-fg">
-                      1,017
-                    </p>
-                  </div>
-                  <div className="rounded-2xl border border-border-subtle bg-surface p-3 text-center">
-                    <p className="text-[10px] uppercase font-bold text-faint">
-                      Total Time
-                    </p>
-                    <p className="font-mono text-base font-extrabold text-emerald-400 light:text-emerald-700">
-                      384 Hours
-                    </p>
-                  </div>
-                </div>
-              </div>
+            <div className="mt-4 flex items-center justify-between gap-4 border-t border-[color:var(--landing-rule)] pt-3">
+              <span className="landing-mono text-[9px] text-[var(--landing-faint)]">
+                Artwork / AniList
+              </span>
+              <span className="landing-mono text-[9px] text-[var(--landing-faint)]">
+                02 / 05
+              </span>
             </div>
           </div>
         </div>
@@ -299,4 +232,3 @@ export function LandingHero({ viewer }: { viewer: Viewer | null }) {
     </section>
   );
 }
-

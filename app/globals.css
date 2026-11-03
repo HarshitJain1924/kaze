@@ -375,6 +375,104 @@
     box-shadow: var(--shadow-card);
   }
 
+  /* -------------------------------------------------------------------------
+     Public landing page: a warm, editorial field guide. These tokens are
+     scoped to the landing shell so the authenticated product keeps its own
+     design direction and both light and dark themes remain intact.
+     ------------------------------------------------------------------------- */
+  .landing-shell {
+    --landing-paper: #0d0f0d;
+    --landing-paper-2: #151813;
+    --landing-surface: #1b1f18;
+    --landing-ink: #f0eadc;
+    --landing-muted: #aaa697;
+    --landing-faint: #858173;
+    --landing-rule: rgba(240, 234, 220, 0.18);
+    --landing-accent: #e56b4e;
+    --landing-accent-ink: #1a0b06;
+    --landing-moss: #c7cfb4;
+    background-color: var(--landing-paper);
+    background-image:
+      radial-gradient(75% 42% at 100% 0%, rgba(229, 107, 78, 0.09), transparent 72%),
+      linear-gradient(180deg, rgba(255, 255, 255, 0.018), transparent 28%);
+    color: var(--landing-ink);
+  }
+
+  .light .landing-shell {
+    --landing-paper: #f2eee3;
+    --landing-paper-2: #e9e3d5;
+    --landing-surface: #fbf8f0;
+    --landing-ink: #1c1d17;
+    --landing-muted: #625f52;
+    --landing-faint: #85806f;
+    --landing-rule: rgba(28, 29, 23, 0.17);
+    --landing-accent: #a83f29;
+    --landing-accent-ink: #fffaf1;
+    --landing-moss: #46543c;
+    background-image:
+      radial-gradient(70% 38% at 100% 0%, rgba(168, 63, 41, 0.08), transparent 72%),
+      linear-gradient(180deg, rgba(255, 255, 255, 0.6), transparent 28%);
+  }
+
+  .landing-display {
+    font-family: var(--font-fraunces), "Iowan Old Style", Georgia, serif;
+  }
+
+  .landing-serif {
+    font-family: var(--font-newsreader), "Iowan Old Style", Georgia, serif;
+    font-weight: 500;
+    letter-spacing: -0.045em;
+  }
+
+  .landing-mono {
+    font-family: var(--font-plex-mono), ui-monospace, SFMono-Regular, Menlo,
+      monospace;
+    letter-spacing: 0.11em;
+    text-transform: uppercase;
+  }
+
+  .landing-rule {
+    border-color: var(--landing-rule);
+  }
+
+  .landing-accent {
+    color: var(--landing-accent);
+  }
+
+  .landing-accent-bg {
+    background-color: var(--landing-accent);
+    color: var(--landing-accent-ink);
+  }
+
+  .landing-muted {
+    color: var(--landing-muted);
+  }
+
+  .landing-faint {
+    color: var(--landing-faint);
+  }
+
+  .landing-moss {
+    color: var(--landing-moss);
+  }
+
+  .landing-paper-2 {
+    background-color: var(--landing-paper-2);
+  }
+
+  .landing-surface {
+    background-color: var(--landing-surface);
+  }
+
+  .landing-shell :focus-visible {
+    outline-color: var(--landing-accent);
+  }
+
+  .landing-shell ::selection {
+    background: var(--landing-accent);
+    color: var(--landing-accent-ink);
+  }
+
   /* Artwork settles into a hair of zoom on pointer devices only: touch taps
      otherwise leave a stuck hover state. */
   .poster-zoom {

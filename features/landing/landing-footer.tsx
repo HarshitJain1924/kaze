@@ -1,119 +1,161 @@
 import Link from "next/link";
 
-import { Logo } from "@/components/logo";
+import type { Viewer } from "@/types/viewer";
 
-export function LandingFooter() {
+export function LandingFooter({ viewer }: { viewer: Viewer | null }) {
   return (
-    <footer className="border-t border-border-subtle bg-bg py-14 sm:py-20 text-muted">
-      <div className="mx-auto max-w-6xl px-4 sm:px-6">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-8 pb-12 border-b border-border-subtle">
-          {/* Brand Column */}
-          <div className="md:col-span-1 space-y-4">
-            <Logo />
-            <p className="text-xs leading-relaxed text-muted/80">
-              A quieter, cinematic anime, manga and manhwa sanctuary designed around artwork, 1-tap progress, and zero tracking.
+    <footer className="bg-[var(--landing-paper)]">
+      <div className="mx-auto max-w-[1440px] px-5 py-12 sm:px-8 sm:py-16 lg:px-12">
+        <div className="grid gap-10 border-b border-[color:var(--landing-rule)] pb-10 md:grid-cols-12">
+          <div className="md:col-span-5">
+            <Link
+              href="/"
+              aria-label="Kaze home"
+              className="flex items-center gap-2.5"
+            >
+              <span
+                aria-hidden="true"
+                className="h-2 w-2 bg-[var(--landing-accent)]"
+              />
+              <span className="landing-display text-[24px] font-semibold leading-none tracking-[-0.045em] text-[var(--landing-ink)]">
+                Kaze
+              </span>
+            </Link>
+            <p className="mt-4 max-w-[22rem] text-[12px] leading-5 text-[var(--landing-muted)]">
+              A private index for the stories you keep. Anime, manga and manhwa
+              without ads, noise, or someone else&apos;s algorithm.
             </p>
-            <div className="inline-flex items-center gap-2 rounded-full border border-emerald-500/30 bg-emerald-950/40 px-3 py-1 text-[11px] font-semibold text-emerald-300 light:bg-emerald-500/10 light:text-emerald-700">
-              <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 radar-live-dot" />
-              <span>AniList GraphQL Live</span>
-            </div>
           </div>
 
-          {/* Navigation Column 1 */}
-          <div className="space-y-3">
-            <h4 className="font-mono text-xs uppercase tracking-wider text-fg font-bold">
-              Product
-            </h4>
-            <ul className="space-y-2 text-xs">
+          <nav aria-label="Explore" className="md:col-span-2">
+            <h2 className="landing-mono text-[8px] text-[var(--landing-faint)]">
+              Explore
+            </h2>
+            <ul className="mt-3 space-y-2.5 text-[12px] text-[var(--landing-muted)]">
               <li>
-                <a href="#features" className="hover:text-fg transition-colors">
-                  1-Tap Progress Stepper
+                <a
+                  href="#season"
+                  className="transition-colors hover:text-[var(--landing-ink)]"
+                >
+                  The season
                 </a>
               </li>
               <li>
-                <a href="#radar" className="hover:text-fg transition-colors">
-                  Tokyo Simulcast Radar
+                <a
+                  href="#formats"
+                  className="transition-colors hover:text-[var(--landing-ink)]"
+                >
+                  Formats
                 </a>
               </li>
               <li>
-                <a href="#dna" className="hover:text-fg transition-colors">
-                  Taste DNA Telemetry
+                <a
+                  href="#shelf"
+                  className="transition-colors hover:text-[var(--landing-ink)]"
+                >
+                  The shelf
                 </a>
               </li>
               <li>
-                <a href="#compare" className="hover:text-fg transition-colors">
-                  Why Kaze
-                </a>
-              </li>
-            </ul>
-          </div>
-
-          {/* Navigation Column 2 */}
-          <div className="space-y-3">
-            <h4 className="font-mono text-xs uppercase tracking-wider text-fg font-bold">
-              Catalogue
-            </h4>
-            <ul className="space-y-2 text-xs">
-              <li>
-                <Link href="/discover" className="hover:text-fg transition-colors">
-                  Trending Releases
+                <Link
+                  href="/discover"
+                  className="transition-colors hover:text-[var(--landing-ink)]"
+                >
+                  Catalogue
                 </Link>
               </li>
               <li>
-                <Link href="/schedule" className="hover:text-fg transition-colors">
-                  Airing Schedule Calendar
-                </Link>
-              </li>
-              <li>
-                <Link href="/discover?sort=POPULARITY_DESC" className="hover:text-fg transition-colors">
-                  All-Time Top Anime
-                </Link>
-              </li>
-              <li>
-                <Link href="/login" className="hover:text-fg transition-colors">
-                  Sign In to Sanctuary
+                <Link
+                  href="/schedule"
+                  className="transition-colors hover:text-[var(--landing-ink)]"
+                >
+                  Schedule
                 </Link>
               </li>
             </ul>
-          </div>
+          </nav>
 
-          {/* Architecture Column */}
-          <div className="space-y-3">
-            <h4 className="font-mono text-xs uppercase tracking-wider text-fg font-bold">
-              Architecture &amp; Trust
-            </h4>
-            <ul className="space-y-2 text-xs">
-              <li className="flex items-center gap-2">
-                <span className="h-1.5 w-1.5 rounded-full bg-accent-strong" />
-                <span>Next.js 16 (Turbopack)</span>
-              </li>
-              <li className="flex items-center gap-2">
-                <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
-                <span>PostgreSQL Row-Level Security</span>
-              </li>
-              <li className="flex items-center gap-2">
-                <span className="h-1.5 w-1.5 rounded-full bg-cyan-400" />
-                <span>Zero Commercial Ad Tracking</span>
-              </li>
-              <li className="flex items-center gap-2">
-                <span className="h-1.5 w-1.5 rounded-full bg-purple-400" />
-                <span>1-Click JSON/CSV Data Portability</span>
-              </li>
+          <nav aria-label="Account" className="md:col-span-2">
+            <h2 className="landing-mono text-[8px] text-[var(--landing-faint)]">
+              Account
+            </h2>
+            <ul className="mt-3 space-y-2.5 text-[12px] text-[var(--landing-muted)]">
+              {viewer ? (
+                <>
+                  <li>
+                    <Link
+                      href="/dashboard"
+                      className="transition-colors hover:text-[var(--landing-ink)]"
+                    >
+                      Dashboard
+                    </Link>
+                  </li>
+                  <li>
+                    <Link
+                      href="/library"
+                      className="transition-colors hover:text-[var(--landing-ink)]"
+                    >
+                      My library
+                    </Link>
+                  </li>
+                  <li>
+                    <Link
+                      href="/settings"
+                      className="transition-colors hover:text-[var(--landing-ink)]"
+                    >
+                      Settings
+                    </Link>
+                  </li>
+                </>
+              ) : (
+                <>
+                  <li>
+                    <Link
+                      href="/login"
+                      className="transition-colors hover:text-[var(--landing-ink)]"
+                    >
+                      Sign in
+                    </Link>
+                  </li>
+                  <li>
+                    <Link
+                      href="/login"
+                      className="transition-colors hover:text-[var(--landing-ink)]"
+                    >
+                      Create an account
+                    </Link>
+                  </li>
+                </>
+              )}
             </ul>
+          </nav>
+
+          <div className="md:col-span-3">
+            <h2 className="landing-mono text-[8px] text-[var(--landing-faint)]">
+              Source
+            </h2>
+            <p className="mt-3 text-[12px] leading-5 text-[var(--landing-muted)]">
+              Artwork and catalogue metadata are provided by the{" "}
+              <a
+                href="https://anilist.co"
+                target="_blank"
+                rel="noreferrer"
+                className="border-b border-[color:var(--landing-rule)] text-[var(--landing-ink)] transition-colors hover:border-[var(--landing-accent)]"
+              >
+                AniList
+              </a>{" "}
+              public catalogue.
+            </p>
           </div>
         </div>
 
-        {/* Bottom Credits & Copyright */}
-        <div className="pt-8 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-faint">
-          <p>© {new Date().getFullYear()} Kaze Media Sanctuary. All rights reserved.</p>
-          <div className="flex items-center gap-4">
-            <span>Anime & manga metadata powered by AniList GraphQL</span>
-            <span>·</span>
-            <span>Secured with Supabase</span>
-          </div>
+        <div className="flex flex-col gap-3 pt-6 text-[10px] text-[var(--landing-faint)] sm:flex-row sm:items-center sm:justify-between">
+          <p>
+            © {new Date().getFullYear()} Kaze. All rights reserved.
+          </p>
+          <p className="landing-mono text-[8px]">Made for keeping.</p>
         </div>
       </div>
     </footer>
   );
 }
-
