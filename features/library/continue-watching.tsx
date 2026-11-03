@@ -149,12 +149,12 @@ export function FeaturedAngularCard({
   return (
     <article
       aria-label={`Featured: ${title}`}
-      className="group relative isolate overflow-hidden rounded-3xl border border-white/20 dark:border-white/10 bg-surface/75 dark:bg-surface/50 backdrop-blur-xl shadow-xl transition-all"
+      className="group relative isolate overflow-hidden border-y border-border bg-bg"
     >
       {/* Ambient Artwork Backdrop */}
       <div
         aria-hidden="true"
-        className="pointer-events-none absolute inset-0 select-none overflow-hidden z-0"
+        className="pointer-events-none absolute inset-0 z-0 hidden select-none overflow-hidden"
       >
         {cover && isHttpUrl(cover) ? (
           <div className="absolute inset-0 scale-125 blur-3xl saturate-200 opacity-20 dark:opacity-35">
@@ -162,7 +162,6 @@ export function FeaturedAngularCard({
               src={banner ?? cover}
               alt=""
               fill
-              unoptimized
               sizes="100vw"
               className="object-cover"
             />
@@ -175,7 +174,6 @@ export function FeaturedAngularCard({
               src={banner}
               alt=""
               fill
-              unoptimized
               sizes="100vw"
               className="object-cover object-[center_20%] sm:object-[center_25%] opacity-85 dark:opacity-80 transition-opacity duration-500"
             />
@@ -187,7 +185,6 @@ export function FeaturedAngularCard({
                 src={cover}
                 alt=""
                 fill
-                unoptimized
                 sizes="(max-width: 640px) 66vw, 50vw"
                 className="object-cover object-top opacity-35 dark:opacity-30 transition-opacity duration-500"
               />
@@ -216,7 +213,7 @@ export function FeaturedAngularCard({
         {/* Poster Card */}
         <Link
           href={`/media/${anime.id}`}
-          className="group/poster relative aspect-[2/3] w-28 shrink-0 self-start sm:self-center overflow-hidden rounded-2xl border border-white/20 bg-surface-3 shadow-xl ring-1 ring-white/10 transition-transform duration-300 hover:scale-[1.02] sm:w-36 md:w-40"
+          className="group/poster relative aspect-[2/3] w-24 shrink-0 self-start overflow-hidden border border-border bg-surface-3 transition-colors sm:w-32 sm:self-center md:w-36"
           aria-label={`Open ${title}`}
         >
           {cover && isHttpUrl(cover) ? (
@@ -225,7 +222,6 @@ export function FeaturedAngularCard({
               alt=""
               fill
               priority
-              unoptimized
               sizes="(max-width: 640px) 112px, 160px"
               className="object-cover transition-transform duration-500 group-hover/poster:scale-105"
             />
@@ -234,7 +230,7 @@ export function FeaturedAngularCard({
           )}
 
           {/* Floating next episode pill */}
-          <span className="absolute left-2 top-2 z-10 inline-flex items-center gap-1 rounded-lg border border-white/20 bg-black/80 px-2 py-0.5 text-[10px] font-bold text-accent-strong backdrop-blur-md shadow-sm">
+          <span className="absolute left-2 top-2 z-10 inline-flex items-center gap-1 bg-bg/90 px-1.5 py-1 text-[9px] font-semibold uppercase tracking-[0.08em] text-accent-strong">
             <PlayIcon className="h-2.5 w-2.5 fill-current" />
             <span>Next: {manga ? "Ch" : "Ep"} {atEnd ? total : nextEp}</span>
           </span>
@@ -282,7 +278,7 @@ export function FeaturedAngularCard({
                       onClick={onPrevItem}
                       aria-label="Previous series in queue"
                       title="Previous series"
-                      className="flex h-8 w-8 items-center justify-center rounded-xl border border-border-subtle bg-surface-3/60 text-muted transition-all hover:bg-surface-3 hover:text-fg active:scale-95"
+                      className="flex h-8 w-8 items-center justify-center border border-border text-muted transition-colors hover:bg-surface-2 hover:text-fg"
                     >
                       <ChevronLeftIcon className="h-3.5 w-3.5" />
                     </button>
@@ -291,7 +287,7 @@ export function FeaturedAngularCard({
                       onClick={onNextItem}
                       aria-label="Next series in queue"
                       title="Next series"
-                      className="flex h-8 w-8 items-center justify-center rounded-xl border border-border-subtle bg-surface-3/60 text-muted transition-all hover:bg-surface-3 hover:text-fg active:scale-95"
+                      className="flex h-8 w-8 items-center justify-center border border-border text-muted transition-colors hover:bg-surface-2 hover:text-fg"
                     >
                       <ChevronRightIcon className="h-3.5 w-3.5" />
                     </button>
@@ -326,12 +322,12 @@ export function FeaturedAngularCard({
 
                   {showMenu ? (
                     <div
-                      className="absolute right-0 top-full z-50 mt-1.5 w-48 rounded-xl border border-border bg-surface p-1 shadow-2xl backdrop-blur-xl"
+                      className="absolute right-0 top-full z-50 mt-1 w-48 border border-border bg-bg p-1 shadow-lg"
                       onMouseLeave={() => setShowMenu(false)}
                     >
                       <Link
                         href={`/media/${anime.id}`}
-                        className="block rounded-lg px-2.5 py-1.5 text-xs font-medium text-fg hover:bg-surface-2"
+                        className="block px-2.5 py-2 text-xs font-medium text-fg hover:bg-surface-2"
                         onClick={() => setShowMenu(false)}
                       >
                         View details
@@ -342,7 +338,7 @@ export function FeaturedAngularCard({
                           setShowMenu(false);
                           requestAdd(anime);
                         }}
-                        className="w-full rounded-lg px-2.5 py-1.5 text-left text-xs font-medium text-fg hover:bg-surface-2"
+                        className="w-full px-2.5 py-2 text-left text-xs font-medium text-fg hover:bg-surface-2"
                       >
                         Edit progress / status
                       </button>
@@ -352,7 +348,7 @@ export function FeaturedAngularCard({
                           setShowMenu(false);
                           requestRemove(anime.id);
                         }}
-                        className="w-full rounded-lg px-2.5 py-1.5 text-left text-xs font-medium text-danger hover:bg-danger/10"
+                        className="w-full px-2.5 py-2 text-left text-xs font-medium text-danger hover:bg-danger/10"
                       >
                         Remove from library
                       </button>
@@ -403,9 +399,9 @@ export function FeaturedAngularCard({
             </div>
 
             {/* Glowing progress bar */}
-            <div className="mt-2 h-2.5 w-full overflow-hidden rounded-full bg-surface-3 p-0.5">
+            <div className="mt-2 h-1.5 w-full overflow-hidden bg-surface-3">
               <div
-                className="h-full rounded-full bg-gradient-to-r from-accent to-accent-strong shadow-[0_0_12px_rgba(139,92,246,0.6)] transition-all duration-300"
+                className="h-full bg-accent-strong transition-[width] duration-300"
                 style={{ width: `${percent ?? (watchedCount > 0 ? 30 : 0)}%` }}
               />
             </div>
@@ -417,9 +413,9 @@ export function FeaturedAngularCard({
                 disabled={isPending || atEnd}
                 onClick={() => onIncrement(anime.id, nextEp)}
                 className={cn(
-                  "flex h-10 flex-1 min-w-[190px] items-center justify-center gap-2 rounded-xl px-5 text-xs font-bold shadow-md transition-all active:scale-[0.98] sm:h-11 sm:text-sm",
+                  "flex h-10 min-w-[190px] flex-1 items-center justify-center gap-2 px-5 text-[11px] font-semibold uppercase tracking-[0.06em] transition-colors sm:h-11",
                   atEnd
-                    ? "cursor-default border border-border-subtle bg-surface-3 text-muted"
+                    ? "cursor-default border border-border text-muted"
                     : "bg-accent text-accent-contrast hover:bg-accent-hover hover:shadow-lg disabled:opacity-60",
                 )}
               >
@@ -448,7 +444,7 @@ export function FeaturedAngularCard({
                   disabled={isPending}
                   onClick={handleDecrement}
                   title={`Undo last ${manga ? "chapter" : "episode"} (-1)`}
-                  className="flex h-10 w-10 sm:h-11 sm:w-11 items-center justify-center rounded-xl border border-border bg-surface-3/60 text-muted transition-all hover:bg-surface-3 hover:text-fg active:scale-95"
+                  className="flex h-10 w-10 items-center justify-center border border-border text-muted transition-colors hover:bg-surface-2 hover:text-fg sm:h-11 sm:w-11"
                 >
                   <MinusIcon className="h-4 w-4" />
                 </button>
@@ -459,7 +455,7 @@ export function FeaturedAngularCard({
                 type="button"
                 onClick={() => requestAdd(anime)}
                 title="Adjust status & progress"
-                className="flex h-10 w-10 sm:h-11 sm:w-11 items-center justify-center rounded-xl border border-border bg-surface-3/60 text-muted transition-all hover:bg-surface-3 hover:text-fg active:scale-95"
+                className="flex h-10 w-10 items-center justify-center border border-border text-muted transition-colors hover:bg-surface-2 hover:text-fg sm:h-11 sm:w-11"
               >
                 <SlidersIcon className="h-4 w-4" />
               </button>
@@ -467,7 +463,7 @@ export function FeaturedAngularCard({
               {/* View Details Link */}
               <Link
                 href={`/media/${anime.id}`}
-                className="inline-flex h-10 items-center gap-1.5 rounded-xl border border-border bg-surface-3/60 px-3.5 text-xs font-semibold text-fg transition-all hover:bg-surface-3 active:scale-95 sm:h-11"
+                className="inline-flex h-10 items-center gap-1.5 border border-border px-3.5 text-[10px] font-semibold uppercase tracking-[0.06em] text-fg transition-colors hover:bg-surface-2 sm:h-11"
               >
                 <EyeIcon className="h-3.5 w-3.5 text-muted" />
                 <span>Details</span>
@@ -523,9 +519,9 @@ export function QueueCard({
     <article
       onClick={onSelect}
       className={cn(
-        "group/q relative flex flex-col justify-between overflow-hidden rounded-2xl border transition-all duration-200 cursor-pointer select-none",
+        "group/q relative flex cursor-pointer select-none flex-col justify-between overflow-hidden border transition-colors",
         isActive
-          ? "border-accent ring-2 ring-accent/60 bg-accent/10 shadow-lg scale-[1.01]"
+          ? "border-accent bg-accent-soft/30"
           : "border-border-subtle bg-surface hover:border-border hover:bg-surface-2",
       )}
     >
@@ -536,7 +532,6 @@ export function QueueCard({
             src={thumb}
             alt=""
             fill
-            unoptimized
             sizes="192px"
             className="object-cover transition-transform duration-300 group-hover/q:scale-105"
           />
@@ -760,12 +755,12 @@ export function ContinueWatching({ todayEntries }: ContinueWatchingProps = {}) {
             <ChevronRightIcon className="h-4 w-4 text-muted transition-transform group-hover:translate-x-0.5" />
           </Link>
           {watching.length > 0 ? (
-            <span className="inline-flex items-center rounded-lg border border-accent/30 bg-accent/15 px-2 py-0.5 text-xs font-semibold text-accent-strong tabular-nums">
+            <span className="inline-flex items-center text-[10px] font-semibold uppercase tracking-[0.12em] text-accent-strong tabular-nums">
               {watching.length} active
             </span>
           ) : null}
           {todayAiringCount > 0 ? (
-            <span className="inline-flex items-center gap-1 rounded-lg border border-emerald-500/30 bg-emerald-950/60 px-2 py-0.5 text-xs font-bold text-emerald-300 light:bg-emerald-500/10 light:text-emerald-700">
+            <span className="inline-flex items-center gap-1 text-[10px] font-semibold uppercase tracking-[0.1em] text-success">
               <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 radar-live-dot" />
               {todayAiringCount} airing today
             </span>
@@ -775,16 +770,16 @@ export function ContinueWatching({ todayEntries }: ContinueWatchingProps = {}) {
         <div className="flex items-center gap-2">
           {/* Shelf / Grid toggle */}
           {watching.length > 1 ? (
-            <div className="inline-flex items-center rounded-xl border border-border-subtle bg-surface-2 p-0.5 text-xs">
+            <div className="inline-flex items-center border-b border-border text-[11px]">
               <button
                 type="button"
                 onClick={() => setViewMode("shelf")}
                 aria-label="Shelf view"
                 className={cn(
-                  "flex h-7 items-center gap-1.5 rounded-lg px-2.5 font-medium transition-all",
+                  "flex h-8 items-center gap-1.5 border-b-2 px-2.5 font-medium transition-colors",
                   viewMode === "shelf"
-                    ? "bg-accent text-accent-contrast shadow-xs font-semibold"
-                    : "text-muted hover:text-fg",
+                    ? "border-accent text-accent-strong font-semibold"
+                    : "border-transparent text-muted hover:text-fg",
                 )}
               >
                 <ListIcon className="h-3.5 w-3.5" />
@@ -797,8 +792,8 @@ export function ContinueWatching({ todayEntries }: ContinueWatchingProps = {}) {
                 className={cn(
                   "flex h-7 items-center gap-1.5 rounded-lg px-2.5 font-medium transition-all",
                   viewMode === "grid"
-                    ? "bg-accent text-accent-contrast shadow-xs font-semibold"
-                    : "text-muted hover:text-fg",
+                    ? "border-accent text-accent-strong font-semibold"
+                    : "border-transparent text-muted hover:text-fg",
                 )}
               >
                 <GridIcon className="h-3.5 w-3.5" />
@@ -814,7 +809,7 @@ export function ContinueWatching({ todayEntries }: ContinueWatchingProps = {}) {
                 type="button"
                 onClick={() => handleShelfScroll("left")}
                 aria-label="Scroll queue left"
-                className="flex h-7 w-7 items-center justify-center rounded-lg border border-border-subtle bg-surface-2 text-muted transition-colors hover:border-border hover:bg-surface-3 hover:text-fg active:scale-95"
+                className="flex h-8 w-8 items-center justify-center border border-border text-muted transition-colors hover:bg-surface-2 hover:text-fg"
               >
                 <ChevronLeftIcon className="h-3.5 w-3.5" />
               </button>
@@ -822,7 +817,7 @@ export function ContinueWatching({ todayEntries }: ContinueWatchingProps = {}) {
                 type="button"
                 onClick={() => handleShelfScroll("right")}
                 aria-label="Scroll queue right"
-                className="flex h-7 w-7 items-center justify-center rounded-lg border border-border-subtle bg-surface-2 text-muted transition-colors hover:border-border hover:bg-surface-3 hover:text-fg active:scale-95"
+                className="flex h-8 w-8 items-center justify-center border border-border text-muted transition-colors hover:bg-surface-2 hover:text-fg"
               >
                 <ChevronRightIcon className="h-3.5 w-3.5" />
               </button>
@@ -890,7 +885,7 @@ export function ContinueWatching({ todayEntries }: ContinueWatchingProps = {}) {
                       onClick={() => handleShelfScroll("left")}
                       aria-label="Previous series in queue"
                       title="Scroll queue left"
-                      className="flex h-6 w-6 items-center justify-center rounded-lg border border-border-subtle bg-surface-2 text-muted hover:border-border hover:bg-surface-3 hover:text-fg transition-all active:scale-95"
+                      className="flex h-8 w-8 items-center justify-center border border-border text-muted transition-colors hover:bg-surface-2 hover:text-fg"
                     >
                       <ChevronLeftIcon className="h-3.5 w-3.5" />
                     </button>
@@ -899,7 +894,7 @@ export function ContinueWatching({ todayEntries }: ContinueWatchingProps = {}) {
                       onClick={() => handleShelfScroll("right")}
                       aria-label="Next series in queue"
                       title="Scroll queue right"
-                      className="flex h-6 w-6 items-center justify-center rounded-lg border border-border-subtle bg-surface-2 text-muted hover:border-border hover:bg-surface-3 hover:text-fg transition-all active:scale-95"
+                      className="flex h-8 w-8 items-center justify-center border border-border text-muted transition-colors hover:bg-surface-2 hover:text-fg"
                     >
                       <ChevronRightIcon className="h-3.5 w-3.5" />
                     </button>
@@ -916,7 +911,7 @@ export function ContinueWatching({ todayEntries }: ContinueWatchingProps = {}) {
                       type="button"
                       onClick={() => handleShelfScroll("left")}
                       aria-label="Scroll queue left"
-                      className="absolute -left-3.5 top-1/2 -translate-y-1/2 z-30 hidden md:flex h-10 w-10 items-center justify-center rounded-full border border-white/25 bg-black/90 text-white shadow-2xl backdrop-blur-md transition-all hover:scale-110 hover:border-accent hover:bg-black active:scale-95"
+                      className="absolute -left-3.5 top-1/2 z-30 hidden h-9 w-9 -translate-y-1/2 items-center justify-center border border-border bg-bg text-fg shadow-sm transition-colors hover:border-accent md:flex"
                     >
                       <ChevronLeftIcon className="h-5 w-5" />
                     </button>
@@ -959,7 +954,7 @@ export function ContinueWatching({ todayEntries }: ContinueWatchingProps = {}) {
                       type="button"
                       onClick={() => handleShelfScroll("right")}
                       aria-label="Scroll queue right"
-                      className="absolute -right-3.5 top-1/2 -translate-y-1/2 z-30 hidden md:flex h-10 w-10 items-center justify-center rounded-full border border-white/25 bg-black/90 text-white shadow-2xl backdrop-blur-md transition-all hover:scale-110 hover:border-accent hover:bg-black active:scale-95"
+                      className="absolute -right-3.5 top-1/2 z-30 hidden h-9 w-9 -translate-y-1/2 items-center justify-center border border-border bg-bg text-fg shadow-sm transition-colors hover:border-accent md:flex"
                     >
                       <ChevronRightIcon className="h-5 w-5" />
                     </button>
@@ -992,7 +987,7 @@ export function ContinueWatching({ todayEntries }: ContinueWatchingProps = {}) {
                       <button
                         type="button"
                         onClick={() => setShowAllGrid((prev) => !prev)}
-                        className="inline-flex h-8 items-center gap-1.5 rounded-xl border border-border-subtle bg-surface-2 px-4 text-xs font-semibold text-muted transition-colors hover:bg-surface-3 hover:text-fg"
+                        className="inline-flex h-8 items-center gap-1.5 border border-border px-4 text-[10px] font-semibold uppercase tracking-[0.06em] text-muted transition-colors hover:border-accent hover:text-fg"
                       >
                         <span>
                           {showAllGrid

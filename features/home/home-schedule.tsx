@@ -128,6 +128,8 @@ export function HomeSchedule({
     return (
       <section aria-label="Airing this week" className="space-y-4">
         <SectionHeader
+          eyebrow="Broadcast calendar"
+          editorial
           title="Airing this week"
           description={
             <span className="inline-flex flex-wrap items-center gap-1.5">
@@ -140,7 +142,7 @@ export function HomeSchedule({
           action="Full schedule"
           actionHref="/schedule"
         />
-        <div className="rounded-2xl border border-border-subtle bg-surface p-6 text-center">
+        <div className="border-y border-border py-8 text-center">
           <CalendarIcon className="mx-auto h-6 w-6 text-muted" />
           <h3 className="mt-2 text-sm font-semibold text-fg">
             Could not load this week&apos;s schedule
@@ -151,7 +153,7 @@ export function HomeSchedule({
           <div className="mt-3.5 flex justify-center">
             <Link
               href="/schedule"
-              className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-border bg-surface-2 px-3 text-xs font-semibold text-fg transition-colors hover:bg-surface-3"
+              className="inline-flex h-8 items-center gap-1.5 border border-border px-3 text-[10px] font-semibold uppercase tracking-[0.06em] text-fg transition-colors hover:border-accent"
             >
               Open schedule page
               <ChevronRightIcon className="h-3 w-3" />
@@ -165,6 +167,8 @@ export function HomeSchedule({
   return (
     <section aria-label="Airing this week" className="space-y-4">
       <SectionHeader
+        eyebrow="Broadcast calendar"
+        editorial
         title="Airing this week"
         description={
           <span className="inline-flex flex-wrap items-center gap-1.5">
@@ -193,14 +197,14 @@ export function HomeSchedule({
               aria-label={`${day.dayName} ${day.dayNumber}, ${day.entries.length} releases`}
               onClick={() => setSelectedDate(day.date)}
               className={cn(
-                "group flex min-w-[70px] shrink-0 flex-col items-center justify-center rounded-xl border p-2.5 text-center transition-all sm:min-w-0 sm:shrink",
+                "group flex min-w-[70px] shrink-0 flex-col items-center justify-center border p-2.5 text-center transition-colors sm:min-w-0 sm:shrink",
                 day.isToday
                   ? isSelected
-                    ? "border-accent bg-accent/20 text-fg ring-1 ring-accent"
+                    ? "border-accent bg-accent-soft text-fg"
                     : "border-accent/60 bg-accent/10 text-fg hover:border-accent"
                   : isSelected
-                    ? "border-border bg-surface-3 text-fg ring-1 ring-border"
-                    : "border-border-subtle bg-surface hover:border-border hover:bg-surface-2",
+                    ? "border-border bg-surface-2 text-fg"
+                    : "border-border bg-transparent hover:bg-surface/50",
               )}
             >
               {/* Day Header */}
@@ -247,16 +251,16 @@ export function HomeSchedule({
         <div
           role="group"
           aria-label="Schedule filter"
-          className="flex gap-1 rounded-lg border border-border-subtle bg-surface p-0.5"
+          className="flex border-b border-border"
         >
           <button
             type="button"
             aria-pressed={filterMode === "all"}
             onClick={() => setFilterMode("all")}
             className={cn(
-              "inline-flex items-center gap-1.5 rounded-md px-2.5 py-1 text-xs font-medium transition-colors",
+              "inline-flex min-h-8 items-center gap-1.5 border-b-2 px-3 py-1.5 text-[11px] font-medium transition-colors",
               filterMode === "all"
-                ? "bg-surface-3 text-fg font-semibold shadow-xs"
+                ? "border-accent text-fg font-semibold"
                 : "text-muted hover:text-fg",
             )}
           >
@@ -272,9 +276,9 @@ export function HomeSchedule({
             aria-pressed={filterMode === "watching"}
             onClick={() => setFilterMode("watching")}
             className={cn(
-              "inline-flex items-center gap-1.5 rounded-md px-2.5 py-1 text-xs font-medium transition-colors",
+              "inline-flex min-h-8 items-center gap-1.5 border-b-2 px-3 py-1.5 text-[11px] font-medium transition-colors",
               filterMode === "watching"
-                ? "bg-surface-3 text-fg font-semibold shadow-xs"
+                ? "border-accent text-fg font-semibold"
                 : "text-muted hover:text-fg",
             )}
           >
@@ -315,7 +319,7 @@ export function HomeSchedule({
             ) : (
               <Link
                 href="/schedule"
-                className="inline-flex h-8 items-center gap-1 rounded-lg border border-border bg-surface-2 px-3 text-xs font-semibold text-fg transition-colors hover:bg-surface-3"
+                className="inline-flex h-8 items-center gap-1 border border-border px-3 text-[10px] font-semibold uppercase tracking-[0.06em] text-fg transition-colors hover:border-accent"
               >
                 Open schedule
                 <ChevronRightIcon className="h-3 w-3" />
@@ -324,8 +328,8 @@ export function HomeSchedule({
           }
         />
       ) : (
-        <div className="space-y-2">
-          <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+        <div>
+          <div className="grid grid-cols-1 border-t border-border">
             {visibleEntries.map((entry) => (
               <HomeScheduleCard
                 key={entry.id}
@@ -416,10 +420,10 @@ function HomeScheduleCard({
   return (
     <div
       className={cn(
-        "group relative flex items-center gap-3 rounded-2xl border p-3 transition-colors",
+        "group relative flex items-center gap-3 border-b border-border px-1 py-3 transition-colors last:border-b-0",
         inWatching
-          ? "border-accent/45 bg-accent-soft hover:border-accent"
-          : "border-border-subtle bg-surface hover:border-border",
+          ? "border-l-2 border-l-accent bg-accent-soft/20 hover:bg-accent-soft/35"
+          : "border-border bg-transparent hover:bg-surface/40",
       )}
     >
       {inWatching ? (
@@ -432,7 +436,7 @@ function HomeScheduleCard({
       {/* Poster */}
       <Link
         href={`/media/${anime.id}`}
-        className="relative aspect-[2/3] w-14 shrink-0 overflow-hidden rounded-xl border border-border-subtle bg-surface-2 group/poster shadow-sm sm:w-16"
+        className="relative aspect-[2/3] w-12 shrink-0 overflow-hidden border border-border bg-surface-2 group/poster sm:w-14"
         aria-label={`Open ${title}`}
       >
         {cover && isHttpUrl(cover) ? (
@@ -457,7 +461,7 @@ function HomeScheduleCard({
             </span>
             {anime.format ? <span>{formatFormat(anime.format)}</span> : null}
             {inWatching ? (
-              <span className="ml-auto inline-flex items-center gap-1 rounded-full border border-accent/40 bg-accent/15 px-2 py-0.5 text-[10px] font-semibold text-accent-strong">
+              <span className="ml-auto inline-flex items-center gap-1 text-[9px] font-semibold uppercase tracking-[0.08em] text-accent-strong">
                 <span
                   aria-hidden="true"
                   className="h-1 w-1 rounded-full bg-accent-strong"
@@ -488,9 +492,9 @@ function HomeScheduleCard({
             <span className="text-faint">·</span>
             <span
               className={cn(
-                "inline-flex items-center gap-1 rounded px-1.5 py-0.2 text-[10px] font-medium",
+                "inline-flex items-center gap-1 text-[10px] font-medium",
                 relative.hasAired
-                  ? "bg-surface-2 text-muted"
+                  ? "text-muted"
                   : "bg-accent-soft text-accent-strong font-semibold border border-accent/20",
               )}
             >
@@ -510,7 +514,7 @@ function HomeScheduleCard({
                 type="button"
                 disabled={isPending || toggling}
                 onClick={handleMarkWatched}
-                className="inline-flex h-8 items-center gap-1 rounded-lg border border-accent/40 bg-accent-soft px-2.5 text-xs font-semibold text-accent-strong transition-colors hover:bg-accent/20"
+                className="inline-flex h-8 items-center gap-1 border border-accent/40 px-2.5 text-[10px] font-semibold uppercase tracking-[0.06em] text-accent-strong transition-colors hover:bg-accent-soft"
                 aria-label={`Unmark Episode ${entry.episode}`}
               >
                 <CheckIcon className="h-3 w-3" />
@@ -521,7 +525,7 @@ function HomeScheduleCard({
                 type="button"
                 disabled={isPending || toggling}
                 onClick={handleMarkWatched}
-                className="inline-flex h-8 items-center gap-1 rounded-lg border border-accent/30 bg-accent-soft px-2.5 text-xs font-semibold text-accent-strong transition-colors hover:bg-accent hover:text-accent-contrast"
+                className="inline-flex h-8 items-center gap-1 bg-accent px-2.5 text-[10px] font-semibold uppercase tracking-[0.06em] text-accent-contrast transition-colors hover:bg-accent-hover"
               >
                 <PlusIcon className="h-3 w-3" />
                 <span>{toggling ? "Saving…" : `Mark Ep ${entry.episode} watched`}</span>
@@ -530,7 +534,7 @@ function HomeScheduleCard({
               <button
                 type="button"
                 onClick={onRequestAdd}
-                className="inline-flex h-8 items-center gap-1 rounded-lg border border-border-subtle bg-surface-2 px-2.5 text-xs font-semibold text-fg transition-colors hover:border-accent hover:bg-surface-3 active:scale-95"
+                className="inline-flex h-8 items-center gap-1 border border-border px-2.5 text-[10px] font-semibold uppercase tracking-[0.06em] text-fg transition-colors hover:border-accent hover:text-accent-strong"
               >
                 <PlusIcon className="h-3 w-3" />
                 <span>Track</span>

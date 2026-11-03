@@ -49,6 +49,7 @@ export interface AnimePosterCardProps {
   sizes?: string;
   /** Optional row under the title and metadata */
   footer?: ReactNode;
+  variant?: "default" | "editorial";
 }
 
 export function AnimePosterCard({
@@ -58,6 +59,7 @@ export function AnimePosterCard({
   className,
   sizes = "(max-width: 640px) 46vw, (max-width: 1024px) 30vw, (max-width: 1280px) 22vw, 16vw",
   footer,
+  variant = "default",
 }: AnimePosterCardProps) {
   const { entryFor, requestAdd, pendingIds } = useLibrary();
   const { preferences } = usePreferences();
@@ -89,7 +91,9 @@ export function AnimePosterCard({
   return (
     <article
       className={cn(
-        "group relative flex aspect-[2/3] w-full overflow-hidden rounded-2xl border border-white/[0.08] bg-surface-2 shadow-sm transition-all duration-200 hover:-translate-y-1 hover:border-accent/40 hover:shadow-xl",
+        variant === "editorial"
+          ? "group relative flex aspect-[2/3] w-full overflow-hidden rounded-sm border border-border bg-surface-2 transition-colors hover:border-accent/50"
+          : "group relative flex aspect-[2/3] w-full overflow-hidden rounded-2xl border border-white/[0.08] bg-surface-2 shadow-sm transition-all duration-200 hover:-translate-y-1 hover:border-accent/40 hover:shadow-xl",
         className,
       )}
     >
@@ -99,7 +103,6 @@ export function AnimePosterCard({
           src={cover}
           alt=""
           fill
-          unoptimized
           sizes={sizes}
           priority={priority}
           className="object-cover transition-transform duration-300 ease-out group-hover:scale-105"

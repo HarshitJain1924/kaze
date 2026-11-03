@@ -14,6 +14,8 @@ export function AnimeSection({
   error,
   emptyMessage = "No anime to show right now.",
   priorityCount = 0,
+  eyebrow,
+  metaMode = "overlay",
 }: {
   title: string;
   description?: string;
@@ -23,12 +25,16 @@ export function AnimeSection({
   error?: boolean;
   emptyMessage?: string;
   priorityCount?: number;
+  eyebrow?: string;
+  metaMode?: "overlay" | "below";
 }) {
   return (
     <section aria-label={title}>
       <SectionHeader
         title={title}
         description={description}
+        eyebrow={eyebrow}
+        editorial
         action={actionHref ? actionLabel : undefined}
         actionHref={actionHref}
       />
@@ -45,7 +51,12 @@ export function AnimeSection({
           description={emptyMessage}
         />
       ) : (
-        <AnimeGrid items={items} priorityCount={priorityCount} />
+        <AnimeGrid
+          items={items}
+          priorityCount={priorityCount}
+          metaMode={metaMode}
+          variant="editorial"
+        />
       )}
     </section>
   );

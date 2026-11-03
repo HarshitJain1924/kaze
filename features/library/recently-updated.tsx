@@ -23,6 +23,8 @@ export function RecentlyUpdated() {
   return (
     <section aria-label="Recently updated">
       <SectionHeader
+        eyebrow="Activity / Your library"
+        editorial
         title="Recently updated"
         description="The latest changes across your library."
         action="My library"
@@ -31,6 +33,7 @@ export function RecentlyUpdated() {
       <AnimeGrid
         items={recent.flatMap((item) => (item.anime ? [item.anime] : []))}
         showQuickAdd={false}
+        metaMode="below"
       />
     </section>
   );

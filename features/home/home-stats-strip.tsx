@@ -3,14 +3,7 @@
 import Link from "next/link";
 import { useMemo } from "react";
 
-import {
-  CalendarIcon,
-  CheckIcon,
-  ChevronRightIcon,
-  LibraryIcon,
-  ListIcon,
-  PlayIcon,
-} from "@/components/icons";
+import { CalendarIcon, ChevronRightIcon } from "@/components/icons";
 import {
   useActiveTimeZone,
   usePreferences,
@@ -32,7 +25,7 @@ export function HomeStatsStrip({
   const stats = calculateStats(items);
 
   const librarySet = useMemo(
-    () => new Set(items.map((i) => i.entry.anilistId)),
+    () => new Set(items.map((item) => item.entry.anilistId)),
     [items],
   );
 
@@ -52,111 +45,71 @@ export function HomeStatsStrip({
 
   if (!canWrite) return null;
 
+  const metrics = [
+    { label: "In the archive", value: stats.total, href: "/library" },
+    {
+      label: "In progress",
+      value: stats.statusCounts.watching,
+      href: "/library?status=watching",
+    },
+    {
+      label: "Completed",
+      value: stats.statusCounts.completed,
+      href: "/library?status=completed",
+    },
+    {
+      label: "Episodes logged",
+      value: stats.episodesWatched,
+      href: "/stats",
+    },
+  ];
+
   return (
-    <section aria-label="Library Overview and Telemetry" className="space-y-3">
-      {/* 4 Interactive Executive Telemetry Cards */}
-      <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-4 sm:gap-3">
-        {/* Tracked */}
-        <Link
-          href="/library"
-          className="group relative flex items-center justify-between overflow-hidden rounded-2xl border border-border-subtle bg-surface/75 p-3.5 backdrop-blur-md transition-all duration-200 hover:-translate-y-0.5 hover:border-border hover:bg-surface-2/85 hover:shadow-lg"
-        >
-          <div className="space-y-0.5">
-            <p className="text-[11px] font-semibold uppercase tracking-wider text-muted">
-              In Vault
-            </p>
-            <p className="font-display text-2xl font-bold tracking-tight text-fg group-hover:text-accent-strong tabular-nums">
-              {stats.total}
-            </p>
-          </div>
-          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-accent/25 bg-accent-soft text-accent-strong shadow-xs">
-            <LibraryIcon className="h-5 w-5" />
-          </span>
-        </Link>
+    <section aria-label="Library overview" className="border-y border-border">
+      <dl className="grid grid-cols-2 sm:grid-cols-4">
+        {metrics.map((metric, index) => (
+          <Link
+            key={metric.label}
+            href={metric.href}
+            className={`group py-4 pr-4 transition-colors hover:bg-surface/40 ${
+              index > 0 ? "border-l border-border pl-4 sm:pl-5" : ""
+            } ${index >= 2 ? "border-t sm:border-t-0" : ""}`}
+          >
+            <dt className="text-[9px] font-semibold uppercase tracking-[0.18em] text-faint">
+              {metric.label}
+            </dt>
+            <dd className="mt-1.5 font-display text-[28px] font-semibold leading-none tracking-[-0.04em] text-fg tabular-nums transition-colors group-hover:text-accent-strong">
+              {metric.value.toLocaleString()}
+            </dd>
+          </Link>
+        ))}
+      </dl>
 
-        {/* Currently Watching */}
-        <Link
-          href="/library?status=watching"
-          className="group relative flex items-center justify-between overflow-hidden rounded-2xl border border-border-subtle bg-surface/75 p-3.5 backdrop-blur-md transition-all duration-200 hover:-translate-y-0.5 hover:border-purple-500/30 hover:bg-surface-2/85 hover:shadow-lg"
-        >
-          <div className="space-y-0.5">
-            <p className="text-[11px] font-semibold uppercase tracking-wider text-muted">
-              Watching
-            </p>
-            <p className="font-display text-2xl font-bold tracking-tight text-fg group-hover:text-accent-strong tabular-nums">
-              {stats.statusCounts.watching}
-            </p>
-          </div>
-          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-purple-500/30 bg-purple-500/15 text-purple-400 light:text-purple-700 shadow-xs">
-            <PlayIcon className="h-4 w-4 fill-current" />
-          </span>
-        </Link>
-
-        {/* Completed */}
-        <Link
-          href="/library?status=completed"
-          className="group relative flex items-center justify-between overflow-hidden rounded-2xl border border-border-subtle bg-surface/75 p-3.5 backdrop-blur-md transition-all duration-200 hover:-translate-y-0.5 hover:border-emerald-500/30 hover:bg-surface-2/85 hover:shadow-lg"
-        >
-          <div className="space-y-0.5">
-            <p className="text-[11px] font-semibold uppercase tracking-wider text-muted">
-              Completed
-            </p>
-            <p className="font-display text-2xl font-bold tracking-tight text-fg group-hover:text-accent-strong tabular-nums">
-              {stats.statusCounts.completed}
-            </p>
-          </div>
-          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-emerald-500/30 bg-emerald-500/15 text-emerald-400 light:text-emerald-700 shadow-xs">
-            <CheckIcon className="h-5 w-5" />
-          </span>
-        </Link>
-
-        {/* Total Episodes */}
-        <Link
-          href="/stats"
-          className="group relative flex items-center justify-between overflow-hidden rounded-2xl border border-border-subtle bg-surface/75 p-3.5 backdrop-blur-md transition-all duration-200 hover:-translate-y-0.5 hover:border-amber-500/30 hover:bg-surface-2/85 hover:shadow-lg"
-        >
-          <div className="space-y-0.5">
-            <p className="text-[11px] font-semibold uppercase tracking-wider text-muted">
-              Episodes Logged
-            </p>
-            <p className="font-display text-2xl font-bold tracking-tight text-fg group-hover:text-accent-strong tabular-nums">
-              {stats.episodesWatched.toLocaleString()}
-            </p>
-          </div>
-          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-amber-500/30 bg-amber-500/15 text-amber-400 light:text-amber-600 shadow-xs">
-            <ListIcon className="h-5 w-5" />
-          </span>
-        </Link>
-      </div>
-
-      {/* Airing Today Alert Banner (if user has active releases today) */}
       {libraryToday.length > 0 ? (
-        <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-accent/25 bg-accent-soft/50 px-4 py-2.5 backdrop-blur-md">
-          <div className="flex items-center gap-2.5 min-w-0">
-            <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-lg bg-accent text-accent-contrast">
-              <CalendarIcon className="h-3.5 w-3.5" />
-            </span>
-            <p className="text-xs font-semibold text-fg truncate">
-              <span className="text-accent-strong">
-                {libraryToday.length} of your tracked anime air today:
-              </span>{" "}
-              <span className="text-muted font-normal">
-                {libraryToday
-                  .map((e) =>
-                    getDisplayTitle(
-                      e.media.title,
-                      preferences.titleLanguage === "english",
-                    ),
-                  )
-                  .join(" · ")}
+        <div className="flex flex-wrap items-center justify-between gap-3 border-t border-border py-3">
+          <div className="flex min-w-0 items-center gap-2.5">
+            <CalendarIcon className="h-3.5 w-3.5 shrink-0 text-accent-strong" />
+            <p className="truncate text-[11px] text-muted">
+              <span className="font-medium text-fg">
+                {libraryToday.length} tracked{" "}
+                {libraryToday.length === 1 ? "title airs" : "titles air"} today
               </span>
+              <span className="mx-2 text-border">/</span>
+              {libraryToday
+                .map((entry) =>
+                  getDisplayTitle(
+                    entry.media.title,
+                    preferences.titleLanguage === "english",
+                  ),
+                )
+                .join(" · ")}
             </p>
           </div>
           <Link
             href="/schedule"
-            className="group inline-flex shrink-0 items-center gap-1 text-xs font-semibold text-accent-strong hover:underline"
+            className="group inline-flex shrink-0 items-center gap-1 text-[10px] font-semibold uppercase tracking-[0.12em] text-accent-strong"
           >
-            <span>View Airing Times</span>
+            Broadcast week
             <ChevronRightIcon className="h-3 w-3 transition-transform group-hover:translate-x-0.5" />
           </Link>
         </div>
@@ -164,4 +117,3 @@ export function HomeStatsStrip({
     </section>
   );
 }
-

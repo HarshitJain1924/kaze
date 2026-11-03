@@ -42,53 +42,56 @@ export function SeasonalCarousel({
 
   const handleScroll = (direction: "left" | "right") => {
     if (!scrollRef.current) return;
-    const scrollAmount = direction === "left" ? -460 : 460;
-    scrollRef.current.scrollBy({ left: scrollAmount, behavior: "smooth" });
+    scrollRef.current.scrollBy({
+      left: direction === "left" ? -520 : 520,
+      behavior: "smooth",
+    });
   };
 
-  if (error || !items) {
-    return null;
-  }
+  if (error || !items) return null;
 
   return (
-    <section aria-label={title} className="space-y-3.5">
-      {/* Header */}
-      <div className="flex items-end justify-between">
+    <section
+      aria-label={title}
+      className="border-t border-border pt-6 sm:pt-7"
+    >
+      <div className="flex items-end justify-between gap-4">
         <div>
-          <h2 className="font-display text-base font-bold tracking-tight text-fg sm:text-lg">
+          <p className="text-[9px] font-semibold uppercase tracking-[0.2em] text-accent-strong">
+            Seasonal catalogue
+          </p>
+          <h2 className="mt-1 font-display text-xl font-semibold tracking-[-0.03em] text-fg sm:text-2xl">
             {title}
           </h2>
           {description ? (
-            <p className="mt-0.5 text-xs text-muted">{description}</p>
+            <p className="mt-1 text-xs text-muted">{description}</p>
           ) : null}
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-3">
           {actionHref ? (
             <Link
               href={actionHref}
-              className="group inline-flex items-center gap-0.5 text-xs font-medium text-muted transition-colors hover:text-accent-strong"
+              className="group hidden items-center gap-1 text-[10px] font-semibold uppercase tracking-[0.12em] text-muted transition-colors hover:text-accent-strong sm:inline-flex"
             >
-              <span>View all</span>
-              <ChevronRightIcon className="h-3 w-3 text-faint transition-transform group-hover:translate-x-0.5" />
+              All titles
+              <ChevronRightIcon className="h-3 w-3 transition-transform group-hover:translate-x-0.5" />
             </Link>
           ) : null}
-
-          {/* Left/Right carousel buttons */}
-          <div className="hidden items-center gap-1 sm:flex ml-2">
+          <div className="hidden items-center gap-1 sm:flex">
             <button
               type="button"
               onClick={() => handleScroll("left")}
-              aria-label="Scroll left"
-              className="flex h-7 w-7 items-center justify-center rounded-full border border-border bg-surface-2 text-muted transition-colors hover:border-border hover:bg-surface-3 hover:text-fg active:scale-95"
+              aria-label="Scroll seasonal titles left"
+              className="flex h-8 w-8 items-center justify-center border border-border text-muted transition-colors hover:bg-surface-2 hover:text-fg"
             >
               <ChevronLeftIcon className="h-3.5 w-3.5" />
             </button>
             <button
               type="button"
               onClick={() => handleScroll("right")}
-              aria-label="Scroll right"
-              className="flex h-7 w-7 items-center justify-center rounded-full border border-border bg-surface-2 text-muted transition-colors hover:border-border hover:bg-surface-3 hover:text-fg active:scale-95"
+              aria-label="Scroll seasonal titles right"
+              className="flex h-8 w-8 items-center justify-center border border-border text-muted transition-colors hover:bg-surface-2 hover:text-fg"
             >
               <ChevronRightIcon className="h-3.5 w-3.5" />
             </button>
@@ -96,10 +99,12 @@ export function SeasonalCarousel({
         </div>
       </div>
 
-      {/* Horizontally scrollable carousel */}
       <div
         ref={scrollRef}
-        className="no-scrollbar -mx-4 flex gap-3 overflow-x-auto px-4 py-1.5 sm:-mx-1 sm:px-1"
+        role="region"
+        aria-label={`${title} poster shelf`}
+        tabIndex={0}
+        className="no-scrollbar -mx-4 mt-4 flex snap-x gap-4 overflow-x-auto px-4 pb-2 sm:-mx-1 sm:px-1"
       >
         {items.map((anime) => {
           const displayTitle = getDisplayTitle(
@@ -114,80 +119,66 @@ export function SeasonalCarousel({
           return (
             <article
               key={anime.id}
-              className="group relative aspect-[2/3] w-[145px] sm:w-[160px] shrink-0 overflow-hidden rounded-2xl border border-border-subtle bg-surface-2 shadow-sm transition-all duration-200 hover:-translate-y-1 hover:border-accent/40 hover:shadow-xl"
+              className="group w-[142px] shrink-0 snap-start sm:w-[156px]"
             >
-              {cover && isHttpUrl(cover) ? (
-                <Image
-                  src={cover}
-                  alt=""
-                  fill
-                  unoptimized
-                  sizes="170px"
-                  className="object-cover transition-transform duration-300 ease-out group-hover:scale-105"
+              <div className="relative aspect-[2/3] overflow-hidden border border-border-subtle bg-surface-2">
+                {cover && isHttpUrl(cover) ? (
+                  <Image
+                    src={cover}
+                    alt=""
+                    fill
+                    sizes="(max-width: 640px) 142px, 156px"
+                    className="object-cover transition-transform duration-500 group-hover:scale-[1.025]"
+                  />
+                ) : (
+                  <span className="absolute inset-0" />
+                )}
+
+                <Link
+                  href={`/media/${anime.id}`}
+                  aria-label={`View details for ${displayTitle}`}
+                  className="absolute inset-0 z-10 focus-visible:outline-2 focus-visible:outline-offset-[-4px] focus-visible:outline-accent"
                 />
-              ) : (
-                <div className="absolute inset-0 bg-surface-3" />
-              )}
 
-              {/* Ambient Dark Scrim */}
-              <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/95 via-black/45 to-transparent" />
+                {score ? (
+                  <span className="pointer-events-none absolute left-0 top-0 z-20 inline-flex items-center gap-1 bg-bg/90 px-1.5 py-1 font-mono text-[10px] font-semibold text-fg">
+                    <StarIcon className="h-2.5 w-2.5 fill-accent text-accent" />
+                    {score}
+                  </span>
+                ) : null}
 
-              {/* Clickable Full Link */}
-              <Link
-                href={`/media/${anime.id}`}
-                aria-label={`View details for ${displayTitle}`}
-                className="absolute inset-0 z-10 rounded-2xl focus:outline-none focus:ring-2 focus:ring-accent"
-              />
-
-              {/* Top-left score badge */}
-              {score ? (
-                <span className="pointer-events-none absolute left-2 top-2 z-20 inline-flex items-center gap-1 rounded-md border border-white/15 bg-black/80 px-1.5 py-0.5 text-[11px] font-bold text-amber-300 tabular-nums shadow-xs backdrop-blur-md">
-                  <StarIcon className="h-3 w-3 fill-amber-400 text-amber-400" />
-                  <span>{score}</span>
-                </span>
-              ) : null}
-
-              {/* Top-right format badge or quick-track button */}
-              <div className="absolute right-2 top-2 z-20 flex items-center gap-1">
                 {entry ? (
-                  <span className="inline-flex items-center gap-0.5 rounded-md border border-accent/40 bg-accent/80 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-white backdrop-blur-md shadow-xs">
+                  <span
+                    className="pointer-events-none absolute bottom-0 right-0 z-20 inline-flex items-center gap-1 bg-bg/90 px-1.5 py-1 text-[9px] font-medium uppercase tracking-[0.08em] text-accent-strong"
+                    title={`In library: ${entry.status}`}
+                  >
                     <CheckIcon className="h-2.5 w-2.5" />
-                    <span className="capitalize">{entry.status}</span>
+                    Tracked
                   </span>
                 ) : (
                   <button
                     type="button"
-                    onClick={(e) => {
-                      e.preventDefault();
-                      e.stopPropagation();
-                      requestAdd(anime);
-                    }}
+                    onClick={() => requestAdd(anime)}
                     aria-label={`Track ${displayTitle}`}
-                    className="flex h-7 w-7 items-center justify-center rounded-full border border-white/20 bg-black/80 text-white shadow-md opacity-90 transition-all hover:scale-110 hover:border-accent hover:bg-accent hover:text-accent-contrast active:scale-95 sm:opacity-0 sm:group-hover:opacity-100"
+                    title="Add to planning"
+                    className="absolute bottom-0 right-0 z-20 flex h-7 w-7 items-center justify-center bg-bg/90 text-fg transition-colors hover:bg-accent hover:text-accent-contrast focus-visible:outline-2 focus-visible:outline-accent"
                   >
-                    <PlusIcon className="h-3.5 w-3.5" />
+                    <PlusIcon className="h-3 w-3" />
                   </button>
                 )}
               </div>
 
-              {/* Bottom metadata overlaid inside the poster */}
-              <div className="pointer-events-none absolute inset-x-0 bottom-0 z-20 p-2.5 pt-8 space-y-0.5">
-                {formatLabel && !entry ? (
-                  <span className="text-[10px] font-bold uppercase tracking-wider text-accent-strong">
-                    {formatLabel} {anime.episodes ? `· ${anime.episodes} eps` : ""}
-                  </span>
-                ) : null}
-
+              <div className="pt-2">
+                <p className="truncate text-[9px] font-medium uppercase tracking-[0.12em] text-faint">
+                  {formatLabel ?? "Anime"}
+                  {anime.seasonYear ? ` · ${anime.seasonYear}` : ""}
+                </p>
                 <h3
-                  className="line-clamp-2 font-display text-xs sm:text-[13px] font-bold leading-snug text-white transition-colors group-hover:text-accent-strong drop-shadow-sm"
+                  className="mt-0.5 line-clamp-2 font-display text-[13px] font-medium leading-snug text-fg transition-colors group-hover:text-accent-strong"
                   title={displayTitle}
                 >
                   {displayTitle}
                 </h3>
-
-                <p className="text-[10px] font-medium text-white/70">
-                  {formatLabel} {anime.seasonYear ? `· ${anime.seasonYear}` : ""}
-                </p>
               </div>
             </article>
           );

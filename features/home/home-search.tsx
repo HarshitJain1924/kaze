@@ -260,19 +260,19 @@ export function HomeSearch({ popularAnime }: HomeSearchProps) {
   return (
     <div
       ref={containerRef}
-      className="relative z-30 space-y-4 rounded-2xl border border-border-subtle bg-surface p-4 shadow-sm transition-all sm:p-5"
+      className="relative z-30 border-t border-border pt-6"
     >
       {/* Header with authentic Japanese anime flavor & quick catalog access */}
       <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border-subtle/70 pb-3">
         <div className="flex items-center gap-2.5">
-          <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-accent-soft text-accent-strong shadow-xs">
+          <span className="flex h-6 w-6 items-center justify-center border border-accent/30 text-accent-strong">
             <SparkIcon className="h-4 w-4" />
           </span>
           <div>
-            <h2 className="text-sm font-semibold tracking-tight text-fg">
+            <h2 className="font-display text-xl font-semibold tracking-[-0.03em] text-fg sm:text-2xl">
               Quick Find & Track
             </h2>
-            <p className="text-xs text-muted">
+            <p className="mt-0.5 text-[11px] text-muted">
               Instant AniList search across anime, manga, and manhwa
             </p>
           </div>
@@ -283,7 +283,7 @@ export function HomeSearch({ popularAnime }: HomeSearchProps) {
           <div
             role="tablist"
             aria-label="Catalogue type"
-            className="inline-flex items-center rounded-xl border border-border-subtle bg-surface-2 p-0.5 text-xs"
+            className="inline-flex items-center gap-1 border-b border-border text-[11px]"
           >
             {(["anime", "manga", "manhwa"] as const).map((type) => (
               <button
@@ -298,10 +298,10 @@ export function HomeSearch({ popularAnime }: HomeSearchProps) {
                   }
                 }}
                 className={cn(
-                  "rounded-lg px-2.5 py-1 text-xs font-semibold capitalize transition-all",
+                  "border-b-2 px-3 py-2 text-[11px] font-medium capitalize transition-colors",
                   mediaType === type
-                    ? "bg-accent text-accent-contrast shadow-xs"
-                    : "text-muted hover:text-fg hover:bg-surface-3",
+                    ? "border-accent text-accent-strong"
+                    : "border-transparent text-muted hover:text-fg",
                 )}
               >
                 {type}
@@ -328,7 +328,7 @@ export function HomeSearch({ popularAnime }: HomeSearchProps) {
       </div>
 
       {/* Full-width interactive media search bar */}
-      <div className="relative">
+      <div className="relative mt-5">
         <div className="relative flex items-center">
           <SearchIcon className="pointer-events-none absolute left-3.5 h-4 w-4 text-faint" />
 
@@ -357,7 +357,7 @@ export function HomeSearch({ popularAnime }: HomeSearchProps) {
             }
             autoComplete="off"
             spellCheck={false}
-            className="h-11 w-full rounded-xl border border-border bg-surface-2 pl-10 pr-24 text-sm font-normal text-fg placeholder:text-faint transition-all focus:border-accent focus:bg-surface-3 focus:outline-none focus:ring-2 focus:ring-accent/25 [&::-webkit-search-cancel-button]:appearance-none [&::-webkit-search-cancel-button]:hidden [&::-webkit-search-decoration]:appearance-none"
+            className="h-12 w-full border border-border bg-transparent pl-10 pr-24 text-sm font-normal text-fg placeholder:text-faint transition-colors focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent/30 [&::-webkit-search-cancel-button]:appearance-none [&::-webkit-search-cancel-button]:hidden [&::-webkit-search-decoration]:appearance-none"
           />
 
           <div className="absolute right-3 flex items-center gap-1.5">
@@ -373,12 +373,12 @@ export function HomeSearch({ popularAnime }: HomeSearchProps) {
                   inputRef.current?.focus();
                 }}
                 aria-label="Clear search"
-                className="flex h-6 w-6 items-center justify-center rounded-md text-faint transition-colors hover:bg-surface-3 hover:text-fg"
+                className="flex h-8 w-8 items-center justify-center text-faint transition-colors hover:text-fg"
               >
                 <CloseIcon className="h-3 w-3" />
               </button>
             ) : (
-              <kbd className="hidden rounded border border-border bg-surface-2 px-1.5 py-0.5 text-[10px] font-medium text-faint sm:inline-block">
+              <kbd className="hidden px-1.5 py-0.5 font-mono text-[10px] font-medium text-faint sm:inline-block">
                 {isMac ? "⌘ K" : "Ctrl K"}
               </kbd>
             )}
@@ -396,7 +396,7 @@ export function HomeSearch({ popularAnime }: HomeSearchProps) {
               <Link
                 key={tag.label}
                 href={tag.href}
-                className="inline-flex shrink-0 items-center gap-1.5 rounded-lg border border-border-subtle bg-surface-2 px-2.5 py-1 text-[11px] font-medium text-muted transition-colors hover:border-accent/40 hover:bg-surface-3 hover:text-fg active:scale-95"
+                className="inline-flex shrink-0 items-center gap-1.5 border-b border-transparent px-2 py-1 text-[10px] font-medium uppercase tracking-[0.08em] text-muted transition-colors hover:border-accent hover:text-fg"
               >
                 <Icon className="h-3 w-3 text-accent-strong" />
                 <span>{tag.label}</span>
@@ -407,7 +407,7 @@ export function HomeSearch({ popularAnime }: HomeSearchProps) {
 
         {/* Search results popover anchored cleanly underneath the input */}
         {isOpen && debouncedQuery ? (
-          <div className="absolute left-0 right-0 top-full z-50 mt-2 max-h-[380px] overflow-y-auto rounded-2xl border border-border bg-surface p-2 shadow-2xl">
+          <div className="absolute left-0 right-0 top-full z-50 mt-1 max-h-[380px] overflow-y-auto border border-border bg-bg p-1 shadow-xl">
             {loading && results.length === 0 ? (
               <div className="flex items-center justify-center gap-2 py-8 text-xs text-muted">
                 <LoaderIcon className="h-4 w-4 animate-spin text-accent-strong" />
@@ -438,7 +438,7 @@ export function HomeSearch({ popularAnime }: HomeSearchProps) {
                     <div
                       key={anime.id}
                       className={cn(
-                        "flex items-center justify-between gap-3 rounded-xl p-2 transition-colors",
+                        "flex items-center justify-between gap-3 border-b border-border-subtle p-2.5 transition-colors last:border-b-0",
                         isFocused
                           ? "bg-surface-3"
                           : "hover:bg-surface-2",
@@ -448,7 +448,7 @@ export function HomeSearch({ popularAnime }: HomeSearchProps) {
                         <Link
                           href={`/media/${anime.id}`}
                           onClick={() => setIsOpen(false)}
-                          className="relative aspect-[2/3] w-10 shrink-0 overflow-hidden rounded-lg border border-border-subtle bg-surface-3 shadow-xs"
+                          className="relative aspect-[2/3] w-10 shrink-0 overflow-hidden border border-border bg-surface-3"
                         >
                           {cover && isHttpUrl(cover) ? (
                             <Image
@@ -516,7 +516,7 @@ export function HomeSearch({ popularAnime }: HomeSearchProps) {
                             <Link
                               href={`/media/${anime.id}`}
                               onClick={() => setIsOpen(false)}
-                              className="rounded-lg border border-border px-2.5 py-1 text-[11px] font-medium text-muted hover:bg-surface-3 hover:text-fg"
+                              className="border-b border-transparent px-2 py-1 text-[10px] font-medium text-muted hover:border-accent hover:text-fg"
                             >
                               View
                             </Link>
@@ -526,7 +526,7 @@ export function HomeSearch({ popularAnime }: HomeSearchProps) {
                             type="button"
                             disabled={isCurrentlyAdding}
                             onClick={() => void handleAdd(anime)}
-                            className="inline-flex items-center gap-1.5 rounded-lg bg-accent px-3 py-1.5 text-xs font-semibold text-accent-contrast shadow-xs transition-all hover:bg-accent-hover disabled:opacity-60 active:scale-95"
+                            className="inline-flex h-8 items-center gap-1.5 bg-accent px-2.5 text-[10px] font-semibold uppercase tracking-[0.08em] text-accent-contrast transition-colors hover:bg-accent-hover disabled:opacity-60"
                           >
                             {isCurrentlyAdding ? (
                               <LoaderIcon className="h-3 w-3 animate-spin" />
@@ -563,7 +563,7 @@ export function HomeSearch({ popularAnime }: HomeSearchProps) {
                   type="button"
                   onClick={handleShuffle}
                   title="Cycle to next recommendations"
-                  className="inline-flex items-center gap-1 rounded-md border border-border-subtle bg-surface-2 px-2 py-0.5 text-[11px] font-medium text-muted hover:border-border hover:text-fg transition-colors active:scale-95"
+                  className="inline-flex items-center gap-1 border-b border-transparent px-1.5 py-1 text-[10px] font-medium text-muted transition-colors hover:border-accent hover:text-fg"
                 >
                   <RefreshIcon className="h-3 w-3" />
                   <span>Shuffle</span>
@@ -577,7 +577,7 @@ export function HomeSearch({ popularAnime }: HomeSearchProps) {
           </div>
 
           {allTracked ? (
-            <div className="flex items-center justify-between rounded-xl border border-border-subtle bg-surface-2/40 px-3.5 py-2.5 text-xs text-muted">
+            <div className="flex items-center justify-between border-y border-border px-3 py-3 text-xs text-muted">
               <div className="flex items-center gap-2">
                 <CheckIcon className="h-4 w-4 text-success" />
                 <span>You&apos;ve tracked all top trending recommendations! Use the search bar above to track any anime.</span>
@@ -587,7 +587,7 @@ export function HomeSearch({ popularAnime }: HomeSearchProps) {
               </Link>
             </div>
           ) : (
-            <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2 lg:grid-cols-4">
+            <div className="grid grid-cols-1 border-t border-border sm:grid-cols-2 lg:grid-cols-4">
               {displayedAnime.map((anime) => {
                 const cover =
                   anime.coverImage.extraLarge ?? anime.coverImage.large;
@@ -603,12 +603,12 @@ export function HomeSearch({ popularAnime }: HomeSearchProps) {
                 return (
                   <div
                     key={anime.id}
-                    className="group relative flex items-center gap-3 rounded-xl border border-border-subtle bg-surface-2/60 p-2.5 transition-all duration-200 hover:border-accent/40 hover:bg-surface-2 hover:shadow-xs"
+                    className="group relative flex items-center gap-3 border-b border-border p-3 transition-colors hover:bg-surface/50 sm:border-r sm:last:border-r-0"
                   >
                     {/* Poster Thumbnail with hover zoom & subtle border */}
                     <Link
                       href={`/media/${anime.id}`}
-                      className="relative aspect-[2/3] w-12 shrink-0 overflow-hidden rounded-lg border border-border-subtle bg-surface-3 transition-transform duration-200 group-hover:scale-105 shadow-xs"
+                      className="relative aspect-[2/3] w-12 shrink-0 overflow-hidden border border-border bg-surface-3"
                       title={`View ${title}`}
                     >
                       {cover && isHttpUrl(cover) ? (
@@ -658,7 +658,7 @@ export function HomeSearch({ popularAnime }: HomeSearchProps) {
                       {/* Action button */}
                       <div className="mt-1.5">
                         {isTracked ? (
-                          <span className="inline-flex items-center gap-1 rounded-md border border-accent/30 bg-accent-soft px-2 py-0.5 text-[11px] font-medium text-accent-strong">
+                          <span className="inline-flex items-center gap-1 text-[10px] font-medium uppercase tracking-[0.08em] text-accent-strong">
                             <CheckIcon className="h-3 w-3" />
                             <span>In library</span>
                           </span>
@@ -667,7 +667,7 @@ export function HomeSearch({ popularAnime }: HomeSearchProps) {
                             type="button"
                             disabled={isAdding}
                             onClick={() => void handleAdd(anime)}
-                            className="inline-flex items-center gap-1 rounded-md border border-border-subtle bg-surface-3 px-2.5 py-0.5 text-[11px] font-semibold text-fg transition-all hover:border-accent hover:bg-accent hover:text-accent-contrast disabled:opacity-60 active:scale-95"
+                            className="inline-flex h-7 items-center gap-1 border border-border px-2 text-[10px] font-semibold uppercase tracking-[0.08em] text-fg transition-colors hover:border-accent hover:text-accent-strong disabled:opacity-60"
                           >
                             {isAdding ? (
                               <LoaderIcon className="h-3 w-3 animate-spin" />

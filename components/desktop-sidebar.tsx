@@ -50,41 +50,43 @@ const ACCENT_PALETTES: Array<{
   value: DesignDirection;
   label: string;
   dotColor: string;
-  glow: string;
 }> = [
   {
     value: "broadcast",
-    label: "Midnight Violet",
-    dotColor: "bg-purple-500",
-    glow: "shadow-[0_0_8px_rgba(168,85,247,0.9)]",
+    label: "Kaze Signature",
+    dotColor: "bg-[var(--palette-broadcast)]",
   },
   {
     value: "editorial",
-    label: "Cyber Neon",
-    dotColor: "bg-cyan-400",
-    glow: "shadow-[0_0_8px_rgba(34,211,238,0.9)]",
+    label: "Tokyo Night",
+    dotColor: "bg-[var(--palette-editorial)]",
   },
   {
     value: "shelf",
     label: "Sakura Bloom",
-    dotColor: "bg-rose-500",
-    glow: "shadow-[0_0_8px_rgba(244,63,94,0.9)]",
+    dotColor: "bg-[var(--palette-shelf)]",
   },
 ];
 
 function isActive(pathname: string, item: NavItem): boolean {
-  if (item.exact) {
-    return pathname === item.href;
-  }
+  if (item.exact) return pathname === item.href;
   return pathname === item.href || pathname.startsWith(`${item.href}/`);
+}
+
+function Tooltip({ children }: { children: React.ReactNode }) {
+  return (
+    <span className="pointer-events-none absolute left-full z-50 ml-3 hidden whitespace-nowrap border border-border bg-bg px-2.5 py-1.5 text-[11px] font-medium text-fg shadow-sm group-hover:block">
+      {children}
+    </span>
+  );
 }
 
 export function DesktopSidebar({ viewer }: { viewer: Viewer | null }) {
   const pathname = usePathname();
   const { isCollapsed, toggleSidebar } = useSidebar();
   const { mode, resolved, setMode, design, setDesign } = useTheme();
-
   const { preferences } = usePreferences();
+
   const username = viewer?.email ? viewer.email.split("@")[0] : null;
   const displayName =
     preferences.nickname?.trim() ||
@@ -95,318 +97,244 @@ export function DesktopSidebar({ viewer }: { viewer: Viewer | null }) {
   return (
     <aside
       className={cn(
-        "fixed inset-y-0 left-0 z-40 hidden flex-col border-r border-border-subtle bg-bg/80 backdrop-blur-2xl backdrop-saturate-[180%] shadow-[inset_-1px_0_1px_rgba(255,255,255,0.05)] transition-[width,padding] duration-300 ease-out lg:flex",
-        isCollapsed
-          ? "w-[72px] items-center px-2.5 py-5"
-          : "w-[242px] px-3.5 py-6",
+        "fixed inset-y-0 left-0 z-40 hidden flex-col border-r border-border bg-bg transition-[width,padding] duration-300 ease-out lg:flex",
+        isCollapsed ? "w-16 items-center px-2 py-5" : "w-[228px] px-4 py-5",
       )}
     >
-      {/* Top Header: Logo & Collapse / Expand Toggle */}
-      {isCollapsed ? (
-        <div className="flex flex-col items-center gap-3">
+      <div
+        className={cn(
+          "flex w-full items-center border-b border-border pb-5",
+          isCollapsed ? "justify-center" : "justify-between",
+        )}
+      >
+        {isCollapsed ? (
           <Link href="/" aria-label="Kaze home" className="group relative">
             <LogoMark />
-            <div className="pointer-events-none absolute left-full ml-3 z-50 hidden rounded-xl liquid-glass px-3 py-1.5 text-xs font-semibold text-fg shadow-2xl whitespace-nowrap group-hover:flex animate-fade">
-              Kaze Home
-            </div>
+            <Tooltip>Kaze Home</Tooltip>
           </Link>
-
-          <button
-            type="button"
-            onClick={toggleSidebar}
-            title="Expand sidebar"
-            aria-label="Expand sidebar"
-            className="group relative flex h-8 w-8 items-center justify-center rounded-xl liquid-glass-interactive text-muted hover:text-fg active:scale-95"
-          >
-            <PanelLeftOpenIcon className="h-4 w-4" />
-            <div className="pointer-events-none absolute left-full ml-3 z-50 hidden rounded-xl liquid-glass px-3 py-1.5 text-xs font-semibold text-fg shadow-2xl whitespace-nowrap group-hover:flex animate-fade">
-              Expand sidebar
-            </div>
-          </button>
-        </div>
-      ) : (
-        <div className="flex items-center justify-between px-2">
+        ) : (
           <Logo />
+        )}
+
+        {!isCollapsed ? (
           <button
             type="button"
             onClick={toggleSidebar}
             title="Collapse sidebar"
             aria-label="Collapse sidebar to icons"
-            className="group relative flex h-8 w-8 items-center justify-center rounded-xl text-faint transition-colors hover:bg-surface-2 hover:text-fg active:scale-95"
+            className="group relative flex h-8 w-8 items-center justify-center text-faint transition-colors hover:text-fg focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
           >
             <PanelLeftCloseIcon className="h-4 w-4" />
-            <div className="pointer-events-none absolute left-full ml-3 z-50 hidden rounded-xl liquid-glass px-3 py-1.5 text-xs font-semibold text-fg shadow-2xl whitespace-nowrap group-hover:flex animate-fade">
-              Collapse sidebar
-            </div>
           </button>
-        </div>
-      )}
+        ) : null}
+      </div>
 
-      {/* Main Navigation Items */}
-      <nav aria-label="Primary" className="mt-7 w-full space-y-1.5">
-        {NAV_ITEMS.map((item) => {
-          const active = isActive(pathname, item);
-          const Icon = item.icon;
-          return (
-            <Link
-              key={item.href}
-              href={item.href}
-              aria-current={active ? "page" : undefined}
-              className={cn(
-                "group relative flex items-center rounded-2xl transition-all duration-150 ease-out select-none",
-                isCollapsed
-                  ? "mx-auto h-11 w-11 justify-center"
-                  : "gap-3 px-3.5 py-2.5 text-sm",
-                active
-                  ? "border border-accent/40 bg-accent-soft font-semibold text-fg shadow-[0_0_15px_rgba(139,92,246,0.18)]"
-                  : "border border-transparent font-medium text-muted hover:border-border-subtle hover:bg-surface/70 hover:text-fg",
-              )}
-            >
-              <Icon
+      {isCollapsed ? (
+        <button
+          type="button"
+          onClick={toggleSidebar}
+          title="Expand sidebar"
+          aria-label="Expand sidebar"
+          className="group relative mt-4 flex h-9 w-9 items-center justify-center text-faint transition-colors hover:text-fg"
+        >
+          <PanelLeftOpenIcon className="h-4 w-4" />
+          <Tooltip>Expand sidebar</Tooltip>
+        </button>
+      ) : null}
+
+      <nav aria-label="Primary" className="mt-7 w-full">
+        {!isCollapsed ? (
+          <p className="mb-2 px-3 text-[9px] font-semibold uppercase tracking-[0.2em] text-faint">
+            Library
+          </p>
+        ) : null}
+        <div className="space-y-0.5">
+          {NAV_ITEMS.map((item) => {
+            const active = isActive(pathname, item);
+            const Icon = item.icon;
+            return (
+              <Link
+                key={item.href}
+                href={item.href}
+                aria-current={active ? "page" : undefined}
                 className={cn(
-                  "h-[18px] w-[18px] shrink-0 transition-colors",
+                  "group relative flex items-center transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent",
+                  isCollapsed
+                    ? "mx-auto h-10 w-10 justify-center"
+                    : "h-9 gap-3 px-3 text-[13px]",
                   active
-                    ? "text-accent-strong"
-                    : "text-faint group-hover:text-muted",
+                    ? "bg-surface-2 text-fg"
+                    : "text-muted hover:bg-surface/60 hover:text-fg",
                 )}
-              />
-
-              {!isCollapsed ? (
-                <span className="flex-1 truncate">{item.label}</span>
-              ) : null}
-
-              {/* Active beacon indicator on expanded mode */}
-              {!isCollapsed && active ? (
-                <span className="h-1.5 w-1.5 rounded-full bg-accent-strong shadow-[0_0_6px_currentColor]" />
-              ) : null}
-
-              {/* Hover Tooltip in collapsed icon-only mode */}
-              {isCollapsed ? (
-                <div className="pointer-events-none absolute left-full ml-3 z-50 hidden items-center rounded-xl liquid-glass px-3 py-1.5 text-xs font-semibold text-fg shadow-2xl whitespace-nowrap group-hover:flex animate-fade">
-                  <span>{item.label}</span>
-                </div>
-              ) : null}
-            </Link>
-          );
-        })}
+              >
+                {active ? (
+                  <span
+                    aria-hidden="true"
+                    className="absolute inset-y-1 left-0 w-[2px] bg-accent"
+                  />
+                ) : null}
+                <Icon
+                  className={cn(
+                    "h-[17px] w-[17px] shrink-0",
+                    active
+                      ? "text-accent-strong"
+                      : "text-faint group-hover:text-muted",
+                  )}
+                />
+                {!isCollapsed ? (
+                  <span className={cn("truncate", active && "font-medium")}>
+                    {item.label}
+                  </span>
+                ) : null}
+                {isCollapsed ? <Tooltip>{item.label}</Tooltip> : null}
+              </Link>
+            );
+          })}
+        </div>
       </nav>
 
-      {/* Bottom Area: Quick Theme/Dark-Mode Dock, Settings & Profile */}
-      <div className="mt-auto w-full space-y-2.5 pt-4">
-        {/* Quick Theme & Dark Mode Controls */}
+      <div className="mt-auto w-full border-t border-border pt-4">
         {isCollapsed ? (
-          /* Collapsed Mode: Single Quick Dark/Light Toggle Button */
           <div className="group relative flex justify-center">
             <button
               type="button"
               onClick={() => setMode(resolved === "dark" ? "light" : "dark")}
               title={`Switch to ${resolved === "dark" ? "light" : "dark"} mode`}
               aria-label="Toggle dark/light mode"
-              className="flex h-11 w-11 items-center justify-center rounded-2xl border border-border-subtle bg-surface/70 text-muted transition-all duration-150 hover:border-accent/40 hover:bg-surface-2 hover:text-fg active:scale-95 shadow-xs"
+              className="flex h-9 w-9 items-center justify-center text-muted transition-colors hover:text-fg"
             >
               {resolved === "dark" ? (
-                <MoonIcon className="h-4 w-4 text-purple-300 light:text-purple-700" />
+                <MoonIcon className="h-4 w-4 text-accent-strong" />
               ) : (
-                <SunIcon className="h-4 w-4 text-amber-400 light:text-amber-600" />
+                <SunIcon className="h-4 w-4 text-warning" />
               )}
             </button>
-            <div className="pointer-events-none absolute left-full ml-3 z-50 hidden items-center rounded-xl liquid-glass px-3 py-1.5 text-xs font-semibold text-fg shadow-2xl whitespace-nowrap group-hover:flex animate-fade">
-              <span>{resolved === "dark" ? "Dark Mode" : "Light Mode"} (click to toggle)</span>
-            </div>
+            <Tooltip>
+              {resolved === "dark" ? "Light mode" : "Dark mode"}
+            </Tooltip>
           </div>
         ) : (
-          /* Expanded Mode: Modern Studio Quick Theme & Appearance Dock */
-          <div className="rounded-2xl border border-border-subtle bg-surface/75 p-2.5 backdrop-blur-md shadow-xs space-y-2">
-            {/* Top row: Dark / Light / System Mode Segmented Pill */}
+          <div className="space-y-3 px-1">
             <div className="flex items-center justify-between">
-              <span className="text-[10px] font-bold uppercase tracking-wider text-faint">
+              <span className="text-[9px] font-semibold uppercase tracking-[0.18em] text-faint">
                 Appearance
               </span>
               <div
                 role="group"
                 aria-label="Theme mode"
-                className="flex items-center gap-0.5 rounded-xl border border-border-subtle bg-bg/70 p-0.5"
+                className="flex items-center gap-1"
               >
-                <button
-                  type="button"
-                  aria-pressed={mode === "dark"}
-                  onClick={() => setMode("dark")}
-                  title="Dark mode"
-                  className={cn(
-                    "flex h-6 w-6 items-center justify-center rounded-lg transition-all",
-                    mode === "dark"
-                      ? "border border-purple-500/40 bg-purple-500/20 text-purple-300 light:bg-purple-500/10 light:text-purple-700 shadow-xs"
-                      : "text-faint hover:text-muted",
-                  )}
-                >
-                  <MoonIcon className="h-3 w-3" />
-                </button>
-                <button
-                  type="button"
-                  aria-pressed={mode === "light"}
-                  onClick={() => setMode("light")}
-                  title="Light mode"
-                  className={cn(
-                    "flex h-6 w-6 items-center justify-center rounded-lg transition-all",
-                    mode === "light"
-                      ? "border border-amber-400/40 bg-amber-400/20 text-amber-300 light:bg-amber-400/10 light:text-amber-700 shadow-xs"
-                      : "text-faint hover:text-muted",
-                  )}
-                >
-                  <SunIcon className="h-3 w-3" />
-                </button>
-                <button
-                  type="button"
-                  aria-pressed={mode === "system"}
-                  onClick={() => setMode("system")}
-                  title="Sync with system OS"
-                  className={cn(
-                    "flex h-6 w-6 items-center justify-center rounded-lg transition-all",
-                    mode === "system"
-                      ? "border border-border bg-surface-3 text-fg shadow-xs"
-                      : "text-faint hover:text-muted",
-                  )}
-                >
-                  <MonitorIcon className="h-3 w-3" />
-                </button>
+                {(
+                  [
+                    ["dark", MoonIcon],
+                    ["light", SunIcon],
+                    ["system", MonitorIcon],
+                  ] as const
+                ).map(([value, Icon]) => (
+                  <button
+                    key={value}
+                    type="button"
+                    aria-pressed={mode === value}
+                    onClick={() => setMode(value)}
+                    title={`${value} appearance`}
+                    className={cn(
+                      "flex h-7 w-7 items-center justify-center border transition-colors",
+                      mode === value
+                        ? "border-accent/50 bg-accent-soft text-accent-strong"
+                        : "border-transparent text-faint hover:border-border hover:text-fg",
+                    )}
+                  >
+                    <Icon className="h-3.5 w-3.5" />
+                  </button>
+                ))}
               </div>
             </div>
 
-            {/* Bottom row: 3 Accent Theme Color Swatches */}
-            <div className="flex items-center justify-between pt-0.5 border-t border-border-subtle">
-              <span className="text-[10px] text-faint">Theme Accent</span>
+            <div className="flex items-center justify-between">
+              <span className="text-[10px] text-faint">Accent</span>
               <div
                 role="group"
                 aria-label="Accent theme"
-                className="flex items-center gap-1.5"
+                className="flex items-center gap-2"
               >
-                {ACCENT_PALETTES.map((pal) => {
-                  const active = design === pal.value;
-                  return (
-                    <button
-                      key={pal.value}
-                      type="button"
-                      aria-pressed={active}
-                      onClick={() => setDesign(pal.value)}
-                      title={pal.label}
-                      className={cn(
-                        "relative flex h-5 w-5 items-center justify-center rounded-full transition-transform active:scale-90",
-                        active
-                          ? "ring-2 ring-accent ring-offset-2 ring-offset-surface scale-110"
-                          : "opacity-60 hover:opacity-100",
-                      )}
-                    >
-                      <span
-                        className={cn(
-                          "h-3 w-3 rounded-full",
-                          pal.dotColor,
-                          active && pal.glow,
-                        )}
-                      />
-                    </button>
-                  );
-                })}
+                {ACCENT_PALETTES.map((pal) => (
+                  <button
+                    key={pal.value}
+                    type="button"
+                    aria-pressed={design === pal.value}
+                    onClick={() => setDesign(pal.value)}
+                    title={pal.label}
+                    className={cn(
+                      "flex h-6 w-6 items-center justify-center border transition-colors",
+                      design === pal.value
+                        ? "border-accent/60"
+                        : "border-transparent hover:border-border",
+                    )}
+                  >
+                    <span
+                      className={cn("h-3 w-3 rounded-full", pal.dotColor)}
+                    />
+                  </button>
+                ))}
               </div>
             </div>
           </div>
         )}
 
-        {/* Settings Link */}
         <Link
           href="/settings"
+          aria-current={pathname === "/settings" ? "page" : undefined}
           className={cn(
-            "group relative flex items-center rounded-2xl transition-all duration-150 select-none",
+            "group relative mt-3 flex items-center transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent",
             isCollapsed
-              ? "mx-auto h-11 w-11 justify-center"
-              : "gap-3 px-3.5 py-2.5 text-sm",
+              ? "mx-auto h-10 w-10 justify-center"
+              : "h-9 gap-3 px-3 text-[13px]",
             pathname === "/settings"
-              ? "border border-accent/40 bg-accent-soft font-semibold text-fg shadow-[0_0_15px_rgba(139,92,246,0.18)]"
-              : "border border-transparent font-medium text-muted hover:border-border-subtle hover:bg-surface/70 hover:text-fg",
+              ? "bg-surface-2 text-fg"
+              : "text-muted hover:bg-surface/60 hover:text-fg",
           )}
         >
-          <SettingsIcon
-            className={cn(
-              "h-[18px] w-[18px] shrink-0 transition-colors",
-              pathname === "/settings"
-                ? "text-accent-strong"
-                : "text-faint group-hover:text-muted",
-            )}
-          />
-
-          {!isCollapsed ? (
-            <span className="flex-1 truncate">Settings</span>
-          ) : null}
-
-          {/* Hover Tooltip in collapsed mode */}
-          {isCollapsed ? (
-            <div className="pointer-events-none absolute left-full ml-3 z-50 hidden items-center rounded-xl liquid-glass px-3 py-1.5 text-xs font-semibold text-fg shadow-2xl whitespace-nowrap group-hover:flex animate-fade">
-              <span>Settings</span>
-            </div>
-          ) : null}
+          <SettingsIcon className="h-[17px] w-[17px] text-faint" />
+          {!isCollapsed ? <span>Settings</span> : null}
+          {isCollapsed ? <Tooltip>Settings</Tooltip> : null}
         </Link>
 
-        {/* User Account / Sign In */}
         {viewer ? (
           <Link
             href="/settings"
             className={cn(
-              "group relative flex items-center rounded-2xl border border-border-subtle bg-surface/75 backdrop-blur-md transition-all duration-150 hover:border-border hover:bg-surface-2/90 shadow-xs",
+              "group relative mt-3 flex items-center border-t border-border transition-colors hover:bg-surface/60",
               isCollapsed
-                ? "mx-auto h-11 w-11 justify-center p-0"
-                : "gap-2.5 p-2",
+                ? "mx-auto h-10 w-10 justify-center"
+                : "gap-2.5 pt-3",
             )}
           >
-            <div className="relative shrink-0">
-              <UserAvatar email={viewer.email} />
-              <span className="absolute -bottom-0.5 -right-0.5 h-2 w-2 rounded-full bg-emerald-400 border border-bg shadow-[0_0_4px_rgba(52,211,153,0.8)]" />
-            </div>
-
+            <UserAvatar email={viewer.email} />
             {!isCollapsed ? (
               <>
                 <span className="min-w-0 flex-1">
-                  <span className="block truncate text-[12px] font-semibold text-fg transition-colors group-hover:text-accent-strong">
+                  <span className="block truncate text-[12px] font-medium text-fg">
                     {displayName}
                   </span>
                   <span className="block truncate text-[10px] text-faint">
                     {viewer.email}
                   </span>
                 </span>
-                <span className="text-faint transition-transform group-hover:translate-x-0.5 group-hover:text-muted text-sm font-semibold">
-                  ›
-                </span>
+                <span className="text-faint">›</span>
               </>
             ) : null}
-
-            {/* Hover Tooltip with user info in collapsed mode */}
-            {isCollapsed ? (
-              <div className="pointer-events-none absolute left-full ml-3 z-50 hidden flex-col rounded-xl liquid-glass px-3 py-1.5 text-xs font-semibold text-fg shadow-2xl whitespace-nowrap group-hover:flex animate-fade">
-                <span>{displayName}</span>
-                <span className="text-[10px] font-normal text-faint">
-                  {viewer.email}
-                </span>
-              </div>
-            ) : null}
+            {isCollapsed ? <Tooltip>{displayName}</Tooltip> : null}
           </Link>
         ) : (
           <Link
             href="/login"
             className={cn(
-              "group relative flex items-center justify-center rounded-2xl bg-accent text-sm font-semibold text-accent-contrast transition-all hover:bg-accent-hover active:scale-95 shadow-md shadow-accent/20",
-              isCollapsed
-                ? "mx-auto h-11 w-11 p-0"
-                : "gap-2 px-3 py-2.5",
+              "mt-3 flex items-center justify-center bg-accent text-xs font-semibold text-accent-contrast transition-colors hover:bg-accent-hover",
+              isCollapsed ? "mx-auto h-10 w-10" : "h-9 gap-2 px-3",
             )}
           >
-            {isCollapsed ? (
-              <>
-                <UserIcon className="h-4 w-4" />
-                <div className="pointer-events-none absolute left-full ml-3 z-50 hidden rounded-xl liquid-glass px-3 py-1.5 text-xs font-semibold text-fg shadow-2xl whitespace-nowrap group-hover:flex animate-fade">
-                  Sign in to track
-                </div>
-              </>
-            ) : (
-              <span>Sign in to track</span>
-            )}
+            <UserIcon className="h-4 w-4" />
+            {!isCollapsed ? <span>Sign in</span> : null}
           </Link>
         )}
       </div>

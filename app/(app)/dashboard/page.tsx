@@ -5,6 +5,7 @@ import { HomeSearch } from "@/features/home/home-search";
 import { HomeStatsStrip } from "@/features/home/home-stats-strip";
 import { SeasonalCarousel } from "@/features/home/seasonal-carousel";
 import { ContinueWatching } from "@/features/library/continue-watching";
+import { RecentlyUpdated } from "@/features/library/recently-updated";
 import { getViewer } from "@/lib/auth";
 import { getWeekRange, toIsoDateString } from "@/lib/schedule";
 import { getCurrentSeason, seasonLabel } from "@/lib/season";
@@ -131,7 +132,7 @@ export default async function DashboardPage() {
   }).format(now);
 
   return (
-    <div className="space-y-5 sm:space-y-6">
+    <div className="space-y-8 sm:space-y-10">
       {/* 1. Cinematic Hero Spotlight Banner */}
       <HomeHero
         viewer={viewer}
@@ -145,7 +146,7 @@ export default async function DashboardPage() {
       />
 
       {/* 2. Main Dashboard Stream */}
-      <div className="space-y-6 sm:space-y-7">
+      <div className="space-y-8 sm:space-y-10">
         <HomeSearch popularAnime={quickAddPool} />
 
         {viewer ? (
@@ -155,6 +156,8 @@ export default async function DashboardPage() {
         {viewer ? (
           <ContinueWatching todayEntries={scheduleEntries} />
         ) : null}
+
+        {viewer ? <RecentlyUpdated /> : null}
 
         <HomeSchedule
           week={currentWeek}
@@ -172,6 +175,7 @@ export default async function DashboardPage() {
 
         {trending?.items && trending.items.length > 0 ? (
           <AnimeSection
+            eyebrow="Discovery / Anime"
             title="Trending this week"
             description="What is picking up momentum right now across the community."
             actionHref="/discover?sort=TRENDING_DESC"
@@ -182,7 +186,9 @@ export default async function DashboardPage() {
 
         {mangaTrending?.items && mangaTrending.items.length > 0 ? (
           <AnimeSection
+            eyebrow="Reading room / Manga & Manhwa"
             title="Trending manga & manhwa"
+            metaMode="below"
             description="Comics picking up momentum right now. Add one to start tracking chapters."
             actionHref="/discover?type=manga&sort=TRENDING_DESC"
             items={mangaTrending.items.slice(0, 6)}

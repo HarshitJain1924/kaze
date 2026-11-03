@@ -207,338 +207,280 @@ export function HomeHero({
   // The artwork for the backdrop: prefer widescreen 4K banner, fallback to cover, then hero banner
   const backdropArt = activeBanner ?? activeCover ?? "/hero-banner.jpg";
 
+  const artwork = activeBanner ?? activeCover ?? "/hero-banner.jpg";
+  const artworkIsRemote = isHttpUrl(artwork);
+
   return (
-    <header
-      aria-label="Seasonal spotlight banner"
+    <section
+      aria-label="Seasonal feature"
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
-      className="group relative isolate overflow-hidden rounded-3xl border border-white/15 bg-black shadow-2xl transition-all"
+      className="relative isolate border-y border-border bg-bg"
     >
-      {/* 4K Multi-Layer Ambient Backdrop (Mirrors Anime Details Page) */}
-      <div
-        aria-hidden="true"
-        className="pointer-events-none absolute inset-0 select-none overflow-hidden z-0"
-      >
-        {/* Layer 1: Ambient atmospheric color aura (diffused saturated color bleeding into surroundings) */}
-        {isHttpUrl(backdropArt) ? (
-          <div className="absolute inset-0 scale-125 blur-[65px] saturate-[2.5] brightness-125 opacity-70">
-            <Image
-              key={`ambient-aura-${currentAnime?.id ?? "default"}`}
-              src={backdropArt}
-              alt=""
-              fill
-              priority
-              unoptimized
-              sizes="100vw"
-              className="object-cover"
-            />
-          </div>
-        ) : null}
-
-        {/* Layer 2: 4K Source Artwork with native CDN sharpness */}
-        {activeBanner && isHttpUrl(activeBanner) ? (
-          <div className="absolute inset-0">
-            <Image
-              key={`hero-banner-${currentAnime?.id}`}
-              src={activeBanner}
-              alt=""
-              fill
-              priority
-              unoptimized
-              sizes="100vw"
-              className="object-cover object-[center_25%] opacity-90 transition-opacity duration-700 ease-out"
-            />
-          </div>
-        ) : activeCover && isHttpUrl(activeCover) ? (
-          <div className="absolute right-0 top-0 bottom-0 w-3/4 sm:w-3/5 lg:w-1/2 overflow-hidden pointer-events-none select-none">
-            <div className="relative h-full w-full">
-              <Image
-                key={`hero-cover-${currentAnime?.id}`}
-                src={activeCover}
-                alt=""
-                fill
-                priority
-                unoptimized
-                sizes="(max-width: 640px) 75vw, 50vw"
-                className="object-cover object-top opacity-60 dark:opacity-45 transition-opacity duration-700 ease-out"
-              />
-              <div className="absolute inset-0 bg-gradient-to-r from-black via-black/50 to-transparent" />
+      <div className="grid lg:grid-cols-[minmax(0,0.94fr)_minmax(400px,1.06fr)]">
+        <div className="order-last flex min-w-0 flex-col justify-between gap-8 px-4 py-6 sm:px-7 sm:py-8 lg:order-first lg:px-8 lg:py-9 xl:px-10">
+          <div>
+            <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border pb-3">
+              <div className="flex items-center gap-2.5">
+                <span className="h-1.5 w-1.5 bg-accent" />
+                <p className="text-[9px] font-semibold uppercase tracking-[0.2em] text-accent-strong">
+                  Seasonal feature
+                </p>
+                <span className="text-[10px] text-faint">
+                  {seasonLabel(season)} {year}
+                </span>
+              </div>
+              <Link
+                href="/schedule"
+                className="group inline-flex items-center gap-1.5 text-[10px] font-medium uppercase tracking-[0.12em] text-muted transition-colors hover:text-fg"
+              >
+                <CalendarIcon className="h-3 w-3" />
+                Broadcast week
+                <ChevronRightIcon className="h-3 w-3 text-faint transition-transform group-hover:translate-x-0.5" />
+              </Link>
             </div>
+
+            {currentAnime ? (
+              <div className="mt-6 flex items-start gap-4 sm:gap-6">
+                <Link
+                  href={`/media/${currentAnime.id}`}
+                  className="group/poster relative aspect-[2/3] w-[104px] shrink-0 overflow-hidden border border-border bg-surface-2 sm:w-[148px] lg:w-[132px] xl:w-[152px]"
+                  title={`View ${activeTitle}`}
+                >
+                  {activeCover && isHttpUrl(activeCover) ? (
+                    <Image
+                      key={`hero-poster-${currentAnime.id}`}
+                      src={activeCover}
+                      alt={`${activeTitle} poster`}
+                      fill
+                      priority
+                      sizes="(max-width: 640px) 104px, (max-width: 1024px) 148px, 152px"
+                      className="object-cover transition-transform duration-500 group-hover/poster:scale-[1.025]"
+                    />
+                  ) : (
+                    <span className="absolute inset-0 bg-surface-3" />
+                  )}
+                </Link>
+
+                <div className="min-w-0 flex-1">
+                  <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-[10px] font-medium uppercase tracking-[0.12em] text-muted">
+                    {activeFormat ? <span>{activeFormat}</span> : null}
+                    {activeEpisodes ? (
+                      <>
+                        <span className="text-border">/</span>
+                        <span>{activeEpisodes}</span>
+                      </>
+                    ) : null}
+                    {activeScore ? (
+                      <>
+                        <span className="text-border">/</span>
+                        <span className="inline-flex items-center gap-1 text-warning">
+                          <StarIcon className="h-3 w-3 fill-current" />
+                          {activeScore}
+                        </span>
+                      </>
+                    ) : null}
+                    {isHexColor(activeColor) ? (
+                      <span
+                        aria-hidden="true"
+                        className="h-2 w-2 rounded-full"
+                        style={{ backgroundColor: activeColor }}
+                      />
+                    ) : null}
+                  </div>
+
+                  <h1 className="mt-3 text-balance font-display text-[26px] font-semibold leading-[1.04] tracking-[-0.045em] text-fg sm:text-[34px] lg:text-[34px] xl:text-[40px]">
+                    <Link
+                      href={`/media/${currentAnime.id}`}
+                      className="transition-colors hover:text-accent-strong"
+                    >
+                      {activeTitle}
+                    </Link>
+                  </h1>
+
+                  {currentAnime.genres?.length ? (
+                    <p className="mt-2 line-clamp-1 text-[11px] text-faint">
+                      {currentAnime.genres.slice(0, 4).join(" · ")}
+                    </p>
+                  ) : null}
+
+                  <p className="mt-4 max-w-xl text-[12px] leading-relaxed text-muted sm:text-[13px]">
+                    <span className="font-medium text-fg">
+                      Good {greetingWord}, {viewerName}.
+                    </span>{" "}
+                    {summaryText}
+                  </p>
+                </div>
+              </div>
+            ) : (
+              <div className="mt-7 max-w-xl">
+                <p className="text-[9px] font-semibold uppercase tracking-[0.2em] text-accent-strong">
+                  {today.label ?? "Broadcast week"}
+                </p>
+                <h1 className="mt-2 font-display text-3xl font-semibold tracking-[-0.04em] text-fg">
+                  Good {greetingWord}, {viewerName}
+                </h1>
+                <p className="mt-3 text-sm leading-relaxed text-muted">
+                  {summaryText}
+                </p>
+              </div>
+            )}
           </div>
-        ) : (
-          <div className="absolute inset-0">
+
+          <div className="space-y-5">
+            {currentAnime ? (
+              <div className="flex flex-wrap items-center gap-3">
+                {currentEntry ? (
+                  <button
+                    type="button"
+                    onClick={() => requestAdd(currentAnime)}
+                    className="inline-flex h-10 items-center gap-2 border border-accent/60 bg-accent-soft px-4 text-[11px] font-semibold uppercase tracking-[0.08em] text-accent-strong transition-colors hover:border-accent"
+                  >
+                    <CheckIcon className="h-3.5 w-3.5" />
+                    <span className="capitalize">
+                      In watchlist ({currentEntry.status})
+                    </span>
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => requestAdd(currentAnime)}
+                    className="inline-flex h-10 items-center gap-2 bg-accent px-4 text-[11px] font-semibold uppercase tracking-[0.08em] text-accent-contrast transition-colors hover:bg-accent-hover"
+                  >
+                    <PlusIcon className="h-3.5 w-3.5" />
+                    Add to watchlist
+                  </button>
+                )}
+
+                <Link
+                  href={`/media/${currentAnime.id}`}
+                  className="group inline-flex h-10 items-center gap-2 px-1 text-[11px] font-semibold uppercase tracking-[0.08em] text-fg transition-colors hover:text-accent-strong"
+                >
+                  <EyeIcon className="h-3.5 w-3.5 text-muted" />
+                  View details
+                  <ChevronRightIcon className="h-3 w-3 text-faint transition-transform group-hover:translate-x-0.5" />
+                </Link>
+              </div>
+            ) : null}
+
+            {featuredList.length > 1 ? (
+              <div className="flex flex-wrap items-center justify-between gap-3 border-t border-border pt-4">
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setActiveIndex(
+                        (prev) =>
+                          (prev - 1 + featuredList.length) % featuredList.length,
+                      )
+                    }
+                    aria-label="Previous spotlight anime"
+                    title="Previous spotlight"
+                    className="flex h-8 w-8 items-center justify-center border border-border text-muted transition-colors hover:bg-surface-2 hover:text-fg"
+                  >
+                    <ChevronLeftIcon className="h-3.5 w-3.5" />
+                  </button>
+                  <span className="px-1 font-mono text-[10px] tabular-nums text-faint">
+                    {String(activeIndex + 1).padStart(2, "0")} /{" "}
+                    {String(featuredList.length).padStart(2, "0")}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setActiveIndex((prev) => (prev + 1) % featuredList.length)
+                    }
+                    aria-label="Next spotlight anime"
+                    title="Next spotlight"
+                    className="flex h-8 w-8 items-center justify-center border border-border text-muted transition-colors hover:bg-surface-2 hover:text-fg"
+                  >
+                    <ChevronRightIcon className="h-3.5 w-3.5" />
+                  </button>
+                </div>
+
+                <div className="flex items-center gap-1.5" aria-label="Spotlight selections">
+                  {featuredList.map((anime, index) => {
+                    const isSelected = index === activeIndex;
+                    const thumb =
+                      anime.coverImage.large ?? anime.coverImage.extraLarge;
+                    const title = getDisplayTitle(
+                      anime.title,
+                      preferences.titleLanguage === "english",
+                    );
+
+                    return (
+                      <button
+                        key={anime.id}
+                        type="button"
+                        aria-label={`Switch spotlight to ${title}`}
+                        aria-pressed={isSelected}
+                        onClick={() => setActiveIndex(index)}
+                        className={cn(
+                          "relative aspect-[2/3] w-8 overflow-hidden border transition-opacity sm:w-9",
+                          isSelected
+                            ? "border-accent opacity-100"
+                            : "border-border opacity-55 hover:opacity-90",
+                        )}
+                      >
+                        {thumb && isHttpUrl(thumb) ? (
+                          <Image
+                            src={thumb}
+                            alt=""
+                            fill
+                            sizes="36px"
+                            className="object-cover"
+                          />
+                        ) : (
+                          <span className="absolute inset-0 bg-surface-3" />
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            ) : null}
+          </div>
+        </div>
+
+        <div className="relative order-first min-h-[230px] overflow-hidden border-b border-border bg-surface sm:min-h-[290px] lg:order-last lg:min-h-[470px] lg:border-b-0 lg:border-l">
+          {artworkIsRemote ? (
+            <Image
+              key={`hero-art-${currentAnime?.id ?? "fallback"}`}
+              src={artwork}
+              alt=""
+              fill
+              priority
+              sizes="(max-width: 1024px) 100vw, 54vw"
+              className="object-cover object-[center_28%] transition-opacity duration-700"
+            />
+          ) : (
             <Image
               src="/hero-banner.jpg"
               alt=""
               fill
               priority
-              unoptimized
-              sizes="100vw"
-              className="object-cover object-[75%_35%] opacity-70"
+              sizes="(max-width: 1024px) 100vw, 54vw"
+              className="object-cover object-[center_30%]"
             />
-          </div>
-        )}
+          )}
 
-        {/* Layer 3: Dynamic anime dominant color tint */}
-        {isHexColor(activeColor) ? (
-          <div
-            aria-hidden="true"
-            className="absolute inset-0 opacity-30 mix-blend-screen transition-opacity duration-700"
-            style={{
-              background: `radial-gradient(ellipse 90% 70% at 75% 25%, ${activeColor}99 0%, transparent 65%)`,
-            }}
-          />
-        ) : null}
-
-        {/* Layer 4: Multi-directional gradient blending - preserves artwork vibrance */}
-        {/* Soft left gradient so text and vertical poster have contrast; right 60% is completely clear */}
-        <div className="absolute inset-0 bg-gradient-to-r from-black/85 via-black/45 via-45% to-transparent" />
-        {/* Top scrim for header row visibility */}
-        <div className="absolute inset-x-0 top-0 h-20 bg-gradient-to-b from-black/60 to-transparent" />
-        {/* Organic bottom fade that dissolves seamlessly */}
-        <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-transparent via-25% to-transparent" />
-      </div>
-
-      {/* Main Foreground Container */}
-      <div className="relative z-10 flex flex-col justify-between gap-5 p-4 sm:p-6 lg:p-7">
-        {/* Top Header Row */}
-        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-white/10 pb-3">
-          <div className="flex items-center gap-2">
-            <span className="flex h-2 w-2 rounded-full bg-accent-strong radar-live-dot" />
-            <span className="text-xs font-semibold uppercase tracking-wider text-accent-strong">
-              Seasonal Spotlight · {seasonLabel(season)} {year}
-            </span>
+          <div className="pointer-events-none absolute inset-x-0 bottom-0 h-28 bg-gradient-to-t from-bg/90 via-bg/30 to-transparent" />
+          <div className="absolute bottom-4 left-4 right-4 flex items-end justify-between gap-3 sm:bottom-5 sm:left-6 sm:right-6">
+            <div>
+              <p className="text-[8px] font-semibold uppercase tracking-[0.2em] text-white/70">
+                {seasonLabel(season)} {year} · Curated feature
+              </p>
+              <p className="mt-1 line-clamp-1 font-display text-sm font-medium text-white">
+                {activeTitle ?? "The current season, in focus"}
+              </p>
+            </div>
             {today.label ? (
-              <>
-                <span className="text-white/25">·</span>
-                <span className="text-xs font-medium text-white/70">
-                  {today.label}
-                </span>
-              </>
+              <p className="hidden text-[10px] text-white/70 sm:block">
+                {today.label}
+              </p>
             ) : null}
           </div>
-
-          <Link
-            href="/schedule"
-            className="inline-flex h-7 items-center gap-1.5 rounded-xl border border-white/15 bg-black/40 px-3 text-[11px] font-semibold text-white/90 backdrop-blur-md transition-all hover:border-accent hover:bg-black/60 hover:text-white active:scale-98"
-          >
-            <CalendarIcon className="h-3 w-3 text-accent-strong" />
-            <span>Weekly Schedule</span>
-            <ChevronRightIcon className="h-3 w-3 text-white/40" />
-          </Link>
         </div>
-
-        {/* Hero Poster + Liquid Glass Card (Identical Structure to Anime Detail Page) */}
-        {currentAnime ? (
-          <div className="flex flex-col gap-5 sm:flex-row sm:items-center sm:gap-6 lg:gap-8">
-            {/* 4K Detail-Screen Style Vertical Poster Card */}
-            <Link
-              href={`/media/${currentAnime.id}`}
-              className="group/poster relative aspect-[2/3] w-32 shrink-0 self-start sm:self-center overflow-hidden rounded-2xl border border-white/20 bg-surface-2 shadow-[0_20px_50px_rgba(0,0,0,0.7),inset_0_1px_1px_rgba(255,255,255,0.35)] ring-1 ring-white/15 transition-transform duration-300 hover:scale-[1.02] sm:w-44 lg:w-48"
-              title={`View ${activeTitle}`}
-            >
-              {activeCover && isHttpUrl(activeCover) ? (
-                <Image
-                  key={`hero-poster-${currentAnime.id}`}
-                  src={activeCover}
-                  alt={`${activeTitle} poster`}
-                  fill
-                  priority
-                  unoptimized
-                  sizes="(max-width: 640px) 128px, (max-width: 1024px) 176px, 192px"
-                  className="object-cover transition-transform duration-500 group-hover/poster:scale-105"
-                />
-              ) : (
-                <div className="absolute inset-0 bg-surface-3" />
-              )}
-
-              {activeScore ? (
-                <span className="absolute left-2.5 top-2.5 z-10 inline-flex items-center gap-1 rounded-lg border border-white/20 bg-black/75 px-2 py-0.5 text-xs font-bold text-amber-300 tabular-nums shadow-sm backdrop-blur-md">
-                  <StarIcon className="h-3 w-3 fill-amber-400 text-amber-400" />
-                  <span>{activeScore}</span>
-                </span>
-              ) : null}
-            </Link>
-
-            {/* Liquid-Glass Detail Header Info Card */}
-            <div className="min-w-0 flex-1">
-              <div className="liquid-glass liquid-glass-dark rounded-3xl p-5 sm:p-6 lg:p-7 border border-white/15 shadow-2xl">
-                {/* Badges row with liquid-glass-pill */}
-                <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
-                  {currentAnime.status ? (
-                    <span className="inline-flex items-center rounded-xl px-2.5 py-1 text-[11px] font-semibold tracking-wide border-success/30 bg-success/15 text-success">
-                      Airing
-                    </span>
-                  ) : null}
-
-                  {activeFormat ? (
-                    <span className="inline-flex items-center rounded-xl liquid-glass-pill px-2.5 py-1 text-[11px] font-medium text-white/90">
-                      {activeFormat}
-                    </span>
-                  ) : null}
-
-                  <span className="inline-flex items-center rounded-xl liquid-glass-pill px-2.5 py-1 text-[11px] font-medium text-white/90">
-                    {seasonLabel(season)} {year}
-                  </span>
-
-                  {activeEpisodes ? (
-                    <span className="inline-flex items-center rounded-xl liquid-glass-pill px-2.5 py-1 text-[11px] font-medium text-white/90">
-                      {activeEpisodes}
-                    </span>
-                  ) : null}
-
-                  {currentAnime.genres?.slice(0, 3).map((genre) => (
-                    <span
-                      key={genre}
-                      className="hidden sm:inline-flex items-center rounded-xl liquid-glass-pill px-2.5 py-1 text-[11px] font-medium text-white/75"
-                    >
-                      {genre}
-                    </span>
-                  ))}
-                </div>
-
-                {/* Clean Title without Japanese subtitles */}
-                <h1 className="mt-3 line-clamp-2 font-display text-2xl font-bold leading-tight tracking-tight text-white drop-shadow-md sm:text-3xl lg:text-[34px]">
-                  <Link
-                    href={`/media/${currentAnime.id}`}
-                    className="hover:text-accent-strong transition-colors"
-                  >
-                    {activeTitle}
-                  </Link>
-                </h1>
-
-                {/* Summary / Otaku Status */}
-                <p className="mt-2 text-xs leading-relaxed text-white/80 sm:text-[13px]">
-                  Good <span className="font-semibold text-accent-strong">{greetingWord}</span>, {viewerName}. {summaryText}
-                </p>
-
-                {/* Actions and Slideshow Switcher row */}
-                <div className="mt-5 flex flex-wrap items-center justify-between gap-3 border-t border-white/10 pt-4">
-                  <div className="flex flex-wrap items-center gap-2.5">
-                    {currentEntry ? (
-                      <button
-                        type="button"
-                        onClick={() => requestAdd(currentAnime)}
-                        className="inline-flex h-9 items-center gap-2 rounded-xl border border-accent/50 bg-accent/25 px-4 text-xs font-semibold text-accent-strong shadow-sm backdrop-blur-md transition-all hover:bg-accent/35 active:scale-98"
-                      >
-                        <CheckIcon className="h-3.5 w-3.5 text-accent-strong" />
-                        <span className="capitalize">
-                          In Watchlist ({currentEntry.status})
-                        </span>
-                      </button>
-                    ) : (
-                      <button
-                        type="button"
-                        onClick={() => requestAdd(currentAnime)}
-                        className="inline-flex h-9 items-center gap-2 rounded-xl bg-accent px-4 text-xs font-semibold text-accent-contrast shadow-sm transition-all hover:bg-accent-hover active:scale-98"
-                      >
-                        <PlusIcon className="h-3.5 w-3.5" />
-                        <span>Add to Watchlist</span>
-                      </button>
-                    )}
-
-                    <Link
-                      href={`/media/${currentAnime.id}`}
-                      className="inline-flex h-9 items-center gap-1.5 rounded-xl border border-white/20 bg-black/40 px-3.5 text-xs font-semibold text-white shadow-sm backdrop-blur-md transition-all hover:border-white/40 hover:bg-black/60 active:scale-98"
-                    >
-                      <EyeIcon className="h-3.5 w-3.5 text-white/70" />
-                      <span>View Anime Details</span>
-                      <ChevronRightIcon className="h-3 w-3 text-white/50" />
-                    </Link>
-                  </div>
-
-                  {/* Spotlight Selector Thumbnails (The Slideshow Switcher) */}
-                  {featuredList.length > 1 ? (
-                    <div className="flex items-center gap-2 ml-auto">
-                      <div className="flex items-center gap-1">
-                        <button
-                          type="button"
-                          onClick={() =>
-                            setActiveIndex(
-                              (prev) =>
-                                (prev - 1 + featuredList.length) %
-                                featuredList.length,
-                            )
-                          }
-                          aria-label="Previous spotlight anime"
-                          title="Previous spotlight"
-                          className="flex h-7 w-7 items-center justify-center rounded-lg border border-white/15 bg-black/40 text-white/80 hover:border-white/30 hover:bg-black/70 hover:text-white transition-all active:scale-95"
-                        >
-                          <ChevronLeftIcon className="h-3.5 w-3.5" />
-                        </button>
-                        <span className="text-[10px] font-semibold uppercase tracking-wider text-white/50 px-1 hidden md:inline">
-                          Spotlight ({activeIndex + 1}/{featuredList.length})
-                        </span>
-                        <button
-                          type="button"
-                          onClick={() =>
-                            setActiveIndex(
-                              (prev) => (prev + 1) % featuredList.length,
-                            )
-                          }
-                          aria-label="Next spotlight anime"
-                          title="Next spotlight"
-                          className="flex h-7 w-7 items-center justify-center rounded-lg border border-white/15 bg-black/40 text-white/80 hover:border-white/30 hover:bg-black/70 hover:text-white transition-all active:scale-95"
-                        >
-                          <ChevronRightIcon className="h-3.5 w-3.5" />
-                        </button>
-                      </div>
-
-                      <div className="flex items-center gap-1.5">
-                        {featuredList.map((anime, index) => {
-                          const isSelected = index === activeIndex;
-                          const thumb = anime.coverImage.large ?? anime.coverImage.extraLarge;
-                          const title = getDisplayTitle(anime.title, preferences.titleLanguage === "english");
-
-                          return (
-                            <button
-                              key={anime.id}
-                              type="button"
-                              aria-label={`Switch spotlight to ${title}`}
-                              onClick={() => setActiveIndex(index)}
-                              className={cn(
-                                "relative aspect-[2/3] w-9 sm:w-10 overflow-hidden rounded-xl border transition-all duration-200",
-                                isSelected
-                                  ? "border-accent ring-2 ring-accent scale-105 shadow-lg z-10"
-                                  : "border-white/20 opacity-60 hover:opacity-100 hover:scale-102",
-                              )}
-                            >
-                              {thumb && isHttpUrl(thumb) ? (
-                                <Image
-                                  src={thumb}
-                                  alt=""
-                                  fill
-                                  unoptimized
-                                  sizes="40px"
-                                  className="object-cover"
-                                />
-                              ) : (
-                                <div className="absolute inset-0 bg-surface-3" />
-                              )}
-                            </button>
-                          );
-                        })}
-                      </div>
-                    </div>
-                  ) : null}
-                </div>
-              </div>
-            </div>
-          </div>
-        ) : (
-          <div>
-            <p className="text-xs font-medium tracking-wide text-muted">
-              {today.label ?? "Broadcast Schedule"}
-            </p>
-            <h1 className="mt-1 font-display text-2xl font-bold tracking-tight text-fg sm:text-3xl lg:text-[34px]">
-              Good <span className="text-accent-strong">{greetingWord}</span>, {viewerName}
-            </h1>
-            <p className="mt-1.5 text-xs leading-relaxed text-muted sm:text-[13px]">
-              {summaryText}
-            </p>
-          </div>
-        )}
       </div>
-    </header>
+    </section>
   );
 }

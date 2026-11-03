@@ -29,18 +29,16 @@ interface MobileNavItem {
 }
 
 const ITEMS: MobileNavItem[] = [
-  { href: "/dashboard", label: "Dashboard", icon: HomeIcon },
+  { href: "/dashboard", label: "Home", icon: HomeIcon },
   { href: "/discover", label: "Discover", icon: CompassIcon },
   { href: "/schedule", label: "Schedule", icon: CalendarIcon },
-  { href: "/lists", label: "Lists", icon: BookmarkIcon },
   { href: "/library", label: "Library", icon: LibraryIcon },
+  { href: "/lists", label: "Lists", icon: BookmarkIcon },
   { href: "/stats", label: "Stats", icon: ChartIcon },
 ];
 
 function isActive(pathname: string, item: MobileNavItem): boolean {
-  if (item.exact) {
-    return pathname === item.href;
-  }
+  if (item.exact) return pathname === item.href;
   return pathname === item.href || pathname.startsWith(`${item.href}/`);
 }
 
@@ -48,43 +46,40 @@ export function MobileHeader({ viewer }: { viewer: Viewer | null }) {
   const { resolved, setMode } = useTheme();
 
   return (
-    <header className="sticky top-0 z-40 border-b border-border-subtle bg-bg/75 backdrop-blur-2xl backdrop-saturate-[180%] lg:hidden">
+    <header className="sticky top-0 z-40 border-b border-border bg-bg lg:hidden">
       <div className="flex h-14 items-center justify-between px-4">
         <Logo compact />
-        <div className="flex items-center gap-1.5">
-          {/* Quick 1-tap Theme Toggle Button */}
+        <div className="flex items-center gap-0.5">
           <button
             type="button"
             onClick={() => setMode(resolved === "dark" ? "light" : "dark")}
             aria-label="Toggle dark/light theme"
             title={`Switch to ${resolved === "dark" ? "light" : "dark"} mode`}
-            className="flex h-9 w-9 items-center justify-center rounded-xl liquid-glass-interactive text-muted hover:text-fg active:scale-95"
+            className="flex h-10 w-10 items-center justify-center text-muted transition-colors hover:text-fg"
           >
             {resolved === "dark" ? (
-              <MoonIcon className="h-4 w-4 text-purple-300 light:text-purple-700" />
+              <MoonIcon className="h-4 w-4 text-accent-strong" />
             ) : (
-              <SunIcon className="h-4 w-4 text-amber-400 light:text-amber-600" />
+              <SunIcon className="h-4 w-4 text-warning" />
             )}
           </button>
 
           <Link
             href="/discover"
             aria-label="Search titles"
-            className="flex h-9 w-9 items-center justify-center rounded-xl liquid-glass-interactive text-muted hover:text-fg active:scale-95"
+            className="flex h-10 w-10 items-center justify-center text-muted transition-colors hover:text-fg"
           >
             <SearchIcon className="h-[18px] w-[18px]" />
           </Link>
           <Link
             href={viewer ? "/settings" : "/login"}
             aria-label={viewer ? "Account settings" : "Sign in"}
-            className="flex h-9 items-center justify-center rounded-xl px-1.5 transition-colors hover:bg-surface-2"
+            className="flex h-10 min-w-10 items-center justify-center px-1 text-xs font-semibold text-accent-strong"
           >
             {viewer ? (
               <UserAvatar email={viewer.email} size="sm" />
             ) : (
-              <span className="rounded-xl bg-accent px-3 py-1.5 text-xs font-semibold text-accent-contrast shadow-[inset_0_1px_1px_rgba(255,255,255,0.3)]">
-                Sign in
-              </span>
+              <span>Sign in</span>
             )}
           </Link>
         </div>
@@ -99,9 +94,9 @@ export function MobileBottomNavigation() {
   return (
     <nav
       aria-label="Primary"
-      className="safe-bottom fixed inset-x-0 bottom-0 z-40 border-t border-border-subtle bg-bg-soft/75 backdrop-blur-2xl backdrop-saturate-[180%] shadow-[inset_0_1px_1px_rgba(255,255,255,0.08)] lg:hidden"
+      className="safe-bottom fixed inset-x-0 bottom-0 z-40 border-t border-border bg-bg/95 backdrop-blur-sm lg:hidden"
     >
-      <div className="grid grid-cols-5 py-0.5">
+      <div className="grid grid-cols-6">
         {ITEMS.map((item) => {
           const active = isActive(pathname, item);
           const Icon = item.icon;
@@ -111,20 +106,18 @@ export function MobileBottomNavigation() {
               href={item.href}
               aria-current={active ? "page" : undefined}
               className={cn(
-                "relative flex min-h-[58px] flex-col items-center justify-center gap-1 px-1 py-1 text-[11px] font-medium transition-colors",
-                active ? "text-accent-strong font-semibold" : "text-faint hover:text-muted",
+                "relative flex min-h-[56px] flex-col items-center justify-center gap-1 px-0.5 py-1 text-[10px] font-medium transition-colors",
+                active ? "text-accent-strong" : "text-faint",
               )}
             >
-              <Icon
-                className={cn(
-                  "h-5 w-5 transition-transform duration-200",
-                  active ? "text-accent-strong scale-110" : "text-faint",
-                )}
-              />
-              <span>{item.label}</span>
               {active ? (
-                <span className="absolute bottom-1 h-1 w-4 rounded-full bg-accent-strong shadow-[0_0_6px_currentColor]" />
+                <span
+                  aria-hidden="true"
+                  className="absolute inset-x-3 top-0 h-[2px] bg-accent"
+                />
               ) : null}
+              <Icon className="h-4.5 w-4.5" />
+              <span>{item.label}</span>
             </Link>
           );
         })}

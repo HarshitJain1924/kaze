@@ -7,12 +7,14 @@ export function AnimeGrid({
   metaMode = "overlay",
   priorityCount = 0,
   showQuickAdd = true,
+  variant = "default",
   className,
 }: {
   items: AnimeSummary[];
   metaMode?: "overlay" | "below";
   priorityCount?: number;
   showQuickAdd?: boolean;
+  variant?: "default" | "editorial";
   className?: string;
 }) {
   return (
@@ -31,6 +33,7 @@ export function AnimeGrid({
           metaMode={metaMode}
           priority={index < priorityCount}
           showQuickAdd={showQuickAdd}
+          variant={variant}
         />
       ))}
     </div>
