@@ -374,14 +374,8 @@ export default async function AnimeDetailsPage({ params }: PageProps) {
           </div>
         </div>
 
-        {/* Progressive atmospheric backdrop grounding content-heavy sections */}
-        <div
-          aria-hidden="true"
-          className="pointer-events-none absolute left-0 right-0 lg:right-[390px] top-[420px] bottom-0 -z-10 bg-gradient-to-b from-transparent via-bg/40 via-15% to-bg/75 dark:via-bg/50 dark:to-bg/80"
-        />
-
         <div className="mt-10 grid gap-8 lg:grid-cols-[minmax(0,1fr)_360px] lg:gap-12 items-start">
-          <div className="min-w-0">
+          <div className="min-w-0 pb-20 sm:pb-28">
             <AnimeDetailsTabs
               synopsisContent={
                 <section aria-labelledby="synopsis-heading">
