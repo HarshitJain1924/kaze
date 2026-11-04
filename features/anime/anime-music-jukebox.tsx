@@ -44,7 +44,7 @@ export function AnimeMusicJukebox({
         className={`group relative flex items-center justify-between gap-3 overflow-hidden rounded-2xl border p-3.5 backdrop-blur-md transition-all ${
           isPlaying
             ? "border-accent bg-accent/15 shadow-[0_0_20px_rgba(139,92,246,0.25)]"
-            : "border-white/10 bg-surface-2/70 hover:border-accent/40 hover:bg-surface-3/80 shadow-xs"
+            : "border-border-subtle bg-surface/90 hover:border-border hover:bg-surface shadow-xs"
         }`}
       >
         {/* Left: Vinyl Disc + Info */}

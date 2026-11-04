@@ -5,10 +5,8 @@ import Link from "next/link";
 import { useCallback, useMemo, useState } from "react";
 
 import {
-  ChevronRightIcon,
   LoaderIcon,
   PlusIcon,
-  SparkIcon,
   StarIcon,
 } from "@/components/icons";
 import { usePreferences } from "@/components/providers/preferences-provider";
@@ -187,37 +185,36 @@ export function AnimeFranchiseSection({
   return (
     <section
       aria-labelledby="franchise-heading"
-      className="space-y-4 rounded-2xl border border-border-subtle bg-surface/50 p-4 sm:p-5"
+      className="space-y-4"
     >
       {/* Section Header */}
-      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border-subtle pb-3">
-        <div className="flex items-center gap-2.5">
-          <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-accent-soft text-accent-strong">
-            <SparkIcon className="h-4 w-4" />
-          </span>
-          <div>
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 border-b border-border pb-3">
+        <div>
+          <div className="flex items-center gap-2">
             <h2
               id="franchise-heading"
-              className="font-display text-base font-semibold text-fg sm:text-lg"
+              className="font-display text-lg font-semibold text-fg"
             >
-              Franchise & Seasons
+              Franchise & Chronology
             </h2>
-            <p className="text-xs text-muted">
-              {allItems.length} connected releases · Follow the storyline and
-              track your overall series progress
-            </p>
+            <span className="rounded-full bg-surface-3 px-2 py-0.5 text-xs font-semibold text-muted">
+              {allItems.length}
+            </span>
           </div>
+          <p className="mt-1 text-xs text-muted">
+            Follow the canonical storyline, spin-offs, and track overall completion across releases
+          </p>
         </div>
 
         {/* Filter Pills */}
-        <div className="flex items-center gap-1 rounded-lg border border-border-subtle bg-surface-2 p-1">
+        <div className="flex items-center gap-1 self-start sm:self-auto rounded-lg border border-border-subtle bg-surface-2/80 p-0.5 text-xs">
           <button
             type="button"
             onClick={() => setActiveFilter("all")}
             className={cn(
               "rounded-md px-2.5 py-1 text-xs font-medium transition-colors",
               activeFilter === "all"
-                ? "bg-accent text-accent-contrast shadow-xs"
+                ? "bg-accent text-accent-contrast shadow-xs font-semibold"
                 : "text-muted hover:text-fg",
             )}
           >
@@ -229,7 +226,7 @@ export function AnimeFranchiseSection({
             className={cn(
               "rounded-md px-2.5 py-1 text-xs font-medium transition-colors",
               activeFilter === "main"
-                ? "bg-accent text-accent-contrast shadow-xs"
+                ? "bg-accent text-accent-contrast shadow-xs font-semibold"
                 : "text-muted hover:text-fg",
             )}
           >
@@ -242,7 +239,7 @@ export function AnimeFranchiseSection({
               className={cn(
                 "rounded-md px-2.5 py-1 text-xs font-medium transition-colors",
                 activeFilter === "side"
-                  ? "bg-accent text-accent-contrast shadow-xs"
+                  ? "bg-accent text-accent-contrast shadow-xs font-semibold"
                   : "text-muted hover:text-fg",
               )}
             >
@@ -253,25 +250,26 @@ export function AnimeFranchiseSection({
       </div>
 
       {/* Franchise Progress Overview Bar */}
-      <div className="rounded-xl border border-border-subtle bg-surface-2/60 p-3.5">
-        <div className="flex flex-wrap items-center justify-between gap-2 text-xs">
+      <div className="flex flex-col gap-2.5 rounded-xl border border-border-subtle bg-surface/90 p-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4 shadow-xs">
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs">
           <span className="font-medium text-fg">
             Series Completion:{" "}
-            <strong className="text-accent-strong">
+            <strong className="text-accent-strong font-semibold">
               {stats.completedCount} of {stats.totalEntries} entries
             </strong>{" "}
             completed
           </span>
+          <span className="text-faint hidden sm:inline">·</span>
           <span className="text-muted tabular-nums">
             {stats.episodesWatched}{" "}
             {stats.totalEpisodesKnown > 0
               ? `/ ${stats.totalEpisodesKnown}`
               : ""}{" "}
-            episodes watched ({stats.percent}%)
+            episodes logged ({stats.percent}%)
           </span>
         </div>
 
-        <div className="mt-2 h-2.5 w-full overflow-hidden rounded-full bg-surface-3">
+        <div className="h-1.5 w-full sm:w-48 overflow-hidden rounded-full bg-surface-3 shrink-0">
           <div
             className="h-full rounded-full bg-accent transition-all duration-300"
             style={{ width: `${stats.percent}%` }}
@@ -281,45 +279,39 @@ export function AnimeFranchiseSection({
 
       {/* Quick Prequel / Sequel Bar */}
       {prequel || sequel ? (
-        <div className="flex flex-wrap items-center gap-2 pt-1">
+        <div className="flex flex-wrap items-center gap-2 pt-0.5">
           {prequel ? (
             <Link
               href={`/media/${prequel.id}`}
-              className="inline-flex min-w-0 flex-1 items-center justify-between gap-2 rounded-xl border border-border-subtle bg-surface-2/80 px-3 py-2 text-xs transition-all hover:border-accent/40 hover:bg-surface-3 sm:flex-initial"
+              className="inline-flex min-w-0 items-center gap-2 rounded-lg border border-border-subtle bg-surface/90 px-3 py-1.5 text-xs transition-colors hover:border-border hover:bg-surface text-fg"
             >
-              <div className="flex items-center gap-2">
-                <span className="rounded bg-surface-3 px-1.5 py-0.5 text-[10px] font-semibold text-muted uppercase">
-                  Prequel
-                </span>
-                <span className="truncate font-medium text-fg max-w-[180px] sm:max-w-[240px]">
-                  {getDisplayTitle(prequel.title, preferEnglish)}
-                </span>
-              </div>
-              <ChevronRightIcon className="h-3.5 w-3.5 shrink-0 rotate-180 text-muted" />
+              <span className="text-[10px] font-semibold text-muted uppercase tracking-wider">
+                &larr; Prequel
+              </span>
+              <span className="truncate max-w-[160px] sm:max-w-[220px] font-medium">
+                {getDisplayTitle(prequel.title, preferEnglish)}
+              </span>
             </Link>
           ) : null}
 
           {sequel ? (
             <Link
               href={`/media/${sequel.id}`}
-              className="inline-flex min-w-0 flex-1 items-center justify-between gap-2 rounded-xl border border-border-subtle bg-surface-2/80 px-3 py-2 text-xs transition-all hover:border-accent/40 hover:bg-surface-3 sm:flex-initial"
+              className="inline-flex min-w-0 items-center gap-2 rounded-lg border border-accent/40 bg-accent-soft/30 px-3 py-1.5 text-xs transition-colors hover:border-accent hover:bg-accent-soft/50 text-fg"
             >
-              <div className="flex items-center gap-2">
-                <span className="rounded bg-accent-soft px-1.5 py-0.5 text-[10px] font-semibold text-accent-strong uppercase">
-                  Sequel
-                </span>
-                <span className="truncate font-medium text-fg max-w-[180px] sm:max-w-[240px]">
-                  {getDisplayTitle(sequel.title, preferEnglish)}
-                </span>
-              </div>
-              <ChevronRightIcon className="h-3.5 w-3.5 shrink-0 text-muted" />
+              <span className="text-[10px] font-semibold text-accent-strong uppercase tracking-wider">
+                Sequel &rarr;
+              </span>
+              <span className="truncate max-w-[160px] sm:max-w-[220px] font-medium">
+                {getDisplayTitle(sequel.title, preferEnglish)}
+              </span>
             </Link>
           ) : null}
         </div>
       ) : null}
 
       {/* Grid of Season & Franchise Cards */}
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         {displayedItems.map((item) => {
           const isCurrent = item.id === currentAnime.id;
           const entry = entryFor(item.id);
@@ -335,17 +327,17 @@ export function AnimeFranchiseSection({
           const unitCount = manga ? item.chapters : item.episodes;
           const unitLabel = manga ? "ch" : "eps";
           const relationLabel = isCurrent
-            ? "Current"
+            ? "Current Title"
             : formatRelationType(item.relationType) ?? "Related";
 
           return (
             <div
               key={item.id}
               className={cn(
-                "group relative flex items-center gap-3.5 rounded-xl border p-3 transition-all duration-200",
+                "group relative flex items-center gap-3.5 rounded-xl border p-3 transition-all duration-200 shadow-xs",
                 isCurrent
-                  ? "border-accent bg-accent/5 shadow-sm ring-1 ring-accent/30"
-                  : "border-border-subtle bg-surface-2/60 hover:border-border hover:bg-surface-2",
+                  ? "border-accent/60 bg-accent-soft/30 ring-1 ring-accent/25 shadow-sm"
+                  : "border-border-subtle bg-surface/90 hover:border-border hover:bg-surface",
               )}
             >
               {/* Cover Poster */}
@@ -366,10 +358,8 @@ export function AnimeFranchiseSection({
                 )}
 
                 {isCurrent ? (
-                  <div className="absolute inset-0 flex items-center justify-center bg-black/40">
-                    <span className="rounded bg-accent px-1.5 py-0.5 text-[9px] font-bold text-accent-contrast uppercase">
-                      Viewing
-                    </span>
+                  <div className="absolute inset-x-0 bottom-0 bg-accent py-0.5 text-center text-[8px] font-bold text-accent-contrast uppercase tracking-wider">
+                    Viewing
                   </div>
                 ) : null}
               </Link>
@@ -379,10 +369,10 @@ export function AnimeFranchiseSection({
                 <div className="flex items-center gap-1.5">
                   <span
                     className={cn(
-                      "rounded px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider",
+                      "rounded px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wider",
                       isCurrent
                         ? "bg-accent text-accent-contrast"
-                        : "bg-surface-3 text-muted",
+                        : "bg-surface-2 text-muted border border-border-subtle",
                     )}
                   >
                     {relationLabel}
@@ -396,7 +386,7 @@ export function AnimeFranchiseSection({
 
                 <Link
                   href={`/media/${item.id}`}
-                  className="mt-1 block line-clamp-1 text-xs font-semibold text-fg transition-colors hover:text-accent-strong"
+                  className="mt-1 block line-clamp-1 text-xs sm:text-[13px] font-semibold text-fg transition-colors hover:text-accent-strong"
                   title={title}
                 >
                   {title}
@@ -434,14 +424,14 @@ export function AnimeFranchiseSection({
                     </div>
                   ) : isCurrent ? (
                     <span className="text-[11px] font-medium text-accent-strong">
-                      Manage in sidebar &rarr;
+                      Viewing details &rarr;
                     </span>
                   ) : (
                     <button
                       type="button"
                       disabled={isAdding}
                       onClick={() => void handleAdd(item)}
-                      className="inline-flex items-center gap-1 rounded-md border border-border-subtle bg-surface-3 px-2 py-0.5 text-[11px] font-semibold text-fg transition-all hover:border-accent hover:bg-accent hover:text-accent-contrast disabled:opacity-60 active:scale-95"
+                      className="inline-flex items-center gap-1 rounded-md border border-border-subtle bg-surface-2 px-2.5 py-1 text-[11px] font-semibold text-fg transition-all hover:border-accent hover:bg-accent hover:text-accent-contrast disabled:opacity-60 active:scale-95 shadow-xs"
                     >
                       {isAdding ? (
                         <LoaderIcon className="h-3 w-3 animate-spin" />

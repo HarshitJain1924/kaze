@@ -8,6 +8,7 @@ import { AnimePosterCard } from "@/components/anime-poster-card";
 import { ArrowLeftIcon, ExternalIcon } from "@/components/icons";
 import { ErrorState } from "@/components/error-state";
 import { RetryButton } from "@/components/retry-button";
+import { OpticalGlass } from "@/components/ui/optical-glass";
 import { AnimeStreamingLinks } from "@/components/anime-streaming-links";
 import { AnimeDetailsTabs } from "@/features/anime/anime-details-tabs";
 import { AnimeCharacters } from "@/features/anime/anime-characters";
@@ -174,12 +175,9 @@ export default async function AnimeDetailsPage({ params }: PageProps) {
   const endDate = formatAnimeDate(anime.endDate);
   const relationGroups = groupRelations(anime.relations);
   const displayTitle = getDisplayTitle(anime.title, true);
-  const artworkUrl =
-    anime.bannerImage && isHttpUrl(anime.bannerImage)
-      ? anime.bannerImage
-      : cover && isHttpUrl(cover)
-        ? cover
-        : null;
+  const hasBanner = Boolean(anime.bannerImage && isHttpUrl(anime.bannerImage));
+  const hasCover = Boolean(cover && isHttpUrl(cover));
+  const accentColor = anime.coverImage.color ?? null;
 
   let themes: import("@/types/theme").AnimeTheme[] = [];
   if (!manga) {
@@ -195,44 +193,131 @@ export default async function AnimeDetailsPage({ params }: PageProps) {
 
   return (
     <div className="relative -mx-4 -mt-5 sm:-mx-6 lg:-mx-10 lg:-mt-8">
-      {/* Full-Page Atmospheric Artwork Backdrop */}
-      {artworkUrl ? (
+      {/* Full-Viewport Fixed Artwork Backdrop */}
+      {hasBanner && anime.bannerImage ? (
+        /* Scenario A: Full-Viewport Fixed Wallpaper for landscape banners */
         <div
           aria-hidden="true"
           className="pointer-events-none fixed inset-0 z-0 h-screen w-screen overflow-hidden select-none"
         >
-          {/* Atmospheric media artwork with high-grade blur */}
-          <Image
-            src={artworkUrl}
-            alt=""
-            fill
-            priority
-            unoptimized
-            sizes="100vw"
-            className="scale-105 object-cover object-center blur-[55px] sm:blur-[70px] opacity-40 dark:opacity-25 transition-opacity"
-          />
+          {/* Subtle diffused atmospheric aura backlight */}
+          <div className="absolute inset-0 scale-110 blur-[80px] saturate-[1.4] opacity-15 dark:opacity-20 dark:brightness-95 pointer-events-none">
+            <Image
+              src={anime.bannerImage}
+              alt=""
+              fill
+              priority
+              sizes="100vw"
+              className="object-cover"
+            />
+          </div>
 
-          {/* Deep charcoal contrast overlay ensuring readable text across themes */}
-          <div className="absolute inset-0 bg-bg/85 dark:bg-bg/90 light:bg-bg/85" />
+          {/* Full-viewport landscape artwork (fixed, stays visible, saturated, and recognizable) */}
+          <div className="relative h-full w-full">
+            <Image
+              src={anime.bannerImage}
+              alt=""
+              fill
+              priority
+              unoptimized
+              sizes="100vw"
+              className="object-cover object-top opacity-100 dark:opacity-65 dark:brightness-95 dark:contrast-105 transition-opacity"
+            />
+          </div>
 
-          {/* Subtle top vignette */}
-          <div className="absolute inset-x-0 top-0 h-32 bg-gradient-to-b from-bg to-transparent" />
+          {/* Dynamic dominant color tint from anime metadata (active only in dark mode to prevent light-mode whiteout) */}
+          {accentColor ? (
+            <div
+              className="absolute inset-0 hidden dark:block dark:opacity-15 dark:mix-blend-screen pointer-events-none"
+              style={{
+                background: `radial-gradient(circle at 75% 25%, ${accentColor} 0%, transparent 65%)`,
+              }}
+            />
+          ) : null}
 
-          {/* Bottom fade to base background */}
-          <div className="absolute inset-x-0 bottom-0 h-48 bg-gradient-to-t from-bg to-transparent" />
+          {/* Top scrim: delicate neutral vignette in light mode, deeper contrast in dark mode */}
+          <div className="absolute inset-x-0 top-0 h-28 bg-gradient-to-b from-black/15 via-black/5 to-transparent dark:from-black/60 dark:via-black/20 pointer-events-none" />
+
+          {/* Progressive atmospheric wash:
+              - Hero region (0-30%): clear, artwork remains vivid and recognizable behind glass
+              - Content transition (30-60%): gently softens contrast and saturation with theme wash
+              - Lower sections (60-100%): grounds the canvas with smooth backdrop, keeping art perceptible
+          */}
+          <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent via-30% via-bg/25 via-60% to-bg/75 dark:via-bg/40 dark:to-bg pointer-events-none" />
+
+          {/* Left horizontal wash for readable editorial typography while keeping the right artwork column clear */}
+          <div className="absolute inset-0 bg-gradient-to-r from-bg/95 via-bg/70 via-35% to-transparent dark:from-bg dark:via-bg/75 dark:via-45% pointer-events-none" />
         </div>
-      ) : null}
+      ) : hasCover && cover ? (
+        /* Scenario B: Fixed Atmospheric Backdrop when no landscape banner exists (using portrait poster) */
+        <div
+          aria-hidden="true"
+          className="pointer-events-none fixed inset-0 z-0 h-screen w-screen overflow-hidden select-none"
+        >
+          {/* Atmospheric blurred aura from cover art */}
+          <div className="absolute inset-0 scale-125 blur-[90px] saturate-[1.4] opacity-20 dark:opacity-25 pointer-events-none">
+            <Image
+              src={cover}
+              alt=""
+              fill
+              priority
+              sizes="100vw"
+              className="object-cover"
+            />
+          </div>
+
+          {/* Right-aligned cinematic portrait stage (prevents stretching portrait art across landscape viewport) */}
+          <div className="absolute right-0 top-0 bottom-0 w-full sm:w-[500px] lg:w-[680px] overflow-hidden opacity-90 dark:opacity-40 pointer-events-none">
+            <Image
+              src={cover}
+              alt=""
+              fill
+              priority
+              unoptimized
+              sizes="(max-width: 640px) 100vw, 680px"
+              className="object-cover object-top"
+            />
+            {/* Blending scrims so portrait art melts into the page canvas */}
+            <div className="absolute inset-0 bg-gradient-to-r from-bg via-bg/60 via-30% to-transparent dark:via-bg/50" />
+            <div className="absolute inset-x-0 bottom-0 h-48 bg-gradient-to-t from-bg/80 to-transparent dark:from-bg" />
+          </div>
+
+          {/* Dynamic dominant color tint (active in dark mode) */}
+          {accentColor ? (
+            <div
+              className="absolute inset-0 hidden dark:block dark:opacity-15 dark:mix-blend-screen pointer-events-none"
+              style={{
+                background: `radial-gradient(circle at 75% 25%, ${accentColor} 0%, transparent 65%)`,
+              }}
+            />
+          ) : null}
+
+          {/* Top and left scrims for text legibility */}
+          <div className="absolute inset-x-0 top-0 h-28 bg-gradient-to-b from-black/15 via-black/5 to-transparent dark:from-black/60 dark:via-black/20 pointer-events-none" />
+          <div className="absolute inset-0 bg-gradient-to-r from-bg/95 via-bg/70 via-35% to-transparent dark:from-bg dark:via-bg/75 dark:via-45% pointer-events-none" />
+        </div>
+      ) : (
+        /* Scenario C: Restrained theme-based atmospheric background when neither banner nor cover is available */
+        <div
+          aria-hidden="true"
+          className="pointer-events-none fixed inset-0 z-0 h-screen w-screen overflow-hidden select-none"
+        >
+          <div className="absolute inset-0 bg-[radial-gradient(80%_80%_at_70%_20%,var(--accent-soft),transparent_70%)] opacity-40" />
+        </div>
+      )}
 
       {/* Hero Foreground Content */}
       <div className="relative z-10 mx-auto max-w-[1560px] px-4 pt-4 sm:px-6 sm:pt-6 lg:px-10 lg:pt-6">
-        {/* Editorial Breadcrumb Navigation */}
-        <nav
+        {/* Editorial Optical Glass Breadcrumb Navigation */}
+        <OpticalGlass
+          as="nav"
+          variant="interactive"
           aria-label="Breadcrumbs"
-          className="flex items-center gap-2 text-xs"
+          className="inline-flex items-center gap-2 rounded-xl px-3 py-1.5 text-xs font-medium text-fg"
         >
           <Link
             href="/discover"
-            className="inline-flex items-center gap-1.5 font-medium text-muted transition-colors hover:text-accent-strong"
+            className="inline-flex items-center gap-1.5 text-muted transition-colors hover:text-accent-strong"
           >
             <ArrowLeftIcon className="h-3.5 w-3.5" />
             <span>Discover</span>
@@ -244,12 +329,12 @@ export default async function AnimeDetailsPage({ params }: PageProps) {
           {anime.format ? (
             <>
               <span className="text-faint">/</span>
-              <span className="rounded border border-border bg-surface-2/60 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-muted">
+              <span className="rounded border border-border/80 bg-surface-2/60 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-muted">
                 {manga ? formatMediaKind(anime) : formatFormat(anime.format)}
               </span>
             </>
           ) : null}
-        </nav>
+        </OpticalGlass>
 
         {catalogMeta.degraded ? (
           <div className="mt-3 flex flex-wrap items-center justify-between gap-2 rounded-lg border border-amber-500/25 bg-amber-950/40 px-3.5 py-2 text-xs text-amber-200 light:bg-amber-500/10 light:text-amber-800">
@@ -265,9 +350,9 @@ export default async function AnimeDetailsPage({ params }: PageProps) {
         ) : null}
 
         {/* Cinematic Editorial Hero */}
-        <div className="mt-5 flex flex-col gap-6 sm:mt-7 sm:flex-row sm:gap-8 lg:gap-10">
+        <div className="mt-6 flex flex-col gap-6 sm:mt-8 sm:flex-row sm:gap-8 lg:gap-12">
           {/* Left: Prominent Vertical Poster */}
-          <div className="relative aspect-[2/3] w-36 shrink-0 overflow-hidden rounded-lg border border-border bg-surface-2 shadow-2xl sm:w-48 lg:w-56">
+          <div className="relative aspect-[2/3] w-40 shrink-0 overflow-hidden rounded-xl border border-white/15 bg-surface-2 shadow-[0_24px_50px_rgba(0,0,0,0.8)] ring-1 ring-white/10 sm:w-52 lg:w-60">
             {cover ? (
               <Image
                 src={cover}
@@ -275,7 +360,7 @@ export default async function AnimeDetailsPage({ params }: PageProps) {
                 fill
                 priority
                 unoptimized
-                sizes="(max-width: 640px) 144px, (max-width: 1024px) 192px, 224px"
+                sizes="(max-width: 640px) 160px, (max-width: 1024px) 208px, 240px"
                 className="object-cover"
               />
             ) : (
@@ -283,13 +368,19 @@ export default async function AnimeDetailsPage({ params }: PageProps) {
             )}
           </div>
 
-          {/* Right: Editorial Information & Actions */}
+          {/* Right: Editorial Information & Actions (Breathes directly on canvas) */}
           <div className="min-w-0 flex-1 sm:pt-1">
             <AnimeDetailsHeader anime={anime} />
           </div>
         </div>
 
-        <div className="mt-8 grid gap-8 lg:grid-cols-[minmax(0,1fr)_360px] lg:gap-10">
+        {/* Progressive atmospheric backdrop grounding content-heavy sections */}
+        <div
+          aria-hidden="true"
+          className="pointer-events-none absolute left-0 right-0 lg:right-[390px] top-[420px] bottom-0 -z-10 bg-gradient-to-b from-transparent via-bg/40 via-15% to-bg/75 dark:via-bg/50 dark:to-bg/80"
+        />
+
+        <div className="mt-10 grid gap-8 lg:grid-cols-[minmax(0,1fr)_360px] lg:gap-12 items-start">
           <div className="min-w-0">
             <AnimeDetailsTabs
               synopsisContent={
@@ -322,7 +413,7 @@ export default async function AnimeDetailsPage({ params }: PageProps) {
                         <Link
                           key={genre}
                           href={`/discover?type=${manga ? "manga" : "anime"}&genre=${encodeURIComponent(genre)}`}
-                          className="rounded border border-border bg-surface-2/60 px-2.5 py-1 text-xs font-medium text-muted transition-colors hover:border-accent hover:text-fg"
+                          className="rounded border border-border-subtle bg-surface-2/80 px-2.5 py-1 text-xs font-medium text-muted transition-colors hover:border-border hover:bg-surface-3 hover:text-fg shadow-xs"
                         >
                           {genre}
                         </Link>
@@ -373,7 +464,7 @@ export default async function AnimeDetailsPage({ params }: PageProps) {
                     >
                       Technical Details
                     </h2>
-                    <dl className="mt-3 grid grid-cols-2 gap-x-6 gap-y-4 rounded-lg border border-border bg-surface-2/40 p-4 sm:grid-cols-3">
+                    <dl className="mt-3 grid grid-cols-2 gap-x-6 gap-y-4 rounded-xl border border-border-subtle bg-surface/90 p-5 shadow-xs sm:grid-cols-3">
                       <div>
                         <dt className="text-xs text-faint">
                           {manga ? "Medium" : "Format"}

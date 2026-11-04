@@ -32,7 +32,7 @@ export function AnimeCharacters({ characters = [] }: AnimeCharactersProps) {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         {sorted.map((char) => {
           const charImage = char.image && isHttpUrl(char.image) ? char.image : null;
           const va = char.voiceActor;
@@ -42,18 +42,18 @@ export function AnimeCharacters({ characters = [] }: AnimeCharactersProps) {
           return (
             <div
               key={char.id}
-              className="group relative grid grid-cols-[minmax(0,1.15fr)_minmax(0,0.85fr)] items-center gap-2.5 overflow-hidden rounded-lg border border-border bg-surface-2/60 p-2.5 transition-colors hover:border-accent/50 shadow-xs"
+              className="group relative flex items-center justify-between gap-3 overflow-hidden rounded-xl border border-border-subtle bg-surface/90 p-3 transition-colors hover:border-border hover:bg-surface shadow-xs"
             >
-              {/* Character Side (Primary 55%+ focus) */}
-              <div className="flex items-center gap-2.5 min-w-0">
-                <div className="relative aspect-[3/4] w-11 shrink-0 overflow-hidden rounded-md border border-border bg-surface-3 shadow-xs">
+              {/* Character Side (Primary Visual Anchor & Typography) */}
+              <div className="flex items-center gap-3 min-w-0 flex-1">
+                <div className="relative aspect-[3/4] w-12 sm:w-14 shrink-0 overflow-hidden rounded-md border border-border-subtle bg-surface-3 shadow-xs">
                   {charImage ? (
                     <Image
                       src={charImage}
                       alt={char.name.full}
                       fill
                       unoptimized
-                      sizes="44px"
+                      sizes="56px"
                       className="object-cover transition-transform duration-300 group-hover:scale-105"
                     />
                   ) : (
@@ -64,25 +64,17 @@ export function AnimeCharacters({ characters = [] }: AnimeCharactersProps) {
                 </div>
 
                 <div className="min-w-0 flex-1">
-                  <div className="flex items-center gap-1">
-                    <span
-                      className={`inline-block rounded px-1 py-0.2 text-[8px] font-bold uppercase tracking-wider ${
-                        isMain
-                          ? "bg-accent/20 text-accent-strong border border-accent/30"
-                          : "bg-surface-3 text-muted"
-                      }`}
-                    >
-                      {isMain ? "Main" : "Cast"}
-                    </span>
-                  </div>
+                  <span className="text-[10px] font-medium tracking-wider uppercase text-faint">
+                    {isMain ? "Main" : "Supporting"}
+                  </span>
                   <p
-                    className="mt-0.5 truncate text-xs font-bold text-fg group-hover:text-accent-strong transition-colors"
+                    className="truncate text-xs sm:text-[13px] font-semibold text-fg group-hover:text-accent-strong transition-colors"
                     title={char.name.full}
                   >
                     {char.name.full}
                   </p>
                   {char.name.native ? (
-                    <p className="truncate text-[10px] text-faint leading-tight">
+                    <p className="truncate text-[11px] text-faint leading-tight mt-0.5">
                       {char.name.native}
                     </p>
                   ) : null}
@@ -91,7 +83,7 @@ export function AnimeCharacters({ characters = [] }: AnimeCharactersProps) {
 
               {/* Voice Actor Side */}
               {va ? (
-                <div className="flex items-center justify-end gap-2 min-w-0 pl-1.5 text-right border-l border-border-subtle/40">
+                <div className="flex items-center justify-end gap-2.5 min-w-0 pl-2 text-right border-l border-border-subtle/50 shrink-0 max-w-[42%]">
                   <div className="min-w-0 flex-1">
                     <p
                       className="truncate text-xs font-medium text-fg"
@@ -99,23 +91,23 @@ export function AnimeCharacters({ characters = [] }: AnimeCharactersProps) {
                     >
                       {va.name.full}
                     </p>
-                    <p className="text-[10px] text-muted">
+                    <p className="truncate text-[10px] text-faint mt-0.5">
                       {va.language ?? "Japanese"}
                     </p>
                   </div>
 
-                  <div className="relative aspect-square w-9 shrink-0 overflow-hidden rounded-full border border-border-subtle bg-surface-3 shadow-xs">
+                  <div className="relative aspect-square w-8 shrink-0 overflow-hidden rounded-full border border-border-subtle bg-surface-3 shadow-xs">
                     {vaImage ? (
                       <Image
                         src={vaImage}
                         alt={va.name.full}
                         fill
                         unoptimized
-                        sizes="36px"
+                        sizes="32px"
                         className="object-cover"
                       />
                     ) : (
-                      <div className="flex h-full w-full items-center justify-center text-xs font-bold text-faint">
+                      <div className="flex h-full w-full items-center justify-center text-[10px] font-bold text-faint">
                         {va.name.full.charAt(0)}
                       </div>
                     )}

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import type { ReactNode } from "react";
 
 import { cn } from "@/lib/utils";
@@ -51,19 +51,56 @@ export function AnimeDetailsTabs({
 }: AnimeDetailsTabsProps) {
   const [activeTab, setActiveTab] = useState<TabKey>("overview");
 
+  const availableTabs: TabKey[] = useMemo(() => {
+    const list: TabKey[] = ["overview"];
+    if (hasCharacters && charactersContent) list.push("characters");
+    if (hasThemes && themesContent) list.push("themes");
+    if (hasFranchise) list.push("franchise");
+    if (showEpisodes) list.push("episodes");
+    list.push("details");
+    list.push("all");
+    return list;
+  }, [hasCharacters, charactersContent, hasThemes, themesContent, hasFranchise, showEpisodes]);
+
+  const handleTabKeyDown = (e: React.KeyboardEvent) => {
+    const currentIndex = availableTabs.indexOf(activeTab);
+    if (currentIndex === -1) return;
+
+    if (e.key === "ArrowRight") {
+      e.preventDefault();
+      const nextTab = availableTabs[(currentIndex + 1) % availableTabs.length];
+      if (nextTab) {
+        setActiveTab(nextTab);
+        document.getElementById(`tab-${nextTab}`)?.focus();
+      }
+    } else if (e.key === "ArrowLeft") {
+      e.preventDefault();
+      const prevTab =
+        availableTabs[(currentIndex - 1 + availableTabs.length) % availableTabs.length];
+      if (prevTab) {
+        setActiveTab(prevTab);
+        document.getElementById(`tab-${prevTab}`)?.focus();
+      }
+    }
+  };
+
   return (
     <div className="space-y-6">
       {/* Restrained Editorial Tab Navigation */}
-      <div className="flex items-center justify-between border-b border-border">
+      <div className="flex items-center justify-between gap-4 border-b border-border">
         <nav
           role="tablist"
           aria-label="Media detail sections"
-          className="no-scrollbar -mx-4 flex gap-6 sm:gap-7 overflow-x-auto px-4 sm:-mx-0 sm:px-0"
+          onKeyDown={handleTabKeyDown}
+          className="no-scrollbar flex min-w-0 flex-1 items-center gap-4 sm:gap-6 overflow-x-auto pr-2"
         >
           {/* Overview */}
           <button
             type="button"
             role="tab"
+            id="tab-overview"
+            aria-controls="tabpanel-overview"
+            tabIndex={activeTab === "overview" ? 0 : -1}
             aria-selected={activeTab === "overview"}
             onClick={() => setActiveTab("overview")}
             className={cn(
@@ -87,6 +124,9 @@ export function AnimeDetailsTabs({
             <button
               type="button"
               role="tab"
+              id="tab-characters"
+              aria-controls="tabpanel-characters"
+              tabIndex={activeTab === "characters" ? 0 : -1}
               aria-selected={activeTab === "characters"}
               onClick={() => setActiveTab("characters")}
               className={cn(
@@ -123,6 +163,9 @@ export function AnimeDetailsTabs({
             <button
               type="button"
               role="tab"
+              id="tab-themes"
+              aria-controls="tabpanel-themes"
+              tabIndex={activeTab === "themes" ? 0 : -1}
               aria-selected={activeTab === "themes"}
               onClick={() => setActiveTab("themes")}
               className={cn(
@@ -132,7 +175,7 @@ export function AnimeDetailsTabs({
                   : "text-muted hover:text-fg font-medium",
               )}
             >
-              <span>Themes & Music</span>
+              <span>Themes</span>
               {themesCount ? (
                 <span
                   className={cn(
@@ -159,6 +202,9 @@ export function AnimeDetailsTabs({
             <button
               type="button"
               role="tab"
+              id="tab-franchise"
+              aria-controls="tabpanel-franchise"
+              tabIndex={activeTab === "franchise" ? 0 : -1}
               aria-selected={activeTab === "franchise"}
               onClick={() => setActiveTab("franchise")}
               className={cn(
@@ -168,7 +214,7 @@ export function AnimeDetailsTabs({
                   : "text-muted hover:text-fg font-medium",
               )}
             >
-              <span>Franchise & Related</span>
+              <span>Franchise</span>
               <span
                 className={cn(
                   "rounded px-1.5 py-0.2 text-[10px] tabular-nums font-semibold",
@@ -193,6 +239,9 @@ export function AnimeDetailsTabs({
             <button
               type="button"
               role="tab"
+              id="tab-episodes"
+              aria-controls="tabpanel-episodes"
+              tabIndex={activeTab === "episodes" ? 0 : -1}
               aria-selected={activeTab === "episodes"}
               onClick={() => setActiveTab("episodes")}
               className={cn(
@@ -228,6 +277,9 @@ export function AnimeDetailsTabs({
           <button
             type="button"
             role="tab"
+            id="tab-details"
+            aria-controls="tabpanel-details"
+            tabIndex={activeTab === "details" ? 0 : -1}
             aria-selected={activeTab === "details"}
             onClick={() => setActiveTab("details")}
             className={cn(
@@ -245,20 +297,41 @@ export function AnimeDetailsTabs({
               />
             ) : null}
           </button>
-        </nav>
 
-        {/* View all sections toggle */}
-        <button
-          type="button"
-          onClick={() => setActiveTab(activeTab === "all" ? "overview" : "all")}
-          className="pb-3 pt-1 text-[11px] font-medium text-faint hover:text-fg transition-colors hidden sm:inline-block shrink-0"
-        >
-          {activeTab === "all" ? "Collapse to tabs" : "View all sections"}
-        </button>
+          {/* All Sections */}
+          <button
+            type="button"
+            role="tab"
+            id="tab-all"
+            aria-controls="tabpanel-all"
+            tabIndex={activeTab === "all" ? 0 : -1}
+            aria-selected={activeTab === "all"}
+            onClick={() => setActiveTab("all")}
+            className={cn(
+              "relative inline-flex items-center gap-1.5 pb-3 pt-1 text-sm transition-colors whitespace-nowrap",
+              activeTab === "all"
+                ? "text-fg font-semibold"
+                : "text-muted hover:text-fg font-medium",
+            )}
+          >
+            <span>All Sections</span>
+            {activeTab === "all" ? (
+              <span
+                className="absolute inset-x-0 bottom-0 h-0.5 bg-accent"
+                aria-hidden="true"
+              />
+            ) : null}
+          </button>
+        </nav>
       </div>
 
       {/* Tab Panels */}
-      <div className="space-y-8">
+      <div
+        role="tabpanel"
+        id={activeTab === "all" ? "tabpanel-all" : `tabpanel-${activeTab}`}
+        aria-labelledby={activeTab === "all" ? undefined : `tab-${activeTab}`}
+        className="space-y-8"
+      >
         {activeTab === "all" ? (
           <>
             {synopsisContent}

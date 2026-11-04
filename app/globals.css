@@ -4,6 +4,7 @@
    document root carries `.light`). Status hues that need a darker tone on
    paper use it instead of hard-coding a dark-only tint. */
 @custom-variant light (&:where(.light, .light *));
+@custom-variant dark (&:where(.dark, .dark *));
 
 /* ---------------------------------------------------------------------------
    Design directions
@@ -565,35 +566,35 @@
 
   /* Dedicated detail-page tracking workspace glass pane */
   .optical-glass-workspace {
-    background-color: rgba(14, 17, 24, 0.32);
+    background-color: rgba(14, 18, 25, 0.65);
     background-image:
       radial-gradient(
         140% 120% at var(--glass-x, 50%) var(--glass-y, 0%),
-        rgba(255, 255, 255, 0.1) 0%,
+        rgba(255, 255, 255, 0.08) 0%,
         transparent 60%
       ),
       linear-gradient(
         135deg,
-        rgba(255, 255, 255, 0.07) 0%,
-        rgba(255, 255, 255, 0.015) 100%
+        rgba(255, 255, 255, 0.05) 0%,
+        rgba(255, 255, 255, 0.01) 100%
       );
-    backdrop-filter: blur(3.5px) saturate(135%) brightness(102%) contrast(104%);
-    -webkit-backdrop-filter: blur(3.5px) saturate(135%) brightness(102%) contrast(104%);
-    border: 1px solid rgba(255, 255, 255, 0.2);
+    backdrop-filter: blur(6px) saturate(130%) brightness(101%) contrast(102%);
+    -webkit-backdrop-filter: blur(6px) saturate(130%) brightness(101%) contrast(102%);
+    border: 1px solid rgba(255, 255, 255, 0.12);
     box-shadow:
-      inset 0 1px 1.5px 0 rgba(255, 255, 255, 0.48),
-      inset 1px 0 0.5px 0 rgba(255, 255, 255, 0.18),
-      inset -1px 0 0.5px 0 rgba(255, 255, 255, 0.08),
+      inset 0 1px 1px 0 rgba(255, 255, 255, 0.22),
+      inset 1px 0 0.5px 0 rgba(255, 255, 255, 0.1),
+      inset -1px 0 0.5px 0 rgba(255, 255, 255, 0.05),
       inset 0 -1.5px 1.5px 0 rgba(0, 0, 0, 0.4),
-      inset 0 0 28px -4px rgba(255, 255, 255, 0.04),
+      inset 0 0 28px -4px rgba(255, 255, 255, 0.03),
       0 20px 48px -10px rgba(0, 0, 0, 0.55),
       0 6px 16px -2px rgba(0, 0, 0, 0.3);
   }
 
   @supports (backdrop-filter: url(#filter)) {
     .optical-glass-workspace {
-      backdrop-filter: url(#kaze-optical-refraction) blur(3px) saturate(135%) brightness(102%) contrast(104%);
-      -webkit-backdrop-filter: url(#kaze-optical-refraction) blur(3px) saturate(135%) brightness(102%) contrast(104%);
+      backdrop-filter: url(#kaze-optical-refraction) blur(6px) saturate(130%) brightness(101%) contrast(102%);
+      -webkit-backdrop-filter: url(#kaze-optical-refraction) blur(6px) saturate(130%) brightness(101%) contrast(102%);
     }
   }
 
@@ -657,9 +658,9 @@
       );
     backdrop-filter: blur(2.5px) saturate(135%);
     -webkit-backdrop-filter: blur(2.5px) saturate(135%);
-    border: 1px solid rgba(255, 255, 255, 0.2);
+    border: 1px solid rgba(255, 255, 255, 0.12);
     box-shadow:
-      inset 0 1px 1px 0 rgba(255, 255, 255, 0.4),
+      inset 0 1px 1px 0 rgba(255, 255, 255, 0.22),
       0 4px 14px -2px rgba(0, 0, 0, 0.35);
     transition:
       background-color 0.25s cubic-bezier(0.16, 1, 0.3, 1),
@@ -682,10 +683,10 @@
         rgba(255, 255, 255, 0.12) 0%,
         rgba(255, 255, 255, 0.04) 100%
       );
-    border-color: rgba(255, 255, 255, 0.32);
+    border-color: rgba(255, 255, 255, 0.22);
     box-shadow:
-      inset 0 1px 1.5px 0 rgba(255, 255, 255, 0.6),
-      0 8px 24px -4px rgba(0, 0, 0, 0.5);
+      inset 0 1px 1.5px 0 rgba(255, 255, 255, 0.35),
+      0 8px 24px -4px rgba(0, 0, 0, 0.45);
     transform: translateY(-1px);
   }
 
@@ -709,92 +710,147 @@
   /* Light appearance: crystal optical glass on ivory paper */
   .light .optical-glass,
   .light .liquid-glass {
-    background-color: rgba(255, 255, 255, 0.52);
+    background-color: rgba(242, 238, 227, 0.45);
     background-image:
       radial-gradient(
-        120% 120% at var(--glass-x, 50%) var(--glass-y, 0%),
-        rgba(255, 255, 255, 0.5) 0%,
+        120% 100% at var(--glass-x, 50%) var(--glass-y, 0%),
+        rgba(255, 255, 255, 0.22) 0%,
         transparent 60%
       ),
       linear-gradient(
         135deg,
-        rgba(255, 255, 255, 0.6) 0%,
-        rgba(255, 255, 255, 0.25) 100%
+        rgba(255, 255, 255, 0.12) 0%,
+        rgba(242, 238, 227, 0.08) 100%
       );
-    backdrop-filter: blur(3px) saturate(120%) brightness(101%);
-    -webkit-backdrop-filter: blur(3px) saturate(120%) brightness(101%);
-    border: 1px solid rgba(255, 255, 255, 0.7);
+    backdrop-filter: blur(6px) saturate(135%) brightness(101%);
+    -webkit-backdrop-filter: blur(6px) saturate(135%) brightness(101%);
+    border: 1px solid rgba(185, 175, 160, 0.42);
+    border-top-color: rgba(255, 255, 255, 0.65);
+    border-bottom-color: rgba(40, 30, 20, 0.14);
+    border-right-color: rgba(40, 30, 20, 0.08);
     box-shadow:
-      inset 0 1px 1.5px 0 rgba(255, 255, 255, 0.98),
-      inset 0 0 20px -4px rgba(255, 255, 255, 0.5),
-      inset 0 -1px 1px 0 rgba(0, 0, 0, 0.05),
-      0 14px 32px -8px rgba(15, 23, 42, 0.08),
-      0 2px 8px -2px rgba(15, 23, 42, 0.04);
+      inset 0 1px 1px 0 rgba(255, 255, 255, 0.7),
+      inset 0 -1px 1px 0 rgba(40, 30, 20, 0.05),
+      0 16px 36px -8px rgba(40, 30, 20, 0.12),
+      0 4px 12px -2px rgba(40, 30, 20, 0.06);
+  }
+
+  @supports (backdrop-filter: url(#filter)) {
+    .light .optical-glass,
+    .light .liquid-glass {
+      backdrop-filter: url(#kaze-optical-refraction) blur(6px) saturate(135%) brightness(101%);
+      -webkit-backdrop-filter: url(#kaze-optical-refraction) blur(6px) saturate(135%) brightness(101%);
+    }
   }
 
   .light .optical-glass-workspace {
-    background-color: rgba(255, 255, 255, 0.62);
+    background-color: rgba(242, 238, 227, 0.48);
     background-image:
       radial-gradient(
-        130% 120% at var(--glass-x, 50%) var(--glass-y, 0%),
-        rgba(255, 255, 255, 0.55) 0%,
-        transparent 60%
-      ),
-      linear-gradient(
-        135deg,
-        rgba(255, 255, 255, 0.65) 0%,
-        rgba(255, 255, 255, 0.3) 100%
-      );
-    backdrop-filter: blur(3.5px) saturate(125%) brightness(101%);
-    -webkit-backdrop-filter: blur(3.5px) saturate(125%) brightness(101%);
-    border: 1px solid rgba(255, 255, 255, 0.8);
-    box-shadow:
-      inset 0 1px 2px 0 rgba(255, 255, 255, 1),
-      inset 0 0 24px -4px rgba(255, 255, 255, 0.55),
-      inset 0 -1px 1px 0 rgba(0, 0, 0, 0.06),
-      0 18px 40px -10px rgba(15, 23, 42, 0.1),
-      0 4px 12px -2px rgba(15, 23, 42, 0.05);
-  }
-
-  .light .optical-glass-subtle,
-  .light .optical-glass-pill,
-  .light .optical-glass-interactive,
-  .light .liquid-glass-subtle,
-  .light .liquid-glass-pill,
-  .light .liquid-glass-interactive {
-    background-color: rgba(255, 255, 255, 0.68);
-    background-image:
-      radial-gradient(
-        110% 110% at var(--glass-x, 50%) var(--glass-y, 0%),
-        rgba(255, 255, 255, 0.65) 0%,
+        120% 100% at var(--glass-x, 50%) var(--glass-y, 0%),
+        rgba(255, 255, 255, 0.22) 0%,
         transparent 65%
       ),
       linear-gradient(
         135deg,
-        rgba(255, 255, 255, 0.75) 0%,
-        rgba(255, 255, 255, 0.4) 100%
+        rgba(255, 255, 255, 0.14) 0%,
+        rgba(242, 238, 227, 0.06) 100%
       );
-    border: 1px solid rgba(255, 255, 255, 0.8);
+    backdrop-filter: blur(8px) saturate(135%) brightness(101%) contrast(102%);
+    -webkit-backdrop-filter: blur(8px) saturate(135%) brightness(101%) contrast(102%);
+    border: 1px solid rgba(185, 175, 160, 0.48);
+    border-top-color: rgba(255, 255, 255, 0.7);
+    border-bottom-color: rgba(40, 30, 20, 0.16);
+    border-right-color: rgba(40, 30, 20, 0.1);
     box-shadow:
-      inset 0 1px 0 0 rgba(255, 255, 255, 0.95),
-      0 4px 14px -4px rgba(15, 23, 42, 0.1);
+      inset 0 1.5px 1px 0 rgba(255, 255, 255, 0.75),
+      inset 1px 0 0.5px 0 rgba(255, 255, 255, 0.4),
+      inset -1px 0 0.5px 0 rgba(40, 30, 20, 0.04),
+      inset 0 -1.5px 1.5px 0 rgba(40, 30, 20, 0.08),
+      0 22px 48px -10px rgba(40, 30, 20, 0.16),
+      0 6px 16px -2px rgba(40, 30, 20, 0.08);
+  }
+
+  @supports (backdrop-filter: url(#filter)) {
+    .light .optical-glass-workspace {
+      backdrop-filter: url(#kaze-optical-refraction) blur(8px) saturate(135%) brightness(101%) contrast(102%);
+      -webkit-backdrop-filter: url(#kaze-optical-refraction) blur(8px) saturate(135%) brightness(101%) contrast(102%);
+    }
+  }
+
+  .light .optical-glass-subtle,
+  .light .optical-glass-pill,
+  .light .liquid-glass-subtle,
+  .light .liquid-glass-pill {
+    background-color: rgba(242, 238, 227, 0.48);
+    background-image:
+      radial-gradient(
+        110% 110% at var(--glass-x, 50%) var(--glass-y, 0%),
+        rgba(255, 255, 255, 0.22) 0%,
+        transparent 65%
+      ),
+      linear-gradient(
+        135deg,
+        rgba(255, 255, 255, 0.12) 0%,
+        rgba(242, 238, 227, 0.06) 100%
+      );
+    backdrop-filter: blur(5px) saturate(130%) brightness(101%);
+    -webkit-backdrop-filter: blur(5px) saturate(130%) brightness(101%);
+    border: 1px solid rgba(185, 175, 160, 0.42);
+    border-top-color: rgba(255, 255, 255, 0.65);
+    border-bottom-color: rgba(40, 30, 20, 0.12);
+    box-shadow:
+      inset 0 1px 1px 0 rgba(255, 255, 255, 0.7),
+      0 4px 12px -3px rgba(40, 30, 20, 0.1);
+  }
+
+  .light .optical-glass-interactive,
+  .light .liquid-glass-interactive {
+    background-color: rgba(242, 238, 227, 0.55);
+    background-image:
+      radial-gradient(
+        110% 110% at var(--glass-x, 50%) var(--glass-y, 0%),
+        rgba(255, 255, 255, 0.25) 0%,
+        transparent 65%
+      ),
+      linear-gradient(
+        135deg,
+        rgba(255, 255, 255, 0.15) 0%,
+        rgba(242, 238, 227, 0.06) 100%
+      );
+    backdrop-filter: blur(6px) saturate(130%) brightness(101%);
+    -webkit-backdrop-filter: blur(6px) saturate(130%) brightness(101%);
+    border: 1px solid rgba(185, 175, 160, 0.45);
+    border-top-color: rgba(255, 255, 255, 0.65);
+    border-bottom-color: rgba(40, 30, 20, 0.14);
+    box-shadow:
+      inset 0 1px 1px 0 rgba(255, 255, 255, 0.7),
+      0 4px 14px -4px rgba(40, 30, 20, 0.1);
+    transition:
+      background-color 0.25s cubic-bezier(0.16, 1, 0.3, 1),
+      border-color 0.25s cubic-bezier(0.16, 1, 0.3, 1),
+      box-shadow 0.25s cubic-bezier(0.16, 1, 0.3, 1),
+      transform 0.2s cubic-bezier(0.16, 1, 0.3, 1);
   }
 
   .light .optical-glass-interactive:hover,
   .light .liquid-glass-interactive:hover {
-    background-color: rgba(255, 255, 255, 0.85);
-    border-color: rgba(255, 255, 255, 1);
+    background-color: rgba(242, 238, 227, 0.75);
+    border-color: rgba(185, 175, 160, 0.65);
+    border-top-color: rgba(255, 255, 255, 0.85);
     box-shadow:
-      inset 0 1px 1.5px 0 rgba(255, 255, 255, 1),
-      0 8px 20px -4px rgba(15, 23, 42, 0.14);
+      inset 0 1px 1.5px 0 rgba(255, 255, 255, 0.85),
+      0 8px 20px -4px rgba(40, 30, 20, 0.14);
   }
 
   .light .optical-glass-nav {
-    background-color: rgba(255, 255, 255, 0.82);
-    backdrop-filter: blur(8px) saturate(130%);
-    -webkit-backdrop-filter: blur(8px) saturate(130%);
-    border-color: rgba(0, 0, 0, 0.08);
-    box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.9);
+    background-color: rgba(242, 238, 227, 0.58);
+    backdrop-filter: blur(8px) saturate(135%) brightness(101%);
+    -webkit-backdrop-filter: blur(8px) saturate(135%) brightness(101%);
+    border: 1px solid rgba(185, 175, 160, 0.45);
+    border-top-color: rgba(255, 255, 255, 0.7);
+    border-bottom-color: rgba(40, 30, 20, 0.14);
+    box-shadow: inset 0 1px 1px 0 rgba(255, 255, 255, 0.7), 0 4px 14px -2px rgba(40, 30, 20, 0.1);
   }
 
   /* Glass that sits directly on top of full-viewport artwork and must stay dark in both themes */
