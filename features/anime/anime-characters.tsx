@@ -42,11 +42,11 @@ export function AnimeCharacters({ characters = [] }: AnimeCharactersProps) {
           return (
             <div
               key={char.id}
-              className="group relative grid grid-cols-[minmax(0,1.15fr)_minmax(0,0.85fr)] items-center gap-2.5 overflow-hidden rounded-2xl border border-white/10 bg-surface-2/70 p-2.5 backdrop-blur-md transition-all hover:border-accent/40 hover:bg-surface-3/80 shadow-xs"
+              className="group relative grid grid-cols-[minmax(0,1.15fr)_minmax(0,0.85fr)] items-center gap-2.5 overflow-hidden rounded-lg border border-border bg-surface-2/60 p-2.5 transition-colors hover:border-accent/50 shadow-xs"
             >
               {/* Character Side (Primary 55%+ focus) */}
               <div className="flex items-center gap-2.5 min-w-0">
-                <div className="relative aspect-[3/4] w-11 shrink-0 overflow-hidden rounded-xl border border-border-subtle bg-surface-3 shadow-xs">
+                <div className="relative aspect-[3/4] w-11 shrink-0 overflow-hidden rounded-md border border-border bg-surface-3 shadow-xs">
                   {charImage ? (
                     <Image
                       src={charImage}

@@ -7,6 +7,7 @@ import {
   MobileBottomNavigation,
   MobileHeader,
 } from "@/components/mobile-navigation";
+import { OpticalGlassFilter } from "@/components/ui/optical-glass";
 import { useSidebar } from "@/components/providers/sidebar-provider";
 import { cn } from "@/lib/utils";
 import type { Viewer } from "@/types/viewer";
@@ -23,6 +24,7 @@ export function AppShell({
   return (
     <div className="min-h-dvh">
       <DesktopSidebar viewer={viewer} />
+      <OpticalGlassFilter />
       <div
         className={cn(
           "transition-[padding] duration-300 ease-out",

@@ -46,7 +46,7 @@ export function MobileHeader({ viewer }: { viewer: Viewer | null }) {
   const { resolved, setMode } = useTheme();
 
   return (
-    <header className="sticky top-0 z-40 border-b border-border bg-bg lg:hidden">
+    <header className="sticky top-0 z-40 border-b border-border/60 optical-glass-nav lg:hidden">
       <div className="flex h-14 items-center justify-between px-4">
         <Logo compact />
         <div className="flex items-center gap-0.5">
@@ -94,7 +94,7 @@ export function MobileBottomNavigation() {
   return (
     <nav
       aria-label="Primary"
-      className="safe-bottom fixed inset-x-0 bottom-0 z-40 border-t border-border bg-bg/95 backdrop-blur-sm lg:hidden"
+      className="safe-bottom fixed inset-x-0 bottom-0 z-40 border-t border-border/60 optical-glass-nav lg:hidden"
     >
       <div className="grid grid-cols-6">
         {ITEMS.map((item) => {

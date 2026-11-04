@@ -23,7 +23,14 @@ interface AnimeDetailsTabsProps {
   episodeLabel?: string;
 }
 
-type TabKey = "overview" | "characters" | "themes" | "franchise" | "episodes" | "details" | "all";
+type TabKey =
+  | "overview"
+  | "characters"
+  | "themes"
+  | "franchise"
+  | "episodes"
+  | "details"
+  | "all";
 
 export function AnimeDetailsTabs({
   synopsisContent,
@@ -46,28 +53,36 @@ export function AnimeDetailsTabs({
 
   return (
     <div className="space-y-6">
-      {/* Navigation Tab Bar */}
-      <div className="flex items-center justify-between border-b border-border-subtle pb-3">
-        <div
+      {/* Restrained Editorial Tab Navigation */}
+      <div className="flex items-center justify-between border-b border-border">
+        <nav
           role="tablist"
-          aria-label="Anime sections"
-          className="inline-flex flex-wrap items-center gap-1.5 p-1 rounded-2xl liquid-glass"
+          aria-label="Media detail sections"
+          className="no-scrollbar -mx-4 flex gap-6 sm:gap-7 overflow-x-auto px-4 sm:-mx-0 sm:px-0"
         >
+          {/* Overview */}
           <button
             type="button"
             role="tab"
             aria-selected={activeTab === "overview"}
             onClick={() => setActiveTab("overview")}
             className={cn(
-              "rounded-xl px-4 py-2 text-xs font-semibold transition-all",
+              "relative inline-flex items-center gap-1.5 pb-3 pt-1 text-sm transition-colors whitespace-nowrap",
               activeTab === "overview"
-                ? "bg-accent text-accent-contrast shadow-[inset_0_1px_1px_rgba(255,255,255,0.35),0_4px_12px_rgba(139,92,246,0.35)]"
-                : "text-muted hover:bg-surface-2 hover:text-fg",
+                ? "text-fg font-semibold"
+                : "text-muted hover:text-fg font-medium",
             )}
           >
-            Overview
+            <span>Overview</span>
+            {activeTab === "overview" ? (
+              <span
+                className="absolute inset-x-0 bottom-0 h-0.5 bg-accent"
+                aria-hidden="true"
+              />
+            ) : null}
           </button>
 
+          {/* Characters */}
           {hasCharacters && charactersContent ? (
             <button
               type="button"
@@ -75,28 +90,35 @@ export function AnimeDetailsTabs({
               aria-selected={activeTab === "characters"}
               onClick={() => setActiveTab("characters")}
               className={cn(
-                "inline-flex items-center gap-1.5 rounded-xl px-4 py-2 text-xs font-semibold transition-all",
+                "relative inline-flex items-center gap-1.5 pb-3 pt-1 text-sm transition-colors whitespace-nowrap",
                 activeTab === "characters"
-                  ? "bg-accent text-accent-contrast shadow-[inset_0_1px_1px_rgba(255,255,255,0.35),0_4px_12px_rgba(139,92,246,0.35)]"
-                  : "text-muted hover:bg-surface-2 hover:text-fg",
+                  ? "text-fg font-semibold"
+                  : "text-muted hover:text-fg font-medium",
               )}
             >
               <span>Characters</span>
               {charactersCount ? (
                 <span
                   className={cn(
-                    "rounded-full px-1.5 py-0.2 text-[10px]",
+                    "rounded px-1.5 py-0.2 text-[10px] tabular-nums font-semibold",
                     activeTab === "characters"
-                      ? "bg-accent-contrast/20 text-accent-contrast"
-                      : "bg-surface-3 text-faint",
+                      ? "bg-accent-soft text-accent-strong"
+                      : "bg-surface-2 text-faint",
                   )}
                 >
                   {charactersCount}
                 </span>
               ) : null}
+              {activeTab === "characters" ? (
+                <span
+                  className="absolute inset-x-0 bottom-0 h-0.5 bg-accent"
+                  aria-hidden="true"
+                />
+              ) : null}
             </button>
           ) : null}
 
+          {/* Themes & Music */}
           {hasThemes && themesContent ? (
             <button
               type="button"
@@ -104,28 +126,35 @@ export function AnimeDetailsTabs({
               aria-selected={activeTab === "themes"}
               onClick={() => setActiveTab("themes")}
               className={cn(
-                "inline-flex items-center gap-1.5 rounded-xl px-4 py-2 text-xs font-semibold transition-all",
+                "relative inline-flex items-center gap-1.5 pb-3 pt-1 text-sm transition-colors whitespace-nowrap",
                 activeTab === "themes"
-                  ? "bg-accent text-accent-contrast shadow-[inset_0_1px_1px_rgba(255,255,255,0.35),0_4px_12px_rgba(139,92,246,0.35)]"
-                  : "text-muted hover:bg-surface-2 hover:text-fg",
+                  ? "text-fg font-semibold"
+                  : "text-muted hover:text-fg font-medium",
               )}
             >
               <span>Themes & Music</span>
               {themesCount ? (
                 <span
                   className={cn(
-                    "rounded-full px-1.5 py-0.2 text-[10px]",
+                    "rounded px-1.5 py-0.2 text-[10px] tabular-nums font-semibold",
                     activeTab === "themes"
-                      ? "bg-accent-contrast/20 text-accent-contrast"
-                      : "bg-surface-3 text-faint",
+                      ? "bg-accent-soft text-accent-strong"
+                      : "bg-surface-2 text-faint",
                   )}
                 >
                   {themesCount}
                 </span>
               ) : null}
+              {activeTab === "themes" ? (
+                <span
+                  className="absolute inset-x-0 bottom-0 h-0.5 bg-accent"
+                  aria-hidden="true"
+                />
+              ) : null}
             </button>
           ) : null}
 
+          {/* Franchise & Related */}
           {hasFranchise ? (
             <button
               type="button"
@@ -133,75 +162,96 @@ export function AnimeDetailsTabs({
               aria-selected={activeTab === "franchise"}
               onClick={() => setActiveTab("franchise")}
               className={cn(
-                "inline-flex items-center gap-1.5 rounded-xl px-4 py-2 text-xs font-semibold transition-all",
+                "relative inline-flex items-center gap-1.5 pb-3 pt-1 text-sm transition-colors whitespace-nowrap",
                 activeTab === "franchise"
-                  ? "bg-accent text-accent-contrast shadow-[inset_0_1px_1px_rgba(255,255,255,0.35),0_4px_12px_rgba(139,92,246,0.35)]"
-                  : "text-muted hover:bg-surface-2 hover:text-fg",
+                  ? "text-fg font-semibold"
+                  : "text-muted hover:text-fg font-medium",
               )}
             >
               <span>Franchise & Related</span>
               <span
                 className={cn(
-                  "rounded-full px-1.5 py-0.2 text-[10px]",
+                  "rounded px-1.5 py-0.2 text-[10px] tabular-nums font-semibold",
                   activeTab === "franchise"
-                    ? "bg-accent-contrast/20 text-accent-contrast"
-                    : "bg-surface-3 text-faint",
+                    ? "bg-accent-soft text-accent-strong"
+                    : "bg-surface-2 text-faint",
                 )}
               >
                 {franchiseCount}
               </span>
+              {activeTab === "franchise" ? (
+                <span
+                  className="absolute inset-x-0 bottom-0 h-0.5 bg-accent"
+                  aria-hidden="true"
+                />
+              ) : null}
             </button>
           ) : null}
 
+          {/* Episodes / Chapters */}
           {showEpisodes ? (
-          <button
-            type="button"
-            role="tab"
-            aria-selected={activeTab === "episodes"}
-            onClick={() => setActiveTab("episodes")}
-            className={cn(
-              "inline-flex items-center gap-1.5 rounded-xl px-4 py-2 text-xs font-semibold transition-all",
-              activeTab === "episodes"
-                ? "bg-accent text-accent-contrast shadow-[inset_0_1px_1px_rgba(255,255,255,0.35),0_4px_12px_rgba(139,92,246,0.35)]"
-                : "text-muted hover:bg-surface-2 hover:text-fg",
-            )}
-          >
-            <span>{episodeLabel}</span>
-            {episodesCount ? (
-              <span
-                className={cn(
-                  "rounded-full px-1.5 py-0.2 text-[10px]",
-                  activeTab === "episodes"
-                    ? "bg-accent-contrast/20 text-accent-contrast"
-                    : "bg-surface-3 text-faint",
-                )}
-              >
-                {episodesCount}
-              </span>
-            ) : null}
-          </button>
+            <button
+              type="button"
+              role="tab"
+              aria-selected={activeTab === "episodes"}
+              onClick={() => setActiveTab("episodes")}
+              className={cn(
+                "relative inline-flex items-center gap-1.5 pb-3 pt-1 text-sm transition-colors whitespace-nowrap",
+                activeTab === "episodes"
+                  ? "text-fg font-semibold"
+                  : "text-muted hover:text-fg font-medium",
+              )}
+            >
+              <span>{episodeLabel}</span>
+              {episodesCount ? (
+                <span
+                  className={cn(
+                    "rounded px-1.5 py-0.2 text-[10px] tabular-nums font-semibold",
+                    activeTab === "episodes"
+                      ? "bg-accent-soft text-accent-strong"
+                      : "bg-surface-2 text-faint",
+                  )}
+                >
+                  {episodesCount}
+                </span>
+              ) : null}
+              {activeTab === "episodes" ? (
+                <span
+                  className="absolute inset-x-0 bottom-0 h-0.5 bg-accent"
+                  aria-hidden="true"
+                />
+              ) : null}
+            </button>
           ) : null}
 
+          {/* Details */}
           <button
             type="button"
             role="tab"
             aria-selected={activeTab === "details"}
             onClick={() => setActiveTab("details")}
             className={cn(
-              "rounded-xl px-4 py-2 text-xs font-semibold transition-all",
+              "relative inline-flex items-center gap-1.5 pb-3 pt-1 text-sm transition-colors whitespace-nowrap",
               activeTab === "details"
-                ? "bg-accent text-accent-contrast shadow-[inset_0_1px_1px_rgba(255,255,255,0.35),0_4px_12px_rgba(139,92,246,0.35)]"
-                : "text-muted hover:bg-surface-2 hover:text-fg",
+                ? "text-fg font-semibold"
+                : "text-muted hover:text-fg font-medium",
             )}
           >
-            Details
+            <span>Details</span>
+            {activeTab === "details" ? (
+              <span
+                className="absolute inset-x-0 bottom-0 h-0.5 bg-accent"
+                aria-hidden="true"
+              />
+            ) : null}
           </button>
-        </div>
+        </nav>
 
+        {/* View all sections toggle */}
         <button
           type="button"
           onClick={() => setActiveTab(activeTab === "all" ? "overview" : "all")}
-          className="text-[11px] font-medium text-faint hover:text-fg transition-colors hidden sm:inline-block"
+          className="pb-3 pt-1 text-[11px] font-medium text-faint hover:text-fg transition-colors hidden sm:inline-block shrink-0"
         >
           {activeTab === "all" ? "Collapse to tabs" : "View all sections"}
         </button>
