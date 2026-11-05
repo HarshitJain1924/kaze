@@ -619,42 +619,6 @@ begin
      or um.updated_at is distinct from vl.updated_at
   on conflict (run_id, legacy_table, legacy_id, reason) do nothing;
 
-  -- Alternate unique key (user_id, media_id) conflict with different primary ID (identical fields)
-  insert into public.media_backfill_issues
-    (run_id, legacy_table, legacy_id, reason, details)
-  select
-    p_run_id,
-    'user_anime',
-    vl.id::text,
-    'conflicting-alternate-key-id',
-    jsonb_build_object(
-      'libraryId', vl.id,
-      'existingId', um.id,
-      'userId', vl.user_id,
-      'mediaId', vl.media_id
-    )
-  from pg_temp.phase2b_valid_legacy vl
-  join public.user_media um
-    on um.user_id = vl.user_id
-   and um.media_id = vl.media_id
-   and um.id <> vl.id
-  where not (
-    um.media_kind <> vl.media_kind
-    or um.status <> vl.status
-    or (vl.media_kind = 'anime' and um.episodes_watched is distinct from vl.progress)
-    or (vl.media_kind = 'manga' and (um.chapters_read is distinct from vl.progress or um.volumes_read is distinct from vl.volumes_progress))
-    or (vl.media_kind = 'movie' and um.movie_watched is distinct from (vl.status = 'completed' or vl.progress >= 1))
-    or um.score is distinct from vl.score
-    or um.notes is distinct from vl.notes
-    or um.favorite is distinct from false
-    or um.rewatch_count is distinct from 0
-    or um.started_at is distinct from vl.started_at
-    or um.completed_at is distinct from vl.completed_at
-    or um.created_at is distinct from vl.created_at
-    or um.updated_at is distinct from vl.updated_at
-  )
-  on conflict (run_id, legacy_table, legacy_id, reason) do nothing;
-
   -- 7. Execute inserts for valid, non-conflicting rows
   -- A. Insert canonical media
   insert into public.media (id, kind)
@@ -811,7 +775,7 @@ begin
     and not exists (
       select 1
       from pg_temp.phase2b_valid_legacy vl
-      join public.user_media um on um.id = vl.id
+      join public.user_media um on (um.id = vl.id or (um.user_id = vl.user_id and um.media_id = vl.media_id))
       where vl.user_id = e.user_id
         and vl.anilist_id = e.anilist_id
         and vl.media_kind = 'anime'
@@ -830,15 +794,17 @@ begin
     jsonb_build_object(
       'episodeId', ume.id,
       'existingUserMediaId', ume.user_media_id,
-      'attemptedUserMediaId', vl.id
+      'attemptedUserMediaId', um.id
     )
   from public.user_anime_episodes e
   join pg_temp.phase2b_valid_legacy vl
     on vl.user_id = e.user_id
    and vl.anilist_id = e.anilist_id
+  join public.user_media um
+    on um.id = vl.id or (um.user_id = vl.user_id and um.media_id = vl.media_id)
   join public.user_media_episodes ume
     on ume.id = e.id
-  where ume.user_media_id <> vl.id
+  where ume.user_media_id <> um.id
   on conflict (run_id, legacy_table, legacy_id, reason) do nothing;
 
   -- Existing episode with different user ownership
@@ -929,7 +895,7 @@ begin
     jsonb_build_object(
       'episodeId', e.id,
       'existingId', ume.id,
-      'userMediaId', vl.id,
+      'userMediaId', um.id,
       'episodeNumber', e.episode_number,
       'existingUserId', ume.user_id,
       'attemptedUserId', e.user_id
@@ -938,44 +904,17 @@ begin
   join pg_temp.phase2b_valid_legacy vl
     on vl.user_id = e.user_id
    and vl.anilist_id = e.anilist_id
+  join public.user_media um
+    on um.id = vl.id or (um.user_id = vl.user_id and um.media_id = vl.media_id)
   join public.user_media_episodes ume
-    on ume.user_media_id = vl.id
+    on ume.user_media_id = um.id
    and ume.season_number = 0
    and ume.episode_number = e.episode_number
    and ume.id <> e.id
   where ume.user_id <> e.user_id
+     or ume.media_kind <> 'anime'
      or ume.watched_at is distinct from e.watched_at
      or ume.created_at is distinct from e.created_at
-  on conflict (run_id, legacy_table, legacy_id, reason) do nothing;
-
-  -- Alternate unique key (user_media_id, season_number, episode_number) conflict with different primary ID (identical fields)
-  insert into public.media_backfill_issues
-    (run_id, legacy_table, legacy_id, reason, details)
-  select
-    p_run_id,
-    'user_anime_episodes',
-    e.id::text,
-    'conflicting-alternate-key-episode-id',
-    jsonb_build_object(
-      'episodeId', e.id,
-      'existingId', ume.id,
-      'userMediaId', vl.id,
-      'episodeNumber', e.episode_number
-    )
-  from public.user_anime_episodes e
-  join pg_temp.phase2b_valid_legacy vl
-    on vl.user_id = e.user_id
-   and vl.anilist_id = e.anilist_id
-  join public.user_media_episodes ume
-    on ume.user_media_id = vl.id
-   and ume.season_number = 0
-   and ume.episode_number = e.episode_number
-   and ume.id <> e.id
-  where not (
-    ume.user_id <> e.user_id
-    or ume.watched_at is distinct from e.watched_at
-    or ume.created_at is distinct from e.created_at
-  )
   on conflict (run_id, legacy_table, legacy_id, reason) do nothing;
 
   -- Snapshot of valid episodes to insert
@@ -986,7 +925,7 @@ begin
   select
     e.id,
     e.user_id,
-    vl.id as user_media_id,
+    um.id as user_media_id,
     e.episode_number,
     e.watched_at,
     e.created_at
@@ -995,7 +934,7 @@ begin
     on vl.user_id = e.user_id
    and vl.anilist_id = e.anilist_id
   join public.user_media um
-    on um.id = vl.id
+    on um.id = vl.id or (um.user_id = vl.user_id and um.media_id = vl.media_id)
   where e.episode_number > 0
     and vl.media_kind = 'anime';
 
@@ -1129,6 +1068,25 @@ as $$
       from public.user_media
       group by user_id
     ) n using (user_id)
+  ),
+  issue_stats as (
+    select
+      count(*) as total_historical,
+      count(*) filter (where resolved_at is null) as unresolved,
+      count(*) filter (where resolved_at is not null) as resolved,
+      count(*) filter (where run_id = (
+        select run_id
+        from public.media_backfill_issues
+        order by created_at desc, id desc
+        limit 1
+      )) as latest_run_total,
+      count(*) filter (where run_id = (
+        select run_id
+        from public.media_backfill_issues
+        order by created_at desc, id desc
+        limit 1
+      ) and resolved_at is null) as latest_run_unresolved
+    from public.media_backfill_issues
   )
   select jsonb_build_object(
     'legacy_user_anime', (select count(*) from public.user_anime),
@@ -1182,7 +1140,12 @@ as $$
       from per_user_counts
       where legacy_count <> canonical_count
     ),
-    'backfill_issues', (select count(*) from public.media_backfill_issues)
+    'backfill_issues_total_historical', coalesce((select total_historical from issue_stats), 0),
+    'backfill_issues_unresolved', coalesce((select unresolved from issue_stats), 0),
+    'backfill_issues_resolved', coalesce((select resolved from issue_stats), 0),
+    'backfill_issues_latest_run', coalesce((select latest_run_total from issue_stats), 0),
+    'backfill_issues_latest_run_unresolved', coalesce((select latest_run_unresolved from issue_stats), 0),
+    'backfill_issues', coalesce((select unresolved from issue_stats), 0)
   )
 $$;
 

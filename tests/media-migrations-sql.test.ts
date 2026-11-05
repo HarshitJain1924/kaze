@@ -106,14 +106,15 @@ describe("Static SQL Migration Verification", () => {
       expect(backfillSql).toContain("'conflicting-library-dates'");
       expect(backfillSql).toContain("'conflicting-library-timestamps'");
       expect(backfillSql).toContain("'conflicting-alternate-key-library'");
-      expect(backfillSql).toContain("'conflicting-alternate-key-id'");
       expect(backfillSql).toContain("'conflicting-episode-parent'");
       expect(backfillSql).toContain("'conflicting-episode-user-ownership'");
       expect(backfillSql).toContain("'conflicting-episode-number'");
       expect(backfillSql).toContain("'conflicting-episode-watched-at'");
       expect(backfillSql).toContain("'conflicting-episode-created-at'");
       expect(backfillSql).toContain("'conflicting-alternate-key-episode'");
-      expect(backfillSql).toContain("'conflicting-alternate-key-episode-id'");
+      // Identical alternate-key matches are idempotent matches, NOT conflicts
+      expect(backfillSql).not.toContain("'conflicting-alternate-key-id'");
+      expect(backfillSql).not.toContain("'conflicting-alternate-key-episode-id'");
     });
 
     it("sets media_kind = 'anime' on user_media_episodes insertion", () => {
@@ -132,13 +133,18 @@ describe("Static SQL Migration Verification", () => {
       expect(backfillSql).toContain("'conflicting-catalog-cache'");
     });
 
-    it("defines validate_phase2b() with comprehensive data integrity checks", () => {
+    it("defines validate_phase2b() with comprehensive data integrity and issue status checks", () => {
       expect(backfillSql).toMatch(/create\s+or\s+replace\s+function\s+public\.validate_phase2b\(\)/i);
       expect(backfillSql).toContain("'invalid_progress_rows'");
       expect(backfillSql).toContain("'orphan_canonical_episodes'");
       expect(backfillSql).toContain("'duplicate_external_id_groups'");
       expect(backfillSql).toContain("'missing_media_fk'");
       expect(backfillSql).toContain("'per_user_count_mismatches'");
+      expect(backfillSql).toContain("'backfill_issues_total_historical'");
+      expect(backfillSql).toContain("'backfill_issues_unresolved'");
+      expect(backfillSql).toContain("'backfill_issues_resolved'");
+      expect(backfillSql).toContain("'backfill_issues_latest_run'");
+      expect(backfillSql).toContain("'backfill_issues_latest_run_unresolved'");
       expect(backfillSql).toContain("'backfill_issues'");
     });
   });

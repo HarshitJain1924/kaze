@@ -62,7 +62,6 @@ export type BackfillIssueReason =
   | "conflicting-library-dates"
   | "conflicting-library-timestamps"
   | "conflicting-alternate-key-library"
-  | "conflicting-alternate-key-id"
   | "orphan-episode"
   | "manga-episode-history"
   | "movie-episode-history"
@@ -73,7 +72,6 @@ export type BackfillIssueReason =
   | "conflicting-episode-watched-at"
   | "conflicting-episode-created-at"
   | "conflicting-alternate-key-episode"
-  | "conflicting-alternate-key-episode-id"
   | "duplicate-episode";
 
 export interface BackfillIssue {
@@ -81,6 +79,76 @@ export interface BackfillIssue {
   legacyId: string;
   reason: BackfillIssueReason;
   details: Record<string, string | number | null>;
+}
+
+export interface BackfillIssueRecord {
+  id?: string;
+  runId: string;
+  legacyTable: string;
+  legacyId: string;
+  reason: string;
+  details?: Record<string, unknown>;
+  createdAt?: string;
+  resolvedAt?: string | null;
+}
+
+export interface Phase2bValidationIssueSummary {
+  totalHistorical: number;
+  unresolved: number;
+  resolved: number;
+  latestRunTotal: number;
+  latestRunUnresolved: number;
+}
+
+export function summarizeBackfillIssues(
+  issues: readonly BackfillIssueRecord[],
+): Phase2bValidationIssueSummary {
+  if (issues.length === 0) {
+    return {
+      totalHistorical: 0,
+      unresolved: 0,
+      resolved: 0,
+      latestRunTotal: 0,
+      latestRunUnresolved: 0,
+    };
+  }
+
+  const sorted = [...issues].sort((a, b) => {
+    const timeA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+    const timeB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+    return timeB - timeA;
+  });
+  const latestRunId = sorted[0]?.runId;
+
+  let unresolved = 0;
+  let resolved = 0;
+  let latestRunTotal = 0;
+  let latestRunUnresolved = 0;
+
+  for (const issue of issues) {
+    const isResolved =
+      issue.resolvedAt !== null && issue.resolvedAt !== undefined;
+    if (isResolved) {
+      resolved++;
+    } else {
+      unresolved++;
+    }
+
+    if (issue.runId === latestRunId) {
+      latestRunTotal++;
+      if (!isResolved) {
+        latestRunUnresolved++;
+      }
+    }
+  }
+
+  return {
+    totalHistorical: issues.length,
+    unresolved,
+    resolved,
+    latestRunTotal,
+    latestRunUnresolved,
+  };
 }
 
 export interface PlannedMediaRow {
@@ -379,6 +447,7 @@ export function planLegacyBackfill(
   const mediaById = new Map<CanonicalMediaId, PlannedMediaRow>();
   const externalIdsByKey = new Map<string, PlannedExternalIdRow>();
   const userMediaById = new Map<string, PlannedUserMediaRow>();
+  const newlyPlannedUserMediaIds = new Set<string>();
   const plannedEpisodeKeys = new Set<string>();
   const plannedEpisodes: PlannedEpisodeRow[] = [];
 
@@ -815,26 +884,37 @@ export function planLegacyBackfill(
         (existingByAlternateKey.updatedAt === undefined || existingByAlternateKey.updatedAt === row.updatedAt);
 
       if (isIdentical) {
-        addIssue({
-          legacyTable: "user_anime",
-          legacyId: row.id,
-          reason: "conflicting-alternate-key-id",
-          details: {
-            libraryId: row.id,
-            existingId: existingByAlternateKey.id,
-          },
+        // Different primary UUID, same alternate key (user_id, media_id), identical fields:
+        // Idempotent match, not a conflict.
+        // Record in userMediaById using the existing ID so child episodes can resolve their parent.
+        userMediaById.set(row.id, {
+          id: existingByAlternateKey.id,
+          userId: existingByAlternateKey.userId,
+          mediaId: existingByAlternateKey.mediaId,
+          mediaKind: existingByAlternateKey.mediaKind,
+          status: existingByAlternateKey.status,
+          progress: existingByAlternateKey.progress,
+          score: existingByAlternateKey.score,
+          favorite: false,
+          notes: existingByAlternateKey.notes ?? null,
+          rewatchCount: 0,
+          startedAt: row.startedAt,
+          completedAt: row.completedAt,
+          createdAt: row.createdAt,
+          updatedAt: row.updatedAt,
         });
-      } else {
-        addIssue({
-          legacyTable: "user_anime",
-          legacyId: row.id,
-          reason: "conflicting-alternate-key-library",
-          details: {
-            libraryId: row.id,
-            existingId: existingByAlternateKey.id,
-          },
-        });
+        continue;
       }
+
+      addIssue({
+        legacyTable: "user_anime",
+        legacyId: row.id,
+        reason: "conflicting-alternate-key-library",
+        details: {
+          libraryId: row.id,
+          existingId: existingByAlternateKey.id,
+        },
+      });
       continue;
     }
 
@@ -859,6 +939,7 @@ export function planLegacyBackfill(
               watched: row.status === "completed" || row.progress >= 1,
             };
 
+    newlyPlannedUserMediaIds.add(row.id);
     userMediaById.set(row.id, {
       id: row.id,
       userId: row.userId,
@@ -1040,26 +1121,20 @@ export function planLegacyBackfill(
         (existingByAlternateKey.createdAt === undefined || existingByAlternateKey.createdAt === episode.createdAt);
 
       if (isIdentical) {
-        addIssue({
-          legacyTable: "user_anime_episodes",
-          legacyId: episode.id,
-          reason: "conflicting-alternate-key-episode-id",
-          details: {
-            episodeId: episode.id,
-            existingId: existingByAlternateKey.id,
-          },
-        });
-      } else {
-        addIssue({
-          legacyTable: "user_anime_episodes",
-          legacyId: episode.id,
-          reason: "conflicting-alternate-key-episode",
-          details: {
-            episodeId: episode.id,
-            existingId: existingByAlternateKey.id,
-          },
-        });
+        // Different primary UUID, same alternate key (user_media_id, 0, episode_number), identical fields:
+        // Idempotent match, not a conflict.
+        continue;
       }
+
+      addIssue({
+        legacyTable: "user_anime_episodes",
+        legacyId: episode.id,
+        reason: "conflicting-alternate-key-episode",
+        details: {
+          episodeId: episode.id,
+          existingId: existingByAlternateKey.id,
+        },
+      });
       continue;
     }
 
@@ -1088,7 +1163,10 @@ export function planLegacyBackfill(
 
   // Filter out any media that only matched an existing row and wasn't newly planned
   const newlyPlannedUserMedia = [...userMediaById.values()].filter(
-    (row) => !options.existingUserMedia?.has(row.id),
+    (row) =>
+      newlyPlannedUserMediaIds.has(row.id) &&
+      !options.existingUserMedia?.has(row.id) &&
+      !options.existingUserMedia?.has(`${row.userId}:${row.mediaId}`),
   );
 
   return {

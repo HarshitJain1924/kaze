@@ -26,6 +26,7 @@ The Phase 2B migrations are strictly **additive**. Legacy tables (`public.user_a
    - `public.deterministic_anilist_media_id(integer)`: Immutable UUIDv5 generator for AniList IDs.
    - `public.backfill_phase2b(uuid)`: Idempotent backfill engine with strict conflict detection.
    - `public.validate_phase2b()`: Read-only data integrity verification snapshot.
+   *(Note: No database views exist in Phase 2B; `Views` is empty `Record<string, never>` in TypeScript and database types).*
 
 ---
 
@@ -128,8 +129,8 @@ If rows were quarantined due to missing or malformed catalog cache entries:
    ```sql
    select public.backfill_phase2b();
    ```
-   - **Idempotency:** Any canonical row or library entry that already exists with identical data is treated as an idempotent rerun and skipped without re-inserting.
-   - **Conflict Protection:** Any conflicting rows remain quarantined; existing data is never overwritten.
+   - **Idempotency:** Any canonical row or library entry that already exists with identical data is treated as an idempotent rerun and skipped without re-inserting. Alternate unique key matches `(user_id, media_id)` and `(user_media_id, season_number, episode_number)` with different primary UUIDs but identical fields are recognized as idempotent matches and skipped without logging false conflict records.
+   - **Conflict Protection:** Any conflicting rows remain quarantined; existing data is never overwritten. If an alternate unique key matches but any field differs, it is quarantined under `conflicting-alternate-key-library` or `conflicting-alternate-key-episode`.
    - **Automatic Resolution:** Rows previously quarantined under `missing-catalog-cache`, `malformed-catalog-cache`, or `conflicting-catalog-cache` that now have unambiguous metadata are inserted, and their prior issue records are automatically updated with `resolved_at = now()`.
 
 ---
@@ -157,11 +158,24 @@ Expected healthy output shape:
   "legacy_library_ids_missing_from_canonical": 0,
   "legacy_episode_ids_missing_from_canonical": 0,
   "per_user_count_mismatches": 0,
+  "backfill_issues_total_historical": 12,
+  "backfill_issues_unresolved": 0,
+  "backfill_issues_resolved": 12,
+  "backfill_issues_latest_run": 0,
+  "backfill_issues_latest_run_unresolved": 0,
   "backfill_issues": 0
 }
 ```
 
-If `legacy_library_ids_missing_from_canonical` or `backfill_issues` is greater than 0:
+Validation output fields:
+- `backfill_issues_total_historical`: Count of all historical issue records across all backfill runs.
+- `backfill_issues_unresolved`: Count of issues where `resolved_at is null` (active failures).
+- `backfill_issues_resolved`: Count of issues where `resolved_at is not null` (successfully resolved).
+- `backfill_issues_latest_run`: Count of issues created during the latest backfill run.
+- `backfill_issues_latest_run_unresolved`: Count of issues in the latest run that remain unresolved.
+- `backfill_issues`: Set to `backfill_issues_unresolved` so that resolved historical issues do not trigger false alerts.
+
+If `legacy_library_ids_missing_from_canonical` or `backfill_issues_unresolved` is greater than 0:
 - Cross-reference `select * from public.media_backfill_issues where resolved_at is null;` to inspect why those specific rows were quarantined.
 
 ---

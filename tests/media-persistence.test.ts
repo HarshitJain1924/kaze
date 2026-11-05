@@ -1,11 +1,15 @@
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 
 import {
   assertMediaLibraryItem,
   deterministicAniListMediaId,
   planLegacyBackfill,
+  summarizeBackfillIssues,
   validateMediaLibraryEntry,
   MediaLibraryInvariantError,
+  type BackfillIssueRecord,
   type BackfillOptions,
   type CatalogCacheEntry,
   type LegacyUserAnimeEpisodeRow,
@@ -720,15 +724,8 @@ describe("3. Strict conflict handling", () => {
         ],
       ]),
     });
-    expect(planIdenticalFields.issues).toContainEqual(
-      expect.objectContaining({
-        reason: "conflicting-alternate-key-id",
-        details: expect.objectContaining({
-          libraryId: "lib-new-id",
-          existingId: "lib-different-uuid",
-        }),
-      }),
-    );
+    // Identical alternate-key match with different primary UUID is an idempotent match, not a conflict
+    expect(planIdenticalFields.issues).toHaveLength(0);
     expect(planIdenticalFields.userMedia).toHaveLength(0);
   });
 
@@ -817,9 +814,9 @@ describe("3. Strict conflict handling", () => {
         ],
       ]),
     });
-    expect(planAltIdentical.issues).toContainEqual(
-      expect.objectContaining({ reason: "conflicting-alternate-key-episode-id" }),
-    );
+    // Identical alternate-key episode match with different primary UUID is an idempotent match, not a conflict
+    expect(planAltIdentical.issues).toHaveLength(0);
+    expect(planAltIdentical.episodes).toHaveLength(0);
   });
 
   it("handles repeated execution after successful migration without duplicating or raising issues", () => {
@@ -1191,5 +1188,284 @@ describe("4. Persistence validation boundary", () => {
     expect(() => assertMediaLibraryItem(validEntry, mismatchMedia)).toThrow(
       MediaLibraryInvariantError,
     );
+  });
+});
+
+describe("Regression Tests: Alternate-Key Idempotency, Validation Reporting & Schema Consistency", () => {
+  // 1. User-media identical alternate-key match with different UUID
+  it("treats user-media with different primary UUID but identical alternate key and fields as idempotent match", () => {
+    const userAnime = [makeLegacyAnime("lib-legacy-uuid", 700, { progress: 3 })];
+    const derivedMediaId = deterministicAniListMediaId(700);
+
+    const plan = planLegacyBackfill(userAnime, [], {
+      catalogCache: new Map([[700, { format: "TV" }]]),
+      existingUserMedia: new Map([
+        [
+          "user-1:" + derivedMediaId,
+          {
+            id: "lib-destination-canonical-uuid",
+            userId: "user-1",
+            mediaId: derivedMediaId,
+            mediaKind: "anime",
+            status: "watching",
+            progress: { kind: "anime", episodesWatched: 3 },
+            score: 8,
+            notes: "A note",
+            favorite: false,
+            rewatchCount: 0,
+            startedAt: "2026-01-01",
+            completedAt: null,
+            createdAt: "2026-01-01T00:00:00.000Z",
+            updatedAt: "2026-01-01T00:00:00.000Z",
+          },
+        ],
+      ]),
+    });
+
+    expect(plan.issues).toHaveLength(0);
+    expect(plan.userMedia).toHaveLength(0);
+  });
+
+  // 2. User-media conflicting alternate-key match with different UUID
+  it("quarantines user-media with different primary UUID and conflicting alternate key fields", () => {
+    const userAnime = [makeLegacyAnime("lib-legacy-uuid", 701, { progress: 3, score: 7 })];
+    const derivedMediaId = deterministicAniListMediaId(701);
+
+    const plan = planLegacyBackfill(userAnime, [], {
+      catalogCache: new Map([[701, { format: "TV" }]]),
+      existingUserMedia: new Map([
+        [
+          "user-1:" + derivedMediaId,
+          {
+            id: "lib-destination-canonical-uuid",
+            userId: "user-1",
+            mediaId: derivedMediaId,
+            mediaKind: "anime",
+            status: "watching",
+            progress: { kind: "anime", episodesWatched: 3 },
+            score: 10, // conflicts
+          },
+        ],
+      ]),
+    });
+
+    expect(plan.issues).toContainEqual(
+      expect.objectContaining({
+        legacyTable: "user_anime",
+        legacyId: "lib-legacy-uuid",
+        reason: "conflicting-alternate-key-library",
+        details: expect.objectContaining({
+          libraryId: "lib-legacy-uuid",
+          existingId: "lib-destination-canonical-uuid",
+        }),
+      }),
+    );
+    expect(plan.userMedia).toHaveLength(0);
+  });
+
+  // 3. Episode identical alternate-key match with different UUID
+  it("treats episode with different primary UUID but identical alternate key and fields as idempotent match", () => {
+    const userAnime = [makeLegacyAnime("lib-1", 702)];
+    const episodes = [makeLegacyEpisode("ep-legacy-uuid", 702, 1)];
+
+    const plan = planLegacyBackfill(userAnime, episodes, {
+      catalogCache: new Map([[702, { format: "TV" }]]),
+      existingEpisodes: new Map([
+        [
+          "lib-1:0:1",
+          {
+            id: "ep-destination-canonical-uuid",
+            userId: "user-1",
+            userMediaId: "lib-1",
+            seasonNumber: 0,
+            episodeNumber: 1,
+            watchedAt: "2026-01-01T12:00:00.000Z",
+            createdAt: "2026-01-01T12:00:00.000Z",
+          },
+        ],
+      ]),
+    });
+
+    expect(plan.issues).toHaveLength(0);
+    expect(plan.episodes).toHaveLength(0);
+  });
+
+  // 4. Episode conflicting alternate-key match with different UUID
+  it("quarantines episode with different primary UUID and conflicting alternate key fields", () => {
+    const userAnime = [makeLegacyAnime("lib-1", 703)];
+    const episodes = [makeLegacyEpisode("ep-legacy-uuid", 703, 1)];
+
+    const plan = planLegacyBackfill(userAnime, episodes, {
+      catalogCache: new Map([[703, { format: "TV" }]]),
+      existingEpisodes: new Map([
+        [
+          "lib-1:0:1",
+          {
+            id: "ep-destination-canonical-uuid",
+            userId: "user-1",
+            userMediaId: "lib-1",
+            seasonNumber: 0,
+            episodeNumber: 1,
+            watchedAt: "2026-08-01T00:00:00.000Z", // conflicts with ep-1's watchedAt
+          },
+        ],
+      ]),
+    });
+
+    expect(plan.issues).toContainEqual(
+      expect.objectContaining({
+        legacyTable: "user_anime_episodes",
+        legacyId: "ep-legacy-uuid",
+        reason: "conflicting-alternate-key-episode",
+        details: expect.objectContaining({
+          episodeId: "ep-legacy-uuid",
+          existingId: "ep-destination-canonical-uuid",
+        }),
+      }),
+    );
+    expect(plan.episodes).toHaveLength(0);
+  });
+
+  // 5. Historical resolved issue excluded from unresolved count
+  it("excludes historical resolved issues from unresolved validation count", () => {
+    const issues: BackfillIssueRecord[] = [
+      {
+        id: "1",
+        runId: "run-1",
+        legacyTable: "user_anime",
+        legacyId: "leg-1",
+        reason: "missing-catalog-cache",
+        createdAt: "2026-11-04T00:00:00.000Z",
+        resolvedAt: "2026-11-05T00:00:00.000Z", // resolved
+      },
+      {
+        id: "2",
+        runId: "run-1",
+        legacyTable: "user_anime",
+        legacyId: "leg-2",
+        reason: "malformed-catalog-cache",
+        createdAt: "2026-11-04T00:00:00.000Z",
+        resolvedAt: "2026-11-05T00:00:00.000Z", // resolved
+      },
+    ];
+
+    const summary = summarizeBackfillIssues(issues);
+    expect(summary.totalHistorical).toBe(2);
+    expect(summary.resolved).toBe(2);
+    expect(summary.unresolved).toBe(0);
+  });
+
+  // 6. Unresolved issue included in unresolved count
+  it("includes unresolved issues in unresolved validation count", () => {
+    const issues: BackfillIssueRecord[] = [
+      {
+        id: "1",
+        runId: "run-1",
+        legacyTable: "user_anime",
+        legacyId: "leg-1",
+        reason: "missing-catalog-cache",
+        createdAt: "2026-11-04T00:00:00.000Z",
+        resolvedAt: null, // unresolved
+      },
+      {
+        id: "2",
+        runId: "run-1",
+        legacyTable: "user_anime",
+        legacyId: "leg-2",
+        reason: "conflicting-alternate-key-library",
+        createdAt: "2026-11-04T00:00:00.000Z",
+        resolvedAt: null, // unresolved
+      },
+    ];
+
+    const summary = summarizeBackfillIssues(issues);
+    expect(summary.totalHistorical).toBe(2);
+    expect(summary.resolved).toBe(0);
+    expect(summary.unresolved).toBe(2);
+  });
+
+  // 7. Multiple-run validation reporting
+  it("reports total historical, resolved, unresolved, and latest run stats correctly across multiple runs", () => {
+    const issues: BackfillIssueRecord[] = [
+      // Run 1: 2 issues (both now resolved)
+      {
+        id: "1",
+        runId: "run-1",
+        legacyTable: "user_anime",
+        legacyId: "leg-1",
+        reason: "missing-catalog-cache",
+        createdAt: "2026-11-01T00:00:00.000Z",
+        resolvedAt: "2026-11-02T00:00:00.000Z",
+      },
+      {
+        id: "2",
+        runId: "run-1",
+        legacyTable: "user_anime",
+        legacyId: "leg-2",
+        reason: "malformed-catalog-cache",
+        createdAt: "2026-11-01T00:00:00.000Z",
+        resolvedAt: "2026-11-02T00:00:00.000Z",
+      },
+      // Run 2 (latest): 3 issues (1 resolved, 2 unresolved)
+      {
+        id: "3",
+        runId: "run-2",
+        legacyTable: "user_anime",
+        legacyId: "leg-3",
+        reason: "missing-catalog-cache",
+        createdAt: "2026-11-05T00:00:00.000Z",
+        resolvedAt: "2026-11-05T01:00:00.000Z",
+      },
+      {
+        id: "4",
+        runId: "run-2",
+        legacyTable: "user_anime",
+        legacyId: "leg-4",
+        reason: "conflicting-alternate-key-library",
+        createdAt: "2026-11-05T00:00:00.000Z",
+        resolvedAt: null,
+      },
+      {
+        id: "5",
+        runId: "run-2",
+        legacyTable: "user_anime_episodes",
+        legacyId: "ep-5",
+        reason: "conflicting-alternate-key-episode",
+        createdAt: "2026-11-05T00:00:00.000Z",
+        resolvedAt: null,
+      },
+    ];
+
+    const summary = summarizeBackfillIssues(issues);
+    expect(summary.totalHistorical).toBe(5);
+    expect(summary.resolved).toBe(3);
+    expect(summary.unresolved).toBe(2);
+    expect(summary.latestRunTotal).toBe(3);
+    expect(summary.latestRunUnresolved).toBe(2);
+  });
+
+  // 8. Schema/type/documentation consistency
+  it("enforces that views remain empty Record<string, never> and no canonical_media_summary view exists", () => {
+    const dbTypesPath = resolve(__dirname, "../types/database.ts");
+    const dbTypesContent = readFileSync(dbTypesPath, "utf-8");
+
+    expect(dbTypesContent).toMatch(/Views:\s*Record<string,\s*never>;/);
+    expect(dbTypesContent).not.toContain("canonical_media_summary");
+
+    const schemaSqlPath = resolve(
+      __dirname,
+      "../supabase/migrations/20261105000000_create_canonical_media_schema.sql",
+    );
+    const backfillSqlPath = resolve(
+      __dirname,
+      "../supabase/migrations/20261105000001_backfill_canonical_library.sql",
+    );
+    const schemaContent = readFileSync(schemaSqlPath, "utf-8");
+    const backfillContent = readFileSync(backfillSqlPath, "utf-8");
+
+    expect(schemaContent).not.toMatch(/create\s+view/i);
+    expect(backfillContent).not.toMatch(/create\s+view/i);
+    expect(schemaContent).not.toContain("canonical_media_summary");
+    expect(backfillContent).not.toContain("canonical_media_summary");
   });
 });
