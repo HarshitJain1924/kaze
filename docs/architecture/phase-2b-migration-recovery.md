@@ -199,27 +199,106 @@ If an orchestrator terminates unexpectedly (host crash, network drop, OOM killer
 
 **What the automated suite does not cover.** `tests/media-migrations-pg.integration.test.ts` runs on PGlite, which embeds a single-session PostgreSQL (`pg_stat_activity` shows exactly one backend) and funnels every statement through one serialized connection. Two transactions cannot be open at once, so row-lock contention cannot be produced or observed there. The suite therefore asserts the lock ordering in the function body and pins the run-ID reuse contract; it does **not** claim concurrency coverage. That test name says so explicitly.
 
-**Verify on real PostgreSQL / Supabase staging with two sessions:**
-```bash
-# Session A: hold the run row lock for 30 seconds inside the execution transaction.
-psql "$DATABASE_URL" -c "begin; select public.backfill_phase2b('<run-id>'::uuid); select pg_sleep(30); commit;"
+**Verify on real PostgreSQL / Supabase staging with two sessions.**
 
-# Session B: while A is still inside the function, run the same run ID.
-psql "$DATABASE_URL" -c "select public.backfill_phase2b('<run-id>'::uuid);"
-```
-Session B must block, then fail with `Run ID ... has already completed and cannot be reused.` (or, if A rolled back, succeed exactly once). Afterwards confirm:
+Calling `backfill_phase2b(<run-id>)` directly from two sessions is *not* this test. With no pre-registered ledger row, both runners pass the empty lock read and then race on the `media_backfill_runs` insert, so the loser fails with a `23505` unique violation on the primary key instead of the intended `23514` completed-run rejection. Pre-register first, exactly as Transaction 1 of the orchestration protocol requires.
+
+Transaction 1 — pre-register the run ID and commit (once per scenario; a terminalised run ID can never be reused):
 ```sql
+begin;
+insert into public.media_backfill_runs (id, started_at, outcome, details)
+values (
+  '00000000-0000-0000-0000-000000000001'::uuid,
+  clock_timestamp(),
+  'running',
+  jsonb_build_object('orchestrator', 'kaze-migration-runner', 'environment', 'staging')
+);
+commit;
+```
+
+#### Scenario A — Runner A commits, Runner B is rejected
+
+```bash
+RUN_ID=00000000-0000-0000-0000-000000000001
+
+# Session A: execute the backfill on the pre-registered ID, then hold the transaction
+# (and therefore the ledger row lock) open for 30 seconds.
+psql "$DATABASE_URL" -c "begin; select public.backfill_phase2b('$RUN_ID'::uuid); select pg_sleep(30); commit;"
+
+# Session B, started while A is still sleeping: same pre-registered run ID.
+psql "$DATABASE_URL" -c "select public.backfill_phase2b('$RUN_ID'::uuid);"
+```
+
+While both are running, a third session confirms B is waiting instead of writing:
+```sql
+select pid, state, wait_event_type, wait_event, left(query, 80) as query
+from pg_stat_activity
+where query ilike '%backfill_phase2b%'
+  and pid <> pg_backend_pid();
+-- Expect one active session (A, sleeping) and one session with
+-- wait_event_type = 'Lock' waiting on the media_backfill_runs row.
+```
+
+Expected sequence:
+1. B blocks on the ledger row lock and writes nothing.
+2. A commits `outcome = 'completed'` with its metrics.
+3. B resumes, re-reads the locked row as `completed`, and exits non-zero with SQLSTATE `23514` (`check_violation`) and `Run ID 00000000-0000-0000-0000-000000000001 has already completed and cannot be reused.`
+4. No `23505` unique violation appears; that would mean the run was not pre-registered and the wrong path was exercised.
+
+#### Scenario B — Runner A aborts, Runner B performs the backfill exactly once
+
+Use a second, freshly pre-registered run ID (`<second-pre-registered-run-id>`); the ID from Scenario A is now `completed` and cannot be reused.
+
+```bash
+RUN_ID=<second-pre-registered-run-id>
+
+# Session A: execute the backfill, hold the lock, then abort instead of committing.
+psql "$DATABASE_URL" <<SQL
+begin;
+select public.backfill_phase2b('$RUN_ID'::uuid);
+select pg_sleep(30);
+rollback;
+SQL
+
+# Session B, started while A is still sleeping: same pre-registered run ID.
+psql "$DATABASE_URL" -c "select public.backfill_phase2b('$RUN_ID'::uuid);"
+```
+
+Expected sequence:
+1. B blocks on the ledger row lock while A holds it.
+2. A rolls back: its `media`, mapping, library, episode, issue and `completed` ledger writes disappear, and the ledger row returns to the `running` state committed in Transaction 1.
+3. B unblocks, sees `running`, performs the full backfill and commits `outcome = 'completed'`.
+4. Exactly one execution wrote data (A wrote nothing), so there is no duplicate row and no quarantine record attributable to A.
+
+After either scenario, confirm the ledger and the row counts:
+```sql
+select id, outcome, completed_at is not null as completed, details
+from public.media_backfill_runs
+where id = '<run-id>'::uuid;
+
 select
   (select count(*) from public.media) as media_rows,
   (select count(*) from public.user_media) as user_media_rows,
   (select count(*) from public.user_media_episodes) as episode_rows,
   (select count(*) from (
-     select run_id, legacy_table, legacy_id, reason
-     from public.media_backfill_issues
+     select user_id, media_id from public.user_media
+     group by 1, 2 having count(*) > 1
+   ) duplicate_library) as duplicate_library_rows,
+  (select count(*) from (
+     select media_id, provider, external_id from public.media_external_ids
+     group by 1, 2, 3 having count(*) > 1
+   ) duplicate_mappings) as duplicate_mapping_rows,
+  (select count(*) from (
+     select user_media_id, season_number, episode_number from public.user_media_episodes
+     group by 1, 2, 3 having count(*) > 1
+   ) duplicate_episodes) as duplicate_episode_rows,
+  (select count(*) from (
+     select run_id, legacy_table, legacy_id, reason from public.media_backfill_issues
      group by 1, 2, 3, 4 having count(*) > 1
-   ) duplicates) as duplicate_issues;
--- Expect media_rows = user_media_rows = distinct legacy library IDs,
--- episode_rows = distinct legacy episode IDs, duplicate_issues = 0.
+   ) duplicate_issues) as duplicate_issue_rows;
+-- Both scenarios: outcome = 'completed', completed = true,
+-- media_rows = distinct legacy AniList IDs, user_media_rows = distinct legacy library IDs,
+-- episode_rows = distinct legacy episode IDs, and every duplicate_* count = 0.
 ```
 
 ---

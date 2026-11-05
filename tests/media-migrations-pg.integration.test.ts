@@ -318,18 +318,24 @@ describe("PostgreSQL Real Engine Integration Tests", () => {
       `);
 
       // Fail inside the function itself, at the episode insert that runs after the media,
-      // external-id, user_media and issue writes for anilist 100 have already executed.
+      // external-id, user_media and issue writes have already executed. The trigger reports the
+      // counts it observes so the test can prove those writes existed inside the transaction.
       await db.exec(`
         create or replace function public.phase2b_force_episode_failure() returns trigger
         language plpgsql
         as $$
         declare
           v_media integer;
+          v_external_ids integer;
           v_user_media integer;
+          v_issues integer;
         begin
           select count(*) into v_media from public.media;
+          select count(*) into v_external_ids from public.media_external_ids;
           select count(*) into v_user_media from public.user_media;
-          raise exception 'forced failure during episode migration (media=%, user_media=%)', v_media, v_user_media
+          select count(*) into v_issues from public.media_backfill_issues;
+          raise exception 'forced failure during episode migration (media=%, external_ids=%, user_media=%, issues=%)',
+            v_media, v_external_ids, v_user_media, v_issues
             using errcode = 'XX000';
         end;
         $$;
@@ -347,11 +353,22 @@ describe("PostgreSQL Real Engine Integration Tests", () => {
         failure = error;
       }
 
-      // The message proves the function had already written canonical media and library
-      // rows inside the transaction when it aborted, so the assertions below cover real work.
-      expect(String(failure)).toContain(
-        "forced failure during episode migration (media=1, user_media=1)",
-      );
+      // The trigger's report proves the aborted transaction had already written media, an
+      // external id, a library row and at least one quarantine issue, so the zero counts
+      // asserted after rollback describe real backfill work rather than an empty run.
+      const triggerReport =
+        /media=(\d+), external_ids=(\d+), user_media=(\d+), issues=(\d+)/.exec(String(failure));
+      expect(triggerReport).not.toBeNull();
+      if (!triggerReport) {
+        throw new Error(`expected trigger report in failure: ${String(failure)}`);
+      }
+      const [, mediaAtFailure, externalIdsAtFailure, userMediaAtFailure, issuesAtFailure] =
+        triggerReport;
+      expect(Number(mediaAtFailure)).toBe(1);
+      expect(Number(externalIdsAtFailure)).toBe(1);
+      expect(Number(userMediaAtFailure)).toBe(1);
+      // The uncached library row (anilist 500) is already quarantined before the episode insert.
+      expect(Number(issuesAtFailure)).toBeGreaterThanOrEqual(1);
       await db.exec("rollback;");
 
       const rolledBack = await db.query<Record<string, number>>(`
