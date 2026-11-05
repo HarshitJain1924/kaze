@@ -218,26 +218,70 @@ commit;
 
 #### Scenario A — Runner A commits, Runner B is rejected
 
+Session A must capture its own backend PID, because once it is inside `pg_sleep(30)` its current statement no longer mentions the backfill and query-text matching cannot find it.
+
 ```bash
-RUN_ID=00000000-0000-0000-0000-000000000001
-
-# Session A: execute the backfill on the pre-registered ID, then hold the transaction
-# (and therefore the ledger row lock) open for 30 seconds.
-psql "$DATABASE_URL" -c "begin; select public.backfill_phase2b('$RUN_ID'::uuid); select pg_sleep(30); commit;"
-
-# Session B, started while A is still sleeping: same pre-registered run ID.
-psql "$DATABASE_URL" -c "select public.backfill_phase2b('$RUN_ID'::uuid);"
+# Terminal A — the executing session.
+psql "$DATABASE_URL"
 ```
-
-While both are running, a third session confirms B is waiting instead of writing:
 ```sql
-select pid, state, wait_event_type, wait_event, left(query, 80) as query
-from pg_stat_activity
-where query ilike '%backfill_phase2b%'
-  and pid <> pg_backend_pid();
--- Expect one active session (A, sleeping) and one session with
--- wait_event_type = 'Lock' waiting on the media_backfill_runs row.
+begin;
+select pg_backend_pid() as session_a_pid;   -- record this value
+select public.backfill_phase2b('00000000-0000-0000-0000-000000000001'::uuid);
+select pg_sleep(30);                        -- keeps the transaction and ledger row lock open
+commit;
 ```
+
+```bash
+# Terminal B — the competing session, started while A is still sleeping.
+psql "$DATABASE_URL"
+```
+```sql
+select pg_backend_pid() as session_b_pid;   -- record this value
+select public.backfill_phase2b('00000000-0000-0000-0000-000000000001'::uuid);  -- blocks here
+```
+
+B prints nothing until A commits. Observe the wait from a short-lived third connection (it never executes the backfill), substituting the PIDs printed by A and B:
+```psql
+\set session_a_pid 12345
+\set session_b_pid 12346
+
+-- 1. Identify Session A by PID. While A is inside pg_sleep its current statement is
+--    select pg_sleep(30), so a query-text filter for 'backfill_phase2b' would miss it;
+--    the captured PID is the reliable handle.
+select pid, state, wait_event_type, wait_event, left(query, 60) as current_query
+from pg_stat_activity
+where pid = :session_a_pid;
+-- Expect: state = 'active', wait_event_type = 'Timeout', wait_event = 'PgSleep',
+-- current_query = 'select pg_sleep(30);'.
+
+-- 2. Identify Session B's lock wait, who blocks it, and the relation the blocker locked.
+select
+  b.pid as session_b_pid,
+  b.state,
+  b.wait_event_type,
+  b.wait_event,
+  left(b.query, 90) as session_b_query,
+  pg_blocking_pids(b.pid) as blocked_by_pids,
+  a.pid as blocker_pid,
+  a.wait_event_type as blocker_wait_event_type,
+  a.wait_event as blocker_wait_event,
+  l.mode as blocker_lock_mode,
+  l.granted as blocker_lock_granted
+from pg_stat_activity b
+join pg_stat_activity a
+  on a.pid = any (pg_blocking_pids(b.pid))
+join pg_locks l
+  on l.pid = a.pid
+ and l.relation = 'public.media_backfill_runs'::regclass
+where b.pid = :session_b_pid;
+-- Expect: wait_event_type = 'Lock' (commonly wait_event = 'transactionid'),
+-- blocked_by_pids = {<session_a_pid>}, blocker_wait_event = 'PgSleep', and
+-- blocker_lock_mode in ('RowShareLock', 'RowExclusiveLock') with blocker_lock_granted = true:
+-- the lock backfill_phase2b() took when it selected the run-ledger row FOR UPDATE.
+```
+
+`pg_locks` does not expose the identity of the locked row, so the row-level attribution comes from the combination above: B is blocked by A's transaction, A still holds the `media_backfill_runs` relation lock taken by the `FOR UPDATE`, and B's own statement names the same run ID.
 
 Expected sequence:
 1. B blocks on the ledger row lock and writes nothing.
@@ -247,21 +291,27 @@ Expected sequence:
 
 #### Scenario B — Runner A aborts, Runner B performs the backfill exactly once
 
-Use a second, freshly pre-registered run ID (`<second-pre-registered-run-id>`); the ID from Scenario A is now `completed` and cannot be reused.
+Use a second, freshly pre-registered run ID (`<second-pre-registered-run-id>`); the ID from Scenario A is now `completed` and cannot be reused. The same PID-based diagnostics apply with the new values.
 
 ```bash
-RUN_ID=<second-pre-registered-run-id>
-
-# Session A: execute the backfill, hold the lock, then abort instead of committing.
-psql "$DATABASE_URL" <<SQL
+# Terminal A — execute the backfill, hold the lock, then abort instead of committing.
+psql "$DATABASE_URL"
+```
+```sql
 begin;
-select public.backfill_phase2b('$RUN_ID'::uuid);
+select pg_backend_pid() as session_a_pid;   -- record this value
+select public.backfill_phase2b('<second-pre-registered-run-id>'::uuid);
 select pg_sleep(30);
-rollback;
-SQL
+rollback;                                    -- or press Ctrl+C to abort the transaction
+```
 
-# Session B, started while A is still sleeping: same pre-registered run ID.
-psql "$DATABASE_URL" -c "select public.backfill_phase2b('$RUN_ID'::uuid);"
+```bash
+# Terminal B — started while A is still sleeping: same pre-registered run ID.
+psql "$DATABASE_URL"
+```
+```sql
+select pg_backend_pid() as session_b_pid;   -- record this value
+select public.backfill_phase2b('<second-pre-registered-run-id>'::uuid);  -- blocks here
 ```
 
 Expected sequence:
@@ -270,7 +320,7 @@ Expected sequence:
 3. B unblocks, sees `running`, performs the full backfill and commits `outcome = 'completed'`.
 4. Exactly one execution wrote data (A wrote nothing), so there is no duplicate row and no quarantine record attributable to A.
 
-After either scenario, confirm the ledger and the row counts:
+After either scenario, confirm the ledger and the row counts. Every duplicate check groups by the table's actual unique key:
 ```sql
 select id, outcome, completed_at is not null as completed, details
 from public.media_backfill_runs
@@ -282,23 +332,44 @@ select
   (select count(*) from public.user_media_episodes) as episode_rows,
   (select count(*) from (
      select user_id, media_id from public.user_media
-     group by 1, 2 having count(*) > 1
+     group by 1, 2 having count(*) > 1              -- user_media_user_media_key
    ) duplicate_library) as duplicate_library_rows,
   (select count(*) from (
-     select media_id, provider, external_id from public.media_external_ids
-     group by 1, 2, 3 having count(*) > 1
+     select provider, external_id from public.media_external_ids
+     group by 1, 2 having count(*) > 1              -- media_external_ids_provider_external_key
    ) duplicate_mappings) as duplicate_mapping_rows,
   (select count(*) from (
      select user_media_id, season_number, episode_number from public.user_media_episodes
-     group by 1, 2, 3 having count(*) > 1
+     group by 1, 2, 3 having count(*) > 1           -- user_media_episodes_user_media_key
    ) duplicate_episodes) as duplicate_episode_rows,
   (select count(*) from (
      select run_id, legacy_table, legacy_id, reason from public.media_backfill_issues
-     group by 1, 2, 3, 4 having count(*) > 1
+     group by 1, 2, 3, 4 having count(*) > 1        -- media_backfill_issues_run_legacy_reason_key
    ) duplicate_issues) as duplicate_issue_rows;
 -- Both scenarios: outcome = 'completed', completed = true,
 -- media_rows = distinct legacy AniList IDs, user_media_rows = distinct legacy library IDs,
 -- episode_rows = distinct legacy episode IDs, and every duplicate_* count = 0.
+-- (public.media rows are keyed by the primary key id, so duplicate media rows are impossible.)
+
+-- Provider mappings that violate the intent of unique (provider, external_id): one provider
+-- ID pointing at more than one media row. This is the conflict the count above detects.
+select
+  provider,
+  external_id,
+  count(*) as mapping_rows,
+  array_agg(media_id order by media_id) as conflicting_media_ids
+from public.media_external_ids
+-- group by the unique key only; including media_id would hide a split mapping
+-- by producing one group per media row instead of one conflicting group.
+group by provider, external_id
+having count(*) > 1
+order by provider, external_id;
+-- Expect zero rows. Any row lists the media IDs that claim the same provider ID;
+-- cross-reference public.media and public.media_titles to decide which ID is correct.
+--
+-- Every duplicate check above is guarded by the unique key named beside it, so a non-zero
+-- count means that constraint is missing or was dropped in this environment, not that the
+-- backfill created duplicates under a working constraint.
 ```
 
 ---
