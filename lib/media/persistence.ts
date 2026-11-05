@@ -57,6 +57,12 @@ export type BackfillIssueReason =
   | "conflicting-library-status"
   | "conflicting-library-score"
   | "conflicting-library-notes"
+  | "conflicting-library-favorite"
+  | "conflicting-library-rewatch-count"
+  | "conflicting-library-dates"
+  | "conflicting-library-timestamps"
+  | "conflicting-alternate-key-library"
+  | "conflicting-alternate-key-id"
   | "orphan-episode"
   | "manga-episode-history"
   | "movie-episode-history"
@@ -64,6 +70,10 @@ export type BackfillIssueReason =
   | "conflicting-episode-user-ownership"
   | "conflicting-episode-parent"
   | "conflicting-episode-number"
+  | "conflicting-episode-watched-at"
+  | "conflicting-episode-created-at"
+  | "conflicting-alternate-key-episode"
+  | "conflicting-alternate-key-episode-id"
   | "duplicate-episode";
 
 export interface BackfillIssue {
@@ -141,7 +151,13 @@ export interface ExistingUserMediaRow {
     | { kind: "movie"; watched: boolean }
     | { kind: "tv"; seasonNumber: number; episodeNumber: number; episodesWatched: number };
   score: number | null;
+  favorite?: boolean;
   notes?: string | null;
+  rewatchCount?: number;
+  startedAt?: string | null;
+  completedAt?: string | null;
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 export interface ExistingEpisodeRow {
@@ -152,6 +168,7 @@ export interface ExistingEpisodeRow {
   seasonNumber: number;
   episodeNumber: number;
   watchedAt: string;
+  createdAt?: string;
 }
 
 export interface BackfillOptions {
@@ -242,6 +259,19 @@ const ANIME_SERIES_FORMATS = new Set([
   "MUSIC",
 ]);
 
+const ALL_SUPPORTED_FORMATS = new Set([
+  "TV",
+  "TV_SHORT",
+  "MOVIE",
+  "OVA",
+  "ONA",
+  "SPECIAL",
+  "MUSIC",
+  "MANGA",
+  "ONE_SHOT",
+  "NOVEL",
+]);
+
 interface ExtractedCacheFormat {
   status: "ok" | "missing" | "malformed" | "conflicting";
   format?: string;
@@ -250,27 +280,30 @@ interface ExtractedCacheFormat {
 function extractCandidateFormat(item: unknown): string | null {
   if (!item || typeof item !== "object") return null;
   const record = item as Record<string, unknown>;
-  if (typeof record.format === "string" && record.format.trim()) {
-    return record.format.trim().toUpperCase();
-  }
-  if (
+  let rawFmt: unknown = undefined;
+  if ("format" in record) {
+    rawFmt = record.format;
+  } else if (
     record.payload &&
     typeof record.payload === "object" &&
     "format" in record.payload
   ) {
-    const payload = record.payload as Record<string, unknown>;
-    if (typeof payload.format === "string" && payload.format.trim()) {
-      return payload.format.trim().toUpperCase();
+    rawFmt = (record.payload as Record<string, unknown>).format;
+  }
+  if (typeof rawFmt === "string" && rawFmt.trim().length > 0) {
+    const cleaned = rawFmt.trim().toUpperCase();
+    if (ALL_SUPPORTED_FORMATS.has(cleaned)) {
+      return cleaned;
     }
   }
   return null;
 }
 
-function resolveCacheFormat(
+export function resolveCacheFormat(
   anilistId: number,
   cache?: BackfillOptions["catalogCache"],
 ): ExtractedCacheFormat {
-  if (!cache) {
+  if (!cache || cache.size === 0) {
     return { status: "missing" };
   }
 
@@ -284,38 +317,50 @@ function resolveCacheFormat(
     return { status: "missing" };
   }
 
-  const formats = new Set<string>();
-  let hasNullFormat = false;
-
-  for (const item of candidates) {
-    if (Array.isArray(item)) {
-      for (const sub of item) {
-        const fmt = extractCandidateFormat(sub);
-        if (fmt) {
-          formats.add(fmt);
-        } else {
-          hasNullFormat = true;
-        }
-      }
-    } else if (item && typeof item === "object") {
-      const fmt = extractCandidateFormat(item);
-      if (fmt) {
-        formats.add(fmt);
-      } else {
-        hasNullFormat = true;
-      }
+  const items: unknown[] = [];
+  for (const c of candidates) {
+    if (Array.isArray(c)) {
+      items.push(...c);
+    } else {
+      items.push(c);
     }
   }
 
-  if (formats.size > 1) {
+  if (items.length === 0) {
+    return { status: "missing" };
+  }
+
+  const validFormats = new Set<string>();
+  let hasMalformed = false;
+
+  for (const item of items) {
+    if (!item || typeof item !== "object") {
+      hasMalformed = true;
+      continue;
+    }
+    const fmt = extractCandidateFormat(item);
+    if (!fmt) {
+      hasMalformed = true;
+    } else {
+      validFormats.add(fmt);
+    }
+  }
+
+  // If ANY item was malformed, missing, empty, or unrecognised, quarantine as malformed
+  if (hasMalformed) {
+    return { status: "malformed" };
+  }
+
+  // If multiple distinct valid formats exist
+  if (validFormats.size > 1) {
     return { status: "conflicting" };
   }
 
-  if (formats.size === 0) {
-    return hasNullFormat ? { status: "malformed" } : { status: "missing" };
+  if (validFormats.size === 0) {
+    return { status: "malformed" };
   }
 
-  const format = [...formats][0]!;
+  const format = [...validFormats][0]!;
   return { status: "ok", format };
 }
 
@@ -542,61 +587,60 @@ export function planLegacyBackfill(
     }
 
     // 3. Conflict check against existing library entries
-    const existingUserMedia =
-      options.existingUserMedia?.get(row.id) ??
-      options.existingUserMedia?.get(`${row.userId}:${mediaId}`);
+    const existingById = options.existingUserMedia?.get(row.id);
+    const existingByAlternateKey = options.existingUserMedia?.get(`${row.userId}:${mediaId}`);
 
-    if (existingUserMedia) {
-      if (existingUserMedia.userId !== row.userId) {
+    if (existingById) {
+      if (existingById.userId !== row.userId) {
         addIssue({
           legacyTable: "user_anime",
           legacyId: row.id,
           reason: "conflicting-library-user-ownership",
           details: {
-            libraryId: existingUserMedia.id,
-            existingUserId: existingUserMedia.userId,
+            libraryId: existingById.id,
+            existingUserId: existingById.userId,
             attemptedUserId: row.userId,
           },
         });
         continue;
       }
 
-      if (existingUserMedia.mediaId !== mediaId) {
+      if (existingById.mediaId !== mediaId) {
         addIssue({
           legacyTable: "user_anime",
           legacyId: row.id,
           reason: "conflicting-library-media-id",
           details: {
-            libraryId: existingUserMedia.id,
-            existingMediaId: existingUserMedia.mediaId,
+            libraryId: existingById.id,
+            existingMediaId: existingById.mediaId,
             attemptedMediaId: mediaId,
           },
         });
         continue;
       }
 
-      if (existingUserMedia.mediaKind !== targetKind) {
+      if (existingById.mediaKind !== targetKind) {
         addIssue({
           legacyTable: "user_anime",
           legacyId: row.id,
           reason: "conflicting-library-media-kind",
           details: {
-            libraryId: existingUserMedia.id,
-            existingMediaKind: existingUserMedia.mediaKind,
+            libraryId: existingById.id,
+            existingMediaKind: existingById.mediaKind,
             attemptedMediaKind: targetKind,
           },
         });
         continue;
       }
 
-      if (existingUserMedia.status !== row.status) {
+      if (existingById.status !== row.status) {
         addIssue({
           legacyTable: "user_anime",
           legacyId: row.id,
           reason: "conflicting-library-status",
           details: {
-            libraryId: existingUserMedia.id,
-            existingStatus: existingUserMedia.status,
+            libraryId: existingById.id,
+            existingStatus: existingById.status,
             attemptedStatus: row.status,
           },
         });
@@ -606,18 +650,18 @@ export function planLegacyBackfill(
       let progressConflicts = false;
       if (targetKind === "anime") {
         progressConflicts =
-          existingUserMedia.progress.kind !== "anime" ||
-          existingUserMedia.progress.episodesWatched !== row.progress;
+          existingById.progress.kind !== "anime" ||
+          existingById.progress.episodesWatched !== row.progress;
       } else if (targetKind === "manga") {
         progressConflicts =
-          existingUserMedia.progress.kind !== "manga" ||
-          existingUserMedia.progress.chaptersRead !== row.progress ||
-          existingUserMedia.progress.volumesRead !== row.volumesProgress;
+          existingById.progress.kind !== "manga" ||
+          existingById.progress.chaptersRead !== row.progress ||
+          existingById.progress.volumesRead !== row.volumesProgress;
       } else if (targetKind === "movie") {
         const targetWatched = row.status === "completed" || row.progress >= 1;
         progressConflicts =
-          existingUserMedia.progress.kind !== "movie" ||
-          existingUserMedia.progress.watched !== targetWatched;
+          existingById.progress.kind !== "movie" ||
+          existingById.progress.watched !== targetWatched;
       }
 
       if (progressConflicts) {
@@ -626,21 +670,21 @@ export function planLegacyBackfill(
           legacyId: row.id,
           reason: "conflicting-library-progress",
           details: {
-            libraryId: existingUserMedia.id,
+            libraryId: existingById.id,
             progress: row.progress,
           },
         });
         continue;
       }
 
-      if (existingUserMedia.score !== row.score) {
+      if (existingById.score !== row.score) {
         addIssue({
           legacyTable: "user_anime",
           legacyId: row.id,
           reason: "conflicting-library-score",
           details: {
-            libraryId: existingUserMedia.id,
-            existingScore: existingUserMedia.score,
+            libraryId: existingById.id,
+            existingScore: existingById.score,
             attemptedScore: row.score,
           },
         });
@@ -648,15 +692,69 @@ export function planLegacyBackfill(
       }
 
       if (
-        existingUserMedia.notes !== undefined &&
-        existingUserMedia.notes !== row.notes
+        existingById.notes !== undefined &&
+        existingById.notes !== row.notes
       ) {
         addIssue({
           legacyTable: "user_anime",
           legacyId: row.id,
           reason: "conflicting-library-notes",
           details: {
-            libraryId: existingUserMedia.id,
+            libraryId: existingById.id,
+          },
+        });
+        continue;
+      }
+
+      if (existingById.favorite !== undefined && existingById.favorite !== false) {
+        addIssue({
+          legacyTable: "user_anime",
+          legacyId: row.id,
+          reason: "conflicting-library-favorite",
+          details: {
+            libraryId: existingById.id,
+          },
+        });
+        continue;
+      }
+
+      if (existingById.rewatchCount !== undefined && existingById.rewatchCount !== 0) {
+        addIssue({
+          legacyTable: "user_anime",
+          legacyId: row.id,
+          reason: "conflicting-library-rewatch-count",
+          details: {
+            libraryId: existingById.id,
+          },
+        });
+        continue;
+      }
+
+      if (
+        (existingById.startedAt !== undefined && existingById.startedAt !== row.startedAt) ||
+        (existingById.completedAt !== undefined && existingById.completedAt !== row.completedAt)
+      ) {
+        addIssue({
+          legacyTable: "user_anime",
+          legacyId: row.id,
+          reason: "conflicting-library-dates",
+          details: {
+            libraryId: existingById.id,
+          },
+        });
+        continue;
+      }
+
+      if (
+        (existingById.createdAt !== undefined && existingById.createdAt !== row.createdAt) ||
+        (existingById.updatedAt !== undefined && existingById.updatedAt !== row.updatedAt)
+      ) {
+        addIssue({
+          legacyTable: "user_anime",
+          legacyId: row.id,
+          reason: "conflicting-library-timestamps",
+          details: {
+            libraryId: existingById.id,
           },
         });
         continue;
@@ -665,21 +763,78 @@ export function planLegacyBackfill(
       // If existing user media matches identically, this is an idempotent rerun.
       // We don't re-insert, but record in userMediaById for parent episode lookup.
       userMediaById.set(row.id, {
-        id: existingUserMedia.id,
-        userId: existingUserMedia.userId,
-        mediaId: existingUserMedia.mediaId,
-        mediaKind: existingUserMedia.mediaKind,
-        status: existingUserMedia.status,
-        progress: existingUserMedia.progress,
-        score: existingUserMedia.score,
+        id: existingById.id,
+        userId: existingById.userId,
+        mediaId: existingById.mediaId,
+        mediaKind: existingById.mediaKind,
+        status: existingById.status,
+        progress: existingById.progress,
+        score: existingById.score,
         favorite: false,
-        notes: existingUserMedia.notes ?? null,
+        notes: existingById.notes ?? null,
         rewatchCount: 0,
         startedAt: row.startedAt,
         completedAt: row.completedAt,
         createdAt: row.createdAt,
         updatedAt: row.updatedAt,
       });
+      continue;
+    }
+
+    if (existingByAlternateKey && existingByAlternateKey.id !== row.id) {
+      let progressConflicts = false;
+      if (targetKind === "anime") {
+        progressConflicts =
+          existingByAlternateKey.progress.kind !== "anime" ||
+          existingByAlternateKey.progress.episodesWatched !== row.progress;
+      } else if (targetKind === "manga") {
+        progressConflicts =
+          existingByAlternateKey.progress.kind !== "manga" ||
+          existingByAlternateKey.progress.chaptersRead !== row.progress ||
+          existingByAlternateKey.progress.volumesRead !== row.volumesProgress;
+      } else if (targetKind === "movie") {
+        const targetWatched = row.status === "completed" || row.progress >= 1;
+        progressConflicts =
+          existingByAlternateKey.progress.kind !== "movie" ||
+          existingByAlternateKey.progress.watched !== targetWatched;
+      }
+
+      const isIdentical =
+        existingByAlternateKey.userId === row.userId &&
+        existingByAlternateKey.mediaId === mediaId &&
+        existingByAlternateKey.mediaKind === targetKind &&
+        existingByAlternateKey.status === row.status &&
+        !progressConflicts &&
+        existingByAlternateKey.score === row.score &&
+        (existingByAlternateKey.notes === undefined || existingByAlternateKey.notes === row.notes) &&
+        (existingByAlternateKey.favorite === undefined || existingByAlternateKey.favorite === false) &&
+        (existingByAlternateKey.rewatchCount === undefined || existingByAlternateKey.rewatchCount === 0) &&
+        (existingByAlternateKey.startedAt === undefined || existingByAlternateKey.startedAt === row.startedAt) &&
+        (existingByAlternateKey.completedAt === undefined || existingByAlternateKey.completedAt === row.completedAt) &&
+        (existingByAlternateKey.createdAt === undefined || existingByAlternateKey.createdAt === row.createdAt) &&
+        (existingByAlternateKey.updatedAt === undefined || existingByAlternateKey.updatedAt === row.updatedAt);
+
+      if (isIdentical) {
+        addIssue({
+          legacyTable: "user_anime",
+          legacyId: row.id,
+          reason: "conflicting-alternate-key-id",
+          details: {
+            libraryId: row.id,
+            existingId: existingByAlternateKey.id,
+          },
+        });
+      } else {
+        addIssue({
+          legacyTable: "user_anime",
+          legacyId: row.id,
+          reason: "conflicting-alternate-key-library",
+          details: {
+            libraryId: row.id,
+            existingId: existingByAlternateKey.id,
+          },
+        });
+      }
       continue;
     }
 
@@ -797,54 +952,114 @@ export function planLegacyBackfill(
     }
 
     // Conflict check against existing episode records
-    const existingEpisode =
-      options.existingEpisodes?.get(episode.id) ??
-      options.existingEpisodes?.get(`${userMedia.id}:0:${episode.episodeNumber}`);
+    const existingById = options.existingEpisodes?.get(episode.id);
+    const existingByAlternateKey = options.existingEpisodes?.get(`${userMedia.id}:0:${episode.episodeNumber}`);
 
-    if (existingEpisode) {
-      if (existingEpisode.userId !== episode.userId) {
+    if (existingById) {
+      if (existingById.userId !== episode.userId) {
         addIssue({
           legacyTable: "user_anime_episodes",
           legacyId: episode.id,
           reason: "conflicting-episode-user-ownership",
           details: {
-            episodeId: existingEpisode.id,
-            existingUserId: existingEpisode.userId,
+            episodeId: existingById.id,
+            existingUserId: existingById.userId,
             attemptedUserId: episode.userId,
           },
         });
         continue;
       }
 
-      if (existingEpisode.userMediaId !== userMedia.id) {
+      if (existingById.userMediaId !== userMedia.id) {
         addIssue({
           legacyTable: "user_anime_episodes",
           legacyId: episode.id,
           reason: "conflicting-episode-parent",
           details: {
-            episodeId: existingEpisode.id,
-            existingParentId: existingEpisode.userMediaId,
+            episodeId: existingById.id,
+            existingParentId: existingById.userMediaId,
             attemptedParentId: userMedia.id,
           },
         });
         continue;
       }
 
-      if (existingEpisode.episodeNumber !== episode.episodeNumber) {
+      if (existingById.seasonNumber !== 0 || existingById.episodeNumber !== episode.episodeNumber) {
         addIssue({
           legacyTable: "user_anime_episodes",
           legacyId: episode.id,
           reason: "conflicting-episode-number",
           details: {
-            episodeId: existingEpisode.id,
-            existingNumber: existingEpisode.episodeNumber,
+            episodeId: existingById.id,
+            existingNumber: existingById.episodeNumber,
             attemptedNumber: episode.episodeNumber,
           },
         });
         continue;
       }
 
+      if (existingById.watchedAt !== episode.watchedAt) {
+        addIssue({
+          legacyTable: "user_anime_episodes",
+          legacyId: episode.id,
+          reason: "conflicting-episode-watched-at",
+          details: {
+            episodeId: existingById.id,
+            existingWatchedAt: existingById.watchedAt,
+            attemptedWatchedAt: episode.watchedAt,
+          },
+        });
+        continue;
+      }
+
+      if (existingById.createdAt !== undefined && existingById.createdAt !== episode.createdAt) {
+        addIssue({
+          legacyTable: "user_anime_episodes",
+          legacyId: episode.id,
+          reason: "conflicting-episode-created-at",
+          details: {
+            episodeId: existingById.id,
+            existingCreatedAt: existingById.createdAt,
+            attemptedCreatedAt: episode.createdAt,
+          },
+        });
+        continue;
+      }
+
       // Identical rerun -> skip insert without issue
+      continue;
+    }
+
+    if (existingByAlternateKey && existingByAlternateKey.id !== episode.id) {
+      const isIdentical =
+        existingByAlternateKey.userId === episode.userId &&
+        existingByAlternateKey.userMediaId === userMedia.id &&
+        existingByAlternateKey.seasonNumber === 0 &&
+        existingByAlternateKey.episodeNumber === episode.episodeNumber &&
+        existingByAlternateKey.watchedAt === episode.watchedAt &&
+        (existingByAlternateKey.createdAt === undefined || existingByAlternateKey.createdAt === episode.createdAt);
+
+      if (isIdentical) {
+        addIssue({
+          legacyTable: "user_anime_episodes",
+          legacyId: episode.id,
+          reason: "conflicting-alternate-key-episode-id",
+          details: {
+            episodeId: episode.id,
+            existingId: existingByAlternateKey.id,
+          },
+        });
+      } else {
+        addIssue({
+          legacyTable: "user_anime_episodes",
+          legacyId: episode.id,
+          reason: "conflicting-alternate-key-episode",
+          details: {
+            episodeId: episode.id,
+            existingId: existingByAlternateKey.id,
+          },
+        });
+      }
       continue;
     }
 
@@ -885,6 +1100,13 @@ export function planLegacyBackfill(
   };
 }
 
+const UUID_PATTERN =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
+export function isValidUuid(value: unknown): value is string {
+  return typeof value === "string" && UUID_PATTERN.test(value.trim());
+}
+
 /**
  * Validates unknown runtime input against the canonical MediaLibraryEntry contract.
  * Rejects malformed IDs, invalid media kinds, incompatible progress, negative counts,
@@ -896,12 +1118,12 @@ export function validateMediaLibraryEntry(input: unknown): MediaLibraryEntry {
   }
   const candidate = input as Record<string, unknown>;
 
-  if (typeof candidate.id !== "string" || candidate.id.trim().length === 0) {
-    throw new MediaLibraryInvariantError("Library entry ID must be a non-empty string");
+  if (!isValidUuid(candidate.id)) {
+    throw new MediaLibraryInvariantError("Library entry ID must be a valid UUID");
   }
 
-  if (typeof candidate.userId !== "string" || candidate.userId.trim().length === 0) {
-    throw new MediaLibraryInvariantError("Library entry userId must be a non-empty string");
+  if (!isValidUuid(candidate.userId)) {
+    throw new MediaLibraryInvariantError("Library entry userId must be a valid UUID");
   }
 
   if (!isCanonicalMediaId(candidate.mediaId)) {
@@ -919,6 +1141,7 @@ export function validateMediaLibraryEntry(input: unknown): MediaLibraryEntry {
   if (candidate.score !== null && candidate.score !== undefined) {
     if (
       typeof candidate.score !== "number" ||
+      !Number.isFinite(candidate.score) ||
       !Number.isInteger(candidate.score) ||
       candidate.score < 1 ||
       candidate.score > 10
@@ -929,6 +1152,7 @@ export function validateMediaLibraryEntry(input: unknown): MediaLibraryEntry {
 
   if (
     typeof candidate.rewatchCount !== "number" ||
+    !Number.isFinite(candidate.rewatchCount) ||
     !Number.isInteger(candidate.rewatchCount) ||
     candidate.rewatchCount < 0
   ) {
@@ -945,6 +1169,26 @@ export function validateMediaLibraryEntry(input: unknown): MediaLibraryEntry {
     }
   }
 
+  if (candidate.startedAt !== null && candidate.startedAt !== undefined) {
+    if (typeof candidate.startedAt !== "string" || Number.isNaN(Date.parse(candidate.startedAt))) {
+      throw new MediaLibraryInvariantError("startedAt must be a valid date string or null");
+    }
+  }
+
+  if (candidate.completedAt !== null && candidate.completedAt !== undefined) {
+    if (typeof candidate.completedAt !== "string" || Number.isNaN(Date.parse(candidate.completedAt))) {
+      throw new MediaLibraryInvariantError("completedAt must be a valid date string or null");
+    }
+  }
+
+  if (typeof candidate.createdAt !== "string" || Number.isNaN(Date.parse(candidate.createdAt))) {
+    throw new MediaLibraryInvariantError("createdAt must be a valid timestamp string");
+  }
+
+  if (typeof candidate.updatedAt !== "string" || Number.isNaN(Date.parse(candidate.updatedAt))) {
+    throw new MediaLibraryInvariantError("updatedAt must be a valid timestamp string");
+  }
+
   if (!candidate.progress || typeof candidate.progress !== "object" || Array.isArray(candidate.progress)) {
     throw new MediaLibraryInvariantError("Progress must be an object");
   }
@@ -956,6 +1200,7 @@ export function validateMediaLibraryEntry(input: unknown): MediaLibraryEntry {
   if (candidate.mediaKind === "anime") {
     if (
       typeof progress.episodesWatched !== "number" ||
+      !Number.isFinite(progress.episodesWatched) ||
       !Number.isInteger(progress.episodesWatched) ||
       progress.episodesWatched < 0
     ) {
@@ -964,9 +1209,11 @@ export function validateMediaLibraryEntry(input: unknown): MediaLibraryEntry {
   } else if (candidate.mediaKind === "manga") {
     if (
       typeof progress.chaptersRead !== "number" ||
+      !Number.isFinite(progress.chaptersRead) ||
       !Number.isInteger(progress.chaptersRead) ||
       progress.chaptersRead < 0 ||
       typeof progress.volumesRead !== "number" ||
+      !Number.isFinite(progress.volumesRead) ||
       !Number.isInteger(progress.volumesRead) ||
       progress.volumesRead < 0
     ) {
@@ -979,12 +1226,15 @@ export function validateMediaLibraryEntry(input: unknown): MediaLibraryEntry {
   } else if (candidate.mediaKind === "tv") {
     if (
       typeof progress.seasonNumber !== "number" ||
+      !Number.isFinite(progress.seasonNumber) ||
       !Number.isInteger(progress.seasonNumber) ||
       progress.seasonNumber < 0 ||
       typeof progress.episodeNumber !== "number" ||
+      !Number.isFinite(progress.episodeNumber) ||
       !Number.isInteger(progress.episodeNumber) ||
       progress.episodeNumber < 0 ||
       typeof progress.episodesWatched !== "number" ||
+      !Number.isFinite(progress.episodesWatched) ||
       !Number.isInteger(progress.episodesWatched) ||
       progress.episodesWatched < 0
     ) {
@@ -1002,6 +1252,33 @@ export function validateMediaLibraryEntry(input: unknown): MediaLibraryEntry {
       candidate.episodeProgress.length > 0
     ) {
       throw new MediaLibraryInvariantError("Only anime and TV entries can carry episodeProgress");
+    }
+    for (const ep of candidate.episodeProgress) {
+      if (!ep || typeof ep !== "object" || Array.isArray(ep)) {
+        throw new MediaLibraryInvariantError("Episode progress items must be non-null objects");
+      }
+      const epRecord = ep as Record<string, unknown>;
+      if (
+        typeof epRecord.seasonNumber !== "number" ||
+        !Number.isFinite(epRecord.seasonNumber) ||
+        !Number.isInteger(epRecord.seasonNumber) ||
+        epRecord.seasonNumber < 0
+      ) {
+        throw new MediaLibraryInvariantError("Episode seasonNumber must be a non-negative integer");
+      }
+      if (
+        typeof epRecord.episodeNumber !== "number" ||
+        !Number.isFinite(epRecord.episodeNumber) ||
+        !Number.isInteger(epRecord.episodeNumber) ||
+        epRecord.episodeNumber <= 0
+      ) {
+        throw new MediaLibraryInvariantError("Episode episodeNumber must be a positive integer");
+      }
+      if (epRecord.watchedAt !== null && epRecord.watchedAt !== undefined) {
+        if (typeof epRecord.watchedAt !== "string" || Number.isNaN(Date.parse(epRecord.watchedAt))) {
+          throw new MediaLibraryInvariantError("Episode watchedAt must be a valid date string or null");
+        }
+      }
     }
   }
 

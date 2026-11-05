@@ -1,39 +1,64 @@
 # Phase 2B Migration & Recovery Procedure
 
-- **Status:** Approved for Phase 2B Corrective Pass
-- **Scope:** Additive canonical media schema, AniList backfill, quarantine ledger, and safe rollback.
+- **Status:** Approved for Phase 2B Final Corrective Pass
+- **Scope:** Additive canonical media schema, AniList backfill, conflict handling, quarantine ledger, and safe recovery/rollback.
 
 ---
 
-## 1. Architecture & Migration Order
+## 1. What the Migration Creates and Backfills
 
-The Phase 2B migrations are strictly **additive**. Legacy tables (`user_anime`, `user_anime_episodes`, `catalog_cache`) remain authoritative throughout Phase 2B. No application runtime repositories or routes read or write from the new canonical tables until an explicit cutover in Phase 2C.
+The Phase 2B migrations are strictly **additive**. Legacy tables (`public.user_anime`, `public.user_anime_episodes`, and `public.catalog_cache`) remain authoritative throughout Phase 2B. No application runtime repositories or routes read or write from the new canonical tables until an explicit, separately approved cutover in Phase 2C.
 
-### Execution Order:
-1. `20261021000000_create_catalog_cache.sql` (Pre-existing catalog cache table)
-2. `20261105000000_create_canonical_media_schema.sql` (Additive canonical media, details, user_media, and episode history tables)
-3. `20261105000001_backfill_canonical_library.sql` (Functions `deterministic_anilist_media_id`, `backfill_phase2b`, and validation)
+### Objects Created:
+1. **Canonical Schema Tables (`20261105000000_create_canonical_media_schema.sql`):**
+   - `public.media`: Central identity entity constrained to `'anime'`, `'manga'`, `'movie'`, `'tv'`.
+   - `public.media_external_ids`: Provider mappings (AniList, Kitsu, TMDB, MAL, MangaDex).
+   - `public.media_titles`: Multilingual title sets with unique primary title enforcement.
+   - `public.media_artwork`: Provider artwork with roles (`poster`, `backdrop`, `banner`, `logo`) and focal points.
+   - `public.media_anime_details`: Anime-specific format metadata (episodes, duration, season, studios).
+   - `public.media_manga_details`: Manga-specific format metadata (chapters, volumes, authors, artists).
+   - `public.media_movie_details`: Movie-specific metadata (runtime, production companies, cast/crew JSON).
+   - `public.media_tv_details`: TV-specific metadata (seasons, episodes, networks, next episode JSON).
+   - `public.user_media`: User library tracking with kind-specific progress constraints (`episodes_watched`, `chapters_read`, `volumes_read`, `movie_watched`, TV fields), unique keys `(id)`, `(user_id, media_id)`, and composite foreign key `(media_id, media_kind)`.
+   - `public.user_media_episodes`: Granular episode watch history constrained to `'anime'` and `'tv'` kinds, bound to `user_media` via declarative composite foreign key `(user_media_id, user_id, media_kind)`.
+   - `public.media_backfill_issues`: Diagnostic ledger quarantining malformed, conflicting, or missing legacy rows.
+2. **Database Functions (`20261105000001_backfill_canonical_library.sql`):**
+   - `public.deterministic_anilist_media_id(integer)`: Immutable UUIDv5 generator for AniList IDs.
+   - `public.backfill_phase2b(uuid)`: Idempotent backfill engine with strict conflict detection.
+   - `public.validate_phase2b()`: Read-only data integrity verification snapshot.
 
 ---
 
-## 2. Preconditions & Backup Requirements
+## 2. Transactional Boundaries
+
+- **DDL Execution:** Each migration file executes inside its own migration transaction. If a table creation or constraint fails during migration application, all schema changes in that migration roll back atomically.
+- **Backfill Execution:** `public.backfill_phase2b(p_run_id)` is a PL/pgSQL function. A single invocation runs within an atomic transaction. If an unhandled database exception occurs, all inserts from that run roll back.
+- **Defensive Error Handling:** Rather than raising unhandled runtime errors on invalid user data, the backfill identifies anomalies and inserts them into `public.media_backfill_issues`. This allows valid records to migrate successfully while isolating problematic rows for review.
+
+---
+
+## 3. Preconditions & Backup Requirements
 
 ### Preconditions
 - PostgreSQL 15+ with `gen_random_uuid()` / `pgcrypto`.
 - Schema `public` has existing `user_anime`, `user_anime_episodes`, and `catalog_cache`.
 - User authentication references `auth.users (id)`.
-- Application runs against existing legacy tables; no live cutover during this phase.
+- Application runs exclusively against existing legacy tables; no live cutover during Phase 2B.
 
 ### Backup Requirements
-Before executing `backfill_phase2b()` in production or staging:
+Before executing `backfill_phase2b()` in staging or production:
 ```bash
-pg_dump -h <host> -U <user> -d <db> -t public.user_anime -t public.user_anime_episodes -t public.catalog_cache > kaze_legacy_backup_$(date +%Y%m%d_%H%M%S).sql
+pg_dump -h <host> -U <user> -d <db> \
+  -t public.user_anime \
+  -t public.user_anime_episodes \
+  -t public.catalog_cache \
+  > kaze_legacy_backup_$(date +%Y%m%d_%H%M%S).sql
 ```
-*Note: Because the migration never drops or mutates legacy rows, legacy data remains untouched even if the backfill encounters errors.*
+*Note: Because the backfill migration never drops, alters, or mutates legacy rows, legacy data remains untouched even if errors occur.*
 
 ---
 
-## 3. Quarantined Records Inspection
+## 4. Quarantined Records Inspection
 
 Any row with malformed, conflicting, or missing metadata is preserved in `public.media_backfill_issues`.
 
@@ -41,43 +66,77 @@ Any row with malformed, conflicting, or missing metadata is preserved in `public
 ```sql
 select reason, count(*) as issue_count
 from public.media_backfill_issues
+where resolved_at is null
 group by reason
 order by issue_count desc;
 ```
 
-### Inspecting Specific Quarantine Reasons:
-- **Missing Catalog Metadata (Unresolved Movie vs TV Series):**
-  ```sql
-  select legacy_id, details
-  from public.media_backfill_issues
-  where reason = 'missing-catalog-cache';
-  ```
-- **Conflicting Existing Media or Mappings:**
-  ```sql
-  select legacy_table, legacy_id, reason, details
-  from public.media_backfill_issues
-  where reason in ('conflicting-canonical-media-kind', 'conflicting-provider-mapping', 'conflicting-library-progress');
-  ```
+### Inspecting Specific Quarantine Categories:
+1. **Missing or Inconclusive Catalog Cache Metadata:**
+   ```sql
+   select legacy_id, details
+   from public.media_backfill_issues
+   where reason in ('missing-catalog-cache', 'malformed-catalog-cache', 'conflicting-catalog-cache')
+     and resolved_at is null;
+   ```
+2. **Library Entity Conflicts (Primary ID & Alternate Key):**
+   ```sql
+   select legacy_table, legacy_id, reason, details
+   from public.media_backfill_issues
+   where reason in (
+     'conflicting-library-user-ownership',
+     'conflicting-library-media-id',
+     'conflicting-library-media-kind',
+     'conflicting-library-status',
+     'conflicting-library-progress',
+     'conflicting-library-score',
+     'conflicting-library-notes',
+     'conflicting-library-favorite',
+     'conflicting-library-dates',
+     'conflicting-library-timestamps',
+     'conflicting-alternate-key-library',
+     'conflicting-alternate-key-id'
+   ) and resolved_at is null;
+   ```
+3. **Episode Entity Conflicts:**
+   ```sql
+   select legacy_table, legacy_id, reason, details
+   from public.media_backfill_issues
+   where reason in (
+     'conflicting-episode-parent',
+     'conflicting-episode-user-ownership',
+     'conflicting-episode-number',
+     'conflicting-episode-watched-at',
+     'conflicting-episode-created-at',
+     'conflicting-alternate-key-episode',
+     'conflicting-alternate-key-episode-id',
+     'movie-episode-history',
+     'manga-episode-history'
+   ) and resolved_at is null;
+   ```
 
 ---
 
-## 4. Resuming a Partial Backfill & Rerunning
+## 5. Correcting Missing Metadata & Resuming Partial Backfills
 
-The migration function `public.backfill_phase2b(p_run_id)` is **fully idempotent and non-destructive**:
-```sql
-select public.backfill_phase2b();
-```
-
-- **Rerun Behavior:**
-  - If a canonical row or library entry already exists with identical data, it is treated as a successful idempotent rerun (no duplicate rows, no errors).
-  - If conflicting data exists, it is recorded in `media_backfill_issues` and user data is never overwritten.
-  - If an item was previously quarantined under `missing-catalog-cache` and the metadata has since been populated in `catalog_cache`, the rerun automatically classifies the row as `movie` or `anime`, inserts the canonical records, and marks the earlier issue as `resolved_at = now()`.
+If rows were quarantined due to missing or malformed catalog cache entries:
+1. **Hydrate Cache:**
+   Populate `public.catalog_cache` with valid JSON payloads for the quarantined `anilist_id` values:
+   - Key: `details:<id>` or `summary:<id>`
+   - Payload: must include `"format": "MOVIE"` or a series format (`"TV"`, `"OVA"`, etc.)
+2. **Safely Rerun the Backfill:**
+   ```sql
+   select public.backfill_phase2b();
+   ```
+   - **Idempotency:** Any canonical row or library entry that already exists with identical data is treated as an idempotent rerun and skipped without re-inserting.
+   - **Conflict Protection:** Any conflicting rows remain quarantined; existing data is never overwritten.
+   - **Automatic Resolution:** Rows previously quarantined under `missing-catalog-cache`, `malformed-catalog-cache`, or `conflicting-catalog-cache` that now have unambiguous metadata are inserted, and their prior issue records are automatically updated with `resolved_at = now()`.
 
 ---
 
-## 5. Verification: Counts & Field Equality
+## 6. Identifying Partially Completed Runs & Verification
 
-Run the built-in validation function:
+To verify row counts, foreign key integrity, and progress shapes, run:
 ```sql
 select public.validate_phase2b();
 ```
@@ -95,17 +154,30 @@ Expected healthy output shape:
   "missing_media_fk": 0,
   "invalid_progress_rows": 0,
   "orphan_canonical_episodes": 0,
+  "legacy_library_ids_missing_from_canonical": 0,
+  "legacy_episode_ids_missing_from_canonical": 0,
   "per_user_count_mismatches": 0,
   "backfill_issues": 0
 }
 ```
-*If `backfill_issues > 0`, inspect `public.media_backfill_issues` to review quarantined rows.*
+
+If `legacy_library_ids_missing_from_canonical` or `backfill_issues` is greater than 0:
+- Cross-reference `select * from public.media_backfill_issues where resolved_at is null;` to inspect why those specific rows were quarantined.
 
 ---
 
-## 6. Non-Destructive Rollback Procedure
+## 7. What Must NOT Be Manually Deleted or Overwritten
 
-If you must roll back Phase 2B, drop the additive canonical objects in reverse dependency order. **Do NOT drop or modify legacy tables.**
+- **Do NOT truncate or delete from legacy tables:** `public.user_anime`, `public.user_anime_episodes`, and `public.catalog_cache` must remain untouched.
+- **Do NOT manually force-insert or mutate `user_media` rows:** The check constraint `user_media_progress_shape` strictly enforces mutually exclusive columns based on `media_kind`. Manually populating `episodes_watched` on a movie or `movie_watched` on an anime will violate database check constraints.
+- **Do NOT delete from `public.media_backfill_issues`:** It serves as an audit ledger. Issues are resolved by setting `resolved_at = now()`, not by deletion.
+
+---
+
+## 8. Rollback Procedures & Their Strict Limits
+
+### Pre-Cutover Rollback (Phase 2B Safe Window)
+During Phase 2B, the application is **not writing to canonical tables**. The canonical tables contain only backfilled copies of legacy data. Therefore, rolling back Phase 2B involves dropping only the new additive objects in reverse dependency order:
 
 ```sql
 begin;
@@ -131,20 +203,17 @@ drop table if exists public.media cascade;
 commit;
 ```
 
-### Legacy State After Rollback
-- `public.user_anime`: Unchanged and fully operational.
-- `public.user_anime_episodes`: Unchanged and fully operational.
-- `public.catalog_cache`: Unchanged and fully operational.
-- The Kaze application continues running with zero downtime or missing user data.
+**State After Pre-Cutover Rollback:**
+- All legacy tables (`user_anime`, `user_anime_episodes`, `catalog_cache`) are completely unchanged.
+- The Kaze application continues running with zero disruption and zero lost progress.
 
----
-
-## 7. Manual Recovery Scenarios
-
-The following scenarios require manual recovery:
-1. **Manual external-ID mappings:** If manual mappings were linked in `public.media_external_ids` prior to a rollback, export them before executing the rollback SQL:
-   ```sql
-   copy (select * from public.media_external_ids) to '/tmp/kaze_external_ids.csv' with csv header;
-   ```
-2. **Conflicting legacy records:** Records flagged with `conflicting-media-kind` (e.g. historical bugs where the same AniList ID was saved as both anime and manga by different users) must be manually reviewed before they can be assigned a single canonical kind.
-
+### Post-Cutover Rollback Limits (CRITICAL WARNING)
+> [!CAUTION]
+> Once the application is cut over in Phase 2C to write new user tracking data directly to `public.user_media` and `public.user_media_episodes`, **the above rollback script is NO LONGER SAFE**.
+>
+> Executing `drop table user_media cascade` after cutover would permanently destroy any user progress, ratings, or notes recorded since the cutover date.
+>
+> A post-cutover rollback requires:
+> 1. Exporting all newly created/updated canonical rows.
+> 2. Dual-writing or reverse-backfilling canonical data back into `public.user_anime` and `public.user_anime_episodes`.
+> 3. Verifying legacy row parity before any canonical table can be altered.

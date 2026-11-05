@@ -7,10 +7,17 @@ import {
   validateMediaLibraryEntry,
   MediaLibraryInvariantError,
   type BackfillOptions,
+  type CatalogCacheEntry,
   type LegacyUserAnimeEpisodeRow,
   type LegacyUserAnimeRow,
 } from "@/lib/media/persistence";
-import { toCanonicalMediaId, type CanonicalMediaId, type MediaLibraryEntry, type MediaSummary } from "@/types/media";
+import {
+  toCanonicalMediaId,
+  type CanonicalMediaId,
+  type MediaEpisodeProgress,
+  type MediaLibraryEntry,
+  type MediaSummary,
+} from "@/types/media";
 
 const TEST_MEDIA_UUID = "123e4567-e89b-42d3-a456-426614174000";
 const OTHER_MEDIA_UUID = "223e4567-e89b-42d3-a456-426614174000";
@@ -243,6 +250,81 @@ describe("2. AniList movie classification during backfill", () => {
     );
   });
 
+  it("quarantines records when cache payload is not an object or null", () => {
+    const userAnime = [makeLegacyAnime("lib-null-payload", 508)];
+    const options: BackfillOptions = {
+      catalogCache: new Map([[508, null as unknown as CatalogCacheEntry]]),
+    };
+
+    const plan = planLegacyBackfill(userAnime, [], options);
+    expect(plan.media).toHaveLength(0);
+    expect(plan.userMedia).toHaveLength(0);
+    expect(plan.issues).toContainEqual(
+      expect.objectContaining({
+        legacyTable: "user_anime",
+        legacyId: "lib-null-payload",
+        reason: "malformed-catalog-cache",
+      }),
+    );
+  });
+
+  it("quarantines records when format is missing, empty, or unrecognised", () => {
+    const userAnime1 = [makeLegacyAnime("lib-empty-fmt", 509)];
+    const userAnime2 = [makeLegacyAnime("lib-invalid-fmt", 510)];
+
+    const plan1 = planLegacyBackfill(userAnime1, [], {
+      catalogCache: new Map([[509, { format: "   " }]]),
+    });
+    expect(plan1.issues).toContainEqual(
+      expect.objectContaining({
+        legacyTable: "user_anime",
+        legacyId: "lib-empty-fmt",
+        reason: "malformed-catalog-cache",
+      }),
+    );
+
+    const plan2 = planLegacyBackfill(userAnime2, [], {
+      catalogCache: new Map([[510, { format: "UNRECOGNIZED_FORMAT" }]]),
+    });
+    expect(plan2.issues).toContainEqual(
+      expect.objectContaining({
+        legacyTable: "user_anime",
+        legacyId: "lib-invalid-fmt",
+        reason: "malformed-catalog-cache",
+      }),
+    );
+  });
+
+  it("quarantines records when cache contains mixed valid and malformed entries", () => {
+    const userAnime = [makeLegacyAnime("lib-mixed", 511)];
+    const options: BackfillOptions = {
+      catalogCache: new Map([[511, [{ format: "TV" }, { format: null }]]]),
+    };
+
+    const plan = planLegacyBackfill(userAnime, [], options);
+    expect(plan.media).toHaveLength(0);
+    expect(plan.userMedia).toHaveLength(0);
+    expect(plan.issues).toContainEqual(
+      expect.objectContaining({
+        legacyTable: "user_anime",
+        legacyId: "lib-mixed",
+        reason: "malformed-catalog-cache",
+      }),
+    );
+  });
+
+  it("accepts repeated cache entries with identical valid format", () => {
+    const userAnime = [makeLegacyAnime("lib-repeated", 512, { progress: 4 })];
+    const options: BackfillOptions = {
+      catalogCache: new Map([[512, [{ format: "TV" }, { format: "TV" }]]]),
+    };
+
+    const plan = planLegacyBackfill(userAnime, [], options);
+    expect(plan.issues).toHaveLength(0);
+    expect(plan.media[0]?.kind).toBe("anime");
+    expect(plan.userMedia[0]?.mediaKind).toBe("anime");
+  });
+
   it("migrates cleanly on rerun once metadata becomes available", () => {
     const userAnime = [makeLegacyAnime("lib-rerun", 507)];
     // Run 1: Missing cache
@@ -427,6 +509,384 @@ describe("3. Strict conflict handling", () => {
     );
   });
 
+  it("records conflict when existing library row has conflicting status, score, or notes", () => {
+    const userAnime = [makeLegacyAnime("lib-1", 607, { status: "watching", score: 8, notes: "Original" })];
+    const derivedMediaId = deterministicAniListMediaId(607);
+
+    // Conflict on status
+    const planStatus = planLegacyBackfill(userAnime, [], {
+      catalogCache: new Map([[607, { format: "TV" }]]),
+      existingUserMedia: new Map([
+        [
+          "lib-1",
+          {
+            id: "lib-1",
+            userId: "user-1",
+            mediaId: derivedMediaId,
+            mediaKind: "anime",
+            status: "completed", // conflicts
+            progress: { kind: "anime", episodesWatched: 5 },
+            score: 8,
+            notes: "Original",
+          },
+        ],
+      ]),
+    });
+    expect(planStatus.issues).toContainEqual(
+      expect.objectContaining({ reason: "conflicting-library-status" }),
+    );
+
+    // Conflict on score
+    const planScore = planLegacyBackfill(userAnime, [], {
+      catalogCache: new Map([[607, { format: "TV" }]]),
+      existingUserMedia: new Map([
+        [
+          "lib-1",
+          {
+            id: "lib-1",
+            userId: "user-1",
+            mediaId: derivedMediaId,
+            mediaKind: "anime",
+            status: "watching",
+            progress: { kind: "anime", episodesWatched: 5 },
+            score: 5, // conflicts
+            notes: "Original",
+          },
+        ],
+      ]),
+    });
+    expect(planScore.issues).toContainEqual(
+      expect.objectContaining({ reason: "conflicting-library-score" }),
+    );
+
+    // Conflict on notes
+    const planNotes = planLegacyBackfill(userAnime, [], {
+      catalogCache: new Map([[607, { format: "TV" }]]),
+      existingUserMedia: new Map([
+        [
+          "lib-1",
+          {
+            id: "lib-1",
+            userId: "user-1",
+            mediaId: derivedMediaId,
+            mediaKind: "anime",
+            status: "watching",
+            progress: { kind: "anime", episodesWatched: 5 },
+            score: 8,
+            notes: "Different note", // conflicts
+          },
+        ],
+      ]),
+    });
+    expect(planNotes.issues).toContainEqual(
+      expect.objectContaining({ reason: "conflicting-library-notes" }),
+    );
+  });
+
+  it("records conflict when existing library row has conflicting favorite, rewatch count, or dates", () => {
+    const userAnime = [
+      makeLegacyAnime("lib-1", 608, {
+        startedAt: "2026-01-01",
+        completedAt: null,
+      }),
+    ];
+    const derivedMediaId = deterministicAniListMediaId(608);
+
+    // Conflict on favorite
+    const planFavorite = planLegacyBackfill(userAnime, [], {
+      catalogCache: new Map([[608, { format: "TV" }]]),
+      existingUserMedia: new Map([
+        [
+          "lib-1",
+          {
+            id: "lib-1",
+            userId: "user-1",
+            mediaId: derivedMediaId,
+            mediaKind: "anime",
+            status: "watching",
+            progress: { kind: "anime", episodesWatched: 5 },
+            score: 8,
+            favorite: true, // conflicts with backfill default false
+          },
+        ],
+      ]),
+    });
+    expect(planFavorite.issues).toContainEqual(
+      expect.objectContaining({ reason: "conflicting-library-favorite" }),
+    );
+
+    // Conflict on rewatch count
+    const planRewatch = planLegacyBackfill(userAnime, [], {
+      catalogCache: new Map([[608, { format: "TV" }]]),
+      existingUserMedia: new Map([
+        [
+          "lib-1",
+          {
+            id: "lib-1",
+            userId: "user-1",
+            mediaId: derivedMediaId,
+            mediaKind: "anime",
+            status: "watching",
+            progress: { kind: "anime", episodesWatched: 5 },
+            score: 8,
+            rewatchCount: 2, // conflicts with backfill default 0
+          },
+        ],
+      ]),
+    });
+    expect(planRewatch.issues).toContainEqual(
+      expect.objectContaining({ reason: "conflicting-library-rewatch-count" }),
+    );
+
+    // Conflict on dates
+    const planDates = planLegacyBackfill(userAnime, [], {
+      catalogCache: new Map([[608, { format: "TV" }]]),
+      existingUserMedia: new Map([
+        [
+          "lib-1",
+          {
+            id: "lib-1",
+            userId: "user-1",
+            mediaId: derivedMediaId,
+            mediaKind: "anime",
+            status: "watching",
+            progress: { kind: "anime", episodesWatched: 5 },
+            score: 8,
+            startedAt: "2025-05-05", // conflicts with 2026-01-01
+          },
+        ],
+      ]),
+    });
+    expect(planDates.issues).toContainEqual(
+      expect.objectContaining({ reason: "conflicting-library-dates" }),
+    );
+  });
+
+  it("handles conflict against alternate unique key (userId, mediaId) with different primary ID", () => {
+    const userAnime = [makeLegacyAnime("lib-new-id", 609, { progress: 5 })];
+    const derivedMediaId = deterministicAniListMediaId(609);
+
+    // 1. Alternate key conflict with conflicting progress
+    const planConflicting = planLegacyBackfill(userAnime, [], {
+      catalogCache: new Map([[609, { format: "TV" }]]),
+      existingUserMedia: new Map([
+        [
+          "user-1:" + derivedMediaId,
+          {
+            id: "lib-different-uuid",
+            userId: "user-1",
+            mediaId: derivedMediaId,
+            mediaKind: "anime",
+            status: "watching",
+            progress: { kind: "anime", episodesWatched: 20 }, // conflicts
+            score: 8,
+          },
+        ],
+      ]),
+    });
+    expect(planConflicting.issues).toContainEqual(
+      expect.objectContaining({
+        reason: "conflicting-alternate-key-library",
+        details: expect.objectContaining({
+          libraryId: "lib-new-id",
+          existingId: "lib-different-uuid",
+        }),
+      }),
+    );
+    expect(planConflicting.userMedia).toHaveLength(0);
+
+    // 2. Alternate key conflict where all fields match identically but ID is different
+    const planIdenticalFields = planLegacyBackfill(userAnime, [], {
+      catalogCache: new Map([[609, { format: "TV" }]]),
+      existingUserMedia: new Map([
+        [
+          "user-1:" + derivedMediaId,
+          {
+            id: "lib-different-uuid",
+            userId: "user-1",
+            mediaId: derivedMediaId,
+            mediaKind: "anime",
+            status: "watching",
+            progress: { kind: "anime", episodesWatched: 5 }, // identical
+            score: 8,
+            notes: "A note",
+            favorite: false,
+            rewatchCount: 0,
+            startedAt: "2026-01-01",
+            completedAt: null,
+            createdAt: "2026-01-01T00:00:00.000Z",
+            updatedAt: "2026-01-01T00:00:00.000Z",
+          },
+        ],
+      ]),
+    });
+    expect(planIdenticalFields.issues).toContainEqual(
+      expect.objectContaining({
+        reason: "conflicting-alternate-key-id",
+        details: expect.objectContaining({
+          libraryId: "lib-new-id",
+          existingId: "lib-different-uuid",
+        }),
+      }),
+    );
+    expect(planIdenticalFields.userMedia).toHaveLength(0);
+  });
+
+  it("handles episode conflicts against primary ID and alternate unique key", () => {
+    const userAnime = [makeLegacyAnime("lib-1", 610)];
+    const episodes = [makeLegacyEpisode("ep-1", 610, 1)];
+
+    // 1. Existing episode with different number
+    const planNumber = planLegacyBackfill(userAnime, episodes, {
+      catalogCache: new Map([[610, { format: "TV" }]]),
+      existingEpisodes: new Map([
+        [
+          "ep-1",
+          {
+            id: "ep-1",
+            userId: "user-1",
+            userMediaId: "lib-1",
+            seasonNumber: 0,
+            episodeNumber: 99, // conflicts
+            watchedAt: "2026-01-01T12:00:00.000Z",
+          },
+        ],
+      ]),
+    });
+    expect(planNumber.issues).toContainEqual(
+      expect.objectContaining({ reason: "conflicting-episode-number" }),
+    );
+
+    // 2. Existing episode with different watchedAt
+    const planWatched = planLegacyBackfill(userAnime, episodes, {
+      catalogCache: new Map([[610, { format: "TV" }]]),
+      existingEpisodes: new Map([
+        [
+          "ep-1",
+          {
+            id: "ep-1",
+            userId: "user-1",
+            userMediaId: "lib-1",
+            seasonNumber: 0,
+            episodeNumber: 1,
+            watchedAt: "2026-05-01T00:00:00.000Z", // conflicts
+          },
+        ],
+      ]),
+    });
+    expect(planWatched.issues).toContainEqual(
+      expect.objectContaining({ reason: "conflicting-episode-watched-at" }),
+    );
+
+    // 3. Alternate key (userMediaId, season, episodeNumber) conflict with different primary ID (conflicting fields)
+    const planAltConflicting = planLegacyBackfill(userAnime, episodes, {
+      catalogCache: new Map([[610, { format: "TV" }]]),
+      existingEpisodes: new Map([
+        [
+          "lib-1:0:1",
+          {
+            id: "ep-different-id",
+            userId: "user-2", // conflicts
+            userMediaId: "lib-1",
+            seasonNumber: 0,
+            episodeNumber: 1,
+            watchedAt: "2026-01-01T12:00:00.000Z",
+          },
+        ],
+      ]),
+    });
+    expect(planAltConflicting.issues).toContainEqual(
+      expect.objectContaining({ reason: "conflicting-alternate-key-episode" }),
+    );
+
+    // 4. Alternate key conflict with identical fields but different ID
+    const planAltIdentical = planLegacyBackfill(userAnime, episodes, {
+      catalogCache: new Map([[610, { format: "TV" }]]),
+      existingEpisodes: new Map([
+        [
+          "lib-1:0:1",
+          {
+            id: "ep-different-id",
+            userId: "user-1",
+            userMediaId: "lib-1",
+            seasonNumber: 0,
+            episodeNumber: 1,
+            watchedAt: "2026-01-01T12:00:00.000Z",
+            createdAt: "2026-01-01T12:00:00.000Z",
+          },
+        ],
+      ]),
+    });
+    expect(planAltIdentical.issues).toContainEqual(
+      expect.objectContaining({ reason: "conflicting-alternate-key-episode-id" }),
+    );
+  });
+
+  it("handles repeated execution after successful migration without duplicating or raising issues", () => {
+    const userAnime = [makeLegacyAnime("lib-1", 611, { progress: 5 })];
+    const episodes = [makeLegacyEpisode("ep-1", 611, 1)];
+    const derivedMediaId = deterministicAniListMediaId(611);
+
+    // Simulate complete prior successful migration in destination tables
+    const options: BackfillOptions = {
+      catalogCache: new Map([[611, { format: "TV" }]]),
+      existingMedia: new Map([[derivedMediaId, { id: derivedMediaId, kind: "anime" }]]),
+      existingUserMedia: new Map([
+        [
+          "lib-1",
+          {
+            id: "lib-1",
+            userId: "user-1",
+            mediaId: derivedMediaId,
+            mediaKind: "anime",
+            status: "watching",
+            progress: { kind: "anime", episodesWatched: 5 },
+            score: 8,
+            notes: "A note",
+            favorite: false,
+            rewatchCount: 0,
+            startedAt: "2026-01-01",
+            completedAt: null,
+            createdAt: "2026-01-01T00:00:00.000Z",
+            updatedAt: "2026-01-01T00:00:00.000Z",
+          },
+        ],
+      ]),
+      existingEpisodes: new Map([
+        [
+          "ep-1",
+          {
+            id: "ep-1",
+            userId: "user-1",
+            userMediaId: "lib-1",
+            seasonNumber: 0,
+            episodeNumber: 1,
+            watchedAt: "2026-01-01T12:00:00.000Z",
+            createdAt: "2026-01-01T12:00:00.000Z",
+          },
+        ],
+      ]),
+    };
+
+    const rerun = planLegacyBackfill(userAnime, episodes, options);
+    expect(rerun.issues).toHaveLength(0);
+    expect(rerun.userMedia).toHaveLength(0);
+    expect(rerun.episodes).toHaveLength(0);
+  });
+
+  it("handles repeated execution after quarantine without inserting rows", () => {
+    const userAnime = [makeLegacyAnime("lib-quarantine", 612)];
+    // No metadata available -> quarantined
+    const run1 = planLegacyBackfill(userAnime, []);
+    expect(run1.issues).toHaveLength(1);
+    expect(run1.userMedia).toHaveLength(0);
+
+    // Rerun without new metadata -> still quarantined, still 0 inserts
+    const run2 = planLegacyBackfill(userAnime, []);
+    expect(run2.issues).toHaveLength(1);
+    expect(run2.userMedia).toHaveLength(0);
+  });
+
   it("handles partial migration followed by a clean rerun", () => {
     const row1 = makeLegacyAnime("lib-1", 701, { progress: 3 });
     const row2 = makeLegacyAnime("lib-2", 702, { progress: 7 });
@@ -465,9 +925,12 @@ describe("3. Strict conflict handling", () => {
 });
 
 describe("4. Persistence validation boundary", () => {
+  const VALID_ENTRY_UUID = "123e4567-e89b-42d3-a456-426614174001";
+  const VALID_USER_UUID = "123e4567-e89b-42d3-a456-426614174002";
+
   const validEntry: MediaLibraryEntry = {
-    id: "entry-1",
-    userId: "user-1",
+    id: VALID_ENTRY_UUID,
+    userId: VALID_USER_UUID,
     mediaId: mediaId(TEST_MEDIA_UUID),
     mediaKind: "anime",
     status: "watching",
@@ -581,7 +1044,7 @@ describe("4. Persistence validation boundary", () => {
     ).toThrow(MediaLibraryInvariantError);
   });
 
-  it("rejects invalid score ranges", () => {
+  it("rejects invalid score ranges and non-finite values", () => {
     expect(() => validateMediaLibraryEntry({ ...validEntry, score: 0 })).toThrow(
       MediaLibraryInvariantError,
     );
@@ -589,6 +1052,111 @@ describe("4. Persistence validation boundary", () => {
       MediaLibraryInvariantError,
     );
     expect(() => validateMediaLibraryEntry({ ...validEntry, score: 8.5 })).toThrow(
+      MediaLibraryInvariantError,
+    );
+    expect(() => validateMediaLibraryEntry({ ...validEntry, score: NaN })).toThrow(
+      MediaLibraryInvariantError,
+    );
+    expect(() => validateMediaLibraryEntry({ ...validEntry, score: Infinity })).toThrow(
+      MediaLibraryInvariantError,
+    );
+  });
+
+  it("rejects invalid UUIDs for entry id and userId", () => {
+    expect(() => validateMediaLibraryEntry({ ...validEntry, id: "not-a-uuid" })).toThrow(
+      MediaLibraryInvariantError,
+    );
+    expect(() => validateMediaLibraryEntry({ ...validEntry, userId: "not-a-uuid" })).toThrow(
+      MediaLibraryInvariantError,
+    );
+    expect(() => validateMediaLibraryEntry({ ...validEntry, id: "" })).toThrow(
+      MediaLibraryInvariantError,
+    );
+    expect(() => validateMediaLibraryEntry({ ...validEntry, userId: "" })).toThrow(
+      MediaLibraryInvariantError,
+    );
+  });
+
+  it("rejects invalid dates and timestamps", () => {
+    expect(() => validateMediaLibraryEntry({ ...validEntry, createdAt: "invalid-date" })).toThrow(
+      MediaLibraryInvariantError,
+    );
+    expect(() => validateMediaLibraryEntry({ ...validEntry, updatedAt: "invalid-date" })).toThrow(
+      MediaLibraryInvariantError,
+    );
+    expect(() => validateMediaLibraryEntry({ ...validEntry, startedAt: "invalid-date" })).toThrow(
+      MediaLibraryInvariantError,
+    );
+    expect(() => validateMediaLibraryEntry({ ...validEntry, completedAt: "invalid-date" })).toThrow(
+      MediaLibraryInvariantError,
+    );
+  });
+
+  it("rejects invalid episodeProgress elements and shapes", () => {
+    // Non-object item
+    expect(() =>
+      validateMediaLibraryEntry({
+        ...validEntry,
+        episodeProgress: ["invalid-item" as unknown as MediaEpisodeProgress],
+      }),
+    ).toThrow(MediaLibraryInvariantError);
+
+    // Negative season number
+    expect(() =>
+      validateMediaLibraryEntry({
+        ...validEntry,
+        episodeProgress: [{ seasonNumber: -1, episodeNumber: 1, watchedAt: null }],
+      }),
+    ).toThrow(MediaLibraryInvariantError);
+
+    // Fractional season number
+    expect(() =>
+      validateMediaLibraryEntry({
+        ...validEntry,
+        episodeProgress: [{ seasonNumber: 1.5, episodeNumber: 1, watchedAt: null }],
+      }),
+    ).toThrow(MediaLibraryInvariantError);
+
+    // Zero episode number (must be > 0)
+    expect(() =>
+      validateMediaLibraryEntry({
+        ...validEntry,
+        episodeProgress: [{ seasonNumber: 0, episodeNumber: 0, watchedAt: null }],
+      }),
+    ).toThrow(MediaLibraryInvariantError);
+
+    // Negative episode number
+    expect(() =>
+      validateMediaLibraryEntry({
+        ...validEntry,
+        episodeProgress: [{ seasonNumber: 0, episodeNumber: -2, watchedAt: null }],
+      }),
+    ).toThrow(MediaLibraryInvariantError);
+
+    // Invalid watchedAt date string
+    expect(() =>
+      validateMediaLibraryEntry({
+        ...validEntry,
+        episodeProgress: [{ seasonNumber: 0, episodeNumber: 1, watchedAt: "invalid-date" }],
+      }),
+    ).toThrow(MediaLibraryInvariantError);
+
+    // Movie carrying episodeProgress
+    expect(() =>
+      validateMediaLibraryEntry({
+        ...validEntry,
+        mediaKind: "movie",
+        progress: { kind: "movie", watched: true },
+        episodeProgress: [{ seasonNumber: 0, episodeNumber: 1, watchedAt: null }],
+      }),
+    ).toThrow(MediaLibraryInvariantError);
+  });
+
+  it("rejects non-object hydrated media", () => {
+    expect(() => assertMediaLibraryItem(validEntry, "not-an-object")).toThrow(
+      MediaLibraryInvariantError,
+    );
+    expect(() => assertMediaLibraryItem(validEntry, 123)).toThrow(
       MediaLibraryInvariantError,
     );
   });

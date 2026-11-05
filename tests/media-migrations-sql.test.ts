@@ -101,8 +101,19 @@ describe("Static SQL Migration Verification", () => {
       expect(backfillSql).toContain("'conflicting-library-progress'");
       expect(backfillSql).toContain("'conflicting-library-status'");
       expect(backfillSql).toContain("'conflicting-library-score'");
+      expect(backfillSql).toContain("'conflicting-library-notes'");
+      expect(backfillSql).toContain("'conflicting-library-favorite'");
+      expect(backfillSql).toContain("'conflicting-library-dates'");
+      expect(backfillSql).toContain("'conflicting-library-timestamps'");
+      expect(backfillSql).toContain("'conflicting-alternate-key-library'");
+      expect(backfillSql).toContain("'conflicting-alternate-key-id'");
       expect(backfillSql).toContain("'conflicting-episode-parent'");
       expect(backfillSql).toContain("'conflicting-episode-user-ownership'");
+      expect(backfillSql).toContain("'conflicting-episode-number'");
+      expect(backfillSql).toContain("'conflicting-episode-watched-at'");
+      expect(backfillSql).toContain("'conflicting-episode-created-at'");
+      expect(backfillSql).toContain("'conflicting-alternate-key-episode'");
+      expect(backfillSql).toContain("'conflicting-alternate-key-episode-id'");
     });
 
     it("sets media_kind = 'anime' on user_media_episodes insertion", () => {
@@ -117,6 +128,8 @@ describe("Static SQL Migration Verification", () => {
         /update\s+public\.media_backfill_issues\s+set\s+resolved_at\s*=\s*now\(\)/i,
       );
       expect(backfillSql).toContain("'missing-catalog-cache'");
+      expect(backfillSql).toContain("'malformed-catalog-cache'");
+      expect(backfillSql).toContain("'conflicting-catalog-cache'");
     });
 
     it("defines validate_phase2b() with comprehensive data integrity checks", () => {

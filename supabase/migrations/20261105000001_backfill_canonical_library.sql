@@ -58,13 +58,19 @@ begin
   select
     c_id as anilist_id,
     count(*) as total_entries,
-    count(c_format) as entries_with_format,
-    count(distinct upper(trim(c_format))) as distinct_formats,
-    max(upper(trim(c_format))) as resolved_format
+    count(*) filter (where payload_is_object and has_nonempty_format and format_is_valid) as valid_entries,
+    count(*) filter (where not payload_is_object) as malformed_payload_entries,
+    count(*) filter (where payload_is_object and not has_nonempty_format) as missing_format_entries,
+    count(*) filter (where payload_is_object and has_nonempty_format and not format_is_valid) as invalid_format_entries,
+    count(distinct cleaned_format) filter (where payload_is_object and has_nonempty_format and format_is_valid) as distinct_valid_formats,
+    max(cleaned_format) filter (where payload_is_object and has_nonempty_format and format_is_valid) as resolved_format
   from (
     select
       (regexp_match(c.key, '^(?:details|summary):([0-9]+)$'))[1]::integer as c_id,
-      c.payload->>'format' as c_format
+      (c.payload is not null and jsonb_typeof(c.payload) = 'object') as payload_is_object,
+      (c.payload is not null and jsonb_typeof(c.payload) = 'object' and c.payload ? 'format' and c.payload->>'format' is not null and trim(c.payload->>'format') <> '') as has_nonempty_format,
+      upper(trim(c.payload->>'format')) as cleaned_format,
+      (upper(trim(c.payload->>'format')) in ('MOVIE', 'TV', 'TV_SHORT', 'OVA', 'ONA', 'SPECIAL', 'MUSIC', 'MANGA', 'ONE_SHOT', 'NOVEL')) as format_is_valid
     from public.catalog_cache c
     where c.key ~ '^(?:details|summary):[0-9]+$'
   ) sub
@@ -188,25 +194,7 @@ begin
     and (cf.anilist_id is null or cf.total_entries = 0)
   on conflict (run_id, legacy_table, legacy_id, reason) do nothing;
 
-  -- Conflicting cache metadata for the same anime
-  insert into public.media_backfill_issues
-    (run_id, legacy_table, legacy_id, reason, details)
-  select
-    p_run_id,
-    'user_anime',
-    ua.id::text,
-    'conflicting-catalog-cache',
-    jsonb_build_object(
-      'anilistId', ua.anilist_id,
-      'distinctFormats', cf.distinct_formats
-    )
-  from public.user_anime ua
-  join pg_temp.phase2b_cache_format cf on cf.anilist_id = ua.anilist_id
-  where ua.media_type = 'anime'
-    and cf.distinct_formats > 1
-  on conflict (run_id, legacy_table, legacy_id, reason) do nothing;
-
-  -- Malformed cache: Payload missing format or format is unrecognised
+  -- Malformed cache: Payload missing format, unrecognised format, or mixed valid/malformed entries
   insert into public.media_backfill_issues
     (run_id, legacy_table, legacy_id, reason, details)
   select
@@ -216,13 +204,65 @@ begin
     'malformed-catalog-cache',
     jsonb_build_object(
       'anilistId', ua.anilist_id,
-      'format', cf.resolved_format
+      'totalEntries', cf.total_entries,
+      'malformedPayloadEntries', cf.malformed_payload_entries,
+      'missingFormatEntries', cf.missing_format_entries,
+      'invalidFormatEntries', cf.invalid_format_entries,
+      'resolvedFormat', cf.resolved_format
     )
   from public.user_anime ua
   join pg_temp.phase2b_cache_format cf on cf.anilist_id = ua.anilist_id
   where ua.media_type = 'anime'
-    and cf.distinct_formats = 1
-    and cf.resolved_format not in ('MOVIE', 'TV', 'TV_SHORT', 'OVA', 'ONA', 'SPECIAL', 'MUSIC')
+    and (
+      cf.malformed_payload_entries > 0
+      or cf.missing_format_entries > 0
+      or cf.invalid_format_entries > 0
+      or cf.valid_entries = 0
+    )
+  on conflict (run_id, legacy_table, legacy_id, reason) do nothing;
+
+  -- Conflicting cache metadata for the same anime: multiple distinct valid formats
+  insert into public.media_backfill_issues
+    (run_id, legacy_table, legacy_id, reason, details)
+  select
+    p_run_id,
+    'user_anime',
+    ua.id::text,
+    'conflicting-catalog-cache',
+    jsonb_build_object(
+      'anilistId', ua.anilist_id,
+      'distinctFormats', cf.distinct_valid_formats
+    )
+  from public.user_anime ua
+  join pg_temp.phase2b_cache_format cf on cf.anilist_id = ua.anilist_id
+  where ua.media_type = 'anime'
+    and cf.distinct_valid_formats > 1
+    and cf.malformed_payload_entries = 0
+    and cf.missing_format_entries = 0
+    and cf.invalid_format_entries = 0
+  on conflict (run_id, legacy_table, legacy_id, reason) do nothing;
+
+  -- Conflicting media kind in cache: Legacy says anime but cache says comic/manga format
+  insert into public.media_backfill_issues
+    (run_id, legacy_table, legacy_id, reason, details)
+  select
+    p_run_id,
+    'user_anime',
+    ua.id::text,
+    'conflicting-media-kind-cache',
+    jsonb_build_object(
+      'anilistId', ua.anilist_id,
+      'legacyType', 'anime',
+      'cachedFormat', cf.resolved_format
+    )
+  from public.user_anime ua
+  join pg_temp.phase2b_cache_format cf on cf.anilist_id = ua.anilist_id
+  where ua.media_type = 'anime'
+    and cf.distinct_valid_formats = 1
+    and cf.malformed_payload_entries = 0
+    and cf.missing_format_entries = 0
+    and cf.invalid_format_entries = 0
+    and cf.resolved_format in ('MANGA', 'ONE_SHOT', 'NOVEL')
   on conflict (run_id, legacy_table, legacy_id, reason) do nothing;
 
   -- Manga conflict: Legacy says manga but cache says movie or anime
@@ -279,16 +319,22 @@ begin
     and (ua.score is null or ua.score between 1 and 10)
     and (ua.notes is null or char_length(ua.notes) <= 5000)
     and (
-      ua.media_type = 'manga'
+      (
+        ua.media_type = 'manga'
+        and not (
+          cf.resolved_format in ('MOVIE', 'TV', 'TV_SHORT', 'OVA', 'ONA', 'SPECIAL', 'MUSIC')
+        )
+      )
       or (
-        cf.total_entries > 0
-        and cf.distinct_formats = 1
+        ua.media_type = 'anime'
+        and cf.anilist_id is not null
+        and cf.total_entries > 0
+        and cf.malformed_payload_entries = 0
+        and cf.missing_format_entries = 0
+        and cf.invalid_format_entries = 0
+        and cf.distinct_valid_formats = 1
         and cf.resolved_format in ('MOVIE', 'TV', 'TV_SHORT', 'OVA', 'ONA', 'SPECIAL', 'MUSIC')
       )
-    )
-    and not (
-      ua.media_type = 'manga'
-      and cf.resolved_format in ('MOVIE', 'TV', 'TV_SHORT', 'OVA', 'ONA', 'SPECIAL', 'MUSIC')
     )
     and not exists (
       select 1
@@ -456,6 +502,157 @@ begin
   from pg_temp.phase2b_valid_legacy vl
   join public.user_media um on um.id = vl.id
   where um.score is distinct from vl.score
+  on conflict (run_id, legacy_table, legacy_id, reason) do nothing;
+
+  -- Existing library entry with conflicting notes
+  insert into public.media_backfill_issues
+    (run_id, legacy_table, legacy_id, reason, details)
+  select
+    p_run_id,
+    'user_anime',
+    vl.id::text,
+    'conflicting-library-notes',
+    jsonb_build_object(
+      'libraryId', um.id,
+      'existingNotes', um.notes,
+      'attemptedNotes', vl.notes
+    )
+  from pg_temp.phase2b_valid_legacy vl
+  join public.user_media um on um.id = vl.id
+  where um.notes is distinct from vl.notes
+  on conflict (run_id, legacy_table, legacy_id, reason) do nothing;
+
+  -- Existing library entry with conflicting favorite or rewatch count
+  insert into public.media_backfill_issues
+    (run_id, legacy_table, legacy_id, reason, details)
+  select
+    p_run_id,
+    'user_anime',
+    vl.id::text,
+    'conflicting-library-favorite',
+    jsonb_build_object(
+      'libraryId', um.id,
+      'existingFavorite', um.favorite,
+      'existingRewatchCount', um.rewatch_count
+    )
+  from pg_temp.phase2b_valid_legacy vl
+  join public.user_media um on um.id = vl.id
+  where um.favorite is distinct from false
+     or um.rewatch_count is distinct from 0
+  on conflict (run_id, legacy_table, legacy_id, reason) do nothing;
+
+  -- Existing library entry with conflicting started/completed dates
+  insert into public.media_backfill_issues
+    (run_id, legacy_table, legacy_id, reason, details)
+  select
+    p_run_id,
+    'user_anime',
+    vl.id::text,
+    'conflicting-library-dates',
+    jsonb_build_object(
+      'libraryId', um.id,
+      'existingStartedAt', um.started_at,
+      'attemptedStartedAt', vl.started_at,
+      'existingCompletedAt', um.completed_at,
+      'attemptedCompletedAt', vl.completed_at
+    )
+  from pg_temp.phase2b_valid_legacy vl
+  join public.user_media um on um.id = vl.id
+  where um.started_at is distinct from vl.started_at
+     or um.completed_at is distinct from vl.completed_at
+  on conflict (run_id, legacy_table, legacy_id, reason) do nothing;
+
+  -- Existing library entry with conflicting created/updated timestamps
+  insert into public.media_backfill_issues
+    (run_id, legacy_table, legacy_id, reason, details)
+  select
+    p_run_id,
+    'user_anime',
+    vl.id::text,
+    'conflicting-library-timestamps',
+    jsonb_build_object(
+      'libraryId', um.id,
+      'existingCreatedAt', um.created_at,
+      'attemptedCreatedAt', vl.created_at,
+      'existingUpdatedAt', um.updated_at,
+      'attemptedUpdatedAt', vl.updated_at
+    )
+  from pg_temp.phase2b_valid_legacy vl
+  join public.user_media um on um.id = vl.id
+  where um.created_at is distinct from vl.created_at
+     or um.updated_at is distinct from vl.updated_at
+  on conflict (run_id, legacy_table, legacy_id, reason) do nothing;
+
+  -- Alternate unique key (user_id, media_id) conflict with different primary ID (conflicting fields)
+  insert into public.media_backfill_issues
+    (run_id, legacy_table, legacy_id, reason, details)
+  select
+    p_run_id,
+    'user_anime',
+    vl.id::text,
+    'conflicting-alternate-key-library',
+    jsonb_build_object(
+      'libraryId', vl.id,
+      'existingId', um.id,
+      'userId', vl.user_id,
+      'mediaId', vl.media_id,
+      'existingStatus', um.status,
+      'attemptedStatus', vl.status
+    )
+  from pg_temp.phase2b_valid_legacy vl
+  join public.user_media um
+    on um.user_id = vl.user_id
+   and um.media_id = vl.media_id
+   and um.id <> vl.id
+  where um.media_kind <> vl.media_kind
+     or um.status <> vl.status
+     or (vl.media_kind = 'anime' and um.episodes_watched is distinct from vl.progress)
+     or (vl.media_kind = 'manga' and (um.chapters_read is distinct from vl.progress or um.volumes_read is distinct from vl.volumes_progress))
+     or (vl.media_kind = 'movie' and um.movie_watched is distinct from (vl.status = 'completed' or vl.progress >= 1))
+     or um.score is distinct from vl.score
+     or um.notes is distinct from vl.notes
+     or um.favorite is distinct from false
+     or um.rewatch_count is distinct from 0
+     or um.started_at is distinct from vl.started_at
+     or um.completed_at is distinct from vl.completed_at
+     or um.created_at is distinct from vl.created_at
+     or um.updated_at is distinct from vl.updated_at
+  on conflict (run_id, legacy_table, legacy_id, reason) do nothing;
+
+  -- Alternate unique key (user_id, media_id) conflict with different primary ID (identical fields)
+  insert into public.media_backfill_issues
+    (run_id, legacy_table, legacy_id, reason, details)
+  select
+    p_run_id,
+    'user_anime',
+    vl.id::text,
+    'conflicting-alternate-key-id',
+    jsonb_build_object(
+      'libraryId', vl.id,
+      'existingId', um.id,
+      'userId', vl.user_id,
+      'mediaId', vl.media_id
+    )
+  from pg_temp.phase2b_valid_legacy vl
+  join public.user_media um
+    on um.user_id = vl.user_id
+   and um.media_id = vl.media_id
+   and um.id <> vl.id
+  where not (
+    um.media_kind <> vl.media_kind
+    or um.status <> vl.status
+    or (vl.media_kind = 'anime' and um.episodes_watched is distinct from vl.progress)
+    or (vl.media_kind = 'manga' and (um.chapters_read is distinct from vl.progress or um.volumes_read is distinct from vl.volumes_progress))
+    or (vl.media_kind = 'movie' and um.movie_watched is distinct from (vl.status = 'completed' or vl.progress >= 1))
+    or um.score is distinct from vl.score
+    or um.notes is distinct from vl.notes
+    or um.favorite is distinct from false
+    or um.rewatch_count is distinct from 0
+    or um.started_at is distinct from vl.started_at
+    or um.completed_at is distinct from vl.completed_at
+    or um.created_at is distinct from vl.created_at
+    or um.updated_at is distinct from vl.updated_at
+  )
   on conflict (run_id, legacy_table, legacy_id, reason) do nothing;
 
   -- 7. Execute inserts for valid, non-conflicting rows
@@ -663,6 +860,124 @@ begin
   where ume.user_id <> e.user_id
   on conflict (run_id, legacy_table, legacy_id, reason) do nothing;
 
+  -- Existing episode with different season or episode number
+  insert into public.media_backfill_issues
+    (run_id, legacy_table, legacy_id, reason, details)
+  select
+    p_run_id,
+    'user_anime_episodes',
+    e.id::text,
+    'conflicting-episode-number',
+    jsonb_build_object(
+      'episodeId', ume.id,
+      'existingSeason', ume.season_number,
+      'existingNumber', ume.episode_number,
+      'attemptedNumber', e.episode_number
+    )
+  from public.user_anime_episodes e
+  join public.user_media_episodes ume
+    on ume.id = e.id
+  where ume.season_number <> 0 or ume.episode_number <> e.episode_number
+  on conflict (run_id, legacy_table, legacy_id, reason) do nothing;
+
+  -- Existing episode with different watched_at timestamp
+  insert into public.media_backfill_issues
+    (run_id, legacy_table, legacy_id, reason, details)
+  select
+    p_run_id,
+    'user_anime_episodes',
+    e.id::text,
+    'conflicting-episode-watched-at',
+    jsonb_build_object(
+      'episodeId', ume.id,
+      'existingWatchedAt', ume.watched_at,
+      'attemptedWatchedAt', e.watched_at
+    )
+  from public.user_anime_episodes e
+  join public.user_media_episodes ume
+    on ume.id = e.id
+  where ume.watched_at is distinct from e.watched_at
+  on conflict (run_id, legacy_table, legacy_id, reason) do nothing;
+
+  -- Existing episode with different created_at timestamp
+  insert into public.media_backfill_issues
+    (run_id, legacy_table, legacy_id, reason, details)
+  select
+    p_run_id,
+    'user_anime_episodes',
+    e.id::text,
+    'conflicting-episode-created-at',
+    jsonb_build_object(
+      'episodeId', ume.id,
+      'existingCreatedAt', ume.created_at,
+      'attemptedCreatedAt', e.created_at
+    )
+  from public.user_anime_episodes e
+  join public.user_media_episodes ume
+    on ume.id = e.id
+  where ume.created_at is distinct from e.created_at
+  on conflict (run_id, legacy_table, legacy_id, reason) do nothing;
+
+  -- Alternate unique key (user_media_id, season_number, episode_number) conflict with different primary ID (conflicting fields)
+  insert into public.media_backfill_issues
+    (run_id, legacy_table, legacy_id, reason, details)
+  select
+    p_run_id,
+    'user_anime_episodes',
+    e.id::text,
+    'conflicting-alternate-key-episode',
+    jsonb_build_object(
+      'episodeId', e.id,
+      'existingId', ume.id,
+      'userMediaId', vl.id,
+      'episodeNumber', e.episode_number,
+      'existingUserId', ume.user_id,
+      'attemptedUserId', e.user_id
+    )
+  from public.user_anime_episodes e
+  join pg_temp.phase2b_valid_legacy vl
+    on vl.user_id = e.user_id
+   and vl.anilist_id = e.anilist_id
+  join public.user_media_episodes ume
+    on ume.user_media_id = vl.id
+   and ume.season_number = 0
+   and ume.episode_number = e.episode_number
+   and ume.id <> e.id
+  where ume.user_id <> e.user_id
+     or ume.watched_at is distinct from e.watched_at
+     or ume.created_at is distinct from e.created_at
+  on conflict (run_id, legacy_table, legacy_id, reason) do nothing;
+
+  -- Alternate unique key (user_media_id, season_number, episode_number) conflict with different primary ID (identical fields)
+  insert into public.media_backfill_issues
+    (run_id, legacy_table, legacy_id, reason, details)
+  select
+    p_run_id,
+    'user_anime_episodes',
+    e.id::text,
+    'conflicting-alternate-key-episode-id',
+    jsonb_build_object(
+      'episodeId', e.id,
+      'existingId', ume.id,
+      'userMediaId', vl.id,
+      'episodeNumber', e.episode_number
+    )
+  from public.user_anime_episodes e
+  join pg_temp.phase2b_valid_legacy vl
+    on vl.user_id = e.user_id
+   and vl.anilist_id = e.anilist_id
+  join public.user_media_episodes ume
+    on ume.user_media_id = vl.id
+   and ume.season_number = 0
+   and ume.episode_number = e.episode_number
+   and ume.id <> e.id
+  where not (
+    ume.user_id <> e.user_id
+    or ume.watched_at is distinct from e.watched_at
+    or ume.created_at is distinct from e.created_at
+  )
+  on conflict (run_id, legacy_table, legacy_id, reason) do nothing;
+
   -- Snapshot of valid episodes to insert
   drop table if exists pg_temp.phase2b_valid_episodes;
   create temporary table pg_temp.phase2b_valid_episodes
@@ -726,7 +1041,7 @@ begin
       from pg_temp.phase2b_valid_legacy vl
       join public.user_media um on um.id = vl.id
     )
-    and reason in ('missing-catalog-cache', 'unresolved-anime-format')
+    and reason in ('missing-catalog-cache', 'malformed-catalog-cache', 'conflicting-catalog-cache', 'unresolved-anime-format')
     and resolved_at is null;
 
   select count(*)
