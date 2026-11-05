@@ -314,24 +314,39 @@ export function legacyAniListMappingKey(anilistId: number): string {
   return `anilist:${anilistId}`;
 }
 
+export const ANILIST_UUID_NAMESPACE = "6ba7b811-9dad-11d1-80b4-00c04fd430c8";
+
 /**
- * Stable UUID for legacy AniList records. This is deliberately derived from
- * the provider ID only so a retried backfill resolves the same canonical row.
- * It is a migration lookup key, not a replacement for provider mappings.
+ * Deterministic RFC 4122 UUIDv3 for legacy AniList records using standard
+ * URL namespace (6ba7b811-9dad-11d1-80b4-00c04fd430c8) and MD5 hash.
+ * This matches public.deterministic_anilist_media_id(integer) in PostgreSQL exactly.
  */
 export function deterministicAniListMediaId(
   anilistId: number,
 ): CanonicalMediaId {
-  const digest = createHash("md5")
-    .update(`kaze:anilist:${anilistId}`)
-    .digest("hex");
+  const nsBytes = Buffer.from(ANILIST_UUID_NAMESPACE.replace(/-/g, ""), "hex");
+  const nameBytes = Buffer.from(`kaze:anilist:${anilistId}`, "utf8");
+  const hash = createHash("md5")
+    .update(Buffer.concat([nsBytes, nameBytes]))
+    .digest();
+
+  // RFC 4122 UUIDv3: version 3 in octet 6, variant 10xx in octet 8
+  const byte6 = hash[6];
+  const byte8 = hash[8];
+  if (byte6 !== undefined && byte8 !== undefined) {
+    hash[6] = (byte6 & 0x0f) | 0x30;
+    hash[8] = (byte8 & 0x3f) | 0x80;
+  }
+
+  const hex = hash.toString("hex");
   const rawUuid = [
-    digest.slice(0, 8),
-    digest.slice(8, 12),
-    `5${digest.slice(13, 16)}`,
-    `8${digest.slice(17, 20)}`,
-    digest.slice(20, 32),
+    hex.slice(0, 8),
+    hex.slice(8, 12),
+    hex.slice(12, 16),
+    hex.slice(16, 20),
+    hex.slice(20, 32),
   ].join("-");
+
   const mediaId = toCanonicalMediaId(rawUuid);
   if (!mediaId) {
     throw new Error("Could not derive a canonical media UUID");

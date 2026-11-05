@@ -12,6 +12,10 @@
 --   - AniList anime with series/TV formats in catalog_cache -> 'anime'
 --   - Missing, malformed, or conflicting cache format -> quarantined in media_backfill_issues
 
+-- Standard RFC 4122 UUIDv3 deterministic generator using the standard URL namespace:
+-- Namespace: 6ba7b811-9dad-11d1-80b4-00c04fd430c8
+-- Name: 'kaze:anilist:' || p_anilist_id::text
+-- Zero external extension dependencies: uses PostgreSQL core md5(bytea), decode, and bit operations.
 create or replace function public.deterministic_anilist_media_id(
   p_anilist_id integer
 )
@@ -20,20 +24,28 @@ language sql
 immutable
 set search_path = ''
 as $$
+  with hash_calc as (
+    select md5(
+      decode('6ba7b8119dad11d180b400c04fd430c8', 'hex') ||
+      convert_to('kaze:anilist:' || p_anilist_id::text, 'UTF8')
+    ) as h
+  )
   select case
     when p_anilist_id is null or p_anilist_id <= 0 then null
     else (
-      substr(md5('kaze:anilist:' || p_anilist_id::text), 1, 8) || '-' ||
-      substr(md5('kaze:anilist:' || p_anilist_id::text), 9, 4) || '-5' ||
-      substr(md5('kaze:anilist:' || p_anilist_id::text), 14, 3) || '-8' ||
-      substr(md5('kaze:anilist:' || p_anilist_id::text), 18, 3) || '-' ||
-      substr(md5('kaze:anilist:' || p_anilist_id::text), 21, 12)
+      substr(h, 1, 8) || '-' ||
+      substr(h, 9, 4) || '-3' ||
+      substr(h, 14, 3) || '-' ||
+      to_hex((('x' || substr(h, 17, 2))::bit(8) & B'00111111' | B'10000000')::integer) ||
+      substr(h, 19, 2) || '-' ||
+      substr(h, 21, 12)
     )::uuid
   end
+  from hash_calc;
 $$;
 
 comment on function public.deterministic_anilist_media_id(integer) is
-  'Deterministic migration-only UUID for a legacy AniList media ID. Provider IDs remain external references, never canonical keys in application code.';
+  'Deterministic RFC 4122 UUIDv3 migration lookup key for legacy AniList media IDs using standard namespace 6ba7b811-9dad-11d1-80b4-00c04fd430c8. Zero-dependency implementation.';
 
 create or replace function public.backfill_phase2b(
   p_run_id uuid default gen_random_uuid()
@@ -343,8 +355,9 @@ begin
     and (
       (
         ua.media_type = 'manga'
-        and not (
-          cf.resolved_format in ('MOVIE', 'TV', 'TV_SHORT', 'OVA', 'ONA', 'SPECIAL', 'MUSIC')
+        and (
+          cf.resolved_format is null
+          or cf.resolved_format not in ('MOVIE', 'TV', 'TV_SHORT', 'OVA', 'ONA', 'SPECIAL', 'MUSIC')
         )
       )
       or (

@@ -81,6 +81,13 @@ describe("Static SQL Migration Verification", () => {
       expect(backfillSql).not.toMatch(/truncate\s+.*user_anime/i);
     });
 
+    it("defines deterministic_anilist_media_id using standard RFC 4122 UUIDv3 without UUIDv5 claims", () => {
+      expect(backfillSql).toMatch(/create\s+or\s+replace\s+function\s+public\.deterministic_anilist_media_id/i);
+      expect(backfillSql).toContain("6ba7b8119dad11d180b400c04fd430c8");
+      expect(backfillSql).toContain("UUIDv3");
+      expect(backfillSql).not.toContain("UUIDv5");
+    });
+
     it("extracts format from catalog_cache details and summary keys", () => {
       expect(backfillSql).toContain("regexp_match(c.key, '^(?:details|summary):([0-9]+)$')");
       expect(backfillSql).toContain("c.payload->>'format'");

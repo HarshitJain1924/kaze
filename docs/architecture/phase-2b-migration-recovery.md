@@ -24,10 +24,27 @@ The Phase 2B migrations are strictly **additive**. Legacy tables (`public.user_a
    - `public.media_backfill_runs`: Invocation ledger recording every backfill run (run ID, started_at, completed_at, outcome, details), ensuring zero-issue runs are reliably tracked.
    - `public.media_backfill_issues`: Diagnostic ledger quarantining malformed, conflicting, or missing legacy rows, referencing `media_backfill_runs(id)`.
 2. **Database Functions (`20261105000001_backfill_canonical_library.sql`):**
-   - `public.deterministic_anilist_media_id(integer)`: Immutable UUIDv5 generator for AniList IDs.
+   - `public.deterministic_anilist_media_id(integer)`: Deterministic RFC 4122 UUIDv3 generator for AniList IDs. Uses standard URL namespace (`6ba7b811-9dad-11d1-80b4-00c04fd430c8`) with name `'kaze:anilist:' || anilist_id`. Implemented in pure PostgreSQL core (`md5(bytea)`, `decode`, `convert_to`) without external extension dependencies.
    - `public.backfill_phase2b(uuid)`: Idempotent backfill engine with strict conflict detection.
    - `public.validate_phase2b()`: Read-only data integrity verification snapshot.
    *(Note: No database views exist in Phase 2B; `Views` is empty `Record<string, never>` in TypeScript and database types).*
+
+### Deterministic UUID Scheme & Test Vectors
+
+The deterministic ID function maps legacy integer AniList IDs to stable canonical media UUIDs during migration.
+
+- **Standard:** RFC 4122 UUID version 3 (namespace-based name hashing).
+- **Algorithm:**
+  $$\text{hash} = \text{MD5}(\text{namespace\_bytes} \mathbin{\Vert} \text{name\_bytes})$$
+  Octet 6 is masked with version 3 (`0x30`), and Octet 8 is masked with RFC 4122 variant (`0x80`).
+- **Namespace UUID:** `6ba7b811-9dad-11d1-80b4-00c04fd430c8` (RFC 4122 `NameSpace_URL`).
+- **Name Format:** `kaze:anilist:<id>` (e.g. `kaze:anilist:1`).
+- **Zero Extension Dependencies:** Relies entirely on built-in PostgreSQL core functions (`md5(bytea)`, `decode(text, 'hex')`, `convert_to(text, 'UTF8')`). Does not require `uuid-ossp` or `pgcrypto`.
+- **Pre-execution Safety:** Because Phase 2B migrations have not been applied to production and auto-backfill is removed from the DDL, no persistent canonical IDs have been minted; this standardisation is 100% collision-safe.
+- **Reference Test Vectors:**
+  - AniList ID `1`: `bc1934ba-4c73-38ba-b848-61928124cb64`
+  - AniList ID `21`: `d2fbc542-0768-3a30-ab27-040f1dcdeb16`
+  - AniList ID `16498`: `6a94b024-3842-3a12-a716-0e91f47cfecb`
 
 ---
 
@@ -37,10 +54,115 @@ The Phase 2B migrations are strictly **additive**. Legacy tables (`public.user_a
 - **Separation of Schema Installation and Data Backfill:** Schema migrations (`20261105000000_create_canonical_media_schema.sql` and `20261105000001_backfill_canonical_library.sql`) create additive tables, constraints, types, functions, and permissions only. They do **not** automatically execute `backfill_phase2b()`. This separation ensures schema deployment is fast and lock-free, and gives operators an explicit gate to verify environment readiness and take backups before data backfill begins.
 - **Truthful Transaction & Failure Ledger Semantics:**
   - *Direct Single-Transaction Execution (`select public.backfill_phase2b();`):* When invoked directly in a single SQL statement or transaction, an unhandled database exception causes PostgreSQL to roll back the entire ambient transaction. Because PostgreSQL does not support autonomous transactions within standard functions, any ledger row inserted inside that transaction is also rolled back. Direct SQL execution therefore records **committed** runs (`outcome = 'completed'`); an unhandled crash rolls back completely and reports the error to the calling client session.
-  - *External Orchestration (Multi-Transaction Failure Recording):* To persist failed runs in `public.media_backfill_runs`, an external runner or deployment script uses independent transaction boundaries:
-    1. **Transaction 1 (Registration):** Inserts a run row in `media_backfill_runs` with `outcome = 'running'` and commits Transaction 1.
-    2. **Transaction 2 (Execution):** Calls `public.backfill_phase2b(p_run_id)`. If it succeeds, `backfill_phase2b()` updates the row to `outcome = 'completed'` and commits. If it throws an unhandled error, Transaction 2 rolls back, keeping canonical tables clean while leaving the pre-registered `running` run row in `media_backfill_runs`.
-    3. **Transaction 3 (Failure Recording):** The orchestrator catches the error, opens Transaction 3, and updates `media_backfill_runs` with `outcome = 'failed'`, `completed_at = clock_timestamp()`, and error details in `details`.
+  - *External Orchestration (Multi-Transaction Failure Recording):* To persist failed runs in `public.media_backfill_runs`, an external runner or deployment script uses three independent, committed transaction boundaries:
+
+#### Transaction 1: Pre-Register Invocations (Registration & Commit)
+Executed with `service_role` permissions:
+```sql
+-- Transaction 1: Pre-register the run in 'running' state and commit before execution begins.
+begin;
+insert into public.media_backfill_runs (id, started_at, outcome, details)
+values (
+  '00000000-0000-0000-0000-000000000001'::uuid,
+  clock_timestamp(),
+  'running',
+  jsonb_build_object(
+    'orchestrator', 'kaze-migration-runner',
+    'environment', 'staging',
+    'invoked_by', 'service_role'
+  )
+);
+commit;
+```
+
+#### Transaction 2: Execute Backfill Function (Backfill & Commit)
+Executed with `service_role` permissions:
+```sql
+-- Transaction 2: Execute backfill against pre-registered run.
+-- On success: updates run to 'completed' with metrics and commits.
+-- On failure: transaction aborts and rolls back completely; canonical tables remain clean.
+begin;
+select public.backfill_phase2b('00000000-0000-0000-0000-000000000001'::uuid);
+commit;
+```
+
+#### Transaction 3: Record Execution Failure (Error Recording & Commit)
+Executed with `service_role` permissions ONLY when Transaction 2 catches an error and rolls back:
+```sql
+-- Transaction 3: Persist failure outcome against the surviving Transaction 1 record.
+begin;
+update public.media_backfill_runs
+set
+  completed_at = clock_timestamp(),
+  outcome = 'failed',
+  details = coalesce(details, '{}'::jsonb) || jsonb_build_object(
+    'error', 'Unhandled exception during backfill execution',
+    'sqlstate', 'XX000',
+    'failed_at', clock_timestamp()
+  )
+where id = '00000000-0000-0000-0000-000000000001'::uuid
+  and outcome = 'running';
+commit;
+```
+
+### Stale & Abandoned Running Records Recovery Procedure
+
+If an orchestrator terminates unexpectedly (host crash, network drop, OOM killer) after Transaction 1, the ledger record remains in `running` state without an orchestrator to record Transaction 3.
+
+1. **Identify Stale Runs:**
+   Query runs that have been in `running` state beyond the expected operational duration (e.g., 30 minutes):
+   ```sql
+   select
+     id,
+     started_at,
+     clock_timestamp() - started_at as elapsed,
+     details
+   from public.media_backfill_runs
+   where outcome = 'running'
+     and started_at < clock_timestamp() - interval '30 minutes'
+   order by started_at desc;
+   ```
+
+2. **Distinguish Abandoned Runs from Active Runs:**
+   Before modifying any run, query PostgreSQL backend activity to ensure no process is actively running the backfill:
+   ```sql
+   select
+     pid,
+     state,
+     query_start,
+     clock_timestamp() - query_start as duration,
+     query
+   from pg_stat_activity
+   where query ~* 'backfill_phase2b'
+     and pid <> pg_backend_pid();
+   ```
+   - **Active:** If a backend PID is executing `backfill_phase2b`, the run is alive. Do not modify the record.
+   - **Abandoned:** If no backend is executing the function and the run has exceeded the threshold, the run was abandoned.
+
+3. **Recover Abandoned Run Record:**
+   Close the abandoned ledger record by transitioning it to `failed`:
+   ```sql
+   update public.media_backfill_runs
+   set
+     completed_at = clock_timestamp(),
+     outcome = 'failed',
+     details = coalesce(details, '{}'::jsonb) || jsonb_build_object(
+       'abandonment_reason', 'Orchestrator process crashed or timed out',
+       'recovered_at', clock_timestamp()
+     )
+   where id = '<abandoned-run-id>'::uuid
+     and outcome = 'running';
+   ```
+
+4. **Safe Retry with a New Run ID:**
+   Because completed and failed run IDs can never be reused, retries must generate a fresh UUID:
+   ```sql
+   select public.backfill_phase2b(gen_random_uuid());
+   ```
+
+5. **Concurrency & Race Condition Prevention:**
+   [`public.backfill_phase2b()`](file:///c:/Users/harsh/OneDrive/Desktop/anime tracker/supabase/migrations/20261105000001_backfill_canonical_library.sql#L38) executes `select outcome into v_existing_outcome from public.media_backfill_runs where id = p_run_id for update;`.
+   - If two runners concurrently attempt to execute with the same run ID, the second runner blocks until the first completes. When unblocked, it detects `outcome = 'completed'` and immediately raises a `check_violation` exception, preventing duplicate execution or corrupted metrics.
 - **Run ID Reuse Protection & Retries:**
   - `public.backfill_phase2b(p_run_id)` performs a row-level lock check (`select outcome into v_existing_outcome from public.media_backfill_runs where id = p_run_id for update`).
   - If `p_run_id` already exists with `outcome = 'completed'`, execution is aborted immediately with `Run ID % has already completed and cannot be reused.` to prevent corrupting historical run statistics or appending issues to an old run.

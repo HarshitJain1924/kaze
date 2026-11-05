@@ -9,6 +9,7 @@ import {
   summarizeBackfillIssues,
   validateBackfillRunReuse,
   validateMediaLibraryEntry,
+  ANILIST_UUID_NAMESPACE,
   MediaLibraryInvariantError,
   type BackfillIssueRecord,
   type BackfillRunRecord,
@@ -1595,6 +1596,28 @@ describe("Regression Tests: Alternate-Key Idempotency, Validation Reporting & Sc
     const failedCheck = validateBackfillRunReuse("run-failed-1", existingRuns);
     expect(failedCheck.allowProceed).toBe(false);
     expect(failedCheck.error).toContain("already failed and cannot be reused");
+  });
+
+  it("computes deterministic RFC 4122 UUIDv3 test vectors matching standard namespace and algorithm", () => {
+    expect(ANILIST_UUID_NAMESPACE).toBe("6ba7b811-9dad-11d1-80b4-00c04fd430c8");
+
+    // Test vector 1: AniList ID 1
+    const uuid1 = deterministicAniListMediaId(1);
+    expect(uuid1).toBe("bc1934ba-4c73-38ba-b848-61928124cb64");
+    expect(uuid1[14]).toBe("3"); // Version 3
+    expect(["8", "9", "a", "b"]).toContain(uuid1[19]); // RFC 4122 variant bits 10xx
+
+    // Test vector 2: AniList ID 21 (One Piece)
+    const uuid21 = deterministicAniListMediaId(21);
+    expect(uuid21).toBe("d2fbc542-0768-3a30-ab27-040f1dcdeb16");
+    expect(uuid21[14]).toBe("3");
+    expect(["8", "9", "a", "b"]).toContain(uuid21[19]);
+
+    // Test vector 3: AniList ID 16498 (Attack on Titan)
+    const uuid16498 = deterministicAniListMediaId(16498);
+    expect(uuid16498).toBe("6a94b024-3842-3a12-a716-0e91f47cfecb");
+    expect(uuid16498[14]).toBe("3");
+    expect(["8", "9", "a", "b"]).toContain(uuid16498[19]);
   });
 
   // 8. Schema/type/documentation consistency
