@@ -7,6 +7,7 @@ import {
   deterministicAniListMediaId,
   planLegacyBackfill,
   summarizeBackfillIssues,
+  validateBackfillRunReuse,
   validateMediaLibraryEntry,
   MediaLibraryInvariantError,
   type BackfillIssueRecord,
@@ -1491,11 +1492,109 @@ describe("Regression Tests: Alternate-Key Idempotency, Validation Reporting & Sc
 
     const summary = summarizeBackfillIssues(issues, runs);
     expect(summary.latestRunId).toBe("run-2-clean");
+    expect(summary.latestRunOutcome).toBe("completed");
     expect(summary.totalHistorical).toBe(1);
     expect(summary.resolved).toBe(1);
     expect(summary.unresolved).toBe(0);
     expect(summary.latestRunTotal).toBe(0); // 0 issues in latest clean run
     expect(summary.latestRunUnresolved).toBe(0);
+  });
+
+  it("handles successful nonzero-issue, zero-issue, running, and failed run outcomes in ledger summaries", () => {
+    // 1. Successful run with quarantined issues
+    const runsWithIssues: BackfillRunRecord[] = [
+      {
+        id: "run-success-issues",
+        startedAt: "2026-11-05T01:00:00.000Z",
+        completedAt: "2026-11-05T01:02:00.000Z",
+        outcome: "completed",
+      },
+    ];
+    const issuesList: BackfillIssueRecord[] = [
+      {
+        id: "issue-1",
+        runId: "run-success-issues",
+        legacyTable: "user_anime",
+        legacyId: "1",
+        reason: "missing-catalog-cache",
+      },
+    ];
+    const summaryIssues = summarizeBackfillIssues(issuesList, runsWithIssues);
+    expect(summaryIssues.latestRunId).toBe("run-success-issues");
+    expect(summaryIssues.latestRunOutcome).toBe("completed");
+    expect(summaryIssues.latestRunTotal).toBe(1);
+    expect(summaryIssues.latestRunUnresolved).toBe(1);
+
+    // 2. Failed run recorded by external orchestration ledger
+    const runsWithFailure: BackfillRunRecord[] = [
+      {
+        id: "run-failed",
+        startedAt: "2026-11-05T02:00:00.000Z",
+        completedAt: "2026-11-05T02:00:05.000Z",
+        outcome: "failed",
+        details: { error: "Database lock timeout" },
+      },
+    ];
+    const summaryFailed = summarizeBackfillIssues([], runsWithFailure);
+    expect(summaryFailed.latestRunId).toBe("run-failed");
+    expect(summaryFailed.latestRunOutcome).toBe("failed");
+    expect(summaryFailed.latestRunTotal).toBe(0);
+
+    // 3. Pre-registered run currently in progress
+    const runsRunning: BackfillRunRecord[] = [
+      {
+        id: "run-active",
+        startedAt: "2026-11-05T03:00:00.000Z",
+        completedAt: null,
+        outcome: "running",
+      },
+    ];
+    const summaryRunning = summarizeBackfillIssues([], runsRunning);
+    expect(summaryRunning.latestRunId).toBe("run-active");
+    expect(summaryRunning.latestRunOutcome).toBe("running");
+  });
+
+  it("validates run ID reuse correctly, allowing fresh and pre-registered runs while rejecting completed or failed runs", () => {
+    const existingRuns: BackfillRunRecord[] = [
+      {
+        id: "run-completed-1",
+        startedAt: "2026-11-05T00:00:00.000Z",
+        completedAt: "2026-11-05T00:01:00.000Z",
+        outcome: "completed",
+      },
+      {
+        id: "run-failed-1",
+        startedAt: "2026-11-05T01:00:00.000Z",
+        completedAt: "2026-11-05T01:00:10.000Z",
+        outcome: "failed",
+      },
+      {
+        id: "run-running-1",
+        startedAt: "2026-11-05T02:00:00.000Z",
+        completedAt: null,
+        outcome: "running",
+      },
+    ];
+
+    // Fresh run ID: allowed
+    const freshCheck = validateBackfillRunReuse("run-fresh-new", existingRuns);
+    expect(freshCheck.allowProceed).toBe(true);
+    expect(freshCheck.error).toBeUndefined();
+
+    // Pre-registered 'running' run ID: allowed (orchestrator handoff)
+    const runningCheck = validateBackfillRunReuse("run-running-1", existingRuns);
+    expect(runningCheck.allowProceed).toBe(true);
+    expect(runningCheck.error).toBeUndefined();
+
+    // Completed run ID: rejected
+    const completedCheck = validateBackfillRunReuse("run-completed-1", existingRuns);
+    expect(completedCheck.allowProceed).toBe(false);
+    expect(completedCheck.error).toContain("already completed and cannot be reused");
+
+    // Failed run ID: rejected
+    const failedCheck = validateBackfillRunReuse("run-failed-1", existingRuns);
+    expect(failedCheck.allowProceed).toBe(false);
+    expect(failedCheck.error).toContain("already failed and cannot be reused");
   });
 
   // 8. Schema/type/documentation consistency

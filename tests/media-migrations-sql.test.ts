@@ -155,6 +155,26 @@ describe("Static SQL Migration Verification", () => {
       );
     });
 
+    it("separates schema installation from backfill execution without auto-invoking backfill", () => {
+      const executableStatements = backfillSql
+        .split("\n")
+        .filter((line) => !line.trim().startsWith("--"))
+        .join("\n");
+      expect(executableStatements).not.toMatch(/select\s+public\.backfill_phase2b\s*\(/i);
+    });
+
+    it("rejects unsafe run ID reuse for completed and failed runs with row locking", () => {
+      expect(backfillSql).toMatch(
+        /select\s+outcome\s+into\s+v_existing_outcome\s+from\s+public\.media_backfill_runs\s+where\s+id\s*=\s*p_run_id\s+for\s+update/i,
+      );
+      expect(backfillSql).toMatch(
+        /raise\s+exception\s+'Run ID % has already completed and cannot be reused\.'/i,
+      );
+      expect(backfillSql).toMatch(
+        /raise\s+exception\s+'Run ID % has already failed and cannot be reused\. Retries must use a new run ID\.'/i,
+      );
+    });
+
     it("defines validate_phase2b() with comprehensive data integrity and run ledger checks", () => {
       expect(backfillSql).toMatch(/create\s+or\s+replace\s+function\s+public\.validate_phase2b\(\)/i);
       expect(backfillSql).toMatch(/from\s+public\.media_backfill_runs/i);

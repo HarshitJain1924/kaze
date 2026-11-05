@@ -44,16 +44,33 @@ security invoker
 set search_path = ''
 as $$
 declare
+  v_existing_outcome text;
   v_media_inserted bigint := 0;
   v_mappings_inserted bigint := 0;
   v_user_media_inserted bigint := 0;
   v_episodes_inserted bigint := 0;
   v_issues bigint := 0;
 begin
-  -- 0. Record invocation in media_backfill_runs ledger
-  insert into public.media_backfill_runs (id, started_at, outcome)
-  values (p_run_id, clock_timestamp(), 'running')
-  on conflict (id) do nothing;
+  -- 0. Check or initialize run in media_backfill_runs ledger
+  -- Lock any existing run row to prevent concurrent race conditions.
+  select outcome into v_existing_outcome
+  from public.media_backfill_runs
+  where id = p_run_id
+  for update;
+
+  if v_existing_outcome is not null then
+    if v_existing_outcome = 'completed' then
+      raise exception 'Run ID % has already completed and cannot be reused.', p_run_id
+        using errcode = 'check_violation';
+    elsif v_existing_outcome = 'failed' then
+      raise exception 'Run ID % has already failed and cannot be reused. Retries must use a new run ID.', p_run_id
+        using errcode = 'check_violation';
+    end if;
+    -- outcome is 'running': pre-registered by external orchestrator, proceed with backfill
+  else
+    insert into public.media_backfill_runs (id, started_at, outcome)
+    values (p_run_id, clock_timestamp(), 'running');
+  end if;
 
   -- 1. Extract and aggregate format information from public.catalog_cache
   drop table if exists pg_temp.phase2b_cache_format;
@@ -1018,16 +1035,17 @@ end;
 $$;
 
 comment on function public.backfill_phase2b(uuid) is
-  'Idempotently backfills legacy AniList library rows into the additive canonical tables. Legacy tables are never modified by this function.';
+  'Idempotently backfills legacy AniList library rows into additive canonical tables. Legacy tables are never modified. In a single transaction, committed runs are recorded as completed; aborted transactions roll back the run row. External orchestration can record failed runs via independent transaction boundaries.';
 
 grant execute on function public.deterministic_anilist_media_id(integer)
   to service_role;
 grant execute on function public.backfill_phase2b(uuid)
   to service_role;
 
--- Run once as part of the additive migration. Re-running the function with a
--- new run id only inserts missing rows; it does not overwrite migrated data.
-select public.backfill_phase2b();
+-- Schema installation and data backfill are strictly separated.
+-- This migration file installs additive functions, schema definitions, and permissions only.
+-- The data backfill must be invoked as an explicit operational step post-backup
+-- (e.g., via backfill_phase2b() invocation or external orchestrator) by service_role.
 
 create or replace function public.validate_phase2b()
 returns jsonb

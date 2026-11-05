@@ -102,11 +102,45 @@ export interface BackfillRunRecord {
 
 export interface Phase2bValidationIssueSummary {
   latestRunId: string | null;
+  latestRunOutcome: "running" | "completed" | "failed" | null;
   totalHistorical: number;
   unresolved: number;
   resolved: number;
   latestRunTotal: number;
   latestRunUnresolved: number;
+}
+
+export function validateBackfillRunReuse(
+  runId: string,
+  existingRuns: readonly BackfillRunRecord[] | ReadonlyMap<string, BackfillRunRecord>,
+): { allowProceed: boolean; error?: string } {
+  let existing: BackfillRunRecord | undefined;
+  if (existingRuns instanceof Map || (typeof existingRuns === "object" && "get" in existingRuns)) {
+    existing = (existingRuns as ReadonlyMap<string, BackfillRunRecord>).get(runId);
+  } else if (Array.isArray(existingRuns)) {
+    existing = existingRuns.find((r) => r.id === runId);
+  }
+
+  if (!existing) {
+    return { allowProceed: true };
+  }
+
+  if (existing.outcome === "completed") {
+    return {
+      allowProceed: false,
+      error: `Run ID ${runId} has already completed and cannot be reused.`,
+    };
+  }
+
+  if (existing.outcome === "failed") {
+    return {
+      allowProceed: false,
+      error: `Run ID ${runId} has already failed and cannot be reused. Retries must use a new run ID.`,
+    };
+  }
+
+  // outcome is 'running': pre-registered by external orchestrator
+  return { allowProceed: true };
 }
 
 export function summarizeBackfillIssues(
@@ -115,6 +149,7 @@ export function summarizeBackfillIssues(
 ): Phase2bValidationIssueSummary {
   // Derive latest run from media_backfill_runs ledger, supporting zero-issue runs
   let latestRunId: string | null = null;
+  let latestRunOutcome: "running" | "completed" | "failed" | null = null;
   if (runs && runs.length > 0) {
     const sortedRuns = [...runs].sort((a, b) => {
       const timeA = new Date(a.startedAt).getTime();
@@ -122,6 +157,7 @@ export function summarizeBackfillIssues(
       return timeB - timeA;
     });
     latestRunId = sortedRuns[0]?.id ?? null;
+    latestRunOutcome = sortedRuns[0]?.outcome ?? null;
   }
 
   let unresolved = 0;
@@ -148,6 +184,7 @@ export function summarizeBackfillIssues(
 
   return {
     latestRunId,
+    latestRunOutcome,
     totalHistorical: issues.length,
     unresolved,
     resolved,

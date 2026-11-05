@@ -31,11 +31,23 @@ The Phase 2B migrations are strictly **additive**. Legacy tables (`public.user_a
 
 ---
 
-## 2. Transactional Boundaries
+## 2. Transactional Boundaries & Ledger Semantics
 
 - **DDL Execution:** Each migration file executes inside its own migration transaction. If a table creation or constraint fails during migration application, all schema changes in that migration roll back atomically.
-- **Backfill Execution:** `public.backfill_phase2b(p_run_id)` is a PL/pgSQL function. A single invocation runs within an atomic transaction. If an unhandled database exception occurs, all inserts from that run roll back.
-- **Defensive Error Handling:** Rather than raising unhandled runtime errors on invalid user data, the backfill identifies anomalies and inserts them into `public.media_backfill_issues`. This allows valid records to migrate successfully while isolating problematic rows for review.
+- **Separation of Schema Installation and Data Backfill:** Schema migrations (`20261105000000_create_canonical_media_schema.sql` and `20261105000001_backfill_canonical_library.sql`) create additive tables, constraints, types, functions, and permissions only. They do **not** automatically execute `backfill_phase2b()`. This separation ensures schema deployment is fast and lock-free, and gives operators an explicit gate to verify environment readiness and take backups before data backfill begins.
+- **Truthful Transaction & Failure Ledger Semantics:**
+  - *Direct Single-Transaction Execution (`select public.backfill_phase2b();`):* When invoked directly in a single SQL statement or transaction, an unhandled database exception causes PostgreSQL to roll back the entire ambient transaction. Because PostgreSQL does not support autonomous transactions within standard functions, any ledger row inserted inside that transaction is also rolled back. Direct SQL execution therefore records **committed** runs (`outcome = 'completed'`); an unhandled crash rolls back completely and reports the error to the calling client session.
+  - *External Orchestration (Multi-Transaction Failure Recording):* To persist failed runs in `public.media_backfill_runs`, an external runner or deployment script uses independent transaction boundaries:
+    1. **Transaction 1 (Registration):** Inserts a run row in `media_backfill_runs` with `outcome = 'running'` and commits Transaction 1.
+    2. **Transaction 2 (Execution):** Calls `public.backfill_phase2b(p_run_id)`. If it succeeds, `backfill_phase2b()` updates the row to `outcome = 'completed'` and commits. If it throws an unhandled error, Transaction 2 rolls back, keeping canonical tables clean while leaving the pre-registered `running` run row in `media_backfill_runs`.
+    3. **Transaction 3 (Failure Recording):** The orchestrator catches the error, opens Transaction 3, and updates `media_backfill_runs` with `outcome = 'failed'`, `completed_at = clock_timestamp()`, and error details in `details`.
+- **Run ID Reuse Protection & Retries:**
+  - `public.backfill_phase2b(p_run_id)` performs a row-level lock check (`select outcome into v_existing_outcome from public.media_backfill_runs where id = p_run_id for update`).
+  - If `p_run_id` already exists with `outcome = 'completed'`, execution is aborted immediately with `Run ID % has already completed and cannot be reused.` to prevent corrupting historical run statistics or appending issues to an old run.
+  - If `p_run_id` already exists with `outcome = 'failed'`, execution is aborted immediately with `Run ID % has already failed and cannot be reused. Retries must use a new run ID.`. Retries must always generate a fresh run ID to preserve an immutable audit trail.
+  - If `p_run_id` exists with `outcome = 'running'`, it is accepted as an orchestrator handoff.
+  - If `p_run_id` does not exist, a new run row is inserted in the ambient transaction.
+- **Defensive Data Quarantine:** Rather than raising unhandled runtime errors on invalid user data, the backfill identifies anomalies and inserts them into `public.media_backfill_issues`. This allows valid records to migrate successfully while isolating problematic rows for review. A run that quarantines issues still completes and commits successfully with `outcome = 'completed'`.
 
 ---
 
@@ -47,16 +59,51 @@ The Phase 2B migrations are strictly **additive**. Legacy tables (`public.user_a
 - User authentication references `auth.users (id)`.
 - Application runs exclusively against existing legacy tables; no live cutover during Phase 2B.
 
+### Operational Deployment Sequence
+
+1. **Apply Schema Migrations (DDL only):**
+   ```bash
+   supabase db push
+   # or via CI/CD migration pipeline
+   ```
+   Installs canonical schema tables, constraints, types, functions (`backfill_phase2b`, `validate_phase2b`), and grants to `service_role`. No data backfill runs during this step.
+
+2. **Pre-Backfill Verification:**
+   Execute with `service_role` permissions:
+   ```sql
+   select public.validate_phase2b();
+   ```
+   Confirms clean schema installation and reports existing legacy counts prior to population.
+
+3. **Backup Legacy Tables:**
+   Execute `pg_dump` on legacy tables before initiating the backfill:
+   ```bash
+   pg_dump -h <host> -U <user> -d <db> \
+     -t public.user_anime \
+     -t public.user_anime_episodes \
+     -t public.catalog_cache \
+     > kaze_legacy_backup_$(date +%Y%m%d_%H%M%S).sql
+   ```
+   *Note: Because the backfill function never drops, alters, or mutates legacy rows, legacy data remains untouched even if errors occur.*
+
+4. **Explicitly Invoke Data Backfill:**
+   Execute with `service_role` permissions:
+   ```sql
+   select public.backfill_phase2b();
+   ```
+   Or invoke with an explicit, pre-registered UUID via an external orchestrator:
+   ```sql
+   select public.backfill_phase2b('00000000-0000-0000-0000-000000000001'::uuid);
+   ```
+
+5. **Post-Backfill Verification:**
+   Execute with `service_role` permissions:
+   ```sql
+   select public.validate_phase2b();
+   ```
+   Verify that `per_user_count_mismatches = 0`, `duplicate_external_id_groups = 0`, `orphan_canonical_episodes = 0`, and inspect any quarantined issues.
+
 ### Backup Requirements
-Before executing `backfill_phase2b()` in staging or production:
-```bash
-pg_dump -h <host> -U <user> -d <db> \
-  -t public.user_anime \
-  -t public.user_anime_episodes \
-  -t public.catalog_cache \
-  > kaze_legacy_backup_$(date +%Y%m%d_%H%M%S).sql
-```
-*Note: Because the backfill migration never drops, alters, or mutates legacy rows, legacy data remains untouched even if errors occur.*
 
 ---
 
