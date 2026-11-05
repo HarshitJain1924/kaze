@@ -40,7 +40,9 @@ The deterministic ID function maps legacy integer AniList IDs to stable canonica
 - **Namespace UUID:** `6ba7b811-9dad-11d1-80b4-00c04fd430c8` (RFC 4122 `NameSpace_URL`).
 - **Name Format:** `kaze:anilist:<id>` (e.g. `kaze:anilist:1`).
 - **Zero Extension Dependencies:** Relies entirely on built-in PostgreSQL core functions (`md5(bytea)`, `decode(text, 'hex')`, `convert_to(text, 'UTF8')`). Does not require `uuid-ossp` or `pgcrypto`.
-- **Pre-execution Safety:** Because Phase 2B migrations have not been applied to production and auto-backfill is removed from the DDL, no persistent canonical IDs have been minted; this standardisation is 100% collision-safe.
+- **Deterministic, Not Collision-Proof:** The mapping is deterministic: one AniList ID always yields the same UUID, in every environment and on every rerun, so retries and rebuilt environments converge without reconciliation. It is not collision-proof. UUIDv3 truncates an MD5 digest to 122 bits, so two different AniList IDs could theoretically hash to the same UUID; that would surface as a `media` primary-key conflict during backfill, never as silent row merging. No collision has been observed for the IDs in use, and the generator is not the guard against that class of error: the unique `(provider, external_id)` constraint on `media_external_ids` remains the authoritative check that one provider ID maps to exactly one media row.
+- **Namespace Semantics (documented deviation):** The generator uses the RFC 4122 `NameSpace_URL` UUID (`6ba7b811-9dad-11d1-80b4-00c04fd430c8`) with the name `kaze:anilist:<id>`. RFC 4122 associates that namespace with URL-shaped names, while this name is a Kaze-internal URN-style key. The pairing is stable, unambiguous inside Kaze, and cannot realistically collide with URL-named UUIDv3s minted by other systems, but it is a convention deviation rather than a strict use of the namespace. A stricter alternative would name `https://anilist.co/anime/<id>` or mint a Kaze-specific namespace UUID. Either choice changes every generated ID, so it must be decided before durable canonical rows exist; after a committed backfill it would require re-deriving IDs and rewriting `media` and `media_external_ids` in a maintenance window. It is out of scope for this pass, and `tests/media-migrations-pg.integration.test.ts` pins the current vectors so an accidental change is caught.
+- **Pre-execution Window:** Phase 2B has not been applied to production and the DDL does not auto-invoke the backfill, so no canonical ID is durable yet; the scheme remains changeable at zero data cost until the first backfill commits against a real environment. That is a timing statement, not a collision guarantee.
 - **Reference Test Vectors:**
   - AniList ID `1`: `bc1934ba-4c73-38ba-b848-61928124cb64`
   - AniList ID `21`: `d2fbc542-0768-3a30-ab27-040f1dcdeb16`
@@ -105,6 +107,14 @@ where id = '00000000-0000-0000-0000-000000000001'::uuid
 commit;
 ```
 
+- **Run ID Reuse Protection & Retries:**
+  - `public.backfill_phase2b(p_run_id)` performs a row-level lock check (`select outcome into v_existing_outcome from public.media_backfill_runs where id = p_run_id for update`).
+  - If `p_run_id` already exists with `outcome = 'completed'`, execution is aborted immediately with `Run ID % has already completed and cannot be reused.` to prevent corrupting historical run statistics or appending issues to an old run.
+  - If `p_run_id` already exists with `outcome = 'failed'`, execution is aborted immediately with `Run ID % has already failed and cannot be reused. Retries must use a new run ID.`. Retries must always generate a fresh run ID to preserve an immutable audit trail.
+  - If `p_run_id` exists with `outcome = 'running'`, it is accepted as an orchestrator handoff.
+  - If `p_run_id` does not exist, a new run row is inserted in the ambient transaction.
+- **Defensive Data Quarantine:** Rather than raising unhandled runtime errors on invalid user data, the backfill identifies anomalies and inserts them into `public.media_backfill_issues`. This allows valid records to migrate successfully while isolating problematic rows for review. A run that quarantines issues still completes and commits successfully with `outcome = 'completed'`.
+
 ### Stale & Abandoned Running Records Recovery Procedure
 
 If an orchestrator terminates unexpectedly (host crash, network drop, OOM killer) after Transaction 1, the ledger record remains in `running` state without an orchestrator to record Transaction 3.
@@ -123,24 +133,37 @@ If an orchestrator terminates unexpectedly (host crash, network drop, OOM killer
    order by started_at desc;
    ```
 
-2. **Distinguish Abandoned Runs from Active Runs:**
-   Before modifying any run, query PostgreSQL backend activity to ensure no process is actively running the backfill:
+2. **Prove the Run Is Not Executing (run-scoped lock check):**
+   Do not gate recovery on `pg_stat_activity`. A global `query ~* 'backfill_phase2b'` match is not run-scoped: it matches every unrelated backfill execution and therefore blocks recovery of a stale run while any other run is in flight, and it misses the target entirely when the caller used a parameterized or prepared statement, because `query` then shows `select public.backfill_phase2b($1)` with no run ID in the text.
+
+   The authoritative, run-scoped indicator is the ledger row lock. `public.backfill_phase2b()` takes `select outcome ... for update` on its run row as its first action, and PostgreSQL holds that lock until the transaction ends. Run the check inside the recovery transaction:
    ```sql
-   select
-     pid,
-     state,
-     query_start,
-     clock_timestamp() - query_start as duration,
-     query
+   begin;
+
+   -- 55P03 (lock_not_available) means a live transaction is executing this exact run. Stop.
+   select id, outcome, started_at
+   from public.media_backfill_runs
+   where id = '<abandoned-run-id>'::uuid
+     and outcome = 'running'
+   for update nowait;
+   ```
+   - **`55P03 lock_not_available`:** a live transaction holds this run row, so `backfill_phase2b()` is executing for this run ID. Roll back and leave the record alone; retry recovery later. Never mark it failed.
+   - **One row returned with `outcome = 'running'`:** no transaction holds the run lock, so no execution of this run is in flight. The run is abandoned if it also exceeds the staleness threshold from step 1.
+   - **No row returned:** the run is no longer `running` (another runner or orchestrator already terminalised it). Roll back and re-inspect.
+
+   Optional diagnostic evidence, never a gate:
+   ```sql
+   -- Advisory only: not run-scoped, and parameterized calls hide their arguments.
+   select pid, state, query_start, clock_timestamp() - query_start as duration, query
    from pg_stat_activity
-   where query ~* 'backfill_phase2b'
+   where query ilike '%backfill_phase2b(%'
      and pid <> pg_backend_pid();
    ```
-   - **Active:** If a backend PID is executing `backfill_phase2b`, the run is alive. Do not modify the record.
-   - **Abandoned:** If no backend is executing the function and the run has exceeded the threshold, the run was abandoned.
 
-3. **Recover Abandoned Run Record:**
-   Close the abandoned ledger record by transitioning it to `failed`:
+   > **Limitation:** the function does not record its backend PID, so PostgreSQL activity cannot be tied to a run ID from `pg_stat_activity` alone; the row lock is the only safe check. A pre-registered run whose execution transaction has not yet reached the lock (for example an orchestrator still connecting) is momentarily indistinguishable from an abandoned run. The staleness threshold covers that window, and step 3 runs while holding the lock: if the late execution acquires it first, recovery gets `55P03` and aborts; if recovery commits `failed` first, the late execution's own locked read sees `failed` and refuses to run.
+
+3. **Recover Abandoned Run Record (same transaction as the lock check):**
+   Close the abandoned ledger record while still holding the run lock, so no execution can start between the check and the update:
    ```sql
    update public.media_backfill_runs
    set
@@ -152,6 +175,8 @@ If an orchestrator terminates unexpectedly (host crash, network drop, OOM killer
      )
    where id = '<abandoned-run-id>'::uuid
      and outcome = 'running';
+
+   commit;
    ```
 
 4. **Safe Retry with a New Run ID:**
@@ -160,16 +185,42 @@ If an orchestrator terminates unexpectedly (host crash, network drop, OOM killer
    select public.backfill_phase2b(gen_random_uuid());
    ```
 
-5. **Concurrency & Race Condition Prevention:**
-   [`public.backfill_phase2b()`](file:///c:/Users/harsh/OneDrive/Desktop/anime tracker/supabase/migrations/20261105000001_backfill_canonical_library.sql#L38) executes `select outcome into v_existing_outcome from public.media_backfill_runs where id = p_run_id for update;`.
-   - If two runners concurrently attempt to execute with the same run ID, the second runner blocks until the first completes. When unblocked, it detects `outcome = 'completed'` and immediately raises a `check_violation` exception, preventing duplicate execution or corrupted metrics.
-- **Run ID Reuse Protection & Retries:**
-  - `public.backfill_phase2b(p_run_id)` performs a row-level lock check (`select outcome into v_existing_outcome from public.media_backfill_runs where id = p_run_id for update`).
-  - If `p_run_id` already exists with `outcome = 'completed'`, execution is aborted immediately with `Run ID % has already completed and cannot be reused.` to prevent corrupting historical run statistics or appending issues to an old run.
-  - If `p_run_id` already exists with `outcome = 'failed'`, execution is aborted immediately with `Run ID % has already failed and cannot be reused. Retries must use a new run ID.`. Retries must always generate a fresh run ID to preserve an immutable audit trail.
-  - If `p_run_id` exists with `outcome = 'running'`, it is accepted as an orchestrator handoff.
-  - If `p_run_id` does not exist, a new run row is inserted in the ambient transaction.
-- **Defensive Data Quarantine:** Rather than raising unhandled runtime errors on invalid user data, the backfill identifies anomalies and inserts them into `public.media_backfill_issues`. This allows valid records to migrate successfully while isolating problematic rows for review. A run that quarantines issues still completes and commits successfully with `outcome = 'completed'`.
+5. **Concurrency Contract:** the run row is locked for the whole execution, so a second runner with the same run ID blocks instead of duplicating work. See [Concurrency Contract & Verification](#concurrency-contract--verification) below.
+
+### Concurrency Contract & Verification
+
+`public.backfill_phase2b(p_run_id)` serialises on the ledger row (`select outcome ... for update`), which it holds until its transaction ends:
+
+1. Runner A locks `media_backfill_runs.id = p_run_id` and performs the backfill.
+2. Runner B, using the same run ID, blocks on that row lock instead of starting.
+3. Runner A commits `outcome = 'completed'`. B's locked read then returns `completed` and B aborts with `check_violation` before writing anything, so exactly one execution writes and no duplicate `media`, `user_media`, `user_media_episodes` or issue rows exist.
+4. If A's transaction aborts instead, A's ledger update rolls back to `running` and A wrote nothing. B unblocks, sees `running`, and performs the work — a safe takeover, still exactly once.
+5. If no ledger row exists yet, both runners attempt the insert and the primary key rejects the loser with a unique violation. Pre-registering the run (Transaction 1) keeps that path out of the normal flow.
+
+**What the automated suite does not cover.** `tests/media-migrations-pg.integration.test.ts` runs on PGlite, which embeds a single-session PostgreSQL (`pg_stat_activity` shows exactly one backend) and funnels every statement through one serialized connection. Two transactions cannot be open at once, so row-lock contention cannot be produced or observed there. The suite therefore asserts the lock ordering in the function body and pins the run-ID reuse contract; it does **not** claim concurrency coverage. That test name says so explicitly.
+
+**Verify on real PostgreSQL / Supabase staging with two sessions:**
+```bash
+# Session A: hold the run row lock for 30 seconds inside the execution transaction.
+psql "$DATABASE_URL" -c "begin; select public.backfill_phase2b('<run-id>'::uuid); select pg_sleep(30); commit;"
+
+# Session B: while A is still inside the function, run the same run ID.
+psql "$DATABASE_URL" -c "select public.backfill_phase2b('<run-id>'::uuid);"
+```
+Session B must block, then fail with `Run ID ... has already completed and cannot be reused.` (or, if A rolled back, succeed exactly once). Afterwards confirm:
+```sql
+select
+  (select count(*) from public.media) as media_rows,
+  (select count(*) from public.user_media) as user_media_rows,
+  (select count(*) from public.user_media_episodes) as episode_rows,
+  (select count(*) from (
+     select run_id, legacy_table, legacy_id, reason
+     from public.media_backfill_issues
+     group by 1, 2, 3, 4 having count(*) > 1
+   ) duplicates) as duplicate_issues;
+-- Expect media_rows = user_media_rows = distinct legacy library IDs,
+-- episode_rows = distinct legacy episode IDs, duplicate_issues = 0.
+```
 
 ---
 

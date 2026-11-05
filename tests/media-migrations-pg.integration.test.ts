@@ -1,7 +1,11 @@
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { PGlite } from "@electric-sql/pglite";
+
+// Each test boots an embedded PostgreSQL instance and applies all six migrations, which
+// takes a few seconds; the 5s default is not enough headroom when 27 files run in parallel.
+vi.setConfig({ testTimeout: 30_000 });
 
 const migrationFiles = [
   "20261018000000_create_user_anime.sql",
@@ -290,81 +294,249 @@ describe("PostgreSQL Real Engine Integration Tests", () => {
     }
   });
 
-  it("proves transaction failure rolls back canonical data completely", async () => {
+  it("rolls back every write from a real backfill_phase2b() execution aborted mid-run", async () => {
     const db = await createCleanDatabase();
     try {
       const testUserId = "11111111-1111-1111-1111-111111111111";
       await db.query(`insert into auth.users (id) values ('${testUserId}');`);
-
-      // Begin transaction, insert partial data, and roll back
-      await db.exec(`
-        begin;
-        insert into public.media (id, kind) values ('40000000-0000-0000-0000-000000000001', 'anime');
-        rollback;
+      await db.query(`
+        insert into public.catalog_cache (key, payload, cached_at, fresh_until, expires_at) values
+          ('details:100', '{"format": "TV"}', now(), now() + interval '1 day', now() + interval '7 days');
       `);
 
-      const mediaCount = await db.query<{ count: string | number }>("select count(*) from public.media;");
-      expect(Number(mediaCount.rows[0]!.count)).toBe(0);
+      // 100 migrates as an anime with one episode. 500 has no catalog cache, so the run
+      // also writes a quarantine issue before the injected failure, giving all four
+      // canonical ledger tables something to roll back.
+      await db.query(`
+        insert into public.user_anime (id, user_id, anilist_id, media_type, status, progress, volumes_progress) values
+          ('10000000-0000-0000-0000-000000000001', '${testUserId}', 100, 'anime', 'watching', 5, 0),
+          ('10000000-0000-0000-0000-000000000500', '${testUserId}', 500, 'anime', 'watching', 1, 0);
+      `);
+      await db.query(`
+        insert into public.user_anime_episodes (id, user_id, anilist_id, episode_number, watched_at) values
+          ('20000000-0000-0000-0000-000000000001', '${testUserId}', 100, 1, clock_timestamp());
+      `);
+
+      // Fail inside the function itself, at the episode insert that runs after the media,
+      // external-id, user_media and issue writes for anilist 100 have already executed.
+      await db.exec(`
+        create or replace function public.phase2b_force_episode_failure() returns trigger
+        language plpgsql
+        as $$
+        declare
+          v_media integer;
+          v_user_media integer;
+        begin
+          select count(*) into v_media from public.media;
+          select count(*) into v_user_media from public.user_media;
+          raise exception 'forced failure during episode migration (media=%, user_media=%)', v_media, v_user_media
+            using errcode = 'XX000';
+        end;
+        $$;
+
+        create trigger phase2b_force_episode_failure
+          before insert on public.user_media_episodes
+          for each row execute function public.phase2b_force_episode_failure();
+      `);
+
+      const abortedRunId = "40000000-0000-0000-0000-000000000001";
+      let failure: unknown;
+      try {
+        await db.exec(`begin; select public.backfill_phase2b('${abortedRunId}'::uuid);`);
+      } catch (error) {
+        failure = error;
+      }
+
+      // The message proves the function had already written canonical media and library
+      // rows inside the transaction when it aborted, so the assertions below cover real work.
+      expect(String(failure)).toContain(
+        "forced failure during episode migration (media=1, user_media=1)",
+      );
+      await db.exec("rollback;");
+
+      const rolledBack = await db.query<Record<string, number>>(`
+        select
+          (select count(*)::int from public.media) as media,
+          (select count(*)::int from public.media_external_ids) as external_ids,
+          (select count(*)::int from public.user_media) as user_media,
+          (select count(*)::int from public.user_media_episodes) as episodes,
+          (select count(*)::int from public.media_backfill_issues) as issues,
+          (select count(*)::int from public.media_backfill_runs) as runs;
+      `);
+      expect(rolledBack.rows[0]).toEqual({
+        media: 0,
+        external_ids: 0,
+        user_media: 0,
+        episodes: 0,
+        issues: 0,
+        runs: 0,
+      });
+
+      // Legacy rows are never mutated, not even by the aborted execution.
+      const legacy = await db.query<Record<string, number>>(`
+        select
+          (select count(*)::int from public.user_anime) as library,
+          (select count(*)::int from public.user_anime_episodes) as episodes;
+      `);
+      expect(legacy.rows[0]).toEqual({ library: 2, episodes: 1 });
+
+      // Re-running the same fixture without the injected failure succeeds, which proves the
+      // rollback assertions above describe valid backfill work rather than a broken fixture.
+      await db.exec("drop trigger phase2b_force_episode_failure on public.user_media_episodes;");
+      const retry = await db.query<{ res: Record<string, number> }>(
+        "select public.backfill_phase2b('40000000-0000-0000-0000-000000000002'::uuid) as res;",
+      );
+      expect(retry.rows[0]!.res.media_inserted).toBe(1);
+      expect(retry.rows[0]!.res.user_media_inserted).toBe(1);
+      expect(retry.rows[0]!.res.episodes_inserted).toBe(1);
+      expect(retry.rows[0]!.res.issues).toBe(1);
     } finally {
       await db.close();
     }
   });
 
-  it("verifies external orchestration preserves pre-registered run after execution failure", async () => {
+  it("records a pre-registered run as failed when the real backfill execution aborts, leaving no canonical data", async () => {
     const db = await createCleanDatabase();
     try {
+      const testUserId = "11111111-1111-1111-1111-111111111111";
       const runId = "50000000-0000-0000-0000-000000000001";
+      await db.query(`insert into auth.users (id) values ('${testUserId}');`);
+      await db.query(`
+        insert into public.catalog_cache (key, payload, cached_at, fresh_until, expires_at) values
+          ('details:100', '{"format": "TV"}', now(), now() + interval '1 day', now() + interval '7 days');
+      `);
+      await db.query(`
+        insert into public.user_anime (id, user_id, anilist_id, media_type, status, progress, volumes_progress) values
+          ('10000000-0000-0000-0000-000000000001', '${testUserId}', 100, 'anime', 'watching', 5, 0),
+          ('10000000-0000-0000-0000-000000000500', '${testUserId}', 500, 'anime', 'watching', 1, 0);
+      `);
+      await db.query(`
+        insert into public.user_anime_episodes (id, user_id, anilist_id, episode_number, watched_at) values
+          ('20000000-0000-0000-0000-000000000001', '${testUserId}', 100, 1, clock_timestamp());
+      `);
 
-      // Transaction 1: Pre-register run in 'running' state and commit
+      // Transaction 1: the orchestrator pre-registers the run and commits.
       await db.exec(`
         begin;
-        insert into public.media_backfill_runs (id, started_at, outcome)
-        values ('${runId}', clock_timestamp(), 'running');
+        insert into public.media_backfill_runs (id, started_at, outcome, details)
+        values (
+          '${runId}',
+          clock_timestamp(),
+          'running',
+          jsonb_build_object('orchestrator', 'kaze-migration-runner')
+        );
         commit;
       `);
 
-      // Transaction 2: Backfill executes in ambient transaction that aborts / rolls back
-      try {
-        await db.exec(`
-          begin;
-          -- Simulate an unhandled fatal error or abort during execution
-          select 1/0;
-          commit;
-        `);
-      } catch {
-        await db.exec("rollback;");
-      }
-
-      // The Transaction 1 ledger record survived the Transaction 2 rollback!
-      const checkSurviving = await db.query<{ outcome: string }>(
-        `select outcome from public.media_backfill_runs where id = '${runId}';`,
+      const registered = await db.query<{ outcome: string; started_at: string }>(
+        `select outcome, started_at::text as started_at from public.media_backfill_runs where id = '${runId}';`,
       );
-      expect(checkSurviving.rows[0]!.outcome).toBe("running");
+      expect(registered.rows[0]!.outcome).toBe("running");
 
-      // Transaction 3: Orchestrator records failure in fresh committed transaction
+      // Fail inside the real function, after it has written media, external IDs, the library
+      // row and a quarantine issue for the run.
+      await db.exec(`
+        create or replace function public.phase2b_force_episode_failure() returns trigger
+        language plpgsql
+        as $$
+        declare
+          v_media integer;
+          v_user_media integer;
+        begin
+          select count(*) into v_media from public.media;
+          select count(*) into v_user_media from public.user_media;
+          raise exception 'forced failure during episode migration (media=%, user_media=%)', v_media, v_user_media
+            using errcode = 'XX000';
+        end;
+        $$;
+
+        create trigger phase2b_force_episode_failure
+          before insert on public.user_media_episodes
+          for each row execute function public.phase2b_force_episode_failure();
+      `);
+
+      // Transaction 2: execute the real backfill against the pre-registered run; it fails and
+      // the whole execution transaction rolls back.
+      let failure: unknown;
+      try {
+        await db.exec(`begin; select public.backfill_phase2b('${runId}'::uuid);`);
+      } catch (error) {
+        failure = error;
+      }
+      expect(String(failure)).toContain(
+        "forced failure during episode migration (media=1, user_media=1)",
+      );
+      await db.exec("rollback;");
+
+      // Transaction 1's committed ledger row survives untouched: the function's own update to
+      // 'completed' was rolled back with the rest of Transaction 2.
+      const surviving = await db.query<{
+        outcome: string;
+        completed_at: string | null;
+        started_at: string;
+      }>(
+        `select outcome, completed_at::text as completed_at, started_at::text as started_at
+         from public.media_backfill_runs where id = '${runId}';`,
+      );
+      expect(surviving.rows).toHaveLength(1);
+      expect(surviving.rows[0]!.outcome).toBe("running");
+      expect(surviving.rows[0]!.completed_at).toBeNull();
+      expect(surviving.rows[0]!.started_at).toBe(registered.rows[0]!.started_at);
+
+      // No partial canonical data, mapping, episode or issue from Transaction 2 remains.
+      const afterRollback = await db.query<Record<string, number>>(`
+        select
+          (select count(*)::int from public.media) as media,
+          (select count(*)::int from public.media_external_ids) as external_ids,
+          (select count(*)::int from public.user_media) as user_media,
+          (select count(*)::int from public.user_media_episodes) as episodes,
+          (select count(*)::int from public.media_backfill_issues) as issues,
+          (select count(*)::int from public.media_backfill_runs) as runs;
+      `);
+      expect(afterRollback.rows[0]).toEqual({
+        media: 0,
+        external_ids: 0,
+        user_media: 0,
+        episodes: 0,
+        issues: 0,
+        runs: 1,
+      });
+
+      // Transaction 3: the orchestrator records the failure in a separate committed transaction.
       await db.exec(`
         begin;
         update public.media_backfill_runs
         set
           completed_at = clock_timestamp(),
           outcome = 'failed',
-          details = jsonb_build_object('error', 'Division by zero in worker')
+          details = coalesce(details, '{}'::jsonb) || jsonb_build_object(
+            'error', 'forced failure during episode migration',
+            'sqlstate', 'XX000'
+          )
         where id = '${runId}' and outcome = 'running';
         commit;
       `);
 
-      const finalCheck = await db.query<{ outcome: string; details: { error: string } }>(
+      const finalCheck = await db.query<{
+        outcome: string;
+        details: { orchestrator: string; error: string; sqlstate: string };
+      }>(
         `select outcome, details from public.media_backfill_runs where id = '${runId}';`,
       );
       expect(finalCheck.rows[0]!.outcome).toBe("failed");
-      expect(finalCheck.rows[0]!.details.error).toBe("Division by zero in worker");
+      expect(finalCheck.rows[0]!.details.orchestrator).toBe("kaze-migration-runner");
+      expect(finalCheck.rows[0]!.details.error).toBe("forced failure during episode migration");
+      expect(finalCheck.rows[0]!.details.sqlstate).toBe("XX000");
 
-      // validate_phase2b reflects the failed run
       const valRes = await db.query<{ val: Record<string, unknown> }>(
         "select public.validate_phase2b() as val;",
       );
-      expect(valRes.rows[0]!.val.latest_run_id).toBe(runId);
-      expect(valRes.rows[0]!.val.latest_run_outcome).toBe("failed");
+      const val = valRes.rows[0]!.val;
+      expect(val.latest_run_id).toBe(runId);
+      expect(val.latest_run_outcome).toBe("failed");
+      expect(val.canonical_user_media).toBe(0);
+      expect(val.media_rows).toBe(0);
+      expect(val.backfill_issues).toBe(0);
     } finally {
       await db.close();
     }
@@ -399,24 +571,33 @@ describe("PostgreSQL Real Engine Integration Tests", () => {
     }
   });
 
-  it("prevents duplicate concurrent execution using the same run ID via row locking", async () => {
+  it("documents that PGlite cannot exercise run-ledger lock contention, and pins the lock ordering", async () => {
     const db = await createCleanDatabase();
     try {
-      const sharedRunId = "70000000-0000-0000-0000-000000000001";
+      // PGlite embeds a single-session PostgreSQL: every statement runs through one serialized
+      // connection, so two transactions can never be open at once and a row lock can never be
+      // observed as contended. Genuine concurrency coverage is therefore NOT possible here; the
+      // two-session verification procedure lives in docs/architecture/phase-2b-migration-recovery.md.
+      const sessions = await db.query<{ backend_count: number }>(
+        "select count(*)::int as backend_count from pg_stat_activity;",
+      );
+      expect(sessions.rows[0]!.backend_count).toBe(1);
 
-      // Pre-register run in 'running' state
-      await db.query(`
-        insert into public.media_backfill_runs (id, started_at, outcome)
-        values ('${sharedRunId}', clock_timestamp(), 'running');
-      `);
-
-      // First execution completes and updates outcome to 'completed'
-      await db.query(`select public.backfill_phase2b('${sharedRunId}'::uuid);`);
-
-      // Second execution attempt reading the same row throws because it is completed
-      await expect(
-        db.query(`select public.backfill_phase2b('${sharedRunId}'::uuid);`),
-      ).rejects.toThrow(/has already completed and cannot be reused/i);
+      // What can be pinned is the contract the lock depends on: backfill_phase2b() must take the
+      // run row lock before any canonical write, so a real PostgreSQL runner blocks on it.
+      const fn = await db.query<{ src: string }>(
+        "select prosrc as src from pg_proc where proname = 'backfill_phase2b';",
+      );
+      expect(fn.rows).toHaveLength(1);
+      const src = fn.rows[0]!.src;
+      const lockPosition = src.indexOf("for update");
+      expect(lockPosition).toBeGreaterThan(-1);
+      expect(src.slice(0, lockPosition)).toMatch(
+        /select\s+outcome\s+into\s+v_existing_outcome\s+from\s+public\.media_backfill_runs/i,
+      );
+      expect(lockPosition).toBeLessThan(src.indexOf("insert into public.media_backfill_runs"));
+      expect(lockPosition).toBeLessThan(src.indexOf("insert into public.media (id, kind)"));
+      expect(lockPosition).toBeLessThan(src.indexOf("insert into public.user_media ("));
     } finally {
       await db.close();
     }
