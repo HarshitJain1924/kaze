@@ -308,6 +308,7 @@ create table if not exists public.user_media (
     check (rewatch_count >= 0),
   constraint user_media_user_media_key unique (user_id, media_id),
   constraint user_media_id_user_key unique (id, user_id),
+  constraint user_media_id_user_kind_key unique (id, user_id, media_kind),
   constraint user_media_media_kind_fk
     foreign key (media_id, media_kind) references public.media (id, kind)
     on delete restrict
@@ -325,6 +326,7 @@ create table if not exists public.user_media_episodes (
   user_id uuid not null default auth.uid()
     references auth.users (id) on delete cascade,
   user_media_id uuid not null,
+  media_kind text not null default 'anime',
   season_number integer not null default 0,
   episode_number integer not null,
   watched_at timestamptz not null default now(),
@@ -333,17 +335,21 @@ create table if not exists public.user_media_episodes (
     check (season_number >= 0),
   constraint user_media_episodes_number_positive
     check (episode_number > 0),
+  constraint user_media_episodes_media_kind_valid
+    check (media_kind in ('anime', 'tv')),
   constraint user_media_episodes_user_media_key
     unique (user_media_id, season_number, episode_number),
-  constraint user_media_episodes_owner_fk
-    foreign key (user_media_id, user_id)
-    references public.user_media (id, user_id) on delete cascade
+  constraint user_media_episodes_owner_kind_fk
+    foreign key (user_media_id, user_id, media_kind)
+    references public.user_media (id, user_id, media_kind) on delete cascade
 );
 
 create index if not exists user_media_episodes_lookup_idx
   on public.user_media_episodes (user_media_id, season_number, episode_number);
 create index if not exists user_media_episodes_user_idx
   on public.user_media_episodes (user_id);
+create index if not exists user_media_episodes_media_kind_idx
+  on public.user_media_episodes (media_kind);
 
 -- Service-only ledger for malformed or conflicting legacy rows. It is not
 -- exposed to authenticated users, even though some entries contain user IDs.
