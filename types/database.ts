@@ -614,6 +614,30 @@ export interface Database {
           },
         ];
       };
+      media_backfill_runs: {
+        Row: {
+          id: string;
+          started_at: string;
+          completed_at: string | null;
+          outcome: "running" | "completed" | "failed";
+          details: Json;
+        };
+        Insert: {
+          id?: string;
+          started_at?: string;
+          completed_at?: string | null;
+          outcome?: "running" | "completed" | "failed";
+          details?: Json;
+        };
+        Update: {
+          id?: string;
+          started_at?: string;
+          completed_at?: string | null;
+          outcome?: "running" | "completed" | "failed";
+          details?: Json;
+        };
+        Relationships: [];
+      };
       media_backfill_issues: {
         Row: {
           id: string;
@@ -645,7 +669,15 @@ export interface Database {
           created_at?: string;
           resolved_at?: string | null;
         };
-        Relationships: [];
+        Relationships: [
+          {
+            foreignKeyName: "media_backfill_issues_run_fk";
+            columns: ["run_id"];
+            isOneToOne: false;
+            referencedRelation: "media_backfill_runs";
+            referencedColumns: ["id"];
+          },
+        ];
       };
     };
     Views: Record<string, never>;

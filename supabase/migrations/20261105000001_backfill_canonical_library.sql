@@ -50,6 +50,11 @@ declare
   v_episodes_inserted bigint := 0;
   v_issues bigint := 0;
 begin
+  -- 0. Record invocation in media_backfill_runs ledger
+  insert into public.media_backfill_runs (id, started_at, outcome)
+  values (p_run_id, clock_timestamp(), 'running')
+  on conflict (id) do nothing;
+
   -- 1. Extract and aggregate format information from public.catalog_cache
   drop table if exists pg_temp.phase2b_cache_format;
   create temporary table pg_temp.phase2b_cache_format
@@ -988,6 +993,19 @@ begin
   from public.media_backfill_issues
   where run_id = p_run_id;
 
+  update public.media_backfill_runs
+  set
+    completed_at = clock_timestamp(),
+    outcome = 'completed',
+    details = jsonb_build_object(
+      'media_inserted', v_media_inserted,
+      'external_ids_inserted', v_mappings_inserted,
+      'user_media_inserted', v_user_media_inserted,
+      'episodes_inserted', v_episodes_inserted,
+      'issues', v_issues
+    )
+  where id = p_run_id;
+
   return jsonb_build_object(
     'run_id', p_run_id,
     'media_inserted', v_media_inserted,
@@ -1073,20 +1091,18 @@ as $$
     select
       count(*) as total_historical,
       count(*) filter (where resolved_at is null) as unresolved,
-      count(*) filter (where resolved_at is not null) as resolved,
-      count(*) filter (where run_id = (
-        select run_id
-        from public.media_backfill_issues
-        order by created_at desc, id desc
-        limit 1
-      )) as latest_run_total,
-      count(*) filter (where run_id = (
-        select run_id
-        from public.media_backfill_issues
-        order by created_at desc, id desc
-        limit 1
-      ) and resolved_at is null) as latest_run_unresolved
+      count(*) filter (where resolved_at is not null) as resolved
     from public.media_backfill_issues
+  ),
+  latest_run as (
+    select
+      id as run_id,
+      started_at,
+      completed_at,
+      outcome
+    from public.media_backfill_runs
+    order by started_at desc, id desc
+    limit 1
   )
   select jsonb_build_object(
     'legacy_user_anime', (select count(*) from public.user_anime),
@@ -1140,11 +1156,22 @@ as $$
       from per_user_counts
       where legacy_count <> canonical_count
     ),
+    'latest_run_id', (select run_id from latest_run),
+    'latest_run_outcome', (select outcome from latest_run),
     'backfill_issues_total_historical', coalesce((select total_historical from issue_stats), 0),
     'backfill_issues_unresolved', coalesce((select unresolved from issue_stats), 0),
     'backfill_issues_resolved', coalesce((select resolved from issue_stats), 0),
-    'backfill_issues_latest_run', coalesce((select latest_run_total from issue_stats), 0),
-    'backfill_issues_latest_run_unresolved', coalesce((select latest_run_unresolved from issue_stats), 0),
+    'backfill_issues_latest_run', coalesce((
+      select count(*)
+      from public.media_backfill_issues
+      where run_id = (select run_id from latest_run)
+    ), 0),
+    'backfill_issues_latest_run_unresolved', coalesce((
+      select count(*)
+      from public.media_backfill_issues
+      where run_id = (select run_id from latest_run)
+        and resolved_at is null
+    ), 0),
     'backfill_issues', coalesce((select unresolved from issue_stats), 0)
   )
 $$;

@@ -53,8 +53,21 @@ describe("Static SQL Migration Verification", () => {
       );
     });
 
-    it("creates media_backfill_issues quarantine table with unique run_legacy_reason_key", () => {
+    it("creates media_backfill_runs invocation ledger with outcome constraint and started_at index", () => {
+      expect(schemaSql).toMatch(/create\s+table\s+if\s+not\s+exists\s+public\.media_backfill_runs/i);
+      expect(schemaSql).toMatch(
+        /constraint\s+media_backfill_runs_outcome_valid\s+check\s*\(\s*outcome\s+in\s*\('running',\s*'completed',\s*'failed'\)\s*\)/i,
+      );
+      expect(schemaSql).toMatch(
+        /create\s+index\s+if\s+not\s+exists\s+media_backfill_runs_started_idx\s+on\s+public\.media_backfill_runs\s*\(\s*started_at\s+desc\s*\)/i,
+      );
+    });
+
+    it("creates media_backfill_issues quarantine table referencing media_backfill_runs", () => {
       expect(schemaSql).toMatch(/create\s+table\s+if\s+not\s+exists\s+public\.media_backfill_issues/i);
+      expect(schemaSql).toMatch(
+        /constraint\s+media_backfill_issues_run_fk\s+foreign\s+key\s*\(\s*run_id\s*\)\s+references\s+public\.media_backfill_runs\s*\(\s*id\s*\)\s+on\s+delete\s+cascade/i,
+      );
       expect(schemaSql).toMatch(
         /constraint\s+media_backfill_issues_run_legacy_reason_key\s+unique\s*\(\s*run_id,\s*legacy_table,\s*legacy_id,\s*reason\s*\)/i,
       );
@@ -133,8 +146,20 @@ describe("Static SQL Migration Verification", () => {
       expect(backfillSql).toContain("'conflicting-catalog-cache'");
     });
 
-    it("defines validate_phase2b() with comprehensive data integrity and issue status checks", () => {
+    it("records run in media_backfill_runs at start and updates completion outcome", () => {
+      expect(backfillSql).toMatch(
+        /insert\s+into\s+public\.media_backfill_runs\s*\(\s*id,\s*started_at,\s*outcome\s*\)/i,
+      );
+      expect(backfillSql).toMatch(
+        /update\s+public\.media_backfill_runs\s+set\s+completed_at\s*=\s*clock_timestamp\(\),\s*outcome\s*=\s*'completed'/i,
+      );
+    });
+
+    it("defines validate_phase2b() with comprehensive data integrity and run ledger checks", () => {
       expect(backfillSql).toMatch(/create\s+or\s+replace\s+function\s+public\.validate_phase2b\(\)/i);
+      expect(backfillSql).toMatch(/from\s+public\.media_backfill_runs/i);
+      expect(backfillSql).toContain("'latest_run_id'");
+      expect(backfillSql).toContain("'latest_run_outcome'");
       expect(backfillSql).toContain("'invalid_progress_rows'");
       expect(backfillSql).toContain("'orphan_canonical_episodes'");
       expect(backfillSql).toContain("'duplicate_external_id_groups'");

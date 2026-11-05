@@ -10,6 +10,7 @@ import {
   validateMediaLibraryEntry,
   MediaLibraryInvariantError,
   type BackfillIssueRecord,
+  type BackfillRunRecord,
   type BackfillOptions,
   type CatalogCacheEntry,
   type LegacyUserAnimeEpisodeRow,
@@ -1436,7 +1437,23 @@ describe("Regression Tests: Alternate-Key Idempotency, Validation Reporting & Sc
       },
     ];
 
-    const summary = summarizeBackfillIssues(issues);
+    const runs: BackfillRunRecord[] = [
+      {
+        id: "run-1",
+        startedAt: "2026-11-01T00:00:00.000Z",
+        completedAt: "2026-11-01T00:05:00.000Z",
+        outcome: "completed",
+      },
+      {
+        id: "run-2",
+        startedAt: "2026-11-05T00:00:00.000Z",
+        completedAt: "2026-11-05T00:05:00.000Z",
+        outcome: "completed",
+      },
+    ];
+
+    const summary = summarizeBackfillIssues(issues, runs);
+    expect(summary.latestRunId).toBe("run-2");
     expect(summary.totalHistorical).toBe(5);
     expect(summary.resolved).toBe(3);
     expect(summary.unresolved).toBe(2);
@@ -1444,13 +1461,51 @@ describe("Regression Tests: Alternate-Key Idempotency, Validation Reporting & Sc
     expect(summary.latestRunUnresolved).toBe(2);
   });
 
+  it("accurately reports latest run with zero issues when using media_backfill_runs ledger", () => {
+    const runs: BackfillRunRecord[] = [
+      {
+        id: "run-1",
+        startedAt: "2026-11-01T00:00:00.000Z",
+        completedAt: "2026-11-01T00:01:00.000Z",
+        outcome: "completed",
+      },
+      {
+        id: "run-2-clean",
+        startedAt: "2026-11-05T00:00:00.000Z",
+        completedAt: "2026-11-05T00:01:00.000Z",
+        outcome: "completed",
+      },
+    ];
+    // Previous run 1 had an issue, but run 2 (latest) has zero issues
+    const issues: BackfillIssueRecord[] = [
+      {
+        id: "1",
+        runId: "run-1",
+        legacyTable: "user_anime",
+        legacyId: "leg-1",
+        reason: "missing-catalog-cache",
+        createdAt: "2026-11-01T00:00:00.000Z",
+        resolvedAt: "2026-11-05T00:00:00.000Z",
+      },
+    ];
+
+    const summary = summarizeBackfillIssues(issues, runs);
+    expect(summary.latestRunId).toBe("run-2-clean");
+    expect(summary.totalHistorical).toBe(1);
+    expect(summary.resolved).toBe(1);
+    expect(summary.unresolved).toBe(0);
+    expect(summary.latestRunTotal).toBe(0); // 0 issues in latest clean run
+    expect(summary.latestRunUnresolved).toBe(0);
+  });
+
   // 8. Schema/type/documentation consistency
-  it("enforces that views remain empty Record<string, never> and no canonical_media_summary view exists", () => {
+  it("enforces schema, types, and recovery doc consistency with media_backfill_runs and no obsolete codes", () => {
     const dbTypesPath = resolve(__dirname, "../types/database.ts");
     const dbTypesContent = readFileSync(dbTypesPath, "utf-8");
 
     expect(dbTypesContent).toMatch(/Views:\s*Record<string,\s*never>;/);
     expect(dbTypesContent).not.toContain("canonical_media_summary");
+    expect(dbTypesContent).toContain("media_backfill_runs:");
 
     const schemaSqlPath = resolve(
       __dirname,
@@ -1460,12 +1515,24 @@ describe("Regression Tests: Alternate-Key Idempotency, Validation Reporting & Sc
       __dirname,
       "../supabase/migrations/20261105000001_backfill_canonical_library.sql",
     );
+    const recoveryDocPath = resolve(
+      __dirname,
+      "../docs/architecture/phase-2b-migration-recovery.md",
+    );
+
     const schemaContent = readFileSync(schemaSqlPath, "utf-8");
     const backfillContent = readFileSync(backfillSqlPath, "utf-8");
+    const recoveryDocContent = readFileSync(recoveryDocPath, "utf-8");
 
+    expect(schemaContent).toMatch(/create\s+table\s+if\s+not\s+exists\s+public\.media_backfill_runs/i);
     expect(schemaContent).not.toMatch(/create\s+view/i);
     expect(backfillContent).not.toMatch(/create\s+view/i);
     expect(schemaContent).not.toContain("canonical_media_summary");
     expect(backfillContent).not.toContain("canonical_media_summary");
+
+    // Obsolete codes must not be in recovery docs
+    expect(recoveryDocContent).not.toContain("'conflicting-alternate-key-id'");
+    expect(recoveryDocContent).not.toContain("'conflicting-alternate-key-episode-id'");
+    expect(recoveryDocContent).toContain("media_backfill_runs");
   });
 });

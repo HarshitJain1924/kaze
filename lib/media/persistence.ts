@@ -92,7 +92,16 @@ export interface BackfillIssueRecord {
   resolvedAt?: string | null;
 }
 
+export interface BackfillRunRecord {
+  id: string;
+  startedAt: string;
+  completedAt?: string | null;
+  outcome: "running" | "completed" | "failed";
+  details?: Record<string, unknown>;
+}
+
 export interface Phase2bValidationIssueSummary {
+  latestRunId: string | null;
   totalHistorical: number;
   unresolved: number;
   resolved: number;
@@ -102,23 +111,18 @@ export interface Phase2bValidationIssueSummary {
 
 export function summarizeBackfillIssues(
   issues: readonly BackfillIssueRecord[],
+  runs?: readonly BackfillRunRecord[],
 ): Phase2bValidationIssueSummary {
-  if (issues.length === 0) {
-    return {
-      totalHistorical: 0,
-      unresolved: 0,
-      resolved: 0,
-      latestRunTotal: 0,
-      latestRunUnresolved: 0,
-    };
+  // Derive latest run from media_backfill_runs ledger, supporting zero-issue runs
+  let latestRunId: string | null = null;
+  if (runs && runs.length > 0) {
+    const sortedRuns = [...runs].sort((a, b) => {
+      const timeA = new Date(a.startedAt).getTime();
+      const timeB = new Date(b.startedAt).getTime();
+      return timeB - timeA;
+    });
+    latestRunId = sortedRuns[0]?.id ?? null;
   }
-
-  const sorted = [...issues].sort((a, b) => {
-    const timeA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
-    const timeB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
-    return timeB - timeA;
-  });
-  const latestRunId = sorted[0]?.runId;
 
   let unresolved = 0;
   let resolved = 0;
@@ -134,7 +138,7 @@ export function summarizeBackfillIssues(
       unresolved++;
     }
 
-    if (issue.runId === latestRunId) {
+    if (latestRunId && issue.runId === latestRunId) {
       latestRunTotal++;
       if (!isResolved) {
         latestRunUnresolved++;
@@ -143,6 +147,7 @@ export function summarizeBackfillIssues(
   }
 
   return {
+    latestRunId,
     totalHistorical: issues.length,
     unresolved,
     resolved,

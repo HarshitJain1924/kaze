@@ -21,7 +21,8 @@ The Phase 2B migrations are strictly **additive**. Legacy tables (`public.user_a
    - `public.media_tv_details`: TV-specific metadata (seasons, episodes, networks, next episode JSON).
    - `public.user_media`: User library tracking with kind-specific progress constraints (`episodes_watched`, `chapters_read`, `volumes_read`, `movie_watched`, TV fields), unique keys `(id)`, `(user_id, media_id)`, and composite foreign key `(media_id, media_kind)`.
    - `public.user_media_episodes`: Granular episode watch history constrained to `'anime'` and `'tv'` kinds, bound to `user_media` via declarative composite foreign key `(user_media_id, user_id, media_kind)`.
-   - `public.media_backfill_issues`: Diagnostic ledger quarantining malformed, conflicting, or missing legacy rows.
+   - `public.media_backfill_runs`: Invocation ledger recording every backfill run (run ID, started_at, completed_at, outcome, details), ensuring zero-issue runs are reliably tracked.
+   - `public.media_backfill_issues`: Diagnostic ledger quarantining malformed, conflicting, or missing legacy rows, referencing `media_backfill_runs(id)`.
 2. **Database Functions (`20261105000001_backfill_canonical_library.sql`):**
    - `public.deterministic_anilist_media_id(integer)`: Immutable UUIDv5 generator for AniList IDs.
    - `public.backfill_phase2b(uuid)`: Idempotent backfill engine with strict conflict detection.
@@ -95,8 +96,7 @@ order by issue_count desc;
      'conflicting-library-favorite',
      'conflicting-library-dates',
      'conflicting-library-timestamps',
-     'conflicting-alternate-key-library',
-     'conflicting-alternate-key-id'
+     'conflicting-alternate-key-library'
    ) and resolved_at is null;
    ```
 3. **Episode Entity Conflicts:**
@@ -110,7 +110,6 @@ order by issue_count desc;
      'conflicting-episode-watched-at',
      'conflicting-episode-created-at',
      'conflicting-alternate-key-episode',
-     'conflicting-alternate-key-episode-id',
      'movie-episode-history',
      'manga-episode-history'
    ) and resolved_at is null;
@@ -158,6 +157,8 @@ Expected healthy output shape:
   "legacy_library_ids_missing_from_canonical": 0,
   "legacy_episode_ids_missing_from_canonical": 0,
   "per_user_count_mismatches": 0,
+  "latest_run_id": "00000000-0000-0000-0000-000000000001",
+  "latest_run_outcome": "completed",
   "backfill_issues_total_historical": 12,
   "backfill_issues_unresolved": 0,
   "backfill_issues_resolved": 12,
@@ -168,10 +169,12 @@ Expected healthy output shape:
 ```
 
 Validation output fields:
+- `latest_run_id`: UUID of the latest invocation from `public.media_backfill_runs`.
+- `latest_run_outcome`: Outcome of the latest invocation (`'completed'`, `'running'`, or `'failed'`).
 - `backfill_issues_total_historical`: Count of all historical issue records across all backfill runs.
 - `backfill_issues_unresolved`: Count of issues where `resolved_at is null` (active failures).
 - `backfill_issues_resolved`: Count of issues where `resolved_at is not null` (successfully resolved).
-- `backfill_issues_latest_run`: Count of issues created during the latest backfill run.
+- `backfill_issues_latest_run`: Count of issues created during the latest backfill run (correctly 0 on zero-issue runs).
 - `backfill_issues_latest_run_unresolved`: Count of issues in the latest run that remain unresolved.
 - `backfill_issues`: Set to `backfill_issues_unresolved` so that resolved historical issues do not trigger false alerts.
 
@@ -184,7 +187,7 @@ If `legacy_library_ids_missing_from_canonical` or `backfill_issues_unresolved` i
 
 - **Do NOT truncate or delete from legacy tables:** `public.user_anime`, `public.user_anime_episodes`, and `public.catalog_cache` must remain untouched.
 - **Do NOT manually force-insert or mutate `user_media` rows:** The check constraint `user_media_progress_shape` strictly enforces mutually exclusive columns based on `media_kind`. Manually populating `episodes_watched` on a movie or `movie_watched` on an anime will violate database check constraints.
-- **Do NOT delete from `public.media_backfill_issues`:** It serves as an audit ledger. Issues are resolved by setting `resolved_at = now()`, not by deletion.
+- **Do NOT delete from `public.media_backfill_issues` or `public.media_backfill_runs`:** They serve as an audit ledger. Issues are resolved by setting `resolved_at = now()`, not by deletion.
 
 ---
 
@@ -203,6 +206,7 @@ drop function if exists public.deterministic_anilist_media_id(integer);
 
 -- 2. Drop additive tables (reverse order of creation)
 drop table if exists public.media_backfill_issues cascade;
+drop table if exists public.media_backfill_runs cascade;
 drop table if exists public.user_media_episodes cascade;
 drop table if exists public.user_media cascade;
 drop table if exists public.media_tv_details cascade;

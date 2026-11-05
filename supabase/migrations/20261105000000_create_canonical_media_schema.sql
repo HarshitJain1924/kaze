@@ -351,6 +351,20 @@ create index if not exists user_media_episodes_user_idx
 create index if not exists user_media_episodes_media_kind_idx
   on public.user_media_episodes (media_kind);
 
+-- Invocation ledger recording every backfill run, including runs with zero issues.
+create table if not exists public.media_backfill_runs (
+  id uuid primary key default gen_random_uuid(),
+  started_at timestamptz not null default now(),
+  completed_at timestamptz,
+  outcome text not null default 'running',
+  details jsonb not null default '{}'::jsonb,
+  constraint media_backfill_runs_outcome_valid
+    check (outcome in ('running', 'completed', 'failed'))
+);
+
+create index if not exists media_backfill_runs_started_idx
+  on public.media_backfill_runs (started_at desc);
+
 -- Service-only ledger for malformed or conflicting legacy rows. It is not
 -- exposed to authenticated users, even though some entries contain user IDs.
 create table if not exists public.media_backfill_issues (
@@ -362,6 +376,8 @@ create table if not exists public.media_backfill_issues (
   details jsonb not null default '{}'::jsonb,
   created_at timestamptz not null default now(),
   resolved_at timestamptz,
+  constraint media_backfill_issues_run_fk
+    foreign key (run_id) references public.media_backfill_runs (id) on delete cascade,
   constraint media_backfill_issues_run_legacy_reason_key
     unique (run_id, legacy_table, legacy_id, reason)
 );
@@ -433,6 +449,8 @@ alter table public.media_movie_details enable row level security;
 alter table public.media_movie_details force row level security;
 alter table public.media_tv_details enable row level security;
 alter table public.media_tv_details force row level security;
+alter table public.media_backfill_runs enable row level security;
+alter table public.media_backfill_runs force row level security;
 alter table public.media_backfill_issues enable row level security;
 alter table public.media_backfill_issues force row level security;
 
@@ -444,6 +462,7 @@ revoke all on public.media_anime_details from anon, authenticated;
 revoke all on public.media_manga_details from anon, authenticated;
 revoke all on public.media_movie_details from anon, authenticated;
 revoke all on public.media_tv_details from anon, authenticated;
+revoke all on public.media_backfill_runs from anon, authenticated;
 revoke all on public.media_backfill_issues from anon, authenticated;
 
 grant select, insert, update, delete on public.media to service_role;
@@ -454,6 +473,7 @@ grant select, insert, update, delete on public.media_anime_details to service_ro
 grant select, insert, update, delete on public.media_manga_details to service_role;
 grant select, insert, update, delete on public.media_movie_details to service_role;
 grant select, insert, update, delete on public.media_tv_details to service_role;
+grant select, insert, update, delete on public.media_backfill_runs to service_role;
 grant select, insert, update, delete on public.media_backfill_issues to service_role;
 
 -- Personal library tables use the same ownership boundary as the legacy
