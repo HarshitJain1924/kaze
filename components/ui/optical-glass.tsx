@@ -3,11 +3,11 @@
 import React, { useCallback, useRef } from "react";
 import { cn } from "@/lib/utils";
 
-export interface OpticalGlassProps extends React.HTMLAttributes<HTMLElement> {
-  as?: React.ElementType;
+export type OpticalGlassProps<T extends React.ElementType = "div"> = {
+  as?: T;
   variant?: "workspace" | "card" | "pill" | "interactive" | "nav";
   interactive?: boolean;
-}
+} & React.ComponentPropsWithoutRef<T>;
 
 /**
  * Optical Glass component adapted to Kaze's cinematic editorial design.
@@ -16,8 +16,8 @@ export interface OpticalGlassProps extends React.HTMLAttributes<HTMLElement> {
  * multi-layered Fresnel edge reflections, subtle SVG refraction distortion,
  * and restrained 60fps/120fps pointer-responsive specular highlights without heavy WebGL.
  */
-export function OpticalGlass({
-  as: Component = "div",
+export function OpticalGlass<T extends React.ElementType = "div">({
+  as,
   variant = "card",
   interactive = true,
   className,
@@ -26,12 +26,13 @@ export function OpticalGlass({
   onPointerLeave,
   style,
   ...props
-}: OpticalGlassProps) {
+}: OpticalGlassProps<T>) {
+  const Component = as || "div";
   const isMoving = useRef(false);
 
   const handlePointerMove = useCallback(
     (e: React.PointerEvent<HTMLElement>) => {
-      onPointerMove?.(e);
+      (onPointerMove as React.PointerEventHandler<HTMLElement> | undefined)?.(e);
       if (!interactive || e.pointerType === "touch") return;
 
       const target = e.currentTarget;
@@ -53,7 +54,7 @@ export function OpticalGlass({
 
   const handlePointerLeave = useCallback(
     (e: React.PointerEvent<HTMLElement>) => {
-      onPointerLeave?.(e);
+      (onPointerLeave as React.PointerEventHandler<HTMLElement> | undefined)?.(e);
       if (!interactive || e.pointerType === "touch") return;
       const target = e.currentTarget;
       target.style.removeProperty("--glass-x");

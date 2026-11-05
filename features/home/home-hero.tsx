@@ -13,6 +13,7 @@ import {
   PlusIcon,
   StarIcon,
 } from "@/components/icons";
+import { OpticalGlass } from "@/components/ui/optical-glass";
 import {
   useActiveTimeZone,
   usePreferences,
@@ -338,7 +339,9 @@ export function HomeHero({
             {featuredList.length > 1 ? (
               <div className="flex flex-wrap items-center justify-between gap-3 border-t border-border pt-4">
                 <div className="flex items-center gap-2">
-                  <button
+                  <OpticalGlass
+                    as="button"
+                    variant="interactive"
                     type="button"
                     onClick={() =>
                       setActiveIndex(
@@ -348,25 +351,27 @@ export function HomeHero({
                     }
                     aria-label="Previous spotlight anime"
                     title="Previous spotlight"
-                    className="flex h-8 w-8 items-center justify-center border border-border text-muted transition-colors hover:bg-surface-2 hover:text-fg"
+                    className="flex h-8 w-8 items-center justify-center rounded-lg border border-border/80 text-muted transition-colors hover:text-fg"
                   >
                     <ChevronLeftIcon className="h-3.5 w-3.5" />
-                  </button>
+                  </OpticalGlass>
                   <span className="px-1 font-mono text-[10px] tabular-nums text-faint">
                     {String(activeIndex + 1).padStart(2, "0")} /{" "}
                     {String(featuredList.length).padStart(2, "0")}
                   </span>
-                  <button
+                  <OpticalGlass
+                    as="button"
+                    variant="interactive"
                     type="button"
                     onClick={() =>
                       setActiveIndex((prev) => (prev + 1) % featuredList.length)
                     }
                     aria-label="Next spotlight anime"
                     title="Next spotlight"
-                    className="flex h-8 w-8 items-center justify-center border border-border text-muted transition-colors hover:bg-surface-2 hover:text-fg"
+                    className="flex h-8 w-8 items-center justify-center rounded-lg border border-border/80 text-muted transition-colors hover:text-fg"
                   >
                     <ChevronRightIcon className="h-3.5 w-3.5" />
-                  </button>
+                  </OpticalGlass>
                 </div>
 
                 <div className="flex items-center gap-1.5" aria-label="Spotlight selections">
@@ -436,20 +441,26 @@ export function HomeHero({
           )}
 
           <div className="pointer-events-none absolute inset-x-0 bottom-0 h-28 bg-gradient-to-t from-bg/90 via-bg/30 to-transparent" />
-          <div className="absolute bottom-4 left-4 right-4 flex items-end justify-between gap-3 sm:bottom-5 sm:left-6 sm:right-6">
-            <div>
-              <p className="text-[8px] font-semibold uppercase tracking-[0.2em] text-white/70">
-                {seasonLabel(season)} {year} · Curated feature
-              </p>
-              <p className="mt-1 line-clamp-1 font-display text-sm font-medium text-white">
-                {activeTitle ?? "The current season, in focus"}
-              </p>
-            </div>
-            {today.label ? (
-              <p className="hidden text-[10px] text-white/70 sm:block">
-                {today.label}
-              </p>
-            ) : null}
+          <div className="absolute bottom-3 left-3 right-3 sm:bottom-4 sm:left-4 sm:right-4">
+            <OpticalGlass
+              variant="pill"
+              interactive={false}
+              className="optical-glass-dark flex items-end justify-between gap-3 rounded-xl border border-white/20 px-3.5 py-2 sm:px-4 sm:py-2.5 shadow-md"
+            >
+              <div>
+                <p className="text-[8px] font-semibold uppercase tracking-[0.2em] text-white/70">
+                  {seasonLabel(season)} {year} · Curated feature
+                </p>
+                <p className="mt-1 line-clamp-1 font-display text-sm font-medium text-white">
+                  {activeTitle ?? "The current season, in focus"}
+                </p>
+              </div>
+              {today.label ? (
+                <p className="hidden text-[10px] text-white/70 sm:block">
+                  {today.label}
+                </p>
+              ) : null}
+            </OpticalGlass>
           </div>
         </div>
       </div>

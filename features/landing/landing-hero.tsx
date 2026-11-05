@@ -2,6 +2,7 @@ import Image from "next/image";
 import Link from "next/link";
 
 import { CompassIcon, StarIcon } from "@/components/icons";
+import { OpticalGlass } from "@/components/ui/optical-glass";
 import { formatFormat, formatScore, isHttpUrl } from "@/lib/utils";
 import type { AnimeSummary } from "@/types/anime";
 import type { Viewer } from "@/types/viewer";
@@ -173,10 +174,14 @@ export function LandingHero({
                       ) : null}
                     </div>
                     {leadScore ? (
-                      <span className="landing-mono flex shrink-0 items-center gap-1 border border-white/25 px-2 py-1 text-[9px] text-white/90">
+                      <OpticalGlass
+                        variant="pill"
+                        interactive={false}
+                        className="optical-glass-dark landing-mono flex shrink-0 items-center gap-1 rounded-md px-2 py-1 text-[9px] text-white/95 border border-white/25 shadow-xs"
+                      >
                         <StarIcon className="h-2.5 w-2.5 fill-current" />
                         {leadScore}
-                      </span>
+                      </OpticalGlass>
                     ) : null}
                   </div>
                 </div>

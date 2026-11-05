@@ -2,6 +2,7 @@ import Image from "next/image";
 import Link from "next/link";
 
 import { ChevronRightIcon } from "@/components/icons";
+import { OpticalGlass } from "@/components/ui/optical-glass";
 import { formatFormat, formatScore } from "@/lib/utils";
 import type { AnimeSeason, AnimeSummary } from "@/types/anime";
 
@@ -59,9 +60,13 @@ function SeasonalPlate({
           {String(index + 1).padStart(2, "0")}
         </span>
         {score ? (
-          <span className="landing-mono absolute right-3 top-3 border border-white/25 bg-black/45 px-1.5 py-1 text-[8px] text-white/80">
+          <OpticalGlass
+            variant="pill"
+            interactive={false}
+            className="optical-glass-dark landing-mono absolute right-3 top-3 rounded px-1.5 py-0.5 text-[8px] text-white/90 border border-white/20"
+          >
             {score}
-          </span>
+          </OpticalGlass>
         ) : null}
       </div>
 
