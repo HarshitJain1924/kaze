@@ -8,12 +8,15 @@ import {
   mapSearchPage,
   mapSeason,
 } from "@/services/tmdb/mappers";
-import type {
-  TmdbDetails,
-  TmdbDiscoverCategory,
-  TmdbKind,
-  TmdbSearchPage,
-  TmdbSeasonDetails,
+import {
+  isTmdbSortForKind,
+  type TmdbDetails,
+  type TmdbDiscoverCategory,
+  type TmdbDiscoverFilters,
+  type TmdbDiscoverSort,
+  type TmdbKind,
+  type TmdbSearchPage,
+  type TmdbSeasonDetails,
 } from "@/types/tmdb";
 
 export async function searchTmdb(
@@ -34,11 +37,67 @@ export async function searchTmdb(
   return mapSearchPage(kind, payload);
 }
 
+function defaultSortForCategory(
+  kind: TmdbKind,
+  category: TmdbDiscoverCategory,
+): TmdbDiscoverSort {
+  if (category === "top_rated") return "vote_average.desc";
+  if (category === "upcoming") {
+    return kind === "movie"
+      ? "primary_release_date.asc"
+      : "first_air_date.asc";
+  }
+  return "popularity.desc";
+}
+
+function hasDiscoverFilters(filters: TmdbDiscoverFilters): boolean {
+  return Boolean(
+    filters.genre ||
+      filters.year ||
+      filters.minRating !== undefined ||
+      filters.sort,
+  );
+}
+
 export async function discoverTmdb(
   kind: TmdbKind,
   category: TmdbDiscoverCategory,
   page = 1,
+  filters: TmdbDiscoverFilters = {},
 ): Promise<TmdbSearchPage> {
+  // TMDB's curated feeds do not accept genre/year/rating constraints, so any
+  // active filter moves the request onto the discover endpoint.
+  if (hasDiscoverFilters(filters)) {
+    const sort =
+      filters.sort && isTmdbSortForKind(kind, filters.sort)
+        ? filters.sort
+        : defaultSortForCategory(kind, category);
+    const query: Record<string, string | number> = {
+      page,
+      language: "en-US",
+      sort_by: sort,
+    };
+
+    if (filters.genre) query.with_genres = filters.genre;
+    if (filters.year) {
+      query[kind === "movie" ? "primary_release_year" : "first_air_date_year"] =
+        filters.year;
+    }
+    if (filters.minRating !== undefined) {
+      query["vote_average.gte"] = filters.minRating;
+    }
+    if (sort === "vote_average.desc" || filters.minRating !== undefined) {
+      // Rating sorts surface unknown titles with a handful of votes.
+      query["vote_count.gte"] = 100;
+    }
+
+    const filtered = await tmdbGet<unknown>(`/discover/${kind}`, {
+      query,
+      revalidateSeconds: 900,
+    });
+    return mapSearchPage(kind, filtered);
+  }
+
   const path =
     category === "trending"
       ? `/trending/${kind}/day`

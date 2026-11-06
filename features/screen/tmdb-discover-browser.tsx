@@ -16,6 +16,7 @@ import {
   LoaderIcon,
   PlayIcon,
   SearchIcon,
+  SlidersIcon,
   SparklesIcon,
   StarIcon,
   TrophyIcon,
@@ -27,14 +28,25 @@ import { kindLabel, ScreenPoster } from "@/features/screen/screen-poster";
 import { ApiRequestError, apiFetch } from "@/lib/http";
 import { cn, isHttpUrl } from "@/lib/utils";
 import {
+  TMDB_RATING_FILTERS,
   tmdbDiscoverCategoriesForKind,
+  tmdbGenresForKind,
+  tmdbSortsForKind,
   type TmdbDiscoverCategory,
+  type TmdbDiscoverFilters,
+  type TmdbDiscoverSort,
   type TmdbKind,
   type TmdbSearchPage,
   type TmdbSearchResult,
 } from "@/types/tmdb";
 
 type LoadStatus = "idle" | "loading" | "loadingMore" | "error";
+
+const CURRENT_YEAR = new Date().getFullYear();
+const YEAR_OPTIONS = Array.from(
+  { length: CURRENT_YEAR + 1 - 1950 + 1 },
+  (_, index) => CURRENT_YEAR + 1 - index,
+);
 
 const CATEGORY_META: Record<
   TmdbDiscoverCategory,
@@ -60,6 +72,7 @@ function requestPath(
   category: TmdbDiscoverCategory,
   query: string,
   page: number,
+  filters: TmdbDiscoverFilters,
 ): string {
   if (query.length >= 2) {
     const params = new URLSearchParams({
@@ -74,6 +87,12 @@ function requestPath(
     category,
     page: String(page),
   });
+  if (filters.genre) params.set("genre", filters.genre);
+  if (filters.year) params.set("year", String(filters.year));
+  if (filters.minRating !== undefined) {
+    params.set("rating", String(filters.minRating));
+  }
+  if (filters.sort) params.set("sort", filters.sort);
   return `/api/tmdb/discover?${params.toString()}`;
 }
 
@@ -157,18 +176,21 @@ export function TmdbDiscoverBrowser({
   initialPage,
   initialCategory,
   initialQuery,
+  initialFilters,
   initialError,
 }: {
   kind: TmdbKind;
   initialPage: TmdbSearchPage | null;
   initialCategory: TmdbDiscoverCategory;
   initialQuery: string;
+  initialFilters: TmdbDiscoverFilters;
   initialError: string | null;
 }) {
   const [queryInput, setQueryInput] = useState(initialQuery);
   const [query, setQuery] = useState(initialQuery.trim());
   const [category, setCategory] =
     useState<TmdbDiscoverCategory>(initialCategory);
+  const [filters, setFilters] = useState<TmdbDiscoverFilters>(initialFilters);
   const [items, setItems] = useState<TmdbSearchResult[]>(
     initialPage?.results ?? [],
   );
@@ -179,12 +201,15 @@ export function TmdbDiscoverBrowser({
   );
   const [error, setError] = useState<string | null>(initialError);
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
+  const [showFilters, setShowFilters] = useState(false);
   const [retryNonce, setRetryNonce] = useState(0);
   const skipInitialFetch = useRef(
     initialPage !== null || initialError !== null,
   );
 
   const categoryOptions = tmdbDiscoverCategoriesForKind(kind);
+  const genreOptions = tmdbGenresForKind(kind);
+  const sortOptions = tmdbSortsForKind(kind);
   const activeCategory = CATEGORY_META[category];
   const kindLabelPlural = kind === "movie" ? "movies" : "TV shows";
   const singularKind = kind === "movie" ? "Movie" : "TV Show";
@@ -206,8 +231,14 @@ export function TmdbDiscoverBrowser({
     params.set("type", kind);
     if (category !== "trending") params.set("category", category);
     if (query) params.set("q", query);
+    if (filters.genre) params.set("genre", filters.genre);
+    if (filters.year) params.set("year", String(filters.year));
+    if (filters.minRating !== undefined) {
+      params.set("rating", String(filters.minRating));
+    }
+    if (filters.sort) params.set("sort", filters.sort);
     window.history.replaceState(null, "", `/discover?${params.toString()}`);
-  }, [kind, category, query]);
+  }, [kind, category, query, filters]);
 
   useEffect(() => {
     if (skipInitialFetch.current) {
@@ -219,7 +250,7 @@ export function TmdbDiscoverBrowser({
 
     const controller = new AbortController();
 
-    apiFetch<TmdbSearchPage>(requestPath(kind, category, query, page), {
+    apiFetch<TmdbSearchPage>(requestPath(kind, category, query, page, filters), {
       signal: controller.signal,
     })
       .then((data) => {
@@ -244,21 +275,27 @@ export function TmdbDiscoverBrowser({
       });
 
     return () => controller.abort();
-  }, [category, kind, kindLabelPlural, page, query, retryNonce]);
+  }, [category, filters, kind, kindLabelPlural, page, query, retryNonce]);
 
   const searchTooShort = query.length === 1;
   const isLoading = status === "loading" && !searchTooShort;
   const isEmpty = items.length === 0;
   const isTyping = queryInput.trim() !== query;
-  const topItem = items[0] ?? null;
-  const topArtwork = topItem?.backdropUrl ?? topItem?.posterUrl ?? null;
   const hasNextPage = pageInfo ? pageInfo.page < pageInfo.totalPages : false;
   const searchActive = query.length >= 2;
+  const activeFilterCount = [
+    filters.genre,
+    filters.year,
+    filters.minRating !== undefined ? true : undefined,
+    filters.sort,
+  ].filter((value) => value !== undefined).length;
+  const hasFilters = activeFilterCount > 0;
 
   const resetAll = () => {
     setQueryInput("");
     setQuery("");
     setCategory("trending");
+    setFilters({});
     setPage(1);
     setStatus("loading");
     setError(null);
@@ -284,119 +321,90 @@ export function TmdbDiscoverBrowser({
     setRetryNonce((value) => value + 1);
   };
 
+  const applyFilter = (patch: Partial<TmdbDiscoverFilters>) => {
+    setFilters((current) => ({ ...current, ...patch }));
+    // TMDB search does not accept catalogue filters, so changing a filter
+    // returns to category browsing with the constraint applied.
+    setQueryInput("");
+    setQuery("");
+    setPage(1);
+    setStatus("loading");
+    setError(null);
+    setRetryNonce((value) => value + 1);
+  };
+
+  const clearFilters = () =>
+    applyFilter({
+      genre: undefined,
+      year: undefined,
+      minRating: undefined,
+      sort: undefined,
+    });
+
+  const filterChips: Array<{
+    key: string;
+    label: string;
+    clear: () => void;
+  }> = [];
+  if (filters.genre) {
+    const genre = genreOptions.find((option) => option.value === filters.genre);
+    filterChips.push({
+      key: "genre",
+      label: `Genre: ${genre?.label ?? filters.genre}`,
+      clear: () => applyFilter({ genre: undefined }),
+    });
+  }
+  if (filters.year) {
+    filterChips.push({
+      key: "year",
+      label: `Year: ${filters.year}`,
+      clear: () => applyFilter({ year: undefined }),
+    });
+  }
+  if (filters.minRating !== undefined) {
+    filterChips.push({
+      key: "rating",
+      label: `Rating: ${filters.minRating.toFixed(1)}+`,
+      clear: () => applyFilter({ minRating: undefined }),
+    });
+  }
+  if (filters.sort) {
+    const sort = sortOptions.find((option) => option.value === filters.sort);
+    filterChips.push({
+      key: "sort",
+      label: `Sort: ${sort?.label ?? filters.sort}`,
+      clear: () => applyFilter({ sort: undefined }),
+    });
+  }
+
+  const selectClass =
+    "h-9 w-full rounded-lg border border-border bg-surface-2 px-2.5 text-xs font-medium text-fg transition-colors focus:border-accent focus:outline-none";
+
   return (
     <div className="space-y-6">
-      <header className="relative isolate overflow-hidden rounded-3xl border border-border-subtle bg-surface-2 shadow-2xl transition-all">
-        {topItem && topArtwork && isHttpUrl(topArtwork) ? (
-          <div
-            aria-hidden="true"
-            className="pointer-events-none absolute inset-0 z-0 select-none overflow-hidden"
-          >
-            <div className="absolute inset-0 scale-125 opacity-25 blur-3xl saturate-200">
-              <Image
-                src={topArtwork}
-                alt=""
-                fill
-                unoptimized
-                sizes="100vw"
-                className="object-cover"
-              />
-            </div>
-            {topItem.backdropUrl && isHttpUrl(topItem.backdropUrl) ? (
-              <div className="absolute inset-0">
-                <Image
-                  src={topItem.backdropUrl}
-                  alt=""
-                  fill
-                  unoptimized
-                  sizes="100vw"
-                  className="object-cover object-[center_25%] opacity-30"
-                />
-              </div>
-            ) : null}
-            <div className="absolute inset-0 bg-gradient-to-r from-surface via-surface/90 via-50% to-surface/40" />
-            <div className="absolute inset-0 bg-gradient-to-t from-surface via-transparent to-transparent" />
-          </div>
-        ) : null}
-
-        <div className="relative z-10 flex flex-col justify-between gap-5 p-5 sm:p-7 lg:flex-row lg:items-center">
-          <div className="max-w-2xl">
-            <div className="flex flex-wrap items-center gap-2">
-              <span className="flex h-2 w-2 rounded-full bg-accent-strong radar-live-dot" />
-              <span className="text-[11px] font-bold uppercase tracking-wider text-accent-strong">
-                TMDB Global Catalogue
-              </span>
-              <span className="text-faint">·</span>
-              <span className="text-xs font-medium text-muted">
-                {activeCategory.label} {kindLabelPlural}
-              </span>
-            </div>
-
-            <h1 className="mt-2 font-display text-2xl font-bold tracking-tight text-fg sm:text-3xl lg:text-4xl">
-              Discover {kind === "movie" ? "Movies" : "TV Shows"}
-            </h1>
-
-            <p className="mt-2 text-xs leading-relaxed text-muted sm:text-sm">
-              Browse {kind === "movie" ? "cinema releases" : "series"} by
-              category or search TMDB directly. Every title opens the same Kaze
-              detail and tracking experience.
-            </p>
-          </div>
-
-          {topItem ? (
-            <div className="flex items-center gap-3.5 rounded-2xl border border-border-subtle bg-surface/70 p-3 shadow-xl backdrop-blur-md lg:max-w-sm">
-              <Link
-                href={`/screen/${topItem.kind}/${topItem.tmdbId}`}
-                className="relative aspect-[2/3] w-16 shrink-0 overflow-hidden rounded-xl border border-white/20 shadow-md sm:w-20"
-              >
-                {topItem.posterUrl && isHttpUrl(topItem.posterUrl) ? (
-                  <Image
-                    src={topItem.posterUrl}
-                    alt=""
-                    fill
-                    unoptimized
-                    sizes="80px"
-                    className="object-cover"
-                  />
-                ) : (
-                  <div className="absolute inset-0 bg-surface-3" />
-                )}
-                {topItem.voteAverage && topItem.voteAverage > 0 ? (
-                  <span className="absolute left-1 top-1 inline-flex items-center gap-1 rounded-md border border-white/20 bg-black/80 px-1.5 py-0.5 text-[10px] font-bold text-amber-300 backdrop-blur-md">
-                    <StarIcon className="h-2.5 w-2.5 fill-amber-400 text-amber-400" />
-                    {topItem.voteAverage.toFixed(1)}
-                  </span>
-                ) : null}
-              </Link>
-
-              <div className="min-w-0 flex-1">
-                <span className="text-[10px] font-bold uppercase tracking-wider text-accent-strong">
-                  {searchActive ? "Top Match" : "Top Result"}
-                </span>
-                <Link
-                  href={`/screen/${topItem.kind}/${topItem.tmdbId}`}
-                  className="mt-0.5 line-clamp-1 block font-display text-sm font-bold text-fg transition-colors hover:text-accent-strong"
-                >
-                  {topItem.title}
-                </Link>
-                <p className="mt-0.5 text-[11px] text-muted">
-                  {[kindLabel(topItem.kind), topItem.year]
-                    .filter(Boolean)
-                    .join(" · ")}
-                </p>
-                <div className="mt-2">
-                  <Link
-                    href={`/screen/${topItem.kind}/${topItem.tmdbId}`}
-                    className="inline-flex h-7 items-center gap-1 rounded-lg bg-accent px-2.5 text-[11px] font-bold text-accent-contrast shadow-sm transition-colors hover:bg-accent-hover"
-                  >
-                    View {singularKind}
-                    <ChevronRightIcon className="h-3 w-3" />
-                  </Link>
-                </div>
-              </div>
-            </div>
-          ) : null}
+      <header className="rounded-2xl border border-border-subtle bg-surface-2/80 p-4 shadow-sm sm:p-5">
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="flex h-2 w-2 rounded-full bg-accent-strong radar-live-dot" />
+          <span className="text-[11px] font-bold uppercase tracking-wider text-accent-strong">
+            TMDB Catalogue
+          </span>
+          <span className="text-faint">·</span>
+          <span className="text-xs font-medium text-muted">
+            {searchActive
+              ? `${singularKind} search`
+              : `${activeCategory.label} ${kindLabelPlural}`}
+          </span>
         </div>
+
+        <h1 className="mt-2 font-display text-xl font-bold tracking-tight text-fg sm:text-2xl">
+          Discover {kind === "movie" ? "Movies" : "TV Shows"}
+        </h1>
+
+        <p className="mt-1.5 max-w-2xl text-xs leading-relaxed text-muted sm:text-sm">
+          Browse {kind === "movie" ? "cinema releases" : "series"} by category
+          or search TMDB directly. Every title opens the same Kaze detail and
+          tracking experience.
+        </p>
       </header>
 
       <div className="no-scrollbar -mx-4 flex gap-2 overflow-x-auto px-4 pb-1 sm:-mx-0 sm:flex-wrap sm:overflow-visible sm:px-0">
@@ -472,21 +480,164 @@ export function TmdbDiscoverBrowser({
                 </button>
               ) : (
                 <kbd className="hidden items-center rounded border border-border bg-surface-3/60 px-1.5 font-mono text-[10px] text-faint sm:inline-flex">
-                  Search
+                  Ctrl K
                 </kbd>
               )}
             </div>
           </div>
-          {queryInput || category !== "trending" ? (
+
+          <div className="flex items-center gap-2">
             <button
               type="button"
-              onClick={resetAll}
-              className="inline-flex h-11 items-center justify-center rounded-xl border border-border-subtle bg-surface-3/60 px-3 text-xs font-medium text-muted transition-colors hover:bg-surface-3 hover:text-fg"
+              onClick={() => setShowFilters((current) => !current)}
+              aria-expanded={showFilters}
+              className={cn(
+                "inline-flex h-11 items-center gap-2 rounded-xl border px-4 text-xs font-semibold shadow-sm transition-all active:scale-95",
+                showFilters || activeFilterCount > 0
+                  ? "border-accent bg-accent/20 text-accent-strong"
+                  : "border-border-subtle bg-surface-2 text-muted hover:bg-surface-3 hover:text-fg",
+              )}
             >
-              Reset
+              <SlidersIcon className="h-4 w-4" />
+              <span>Filters</span>
+              {activeFilterCount > 0 ? (
+                <span className="flex h-5 w-5 items-center justify-center rounded-full bg-accent text-[10px] font-bold text-accent-contrast">
+                  {activeFilterCount}
+                </span>
+              ) : null}
             </button>
-          ) : null}
+
+            {queryInput || activeFilterCount > 0 || category !== "trending" ? (
+              <button
+                type="button"
+                onClick={resetAll}
+                className="inline-flex h-11 items-center rounded-xl border border-border-subtle bg-surface-3/60 px-3 text-xs font-medium text-muted transition-colors hover:bg-surface-3 hover:text-fg"
+              >
+                Reset
+              </button>
+            ) : null}
+          </div>
         </div>
+
+        {showFilters ? (
+          <div className="grid gap-3 border-t border-border-subtle pt-3 sm:grid-cols-2 lg:grid-cols-4">
+            <label className="flex flex-col gap-1 text-[10px] font-semibold uppercase tracking-wider text-faint">
+              Genre
+              <select
+                value={filters.genre ?? ""}
+                onChange={(event) =>
+                  applyFilter({ genre: event.target.value || undefined })
+                }
+                className={selectClass}
+              >
+                <option value="">All genres</option>
+                {genreOptions.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+            </label>
+
+            <label className="flex flex-col gap-1 text-[10px] font-semibold uppercase tracking-wider text-faint">
+              Year
+              <select
+                value={filters.year ? String(filters.year) : ""}
+                onChange={(event) =>
+                  applyFilter({
+                    year: event.target.value
+                      ? Number(event.target.value)
+                      : undefined,
+                  })
+                }
+                className={selectClass}
+              >
+                <option value="">Any year</option>
+                {YEAR_OPTIONS.map((year) => (
+                  <option key={year} value={year}>
+                    {year}
+                  </option>
+                ))}
+              </select>
+            </label>
+
+            <label className="flex flex-col gap-1 text-[10px] font-semibold uppercase tracking-wider text-faint">
+              Minimum rating
+              <select
+                value={
+                  filters.minRating !== undefined
+                    ? String(filters.minRating)
+                    : ""
+                }
+                onChange={(event) =>
+                  applyFilter({
+                    minRating: event.target.value
+                      ? Number(event.target.value)
+                      : undefined,
+                  })
+                }
+                className={selectClass}
+              >
+                {TMDB_RATING_FILTERS.map((option) => (
+                  <option key={option.label} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+            </label>
+
+            <label className="flex flex-col gap-1 text-[10px] font-semibold uppercase tracking-wider text-faint">
+              Sort by
+              <select
+                value={filters.sort ?? ""}
+                onChange={(event) =>
+                  applyFilter({
+                    sort: (event.target.value || undefined) as
+                      | TmdbDiscoverSort
+                      | undefined,
+                  })
+                }
+                className={selectClass}
+              >
+                <option value="">Category default</option>
+                {sortOptions.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+            </label>
+          </div>
+        ) : null}
+
+        {filterChips.length > 0 ? (
+          <div className="flex flex-wrap items-center gap-1.5 pt-1">
+            <span className="mr-1 text-[11px] font-semibold text-faint">
+              Active filters:
+            </span>
+            {filterChips.map((chip) => (
+              <button
+                key={chip.key}
+                type="button"
+                onClick={chip.clear}
+                className="inline-flex items-center gap-1.5 rounded-full border border-accent/40 bg-accent/15 py-1 pl-2.5 pr-1.5 text-[11px] font-semibold text-accent-strong transition-all hover:bg-accent/25 active:scale-95"
+              >
+                <span>{chip.label}</span>
+                <span className="flex h-3.5 w-3.5 items-center justify-center rounded-full bg-accent/40 text-accent-contrast">
+                  <CloseIcon className="h-2 w-2" />
+                </span>
+              </button>
+            ))}
+            <button
+              type="button"
+              onClick={clearFilters}
+              className="ml-1 text-[11px] font-medium text-faint underline-offset-2 transition-colors hover:text-fg hover:underline"
+            >
+              Clear all
+            </button>
+          </div>
+        ) : null}
+
         {query.length === 1 ? (
           <p className="text-xs text-faint">Type at least two characters.</p>
         ) : null}
@@ -515,35 +666,62 @@ export function TmdbDiscoverBrowser({
           )}
         </p>
 
-        <div className="inline-flex items-center rounded-lg border border-border bg-surface-2 p-0.5">
-          <button
-            type="button"
-            onClick={() => setViewMode("grid")}
-            aria-label="Poster grid view"
-            title="Poster grid view"
-            className={cn(
-              "flex h-7 w-7 items-center justify-center rounded-md transition-all",
-              viewMode === "grid"
-                ? "bg-accent font-bold text-accent-contrast shadow-xs"
-                : "text-muted hover:text-fg",
-            )}
-          >
-            <GridIcon className="h-3.5 w-3.5" />
-          </button>
-          <button
-            type="button"
-            onClick={() => setViewMode("list")}
-            aria-label="Detailed list view"
-            title="Detailed list view"
-            className={cn(
-              "flex h-7 w-7 items-center justify-center rounded-md transition-all",
-              viewMode === "list"
-                ? "bg-accent font-bold text-accent-contrast shadow-xs"
-                : "text-muted hover:text-fg",
-            )}
-          >
-            <ListIcon className="h-3.5 w-3.5" />
-          </button>
+        <div className="flex items-center gap-2.5">
+          {!searchActive ? (
+            <div className="flex items-center gap-1.5 text-xs text-muted">
+              <span className="hidden text-faint sm:inline">Sort by:</span>
+              <select
+                value={filters.sort ?? ""}
+                onChange={(event) =>
+                  applyFilter({
+                    sort: (event.target.value || undefined) as
+                      | TmdbDiscoverSort
+                      | undefined,
+                  })
+                }
+                aria-label="Sort results"
+                className="h-8 rounded-lg border border-border bg-surface-2 px-2.5 text-xs font-semibold text-fg focus:border-accent focus:outline-none"
+              >
+                <option value="">Category default</option>
+                {sortOptions.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+          ) : null}
+
+          <div className="inline-flex items-center rounded-lg border border-border bg-surface-2 p-0.5">
+            <button
+              type="button"
+              onClick={() => setViewMode("grid")}
+              aria-label="Poster grid view"
+              title="Poster grid view"
+              className={cn(
+                "flex h-7 w-7 items-center justify-center rounded-md transition-all",
+                viewMode === "grid"
+                  ? "bg-accent font-bold text-accent-contrast shadow-xs"
+                  : "text-muted hover:text-fg",
+              )}
+            >
+              <GridIcon className="h-3.5 w-3.5" />
+            </button>
+            <button
+              type="button"
+              onClick={() => setViewMode("list")}
+              aria-label="Detailed list view"
+              title="Detailed list view"
+              className={cn(
+                "flex h-7 w-7 items-center justify-center rounded-md transition-all",
+                viewMode === "list"
+                  ? "bg-accent font-bold text-accent-contrast shadow-xs"
+                  : "text-muted hover:text-fg",
+              )}
+            >
+              <ListIcon className="h-3.5 w-3.5" />
+            </button>
+          </div>
         </div>
       </div>
 
@@ -566,10 +744,16 @@ export function TmdbDiscoverBrowser({
             description={
               query
                 ? `Nothing matched “${query}”. Try a shorter title or clear the search.`
-                : "No titles matched this category. Try another category."
+                : hasFilters
+                  ? "No titles matched these filters. Try another genre, year, or rating."
+                  : "No titles matched this category. Try another category."
             }
             action={
-              <Button variant="secondary" size="sm" onClick={resetAll}>
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={hasFilters || query ? resetAll : resetAll}
+              >
                 Reset discovery
               </Button>
             }
@@ -635,7 +819,7 @@ export function TmdbDiscoverBrowser({
         </>
       )}
 
-      <TmdbAttribution className="pt-1" />
+      <TmdbAttribution className="mt-2 border-t border-border-subtle pt-3 text-[10px]" />
     </div>
   );
 }

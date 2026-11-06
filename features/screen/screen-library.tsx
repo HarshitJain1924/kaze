@@ -181,7 +181,7 @@ export function ScreenLibrary({ items }: { items: TmdbLibraryItem[] }) {
         <EmptyState
           icon={<FilmIcon className="h-6 w-6 text-faint" />}
           title={kind === "movie" ? "No films yet" : "No TV shows yet"}
-          description="Search Films & TV to add something to this shelf."
+          description="Search movies and TV in Discover to add something to this shelf."
         />
       ) : (
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">

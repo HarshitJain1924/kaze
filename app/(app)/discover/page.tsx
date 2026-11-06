@@ -17,8 +17,11 @@ import { discoverTmdb, searchTmdb } from "@/services/tmdb/service";
 import type { AnimePage } from "@/types/anime";
 import type { DiscoverView } from "@/types/discover";
 import {
+  isTmdbSortForKind,
   tmdbDiscoverCategoriesForKind,
+  tmdbGenresForKind,
   type TmdbDiscoverCategory,
+  type TmdbDiscoverFilters,
   type TmdbKind,
   type TmdbSearchPage,
 } from "@/types/tmdb";
@@ -85,6 +88,40 @@ function readCategory(
     : "trending";
 }
 
+function readTmdbFilters(
+  kind: TmdbKind,
+  params: Record<string, string | string[] | undefined>,
+): TmdbDiscoverFilters {
+  const pick = (key: string) => {
+    const value = params[key];
+    return Array.isArray(value) ? value[0] : value;
+  };
+
+  const filters: TmdbDiscoverFilters = {};
+
+  const genre = pick("genre");
+  if (genre && tmdbGenresForKind(kind).some((item) => item.value === genre)) {
+    filters.genre = genre;
+  }
+
+  const year = Number(pick("year"));
+  if (Number.isInteger(year) && year >= 1900 && year <= 2100) {
+    filters.year = year;
+  }
+
+  const rating = Number(pick("rating"));
+  if (Number.isFinite(rating) && rating > 0 && rating <= 10) {
+    filters.minRating = rating;
+  }
+
+  const sort = pick("sort");
+  if (sort && isTmdbSortForKind(kind, sort)) {
+    filters.sort = sort;
+  }
+
+  return filters;
+}
+
 function tmdbFailureMessage(error: unknown): string {
   if (error instanceof TmdbNotConfiguredError) return error.message;
   if (error instanceof TmdbRateLimitError) return error.message;
@@ -121,6 +158,7 @@ export default async function DiscoverPage({
   let initialTmdbError: string | null = null;
   let initialTmdbCategory: TmdbDiscoverCategory = "trending";
   let initialTmdbQuery = "";
+  let initialTmdbFilters: TmdbDiscoverFilters = {};
 
   if (isTmdbView) {
     const kind = initialView as TmdbKind;
@@ -128,11 +166,17 @@ export default async function DiscoverPage({
     const query = Array.isArray(rawQuery) ? rawQuery[0] : rawQuery;
     initialTmdbCategory = readCategory(kind, params);
     initialTmdbQuery = query?.trim().slice(0, 100) ?? "";
+    initialTmdbFilters = readTmdbFilters(kind, params);
     try {
       initialTmdbPage =
         initialTmdbQuery.length >= 2
           ? await searchTmdb(kind, initialTmdbQuery, 1)
-          : await discoverTmdb(kind, initialTmdbCategory, 1);
+          : await discoverTmdb(
+              kind,
+              initialTmdbCategory,
+              1,
+              initialTmdbFilters,
+            );
     } catch (error) {
       initialTmdbError = tmdbFailureMessage(error);
       console.error(
@@ -164,6 +208,7 @@ export default async function DiscoverPage({
       initialTmdbPage={initialTmdbPage}
       initialTmdbCategory={initialTmdbCategory}
       initialTmdbQuery={initialTmdbQuery}
+      initialTmdbFilters={initialTmdbFilters}
       initialTmdbError={initialTmdbError}
       adultAllowed={viewer?.showAdult === true}
     />

@@ -32,7 +32,6 @@ interface MobileNavItem {
 const ITEMS: MobileNavItem[] = [
   { href: "/dashboard", label: "Home", icon: HomeIcon },
   { href: "/discover", label: "Discover", icon: CompassIcon },
-  { href: "/screen", label: "Films & TV", icon: FilmIcon },
   { href: "/schedule", label: "Schedule", icon: CalendarIcon },
   { href: "/library", label: "Library", icon: LibraryIcon },
   { href: "/lists", label: "Lists", icon: BookmarkIcon },

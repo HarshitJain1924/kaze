@@ -292,7 +292,7 @@ export function ScreenDetail({
   if (details.collection && details.collection.parts.length > 0) {
     sections.push({
       id: "collection",
-      label: "Collection",
+      label: "Franchise & Chronology",
       count: details.collection.parts.length,
       overview: true,
       content: (

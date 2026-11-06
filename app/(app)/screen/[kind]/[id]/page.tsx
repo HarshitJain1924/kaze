@@ -52,9 +52,9 @@ export default async function ScreenDetailPage({
 
     return (
       <MediaDetailError
-        backHref="/screen"
-        backLabel="Back to Films & TV"
-        eyebrow="Films & TV"
+        backHref={`/discover?type=${kind.data}`}
+        backLabel="Back to Discover"
+        eyebrow="Discover"
         title="Details unavailable"
         message={message}
       >

@@ -39,11 +39,35 @@ export const tmdbDiscoverCategorySchema = z.enum([
   "on_the_air",
 ]);
 
+export const tmdbDiscoverSortSchema = z.enum([
+  "popularity.desc",
+  "vote_average.desc",
+  "vote_count.desc",
+  "primary_release_date.desc",
+  "primary_release_date.asc",
+  "first_air_date.desc",
+  "first_air_date.asc",
+  "original_title.asc",
+  "name.asc",
+]);
+
 export const tmdbDiscoverParamsSchema = z
   .object({
     kind: tmdbKindSchema.default("movie"),
     category: tmdbDiscoverCategorySchema.default("trending"),
     page: z.coerce.number().int().min(1).max(500).default(1),
+    genre: z
+      .string()
+      .regex(/^\d{1,6}$/, "Choose a valid genre")
+      .optional(),
+    year: z.coerce
+      .number()
+      .int()
+      .min(1900, "Year must be 1900 or later")
+      .max(2100, "Year must be 2100 or earlier")
+      .optional(),
+    rating: z.coerce.number().min(0).max(10).optional(),
+    sort: tmdbDiscoverSortSchema.optional(),
   })
   .superRefine((value, context) => {
     if (

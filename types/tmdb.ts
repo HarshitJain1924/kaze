@@ -38,6 +38,113 @@ export function tmdbDiscoverCategoriesForKind(
     : TMDB_TV_DISCOVER_CATEGORIES;
 }
 
+export interface TmdbFilterOption {
+  value: string;
+  label: string;
+}
+
+/** TMDB genre ids are stable catalogue constants, not discovery results. */
+export const TMDB_MOVIE_GENRES: TmdbFilterOption[] = [
+  { value: "28", label: "Action" },
+  { value: "12", label: "Adventure" },
+  { value: "16", label: "Animation" },
+  { value: "35", label: "Comedy" },
+  { value: "80", label: "Crime" },
+  { value: "99", label: "Documentary" },
+  { value: "18", label: "Drama" },
+  { value: "10751", label: "Family" },
+  { value: "14", label: "Fantasy" },
+  { value: "36", label: "History" },
+  { value: "27", label: "Horror" },
+  { value: "10402", label: "Music" },
+  { value: "9648", label: "Mystery" },
+  { value: "10749", label: "Romance" },
+  { value: "878", label: "Science Fiction" },
+  { value: "53", label: "Thriller" },
+  { value: "10752", label: "War" },
+  { value: "37", label: "Western" },
+];
+
+export const TMDB_TV_GENRES: TmdbFilterOption[] = [
+  { value: "10759", label: "Action & Adventure" },
+  { value: "16", label: "Animation" },
+  { value: "35", label: "Comedy" },
+  { value: "80", label: "Crime" },
+  { value: "99", label: "Documentary" },
+  { value: "18", label: "Drama" },
+  { value: "10751", label: "Family" },
+  { value: "10762", label: "Kids" },
+  { value: "9648", label: "Mystery" },
+  { value: "10763", label: "News" },
+  { value: "10764", label: "Reality" },
+  { value: "10765", label: "Sci-Fi & Fantasy" },
+  { value: "10766", label: "Soap" },
+  { value: "10767", label: "Talk" },
+  { value: "10768", label: "War & Politics" },
+  { value: "37", label: "Western" },
+];
+
+export const TMDB_DISCOVER_SORTS = [
+  "popularity.desc",
+  "vote_average.desc",
+  "vote_count.desc",
+  "primary_release_date.desc",
+  "primary_release_date.asc",
+  "first_air_date.desc",
+  "first_air_date.asc",
+  "original_title.asc",
+  "name.asc",
+] as const;
+
+export type TmdbDiscoverSort = (typeof TMDB_DISCOVER_SORTS)[number];
+
+export const TMDB_RATING_FILTERS: TmdbFilterOption[] = [
+  { value: "", label: "Any rating" },
+  { value: "6", label: "6.0+" },
+  { value: "7", label: "7.0+" },
+  { value: "8", label: "8.0+" },
+  { value: "9", label: "9.0+" },
+];
+
+export function tmdbGenresForKind(kind: TmdbKind): TmdbFilterOption[] {
+  return kind === "movie" ? TMDB_MOVIE_GENRES : TMDB_TV_GENRES;
+}
+
+export function tmdbSortsForKind(kind: TmdbKind): TmdbFilterOption[] {
+  return kind === "movie"
+    ? [
+        { value: "popularity.desc", label: "Popularity" },
+        { value: "vote_average.desc", label: "Rating" },
+        { value: "vote_count.desc", label: "Most rated" },
+        { value: "primary_release_date.desc", label: "Newest" },
+        { value: "primary_release_date.asc", label: "Oldest" },
+        { value: "original_title.asc", label: "Title A–Z" },
+      ]
+    : [
+        { value: "popularity.desc", label: "Popularity" },
+        { value: "vote_average.desc", label: "Rating" },
+        { value: "vote_count.desc", label: "Most rated" },
+        { value: "first_air_date.desc", label: "Newest" },
+        { value: "first_air_date.asc", label: "Oldest" },
+        { value: "name.asc", label: "Title A–Z" },
+      ];
+}
+
+export function isTmdbSortForKind(
+  kind: TmdbKind,
+  sort: string,
+): sort is TmdbDiscoverSort {
+  return tmdbSortsForKind(kind).some((option) => option.value === sort);
+}
+
+/** Optional constraints layered on top of a discovery category. */
+export interface TmdbDiscoverFilters {
+  genre?: string;
+  year?: number;
+  minRating?: number;
+  sort?: TmdbDiscoverSort;
+}
+
 export interface TmdbSearchResult {
   tmdbId: number;
   kind: TmdbKind;

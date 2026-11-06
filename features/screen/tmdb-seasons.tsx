@@ -62,7 +62,7 @@ export function TmdbSeasonsSection({
   });
 
   return (
-    <section aria-labelledby="seasons-heading" className="space-y-3">
+    <section aria-labelledby="seasons-heading" className="space-y-4">
       <div className="flex flex-col gap-3 border-b border-border pb-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <div className="flex items-center gap-2">
@@ -88,12 +88,12 @@ export function TmdbSeasonsSection({
       </div>
 
       {visibleSeasons.length === 0 ? (
-        <p className="rounded-2xl border border-border-subtle bg-surface-2/50 p-4 text-sm text-muted">
+        <p className="rounded-xl border border-border-subtle bg-surface-2/50 p-4 text-sm text-muted">
           TMDB has no season data for this series yet.
         </p>
       ) : null}
 
-      <div className="space-y-2">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         {visibleSeasons.map((season) => {
           const open = openSeason === season.seasonNumber;
           const data = seasonData[season.seasonNumber];
@@ -106,26 +106,52 @@ export function TmdbSeasonsSection({
           const allWatched =
             seasonEpisodes.length > 0 &&
             seasonWatched === seasonEpisodes.length;
+          const percent =
+            seasonEpisodes.length > 0
+              ? Math.round((seasonWatched / seasonEpisodes.length) * 100)
+              : 0;
+          const defaultLabel =
+            season.seasonNumber === 0
+              ? "Specials"
+              : `Season ${season.seasonNumber}`;
+          const episodeLabel = `${season.episodeCount} ${
+            season.episodeCount === 1 ? "episode" : "episodes"
+          }`;
+          const seasonName = season.name?.trim();
+          const distinctName =
+            seasonName && seasonName !== defaultLabel ? seasonName : null;
+          const seasonTitle = distinctName ?? episodeLabel;
+          const poster =
+            season.posterUrl && isHttpUrl(season.posterUrl)
+              ? season.posterUrl
+              : null;
+          const panelId = `season-panel-${season.seasonNumber}`;
 
           return (
             <div
               key={season.seasonNumber}
-              className="overflow-hidden rounded-2xl border border-border-subtle bg-surface/70"
+              className={cn(
+                "group relative overflow-hidden rounded-xl border shadow-xs transition-all duration-200",
+                open
+                  ? "border-accent/60 bg-accent-soft/20 ring-1 ring-accent/25 sm:col-span-2"
+                  : "border-border-subtle bg-surface/90 hover:border-border hover:bg-surface",
+              )}
             >
               <button
                 type="button"
                 onClick={() => onLoadSeason(season)}
                 aria-expanded={open}
-                className="flex w-full items-center justify-between gap-3 p-4 text-left transition-colors hover:bg-surface-2/60"
+                aria-controls={panelId}
+                className="flex w-full items-center gap-3.5 p-3 text-left"
               >
-                <span className="relative block aspect-[2/3] h-16 w-11 shrink-0 overflow-hidden rounded-md border border-border-subtle bg-surface-3">
-                  {season.posterUrl && isHttpUrl(season.posterUrl) ? (
+                <span className="relative aspect-[2/3] w-14 shrink-0 overflow-hidden rounded-lg border border-border-subtle bg-surface-3 transition-transform duration-200 group-hover:scale-102">
+                  {poster ? (
                     <Image
-                      src={season.posterUrl}
+                      src={poster}
                       alt=""
                       fill
                       unoptimized
-                      sizes="44px"
+                      sizes="56px"
                       className="object-cover"
                     />
                   ) : (
@@ -133,20 +159,67 @@ export function TmdbSeasonsSection({
                       <MonitorIcon className="h-5 w-5 text-faint/60" />
                     </span>
                   )}
+
+                  {open ? (
+                    <span className="absolute inset-x-0 bottom-0 bg-accent py-0.5 text-center text-[8px] font-bold uppercase tracking-wider text-accent-contrast">
+                      Open
+                    </span>
+                  ) : null}
                 </span>
+
                 <span className="min-w-0 flex-1">
-                  <span className="block text-sm font-semibold text-fg">
-                    {season.seasonNumber === 0 ? "Specials" : season.name}
+                  <span className="flex items-center gap-1.5">
+                    <span
+                      className={cn(
+                        "rounded px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wider",
+                        open
+                          ? "bg-accent text-accent-contrast"
+                          : "border border-border-subtle bg-surface-2 text-muted",
+                      )}
+                    >
+                      {defaultLabel}
+                    </span>
+                    {season.airDate ? (
+                      <span className="text-[11px] text-faint">
+                        {season.airDate.slice(0, 4)}
+                      </span>
+                    ) : null}
                   </span>
-                  <span className="mt-0.5 block text-[11px] text-faint">
-                    {season.episodeCount}{" "}
-                    {season.episodeCount === 1 ? "episode" : "episodes"}
-                    {season.airDate ? ` · ${season.airDate.slice(0, 4)}` : ""}
-                    {entry && data
-                      ? ` · ${seasonWatched}/${seasonEpisodes.length} watched`
-                      : ""}
+
+                  <span
+                    className="mt-1 block line-clamp-1 text-xs font-semibold text-fg sm:text-[13px]"
+                    title={seasonTitle}
+                  >
+                    {seasonTitle}
                   </span>
+
+                  <span className="mt-0.5 flex flex-wrap items-center gap-2 text-[11px] text-muted">
+                    {distinctName ? <span>{episodeLabel}</span> : null}
+                    {distinctName && entry && data ? (
+                      <span className="text-faint">·</span>
+                    ) : null}
+                    {entry && data ? (
+                      <span className="tabular-nums">
+                        {seasonWatched}/{seasonEpisodes.length} watched
+                      </span>
+                    ) : null}
+                  </span>
+
+                  {entry && data && seasonEpisodes.length > 0 ? (
+                    <span className="mt-1.5 block h-1 w-full max-w-40 overflow-hidden rounded-full bg-surface-3">
+                      <span
+                        className={cn(
+                          "block h-full rounded-full transition-all duration-300",
+                          allWatched
+                            ? "bg-emerald-400"
+                            : "bg-accent-strong",
+                        )}
+                        style={{ width: `${percent}%` }}
+                      />
+                    </span>
+                  ) : null}
                 </span>
+
                 <ChevronDownIcon
                   className={cn(
                     "h-4 w-4 shrink-0 text-faint transition-transform",
@@ -156,7 +229,10 @@ export function TmdbSeasonsSection({
               </button>
 
               {open ? (
-                <div className="border-t border-border-subtle p-3">
+                <div
+                  id={panelId}
+                  className="border-t border-border-subtle p-3"
+                >
                   {seasonLoading === season.seasonNumber ? (
                     <p className="flex items-center gap-2 p-2 text-xs text-faint">
                       <LoaderIcon className="h-3.5 w-3.5 animate-spin" />
@@ -182,7 +258,9 @@ export function TmdbSeasonsSection({
                               )
                             }
                           >
-                            {allWatched ? "Unmark season" : "Mark season watched"}
+                            {allWatched
+                              ? "Unmark season"
+                              : "Mark season watched"}
                           </Button>
                         </div>
                       ) : null}

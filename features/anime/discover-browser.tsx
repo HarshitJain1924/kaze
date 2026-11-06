@@ -59,6 +59,7 @@ import {
 } from "@/types/discover";
 import type {
   TmdbDiscoverCategory,
+  TmdbDiscoverFilters,
   TmdbSearchPage,
 } from "@/types/tmdb";
 import { ApiRequestError, apiFetch } from "@/lib/http";
@@ -311,6 +312,7 @@ export function DiscoverBrowser({
   initialTmdbPage,
   initialTmdbCategory,
   initialTmdbQuery,
+  initialTmdbFilters,
   initialTmdbError,
   adultAllowed,
 }: {
@@ -321,6 +323,7 @@ export function DiscoverBrowser({
   initialTmdbPage: TmdbSearchPage | null;
   initialTmdbCategory: TmdbDiscoverCategory;
   initialTmdbQuery: string;
+  initialTmdbFilters: TmdbDiscoverFilters;
   initialTmdbError: string | null;
   adultAllowed: boolean;
 }) {
@@ -634,6 +637,7 @@ export function DiscoverBrowser({
             useServerPage ? initialTmdbCategory : "trending"
           }
           initialQuery={useServerPage ? initialTmdbQuery : ""}
+          initialFilters={useServerPage ? initialTmdbFilters : {}}
           initialError={useServerPage ? initialTmdbError : null}
         />
       </div>

@@ -6,10 +6,15 @@ import { discoverTmdb } from "@/services/tmdb/service";
 
 export async function GET(request: Request) {
   const url = new URL(request.url);
+  const read = (key: string) => url.searchParams.get(key) ?? undefined;
   const parsed = tmdbDiscoverParamsSchema.safeParse({
     kind: url.searchParams.get("kind") ?? "movie",
     category: url.searchParams.get("category") ?? "trending",
     page: url.searchParams.get("page") ?? "1",
+    genre: read("genre"),
+    year: read("year"),
+    rating: read("rating"),
+    sort: read("sort"),
   });
 
   if (!parsed.success) {
@@ -27,6 +32,12 @@ export async function GET(request: Request) {
       parsed.data.kind,
       parsed.data.category,
       parsed.data.page,
+      {
+        genre: parsed.data.genre,
+        year: parsed.data.year,
+        minRating: parsed.data.rating,
+        sort: parsed.data.sort,
+      },
     );
     return NextResponse.json(page);
   } catch (error) {
