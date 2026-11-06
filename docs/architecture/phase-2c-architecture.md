@@ -1,7 +1,7 @@
 # Phase 2C Architecture Decision Record
 
 - Status: Frozen architecture; implementation not authorized.
-- Baseline: 03f09f49 on main.
+- Baseline: ed149dc8119ca584f30215bf55d69bbb88327814 on main.
 
 This is the authoritative Phase 2C implementation contract. It does not
 authorize migrations, application changes, database execution, staging,
@@ -31,6 +31,21 @@ Verified source evidence:
 The current repository still performs direct legacy reads/writes and current
 migrations grant authenticated direct DML. These are implementation starting
 facts, not approved Phase 2C behavior.
+
+### Phase 2B staging evidence boundary
+
+The approved Phase 2B staging backfill was executed twice against project
+`kszwrkjvblumdeafahgt`:
+
+- Initial run: `baec70fb-b81c-41aa-bd7d-448eaa6f33b1`, completed.
+- Idempotency rerun: `cc755a89-b56a-4076-9857-7632b488fe70`, completed.
+
+Both runs inserted zero rows and reported zero issues. Post-run validation
+reported zero duplicate mappings, orphan episodes, missing projections, count
+mismatches, and unresolved issues. Staging contained no legacy records, so
+this verifies the empty-dataset execution path and idempotency path only. It
+does not verify populated-data backfill behavior, conflict quarantine, or
+non-empty projection correctness.
 
 ## Coordination and projection state
 

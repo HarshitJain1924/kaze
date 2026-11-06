@@ -3,7 +3,8 @@ import { resolve } from "node:path";
 import { describe, expect, it, vi } from "vitest";
 import { PGlite } from "@electric-sql/pglite";
 
-// Each test boots an embedded PostgreSQL instance and applies all six migrations, which
+// Each test boots an embedded PostgreSQL instance and applies all Phase 2B and Phase 2C
+// foundation migrations, which
 // takes a few seconds; the 5s default is not enough headroom when 27 files run in parallel.
 vi.setConfig({ testTimeout: 30_000 });
 
@@ -14,6 +15,8 @@ const migrationFiles = [
   "20261101000000_add_media_type_and_volumes.sql",
   "20261105000000_create_canonical_media_schema.sql",
   "20261105000001_backfill_canonical_library.sql",
+  "20261105000002_harden_phase2b_function_execute_privileges.sql",
+  "20261107000000_create_phase2c_database_foundation.sql",
 ];
 
 async function createCleanDatabase(): Promise<PGlite> {
@@ -64,6 +67,168 @@ describe("PostgreSQL Real Engine Integration Tests", () => {
       expect(val.latest_run_id).toBeNull();
       expect(val.latest_run_outcome).toBeNull();
       expect(val.backfill_issues).toBe(0);
+    } finally {
+      await db.close();
+    }
+  });
+
+  it("installs Phase 2C roles, durable control tables, RLS, and function ACLs", async () => {
+    const db = await createCleanDatabase();
+    try {
+      const roles = await db.query<{
+        rolname: string;
+        rolsuper: boolean;
+        rolcanlogin: boolean;
+        rolbypassrls: boolean;
+        rolinherit: boolean;
+      }>(`
+        select rolname, rolsuper, rolcanlogin, rolbypassrls, rolinherit
+        from pg_roles
+        where rolname in ('phase2c_api_owner', 'phase2c_reconcile_owner')
+        order by rolname;
+      `);
+      expect(roles.rows).toHaveLength(2);
+      for (const role of roles.rows) {
+        expect(role.rolsuper).toBe(false);
+        expect(role.rolcanlogin).toBe(false);
+        expect(role.rolbypassrls).toBe(false);
+        expect(role.rolinherit).toBe(false);
+      }
+
+      const tables = await db.query<{
+        relname: string;
+        relforcerowsecurity: boolean;
+        api_delete: boolean;
+        reconcile_delete: boolean;
+        service_delete: boolean;
+      }>(`
+        select
+          c.relname,
+          c.relforcerowsecurity,
+          has_table_privilege('phase2c_api_owner', c.oid, 'delete') as api_delete,
+          has_table_privilege('phase2c_reconcile_owner', c.oid, 'delete') as reconcile_delete,
+          has_table_privilege('service_role', c.oid, 'delete') as service_delete
+        from pg_class c
+        join pg_namespace n on n.oid = c.relnamespace
+        where n.nspname = 'public'
+          and c.relname in ('phase2c_entry_coordination',
+                            'phase2c_projection_state',
+                            'phase2c_reconciliation_issues')
+        order by c.relname;
+      `);
+      expect(tables.rows).toHaveLength(3);
+      for (const table of tables.rows) {
+        expect(table.relforcerowsecurity).toBe(true);
+        expect(table.api_delete).toBe(false);
+        expect(table.reconcile_delete).toBe(false);
+        expect(table.service_delete).toBe(false);
+      }
+
+      const functions = await db.query<{
+        routine: string;
+        owner: string;
+        prosecdef: boolean;
+        config: string[] | null;
+        authenticated_execute: boolean;
+        anon_execute: boolean;
+      }>(`
+        select
+          p.oid::regprocedure::text as routine,
+          r.rolname as owner,
+          p.prosecdef,
+          p.proconfig as config,
+          has_function_privilege('authenticated', p.oid, 'execute') as authenticated_execute,
+          has_function_privilege('anon', p.oid, 'execute') as anon_execute
+        from pg_proc p
+        join pg_roles r on r.oid = p.proowner
+        where p.oid in ('public.phase2c_read_library()'::regprocedure,
+                        'public.phase2c_read_entry_state(integer)'::regprocedure)
+        order by routine;
+      `);
+      expect(functions.rows).toHaveLength(2);
+      for (const fn of functions.rows) {
+        expect(fn.owner).toBe("phase2c_api_owner");
+        expect(fn.prosecdef).toBe(true);
+        expect(fn.config ?? []).toContain("search_path=\"\"");
+        expect(fn.authenticated_execute).toBe(true);
+        expect(fn.anon_execute).toBe(false);
+      }
+    } finally {
+      await db.close();
+    }
+  });
+
+  it("returns bootstrap and synchronized legacy-backed read envelopes", async () => {
+    const db = await createCleanDatabase();
+    try {
+      const userId = "00000000-0000-0000-0000-000000000001";
+      const entryId = "10000000-0000-0000-0000-000000000001";
+      const mediaId = "20000000-0000-0000-0000-000000000001";
+      await db.query(`insert into auth.users (id) values ('${userId}');`);
+      await db.query(`
+        insert into public.user_anime
+          (id, user_id, anilist_id, media_type, status, progress, volumes_progress)
+        values
+          ('${entryId}', '${userId}', 321, 'anime', 'watching', 2, 0);
+      `);
+
+      const pending = await db.query<{ value: Record<string, unknown> }>(
+        "select public.phase2c_read_library() as value;",
+      );
+      expect(pending.rows[0]!.value).toMatchObject({
+        libraryStatus: "bootstrap_pending",
+      });
+      expect((pending.rows[0]!.value.entries as unknown[])).toHaveLength(1);
+      expect(
+        (pending.rows[0]!.value.entries as Array<Record<string, unknown>>)[0]!
+          .projectionStatus,
+      ).toBe("bootstrap_pending");
+
+      const pendingState = await db.query<{ value: Record<string, unknown> }>(
+        "select public.phase2c_read_entry_state(321) as value;",
+      );
+      expect(pendingState.rows[0]!.value).toEqual({
+        status: "bootstrap_pending",
+      });
+
+      await db.query(`insert into public.media (id, kind) values ('${mediaId}', 'anime');`);
+      await db.query(`
+        insert into public.user_media
+          (id, user_id, media_id, media_kind, status, episodes_watched)
+        values
+          ('${entryId}', '${userId}', '${mediaId}', 'anime', 'watching', 2);
+      `);
+      await db.query(`
+        insert into public.phase2c_entry_coordination
+          (user_id, anilist_id, generation, deleted, source_revision,
+           lifecycle_version, progress_version, score_version, notes_version)
+        values ('${userId}', 321, 1, false, 1, 1, 1, 1, 1);
+      `);
+      await db.query(`
+        insert into public.phase2c_projection_state
+          (user_id, anilist_id, generation, projection_revision, projected_deleted)
+        values ('${userId}', 321, 1, 1, false);
+      `);
+
+      const live = await db.query<{ value: Record<string, unknown> }>(
+        "select public.phase2c_read_library() as value;",
+      );
+      expect(live.rows[0]!.value).toMatchObject({ libraryStatus: "ready" });
+      const entry = (live.rows[0]!.value.entries as Array<Record<string, unknown>>)[0]!;
+      expect(entry.projectionStatus).toBe("synchronized");
+      expect(entry.cas).toMatchObject({
+        generation: 1,
+        lifecycleVersion: 1,
+        progressVersion: 1,
+        scoreVersion: 1,
+        notesVersion: 1,
+      });
+      expect(entry.watchedEpisodes).toEqual([]);
+
+      const liveState = await db.query<{ value: Record<string, unknown> }>(
+        "select public.phase2c_read_entry_state(321) as value;",
+      );
+      expect(liveState.rows[0]!.value).toMatchObject({ status: "live" });
     } finally {
       await db.close();
     }
