@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 
 import type { LibraryStatusFilter } from "@/components/library-toolbar";
 import { LibraryBrowser } from "@/features/library/library-browser";
+import { ScreenLibrarySection } from "@/features/screen/screen-library-section";
 import { requireViewer } from "@/lib/auth";
 import { getCurrentSeason } from "@/lib/season";
 import { getCatalogService } from "@/services/catalog/catalog-service";
@@ -10,7 +11,8 @@ import type { AnimeSummary } from "@/types/anime";
 
 export const metadata: Metadata = {
   title: "My library",
-  description: "Your personal anime watchlist, progress, ratings and notes.",
+  description:
+    "Your personal anime, manga, film and TV library with progress, ratings and notes.",
 };
 
 function parseStatus(value: string | string[] | undefined): LibraryStatusFilter {
@@ -40,16 +42,19 @@ export default async function LibraryPage({
 }: {
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
-  await requireViewer("/library");
+  const viewer = await requireViewer("/library");
   const params = await searchParams;
   const initialStatus = parseStatus(params.status);
   const suggestions = await loadSeasonPicks();
 
   return (
-    <LibraryBrowser
-      key={initialStatus}
-      initialStatus={initialStatus}
-      suggestions={suggestions}
-    />
+    <div className="space-y-10">
+      <LibraryBrowser
+        key={initialStatus}
+        initialStatus={initialStatus}
+        suggestions={suggestions}
+      />
+      <ScreenLibrarySection viewerId={viewer.id} />
+    </div>
   );
 }

@@ -9,6 +9,7 @@ import {
   CalendarIcon,
   ChartIcon,
   CompassIcon,
+  FilmIcon,
   HomeIcon,
   LibraryIcon,
   MoonIcon,
@@ -31,6 +32,7 @@ interface MobileNavItem {
 const ITEMS: MobileNavItem[] = [
   { href: "/dashboard", label: "Home", icon: HomeIcon },
   { href: "/discover", label: "Discover", icon: CompassIcon },
+  { href: "/screen", label: "Films & TV", icon: FilmIcon },
   { href: "/schedule", label: "Schedule", icon: CalendarIcon },
   { href: "/library", label: "Library", icon: LibraryIcon },
   { href: "/lists", label: "Lists", icon: BookmarkIcon },
@@ -96,7 +98,7 @@ export function MobileBottomNavigation() {
       aria-label="Primary"
       className="safe-bottom fixed inset-x-0 bottom-0 z-40 border-t border-border/60 optical-glass-nav lg:hidden"
     >
-      <div className="grid grid-cols-6">
+      <div className="grid grid-cols-7">
         {ITEMS.map((item) => {
           const active = isActive(pathname, item);
           const Icon = item.icon;

@@ -783,6 +783,110 @@ export interface Database {
           },
         ];
       };
+      user_tmdb_entries: {
+        Row: {
+          id: string;
+          user_id: string;
+          tmdb_id: number;
+          media_type: "movie" | "tv";
+          title: string;
+          original_title: string | null;
+          overview: string | null;
+          poster_path: string | null;
+          backdrop_path: string | null;
+          release_date: string | null;
+          status: WatchStatus;
+          score: number | null;
+          notes: string | null;
+          watched: boolean;
+          total_episodes: number | null;
+          started_at: string | null;
+          completed_at: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          tmdb_id: number;
+          media_type: "movie" | "tv";
+          title: string;
+          original_title?: string | null;
+          overview?: string | null;
+          poster_path?: string | null;
+          backdrop_path?: string | null;
+          release_date?: string | null;
+          status?: WatchStatus;
+          score?: number | null;
+          notes?: string | null;
+          watched?: boolean;
+          total_episodes?: number | null;
+          started_at?: string | null;
+          completed_at?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          user_id?: string;
+          tmdb_id?: number;
+          media_type?: "movie" | "tv";
+          title?: string;
+          original_title?: string | null;
+          overview?: string | null;
+          poster_path?: string | null;
+          backdrop_path?: string | null;
+          release_date?: string | null;
+          status?: WatchStatus;
+          score?: number | null;
+          notes?: string | null;
+          watched?: boolean;
+          total_episodes?: number | null;
+          started_at?: string | null;
+          completed_at?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
+      user_tmdb_episodes: {
+        Row: {
+          id: string;
+          entry_id: string;
+          user_id: string;
+          season_number: number;
+          episode_number: number;
+          watched_at: string;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          entry_id: string;
+          user_id: string;
+          season_number?: number;
+          episode_number: number;
+          watched_at?: string;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          entry_id?: string;
+          user_id?: string;
+          season_number?: number;
+          episode_number?: number;
+          watched_at?: string;
+          created_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "user_tmdb_episodes_entry_id_fkey";
+            columns: ["entry_id"];
+            isOneToOne: false;
+            referencedRelation: "user_tmdb_entries";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
     };
     Views: Record<string, never>;
     Functions: {

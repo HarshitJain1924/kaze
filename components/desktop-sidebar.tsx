@@ -9,6 +9,7 @@ import {
   CalendarIcon,
   ChartIcon,
   CompassIcon,
+  FilmIcon,
   HomeIcon,
   LibraryIcon,
   MonitorIcon,
@@ -40,6 +41,7 @@ interface NavItem {
 const NAV_ITEMS: NavItem[] = [
   { href: "/dashboard", label: "Dashboard", icon: HomeIcon },
   { href: "/discover", label: "Discover", icon: CompassIcon },
+  { href: "/screen", label: "Films & TV", icon: FilmIcon },
   { href: "/schedule", label: "Schedule", icon: CalendarIcon },
   { href: "/library", label: "My Library", icon: LibraryIcon },
   { href: "/lists", label: "Custom Lists", icon: BookmarkIcon },
