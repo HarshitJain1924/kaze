@@ -595,13 +595,23 @@ commit;
 - All legacy tables (`user_anime`, `user_anime_episodes`, `catalog_cache`) are completely unchanged.
 - The Kaze application continues running with zero disruption and zero lost progress.
 
-### Post-Cutover Rollback Limits (CRITICAL WARNING)
+### Phase 2C and Later Rollback Limits
+
 > [!CAUTION]
-> Once the application is cut over in Phase 2C to write new user tracking data directly to `public.user_media` and `public.user_media_episodes`, **the above rollback script is NO LONGER SAFE**.
->
-> Executing `drop table user_media cascade` after cutover would permanently destroy any user progress, ratings, or notes recorded since the cutover date.
->
-> A post-cutover rollback requires:
-> 1. Exporting all newly created/updated canonical rows.
-> 2. Dual-writing or reverse-backfilling canonical data back into `public.user_anime` and `public.user_anime_episodes`.
-> 3. Verifying legacy row parity before any canonical table can be altered.
+> Phase 2C does **not** make `public.user_media` or
+> `public.user_media_episodes` authoritative. Legacy user tables remain the
+> authority and canonical user tables remain projections. No rollback may
+> reverse-write canonical data into legacy tables.
+
+The pre-cutover rollback above is safe only after confirming that no approved
+canonical-only data or canonical consumers depend on the additive objects. A
+Phase 2C rollback must first disable projection writers, preserve legacy
+authority, and verify that canonical reads have not been separately enabled.
+Canonical projections may then be rebuilt from legacy or removed under an
+approved maintenance procedure.
+
+If a later, separately approved canonical-read cutover has occurred, rollback
+requires preserving canonical-only state and an explicit retention/conversion
+plan. It is not automatically lossless for movie or TV state that the legacy
+schema cannot represent. Reverse-backfilling canonical data into legacy tables
+is not part of the Phase 2C architecture.
