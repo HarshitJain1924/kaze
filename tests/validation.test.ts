@@ -12,6 +12,7 @@ import {
   progressSchema,
   scoreSchema,
 } from "@/lib/validation/library";
+import { tmdbDiscoverParamsSchema } from "@/lib/validation/tmdb";
 
 describe("animeSearchParamsSchema", () => {
   it("treats blank filters as absent", () => {
@@ -126,6 +127,46 @@ describe("animeSearchParamsSchema", () => {
     expect(serialized.toString()).toContain("year=1998");
     expect(serialized.toString()).toContain("page=3");
     expect(serialized.toString()).not.toContain("perPage=24");
+  });
+});
+
+describe("TMDB discovery parameters", () => {
+  it("accepts the categories supported by each media kind", () => {
+    expect(
+      tmdbDiscoverParamsSchema.safeParse({
+        kind: "movie",
+        category: "upcoming",
+      }).success,
+    ).toBe(true);
+    expect(
+      tmdbDiscoverParamsSchema.safeParse({
+        kind: "tv",
+        category: "on_the_air",
+      }).success,
+    ).toBe(true);
+  });
+
+  it("rejects categories that belong to the other media kind", () => {
+    expect(
+      tmdbDiscoverParamsSchema.safeParse({
+        kind: "movie",
+        category: "on_the_air",
+      }).success,
+    ).toBe(false);
+    expect(
+      tmdbDiscoverParamsSchema.safeParse({
+        kind: "tv",
+        category: "upcoming",
+      }).success,
+    ).toBe(false);
+  });
+
+  it("defaults to the trending movie feed", () => {
+    expect(tmdbDiscoverParamsSchema.parse({})).toMatchObject({
+      kind: "movie",
+      category: "trending",
+      page: 1,
+    });
   });
 });
 

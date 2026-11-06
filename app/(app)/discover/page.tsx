@@ -9,12 +9,24 @@ import {
   type AnimeSearchInput,
 } from "@/lib/validation/anime";
 import { getCatalogService } from "@/services/catalog/catalog-service";
+import {
+  TmdbNotConfiguredError,
+  TmdbRateLimitError,
+} from "@/services/tmdb/errors";
+import { discoverTmdb, searchTmdb } from "@/services/tmdb/service";
 import type { AnimePage } from "@/types/anime";
+import type { DiscoverView } from "@/types/discover";
+import {
+  tmdbDiscoverCategoriesForKind,
+  type TmdbDiscoverCategory,
+  type TmdbKind,
+  type TmdbSearchPage,
+} from "@/types/tmdb";
 
 export const metadata: Metadata = {
-  title: "Discover anime, manga & manhwa",
+  title: "Discover anime, manga, movies & TV",
   description:
-    "Search and filter thousands of anime, manga and manhwa by title, genre, format, status, season, year and country.",
+    "Search and filter anime, manga and manhwa, or browse and search movies and TV shows, all from one Kaze discovery page.",
 };
 
 function readInput(
@@ -48,26 +60,86 @@ function readInput(
   return animeSearchParamsSchema.parse({ page: 1, perPage: 24 });
 }
 
+function readView(
+  params: Record<string, string | string[] | undefined>,
+): DiscoverView {
+  const pick = (key: string) => {
+    const value = params[key];
+    return Array.isArray(value) ? value[0] : value;
+  };
+  const type = pick("type");
+  if (type === "movie" || type === "tv") return type;
+  if (type === "manga") return pick("country") === "KR" ? "manhwa" : "manga";
+  return "anime";
+}
+
+function readCategory(
+  kind: TmdbKind,
+  params: Record<string, string | string[] | undefined>,
+): TmdbDiscoverCategory {
+  const value = params.category;
+  const requested = Array.isArray(value) ? value[0] : value;
+  const categories = tmdbDiscoverCategoriesForKind(kind);
+  return categories.includes(requested as TmdbDiscoverCategory)
+    ? (requested as TmdbDiscoverCategory)
+    : "trending";
+}
+
+function tmdbFailureMessage(error: unknown): string {
+  if (error instanceof TmdbNotConfiguredError) return error.message;
+  if (error instanceof TmdbRateLimitError) return error.message;
+  return "TMDB discovery is temporarily unavailable. Try again in a moment.";
+}
+
 export default async function DiscoverPage({
   searchParams,
 }: {
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
   const params = await searchParams;
+  const initialView = readView(params);
   const input = readInput(params);
   const viewer = await getViewer();
+  const isTmdbView = initialView === "movie" || initialView === "tv";
 
   let initialPage: AnimePage | null = null;
-  try {
-    const result = await getCatalogService().searchMedia(
-      toAnimeSearchParams(input),
-    );
-    initialPage = result.data;
-  } catch (error) {
-    console.error(
-      "[discover] initial catalogue search failed:",
-      error instanceof Error ? error.message : "unknown error",
-    );
+  if (!isTmdbView) {
+    try {
+      const result = await getCatalogService().searchMedia(
+        toAnimeSearchParams(input),
+      );
+      initialPage = result.data;
+    } catch (error) {
+      console.error(
+        "[discover] initial catalogue search failed:",
+        error instanceof Error ? error.message : "unknown error",
+      );
+    }
+  }
+
+  let initialTmdbPage: TmdbSearchPage | null = null;
+  let initialTmdbError: string | null = null;
+  let initialTmdbCategory: TmdbDiscoverCategory = "trending";
+  let initialTmdbQuery = "";
+
+  if (isTmdbView) {
+    const kind = initialView as TmdbKind;
+    const rawQuery = params.q;
+    const query = Array.isArray(rawQuery) ? rawQuery[0] : rawQuery;
+    initialTmdbCategory = readCategory(kind, params);
+    initialTmdbQuery = query?.trim().slice(0, 100) ?? "";
+    try {
+      initialTmdbPage =
+        initialTmdbQuery.length >= 2
+          ? await searchTmdb(kind, initialTmdbQuery, 1)
+          : await discoverTmdb(kind, initialTmdbCategory, 1);
+    } catch (error) {
+      initialTmdbError = tmdbFailureMessage(error);
+      console.error(
+        "[discover] initial TMDB discovery failed:",
+        error instanceof Error ? error.message : "unknown error",
+      );
+    }
   }
 
   const initialFilters: AnimeFilterState = {
@@ -88,6 +160,11 @@ export default async function DiscoverPage({
       initialPage={initialPage}
       initialQuery={input.query ?? ""}
       initialFilters={initialFilters}
+      initialView={initialView}
+      initialTmdbPage={initialTmdbPage}
+      initialTmdbCategory={initialTmdbCategory}
+      initialTmdbQuery={initialTmdbQuery}
+      initialTmdbError={initialTmdbError}
       adultAllowed={viewer?.showAdult === true}
     />
   );

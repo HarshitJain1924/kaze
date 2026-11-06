@@ -261,8 +261,8 @@ export function ScreenDetail({
   if (isTv) {
     sections.push({
       id: "seasons",
-      label: "Seasons",
-      count: details.numberOfSeasons,
+      label: "Seasons & Episodes",
+      count: details.seasons.length,
       overview: true,
       content: (
         <TmdbSeasonsSection

@@ -51,6 +51,16 @@ import { PosterGridSkeleton } from "@/components/loading-skeleton";
 import { usePreferences } from "@/components/providers/preferences-provider";
 import { Button } from "@/components/ui/button";
 import { useLibrary } from "@/features/library/library-provider";
+import { TmdbDiscoverBrowser } from "@/features/screen/tmdb-discover-browser";
+import {
+  DISCOVER_VIEWS,
+  isTmdbDiscoverView,
+  type DiscoverView,
+} from "@/types/discover";
+import type {
+  TmdbDiscoverCategory,
+  TmdbSearchPage,
+} from "@/types/tmdb";
 import { ApiRequestError, apiFetch } from "@/lib/http";
 import { seasonLabel } from "@/lib/season";
 import {
@@ -138,6 +148,14 @@ interface SavedDiscoverState {
 }
 
 const DISCOVER_STATE_KEY = "kaze.discover.state.v1";
+
+const DISCOVER_VIEW_LABELS: Record<DiscoverView, string> = {
+  anime: "Anime",
+  manga: "Manga",
+  manhwa: "Manhwa",
+  movie: "Movies",
+  tv: "TV Shows",
+};
 
 function readSavedDiscoverState(): SavedDiscoverState | null {
   if (typeof window === "undefined") return null;
@@ -289,14 +307,25 @@ export function DiscoverBrowser({
   initialPage,
   initialQuery,
   initialFilters,
+  initialView,
+  initialTmdbPage,
+  initialTmdbCategory,
+  initialTmdbQuery,
+  initialTmdbError,
   adultAllowed,
 }: {
   initialPage: AnimePage | null;
   initialQuery: string;
   initialFilters: AnimeFilterState;
+  initialView: DiscoverView;
+  initialTmdbPage: TmdbSearchPage | null;
+  initialTmdbCategory: TmdbDiscoverCategory;
+  initialTmdbQuery: string;
+  initialTmdbError: string | null;
   adultAllowed: boolean;
 }) {
   const { preferences } = usePreferences();
+  const [activeView, setActiveView] = useState<DiscoverView>(initialView);
   const [queryInput, setQueryInput] = useState(initialQuery);
   const [query, setQuery] = useState(initialQuery);
   const [filters, setFilters] = useState<AnimeFilterState>(initialFilters);
@@ -316,7 +345,8 @@ export function DiscoverBrowser({
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
   const [restoreChecked, setRestoreChecked] = useState(false);
 
-  const skipInitialFetch = useRef(true);
+  const isTmdbView = isTmdbDiscoverView(activeView);
+  const skipInitialFetch = useRef(!isTmdbDiscoverView(initialView));
 
   // Returning from a detail page can restore the route from the client cache,
   // so keep a tab-local snapshot and reapply it when the URL has no newer
@@ -354,7 +384,7 @@ export function DiscoverBrowser({
   // Keep the address bar shareable without triggering a server navigation,
   // and persist the snapshot for the detail/back round trip.
   useEffect(() => {
-    if (!restoreChecked) return;
+    if (!restoreChecked || isTmdbView) return;
     const search = buildQuery(query, filters, 1);
     const searchString = search ? `?${search}` : "";
     window.history.replaceState(
@@ -370,10 +400,10 @@ export function DiscoverBrowser({
     } catch {
       // Private browsing or a full storage quota should not break filtering.
     }
-  }, [query, filters, restoreChecked]);
+  }, [query, filters, restoreChecked, isTmdbView]);
 
   useEffect(() => {
-    if (!restoreChecked) return;
+    if (!restoreChecked || isTmdbView) return;
     if (skipInitialFetch.current) {
       skipInitialFetch.current = false;
       return;
@@ -410,7 +440,7 @@ export function DiscoverBrowser({
       });
 
     return () => controller.abort();
-  }, [query, filters, page, retryNonce, restoreChecked]);
+  }, [query, filters, page, retryNonce, restoreChecked, isTmdbView]);
 
   const updateFilters = (patch: Partial<AnimeFilterState>) => {
     setFilters((current) => ({ ...current, ...patch }));
@@ -422,7 +452,8 @@ export function DiscoverBrowser({
     setQuery("");
     setFilters({
       sort: "POPULARITY_DESC",
-      mediaType: filters.mediaType ?? "anime",
+      mediaType: activeView === "anime" ? "anime" : "manga",
+      countryOfOrigin: activeView === "manhwa" ? "KR" : undefined,
     });
     setPage(1);
   };
@@ -432,7 +463,10 @@ export function DiscoverBrowser({
     setQuery("");
   };
 
-  const selectMediaType = (next: "anime" | "manga" | "manhwa") => {
+  const selectView = (next: DiscoverView) => {
+    setActiveView(next);
+    if (next === "movie" || next === "tv") return;
+
     setFilters((current) => ({
       ...current,
       mediaType: next === "anime" ? "anime" : "manga",
@@ -559,38 +593,56 @@ export function DiscoverBrowser({
   const topCover = topAnime ? topAnime.coverImage.extraLarge ?? topAnime.coverImage.large : null;
   const topArtwork = topAnime ? topAnime.bannerImage ?? topCover : null;
 
-  const activeMediaTab =
-    filters.mediaType === "manga"
-      ? filters.countryOfOrigin === "KR"
-        ? "manhwa"
-        : "manga"
-      : "anime";
+  const discoverTypeTabs = (
+    <div
+      role="tablist"
+      aria-label="Catalogue type"
+      className="inline-flex w-fit flex-wrap items-center gap-1 rounded-2xl border border-border-subtle bg-surface-2 p-1"
+    >
+      {DISCOVER_VIEWS.map((view) => (
+        <button
+          key={view}
+          type="button"
+          role="tab"
+          aria-selected={activeView === view}
+          onClick={() => selectView(view)}
+          className={cn(
+            "rounded-xl px-4 py-2 text-xs font-semibold transition-colors",
+            activeView === view
+              ? "bg-accent text-accent-contrast shadow-sm"
+              : "text-muted hover:bg-surface-3 hover:text-fg",
+          )}
+        >
+          {DISCOVER_VIEW_LABELS[view]}
+        </button>
+      ))}
+    </div>
+  );
+
+  if (isTmdbView) {
+    const tmdbKind: "movie" | "tv" = activeView === "tv" ? "tv" : "movie";
+    const useServerPage = activeView === initialView;
+
+    return (
+      <div className="space-y-6">
+        {discoverTypeTabs}
+        <TmdbDiscoverBrowser
+          key={tmdbKind}
+          kind={tmdbKind}
+          initialPage={useServerPage ? initialTmdbPage : null}
+          initialCategory={
+            useServerPage ? initialTmdbCategory : "trending"
+          }
+          initialQuery={useServerPage ? initialTmdbQuery : ""}
+          initialError={useServerPage ? initialTmdbError : null}
+        />
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
-      <div
-        role="tablist"
-        aria-label="Catalogue type"
-        className="inline-flex w-fit flex-wrap items-center gap-1 rounded-2xl border border-border-subtle bg-surface-2 p-1"
-      >
-        {(["anime", "manga", "manhwa"] as const).map((type) => (
-          <button
-            key={type}
-            type="button"
-            role="tab"
-            aria-selected={activeMediaTab === type}
-            onClick={() => selectMediaType(type)}
-            className={cn(
-              "rounded-xl px-4 py-2 text-xs font-semibold capitalize transition-colors",
-              activeMediaTab === type
-                ? "bg-accent text-accent-contrast shadow-sm"
-                : "text-muted hover:bg-surface-3 hover:text-fg",
-            )}
-          >
-            {type}
-          </button>
-        ))}
-      </div>
+      {discoverTypeTabs}
 
       {/* 1. Cinematic Discover Header & Ambient Showcase */}
       <header className="group relative isolate overflow-hidden rounded-3xl border border-border-subtle bg-surface-2 shadow-2xl transition-all">
@@ -640,7 +692,7 @@ export function DiscoverBrowser({
             </div>
 
             <h1 className="mt-2 font-display text-2xl font-bold tracking-tight text-fg sm:text-3xl lg:text-4xl">
-              Discover {activeMediaTab === "manhwa" ? "Manhwa" : activeMediaTab === "manga" ? "Manga" : "Anime"}
+              Discover {activeView === "manhwa" ? "Manhwa" : activeView === "manga" ? "Manga" : "Anime"}
             </h1>
 
             <p className="mt-2 text-xs leading-relaxed text-muted sm:text-sm">
@@ -710,12 +762,12 @@ export function DiscoverBrowser({
         {DISCOVERY_CHANNELS.filter(
           (channel) =>
             (adultAllowed || channel.id !== "adult") &&
-            (activeMediaTab === "anime" || !channel.animeOnly),
+            (activeView === "anime" || !channel.animeOnly),
         ).map((channel) => {
           const isActive = isChannelActive(channel);
           const IconComponent = channel.icon;
           const label =
-            channel.id === "airing" && activeMediaTab !== "anime"
+            channel.id === "airing" && activeView !== "anime"
               ? "Publishing"
               : channel.label;
           return (
@@ -750,10 +802,10 @@ export function DiscoverBrowser({
             <input
               type="search"
               role="searchbox"
-              aria-label={`Search ${activeMediaTab} by title`}
+              aria-label={`Search ${activeView} by title`}
               value={queryInput}
               onChange={(e) => setQueryInput(e.target.value)}
-              placeholder={`Search ${activeMediaTab === "manhwa" ? "manhwa" : activeMediaTab === "manga" ? "manga" : "anime"} by title in English or Romaji…`}
+              placeholder={`Search ${activeView === "manhwa" ? "manhwa" : activeView === "manga" ? "manga" : "anime"} by title in English or Romaji…`}
               autoComplete="off"
               spellCheck={false}
               className="h-11 w-full rounded-xl border border-border bg-surface-3/50 pl-10 pr-20 text-sm text-fg placeholder:text-faint transition-colors focus:border-accent focus:bg-surface-3 focus:outline-none focus:ring-1 focus:ring-accent [&::-webkit-search-cancel-button]:appearance-none [&::-webkit-search-cancel-button]:hidden [&::-webkit-search-decoration]:appearance-none"

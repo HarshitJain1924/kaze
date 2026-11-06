@@ -126,6 +126,7 @@ function tmdbDetails(
                 posterUrl: null,
                 releaseDate: "2024-03-01",
                 year: 2024,
+                voteAverage: 8.1,
                 overview: null,
               },
               {
@@ -134,6 +135,7 @@ function tmdbDetails(
                 posterUrl: null,
                 releaseDate: "2025-03-01",
                 year: 2025,
+                voteAverage: 7.4,
                 overview: null,
               },
             ],

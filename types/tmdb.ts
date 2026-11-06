@@ -8,6 +8,36 @@ export function isTmdbKind(value: unknown): value is TmdbKind {
   return value === "movie" || value === "tv";
 }
 
+export const TMDB_MOVIE_DISCOVER_CATEGORIES = [
+  "trending",
+  "popular",
+  "top_rated",
+  "upcoming",
+] as const;
+
+export const TMDB_TV_DISCOVER_CATEGORIES = [
+  "trending",
+  "popular",
+  "top_rated",
+  "on_the_air",
+] as const;
+
+export type TmdbMovieDiscoverCategory =
+  (typeof TMDB_MOVIE_DISCOVER_CATEGORIES)[number];
+export type TmdbTvDiscoverCategory =
+  (typeof TMDB_TV_DISCOVER_CATEGORIES)[number];
+export type TmdbDiscoverCategory =
+  | TmdbMovieDiscoverCategory
+  | TmdbTvDiscoverCategory;
+
+export function tmdbDiscoverCategoriesForKind(
+  kind: TmdbKind,
+): readonly TmdbDiscoverCategory[] {
+  return kind === "movie"
+    ? TMDB_MOVIE_DISCOVER_CATEGORIES
+    : TMDB_TV_DISCOVER_CATEGORIES;
+}
+
 export interface TmdbSearchResult {
   tmdbId: number;
   kind: TmdbKind;
@@ -81,6 +111,7 @@ export interface TmdbCollectionPart {
   posterUrl: string | null;
   releaseDate: string | null;
   year: number | null;
+  voteAverage: number | null;
   overview: string | null;
 }
 

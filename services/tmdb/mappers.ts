@@ -94,6 +94,7 @@ const collectionPartSchema = z.object({
   title: nullableString,
   poster_path: nullableString,
   release_date: nullableString,
+  vote_average: nullableNumber,
   overview: nullableString,
 });
 
@@ -397,6 +398,7 @@ export function mapCollection(payload: unknown): TmdbCollection {
           posterUrl: image(part.poster_path, "w342"),
           releaseDate: date,
           year: yearFromDate(date),
+          voteAverage: part.vote_average ?? null,
           overview: part.overview ?? null,
         },
       ];

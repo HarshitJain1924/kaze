@@ -10,6 +10,7 @@ import {
 } from "@/services/tmdb/mappers";
 import type {
   TmdbDetails,
+  TmdbDiscoverCategory,
   TmdbKind,
   TmdbSearchPage,
   TmdbSeasonDetails,
@@ -29,6 +30,29 @@ export async function searchTmdb(
       language: "en-US",
     },
     revalidateSeconds: 600,
+  });
+  return mapSearchPage(kind, payload);
+}
+
+export async function discoverTmdb(
+  kind: TmdbKind,
+  category: TmdbDiscoverCategory,
+  page = 1,
+): Promise<TmdbSearchPage> {
+  const path =
+    category === "trending"
+      ? `/trending/${kind}/day`
+      : category === "popular"
+        ? `/${kind}/popular`
+        : category === "top_rated"
+          ? `/${kind}/top_rated`
+          : kind === "movie"
+            ? "/movie/upcoming"
+            : "/tv/on_the_air";
+
+  const payload = await tmdbGet<unknown>(path, {
+    query: { page, language: "en-US" },
+    revalidateSeconds: 900,
   });
   return mapSearchPage(kind, payload);
 }
@@ -57,7 +81,7 @@ export async function getTmdbDetails(
 
   if (details.collection) {
     try {
-      const collectionKey = `tmdb:collection:${details.collection.id}`;
+      const collectionKey = `tmdb:collection:v2:${details.collection.id}`;
       let collection = await readTmdbCache<typeof details.collection>(
         collectionKey,
       );

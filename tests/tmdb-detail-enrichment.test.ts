@@ -109,6 +109,7 @@ describe("TMDB detail enrichment", () => {
           title: "The Matrix",
           release_date: "1999-03-31",
           poster_path: "/matrix.jpg",
+          vote_average: 8.2,
         },
         {
           id: 604,
@@ -123,6 +124,7 @@ describe("TMDB detail enrichment", () => {
       tmdbId: 603,
       year: 1999,
       posterUrl: "https://image.tmdb.org/t/p/w342/matrix.jpg",
+      voteAverage: 8.2,
     });
   });
 

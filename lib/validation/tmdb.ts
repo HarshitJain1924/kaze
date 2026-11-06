@@ -6,6 +6,10 @@ import {
   MIN_SCORE,
   WATCH_STATUSES,
 } from "@/types/library";
+import {
+  tmdbDiscoverCategoriesForKind,
+  type TmdbDiscoverCategory,
+} from "@/types/tmdb";
 
 export const tmdbKindSchema = z.enum(["movie", "tv"]);
 
@@ -26,6 +30,34 @@ export const tmdbSearchParamsSchema = z.object({
   q: tmdbSearchQuerySchema,
   page: z.coerce.number().int().min(1).max(500).default(1),
 });
+
+export const tmdbDiscoverCategorySchema = z.enum([
+  "trending",
+  "popular",
+  "top_rated",
+  "upcoming",
+  "on_the_air",
+]);
+
+export const tmdbDiscoverParamsSchema = z
+  .object({
+    kind: tmdbKindSchema.default("movie"),
+    category: tmdbDiscoverCategorySchema.default("trending"),
+    page: z.coerce.number().int().min(1).max(500).default(1),
+  })
+  .superRefine((value, context) => {
+    if (
+      !tmdbDiscoverCategoriesForKind(value.kind).includes(
+        value.category as TmdbDiscoverCategory,
+      )
+    ) {
+      context.addIssue({
+        code: "custom",
+        path: ["category"],
+        message: `Unsupported discovery category for ${value.kind}`,
+      });
+    }
+  });
 
 export const tmdbStatusSchema = z.enum(WATCH_STATUSES);
 
@@ -89,3 +121,4 @@ export const episodeActionSchema = z.union([
 export type AddTmdbEntryInput = z.infer<typeof addTmdbEntrySchema>;
 export type TmdbEntryPatch = z.infer<typeof tmdbEntryPatchSchema>;
 export type EpisodeRef = z.infer<typeof episodeRefSchema>;
+export type TmdbDiscoverParams = z.infer<typeof tmdbDiscoverParamsSchema>;

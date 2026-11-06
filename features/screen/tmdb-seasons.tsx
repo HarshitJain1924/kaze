@@ -1,12 +1,13 @@
-"use client";
+import Image from "next/image";
 
 import {
   CheckIcon,
   ChevronDownIcon,
   LoaderIcon,
+  MonitorIcon,
 } from "@/components/icons";
 import { Button } from "@/components/ui/button";
-import { cn } from "@/lib/utils";
+import { cn, isHttpUrl } from "@/lib/utils";
 import type {
   TmdbLibraryEntry,
   TmdbSeasonDetails,
@@ -54,15 +55,34 @@ export function TmdbSeasonsSection({
   onToggleEpisode,
   onWriteEpisodes,
 }: TmdbSeasonsSectionProps) {
-  const visibleSeasons = seasons.filter((season) => season.seasonNumber > 0);
+  const visibleSeasons = [...seasons].sort((a, b) => {
+    if (a.seasonNumber === 0) return 1;
+    if (b.seasonNumber === 0) return -1;
+    return a.seasonNumber - b.seasonNumber;
+  });
 
   return (
-    <section aria-label="Seasons and episodes" className="space-y-3">
-      <div className="flex items-center justify-between">
-        <h2 className="font-display text-lg font-semibold text-fg">Seasons</h2>
+    <section aria-labelledby="seasons-heading" className="space-y-3">
+      <div className="flex flex-col gap-3 border-b border-border pb-3 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <div className="flex items-center gap-2">
+            <h2
+              id="seasons-heading"
+              className="font-display text-lg font-semibold text-fg"
+            >
+              Seasons &amp; Episodes
+            </h2>
+            <span className="rounded-full bg-surface-3 px-2 py-0.5 text-xs font-semibold text-muted">
+              {visibleSeasons.length}
+            </span>
+          </div>
+          <p className="mt-1 text-xs text-muted">
+            Expand one season at a time to browse episodes and update progress.
+          </p>
+        </div>
         {entry ? (
-          <span className="text-xs tabular-nums text-faint">
-            {watchedCount} watched
+          <span className="shrink-0 text-xs tabular-nums text-faint">
+            {watchedCount} episodes watched
           </span>
         ) : null}
       </div>
@@ -98,14 +118,33 @@ export function TmdbSeasonsSection({
                 aria-expanded={open}
                 className="flex w-full items-center justify-between gap-3 p-4 text-left transition-colors hover:bg-surface-2/60"
               >
-                <span className="min-w-0">
+                <span className="relative block aspect-[2/3] h-16 w-11 shrink-0 overflow-hidden rounded-md border border-border-subtle bg-surface-3">
+                  {season.posterUrl && isHttpUrl(season.posterUrl) ? (
+                    <Image
+                      src={season.posterUrl}
+                      alt=""
+                      fill
+                      unoptimized
+                      sizes="44px"
+                      className="object-cover"
+                    />
+                  ) : (
+                    <span className="absolute inset-0 flex items-center justify-center">
+                      <MonitorIcon className="h-5 w-5 text-faint/60" />
+                    </span>
+                  )}
+                </span>
+                <span className="min-w-0 flex-1">
                   <span className="block text-sm font-semibold text-fg">
-                    {season.name}
+                    {season.seasonNumber === 0 ? "Specials" : season.name}
                   </span>
                   <span className="mt-0.5 block text-[11px] text-faint">
-                    {season.episodeCount} episodes
+                    {season.episodeCount}{" "}
+                    {season.episodeCount === 1 ? "episode" : "episodes"}
                     {season.airDate ? ` · ${season.airDate.slice(0, 4)}` : ""}
-                    {entry && open ? ` · ${seasonWatched} watched` : ""}
+                    {entry && data
+                      ? ` · ${seasonWatched}/${seasonEpisodes.length} watched`
+                      : ""}
                   </span>
                 </span>
                 <ChevronDownIcon
@@ -211,7 +250,11 @@ export function TmdbSeasonsSection({
                         })}
                       </ul>
                     </>
-                  ) : null}
+                  ) : (
+                    <p className="p-2 text-xs text-faint">
+                      TMDB has no episode data for this season yet.
+                    </p>
+                  )}
                 </div>
               ) : null}
             </div>

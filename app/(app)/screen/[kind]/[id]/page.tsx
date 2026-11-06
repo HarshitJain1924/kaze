@@ -102,6 +102,7 @@ export default async function ScreenDetailPage({
 
   return (
     <ScreenDetail
+      key={`${details.kind}:${details.tmdbId}`}
       details={details}
       initialEntry={entry}
       initialEpisodes={watchedEpisodes}

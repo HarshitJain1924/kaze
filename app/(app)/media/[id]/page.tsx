@@ -145,6 +145,7 @@ export default async function AnimeDetailsPage({ params }: PageProps) {
 
   return (
     <AniListMediaDetail
+      key={`${anime.mediaType}:${anime.id}`}
       anime={anime}
       themes={themes}
       catalogMeta={catalogMeta}
