@@ -94,6 +94,13 @@ describe("PostgreSQL Real Engine Integration Tests", () => {
         expect(role.rolbypassrls).toBe(false);
         expect(role.rolinherit).toBe(false);
       }
+      const memberships = await db.query<{ count: string }>(`
+        select count(*)::text as count
+        from pg_auth_members m
+        join pg_roles member on member.oid = m.member
+        where member.rolname in ('phase2c_api_owner', 'phase2c_reconcile_owner');
+      `);
+      expect(memberships.rows[0]!.count).toBe("0");
 
       const tables = await db.query<{
         relname: string;
@@ -229,6 +236,31 @@ describe("PostgreSQL Real Engine Integration Tests", () => {
         "select public.phase2c_read_entry_state(321) as value;",
       );
       expect(liveState.rows[0]!.value).toMatchObject({ status: "live" });
+
+      const secondUserId = "00000000-0000-0000-0000-000000000002";
+      await db.query(`insert into auth.users (id) values ('${secondUserId}');`);
+      await db.query(`
+        insert into public.user_anime
+          (id, user_id, anilist_id, media_type, status, progress, volumes_progress)
+        values
+          ('10000000-0000-0000-0000-000000000002', '${secondUserId}', 654,
+           'anime', 'planning', 0, 0);
+      `);
+      await db.exec(`
+        create or replace function auth.uid() returns uuid language sql stable as $$
+          select '${secondUserId}'::uuid
+        $$;
+      `);
+      const isolated = await db.query<{ value: Record<string, unknown> }>(
+        "select public.phase2c_read_library() as value;",
+      );
+      const isolatedEntries = isolated.rows[0]!.value.entries as Array<
+        Record<string, unknown>
+      >;
+      expect(isolatedEntries).toHaveLength(1);
+      expect(
+        (isolatedEntries[0]!.entry as Record<string, unknown>).anilistId,
+      ).toBe(654);
     } finally {
       await db.close();
     }

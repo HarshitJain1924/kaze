@@ -614,6 +614,110 @@ export interface Database {
           },
         ];
       };
+      phase2c_entry_coordination: {
+        Row: {
+          user_id: string;
+          anilist_id: number;
+          generation: number;
+          deleted: boolean;
+          source_revision: number;
+          lifecycle_version: number;
+          progress_version: number;
+          score_version: number;
+          notes_version: number;
+        };
+        Insert: {
+          user_id: string;
+          anilist_id: number;
+          generation?: number;
+          deleted?: boolean;
+          source_revision?: number;
+          lifecycle_version?: number;
+          progress_version?: number;
+          score_version?: number;
+          notes_version?: number;
+        };
+        Update: {
+          user_id?: string;
+          anilist_id?: number;
+          generation?: number;
+          deleted?: boolean;
+          source_revision?: number;
+          lifecycle_version?: number;
+          progress_version?: number;
+          score_version?: number;
+          notes_version?: number;
+        };
+        Relationships: [];
+      };
+      phase2c_projection_state: {
+        Row: {
+          user_id: string;
+          anilist_id: number;
+          generation: number;
+          projection_revision: number;
+          projected_deleted: boolean;
+        };
+        Insert: {
+          user_id: string;
+          anilist_id: number;
+          generation?: number;
+          projection_revision?: number;
+          projected_deleted?: boolean;
+        };
+        Update: {
+          user_id?: string;
+          anilist_id?: number;
+          generation?: number;
+          projection_revision?: number;
+          projected_deleted?: boolean;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "phase2c_projection_state_coordination_fk";
+            columns: ["user_id", "anilist_id"];
+            isOneToOne: true;
+            referencedRelation: "phase2c_entry_coordination";
+            referencedColumns: ["user_id", "anilist_id"];
+          },
+        ];
+      };
+      phase2c_reconciliation_issues: {
+        Row: {
+          id: string;
+          user_id: string;
+          anilist_id: number;
+          issue_kind: string;
+          details: Json;
+          observed_source_revision: number | null;
+          observed_projection_revision: number | null;
+          created_at: string;
+          resolved_at: string | null;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          anilist_id: number;
+          issue_kind: string;
+          details?: Json;
+          observed_source_revision?: number | null;
+          observed_projection_revision?: number | null;
+          created_at?: string;
+          resolved_at?: string | null;
+        };
+        Update: {
+          id?: string;
+          user_id?: string;
+          anilist_id?: number;
+          issue_kind?: string;
+          details?: Json;
+          observed_source_revision?: number | null;
+          observed_projection_revision?: number | null;
+          created_at?: string;
+          resolved_at?: string | null;
+        };
+        Relationships: [];
+      };
       media_backfill_runs: {
         Row: {
           id: string;
@@ -696,6 +800,16 @@ export interface Database {
       };
       validate_phase2b: {
         Args: Record<string, never>;
+        Returns: Json;
+      };
+      phase2c_read_library: {
+        Args: Record<string, never>;
+        Returns: Json;
+      };
+      phase2c_read_entry_state: {
+        Args: {
+          p_anilist_id: number;
+        };
         Returns: Json;
       };
     };
