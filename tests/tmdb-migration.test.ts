@@ -6,7 +6,7 @@ import { describe, expect, it } from "vitest";
 
 const MIGRATIONS = [
   "20261018000000_create_user_anime.sql",
-  "20261115000000_create_tmdb_library.sql",
+  "20261107020611_create_tmdb_library.sql",
 ];
 
 const USER_A = "11111111-1111-4111-8111-111111111111";
