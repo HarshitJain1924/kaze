@@ -2,7 +2,12 @@ import "server-only";
 
 import { readTmdbCache, writeTmdbCache } from "@/services/tmdb/cache";
 import { tmdbGet } from "@/services/tmdb/client";
-import { mapDetails, mapSearchPage, mapSeason } from "@/services/tmdb/mappers";
+import {
+  mapCollection,
+  mapDetails,
+  mapSearchPage,
+  mapSeason,
+} from "@/services/tmdb/mappers";
 import type {
   TmdbDetails,
   TmdbKind,
@@ -32,16 +37,47 @@ export async function getTmdbDetails(
   kind: TmdbKind,
   tmdbId: number,
 ): Promise<TmdbDetails> {
-  const key = `tmdb:details:${kind}:${tmdbId}`;
+  // The version suffix prevents older cached payloads without credits,
+  // recommendations or collections from reaching the shared detail view.
+  const key = `tmdb:details:v2:${kind}:${tmdbId}`;
   const cached = await readTmdbCache<TmdbDetails>(key);
   if (cached) return cached;
 
   const path = kind === "movie" ? `/movie/${tmdbId}` : `/tv/${tmdbId}`;
   const payload = await tmdbGet<unknown>(path, {
-    query: { language: "en-US", append_to_response: "external_ids" },
+    query: {
+      language: "en-US",
+      append_to_response:
+        "external_ids,credits,recommendations,belongs_to_collection,videos",
+    },
     revalidateSeconds: 3600,
   });
-  const details = mapDetails(kind, payload);
+
+  let details = mapDetails(kind, payload);
+
+  if (details.collection) {
+    try {
+      const collectionKey = `tmdb:collection:${details.collection.id}`;
+      let collection = await readTmdbCache<typeof details.collection>(
+        collectionKey,
+      );
+
+      if (!collection) {
+        const collectionPayload = await tmdbGet<unknown>(
+          `/collection/${details.collection.id}`,
+          { query: { language: "en-US" }, revalidateSeconds: 3600 },
+        );
+        collection = mapCollection(collectionPayload);
+        await writeTmdbCache(collectionKey, collection);
+      }
+
+      details = { ...details, collection };
+    } catch {
+      // A collection is contextual navigation. Keep the title usable if the
+      // secondary request fails.
+    }
+  }
+
   await writeTmdbCache(key, details);
   return details;
 }

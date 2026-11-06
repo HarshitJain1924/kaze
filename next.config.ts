@@ -58,6 +58,11 @@ const nextConfig: NextConfig = {
         hostname: "media.kitsu.io",
         pathname: "/**",
       },
+      {
+        protocol: "https",
+        hostname: "image.tmdb.org",
+        pathname: "/**",
+      },
     ],
     formats: ["image/avif", "image/webp"],
   },

@@ -184,6 +184,14 @@ function details(kind: TmdbKind, tmdbId: number): TmdbDetails {
     status: null,
     voteAverage: null,
     voteCount: null,
+    adult: false,
+    productionCompanies: [],
+    networks: [],
+    cast: [],
+    crew: [],
+    recommendations: [],
+    trailer: null,
+    collection: null,
     seasons: [],
   };
 }

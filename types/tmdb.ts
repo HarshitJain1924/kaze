@@ -59,6 +59,56 @@ export interface TmdbSeasonDetails {
   episodes: TmdbEpisode[];
 }
 
+export interface TmdbCastMember {
+  id: number;
+  name: string;
+  character: string | null;
+  profileUrl: string | null;
+  order: number | null;
+}
+
+export interface TmdbCrewMember {
+  id: number;
+  name: string;
+  job: string | null;
+  department: string | null;
+  profileUrl: string | null;
+}
+
+export interface TmdbCollectionPart {
+  tmdbId: number;
+  title: string;
+  posterUrl: string | null;
+  releaseDate: string | null;
+  year: number | null;
+  overview: string | null;
+}
+
+export interface TmdbCollection {
+  id: number;
+  name: string;
+  posterUrl: string | null;
+  backdropUrl: string | null;
+  parts: TmdbCollectionPart[];
+}
+
+export interface TmdbRecommendation {
+  tmdbId: number;
+  kind: TmdbKind;
+  title: string;
+  posterUrl: string | null;
+  year: number | null;
+  voteAverage: number | null;
+}
+
+export interface TmdbTrailer {
+  id: string;
+  key: string;
+  name: string;
+  site: string;
+  type: string;
+}
+
 export interface TmdbDetails {
   tmdbId: number;
   kind: TmdbKind;
@@ -78,6 +128,14 @@ export interface TmdbDetails {
   status: string | null;
   voteAverage: number | null;
   voteCount: number | null;
+  adult: boolean;
+  productionCompanies: string[];
+  networks: string[];
+  cast: TmdbCastMember[];
+  crew: TmdbCrewMember[];
+  recommendations: TmdbRecommendation[];
+  trailer: TmdbTrailer | null;
+  collection: TmdbCollection | null;
   seasons: TmdbSeasonSummary[];
 }
 

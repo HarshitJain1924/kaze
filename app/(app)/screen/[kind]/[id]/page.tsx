@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import { notFound } from "next/navigation";
 
+import { MediaDetailError } from "@/features/media-detail/media-detail-error";
 import { ScreenDetail } from "@/features/screen/screen-detail";
 import { getViewer } from "@/lib/auth";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
@@ -13,7 +13,11 @@ import {
 } from "@/services/tmdb/errors";
 import { getTmdbDetails } from "@/services/tmdb/service";
 import { tmdbIdSchema, tmdbKindSchema } from "@/lib/validation/tmdb";
-import type { TmdbDetails, TmdbLibraryEntry, TmdbWatchedEpisode } from "@/types/tmdb";
+import type {
+  TmdbDetails,
+  TmdbLibraryEntry,
+  TmdbWatchedEpisode,
+} from "@/types/tmdb";
 
 export const metadata: Metadata = {
   title: "Film & TV details",
@@ -47,14 +51,13 @@ export default async function ScreenDetailPage({
           : "TMDB could not be reached. Try again in a moment.";
 
     return (
-      <div className="mx-auto max-w-xl space-y-4 py-12 text-center">
-        <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-accent-strong">
-          Films &amp; TV
-        </p>
-        <h1 className="font-display text-xl font-bold text-fg">
-          Details unavailable
-        </h1>
-        <p className="text-sm leading-relaxed text-muted">{message}</p>
+      <MediaDetailError
+        backHref="/screen"
+        backLabel="Back to Films & TV"
+        eyebrow="Films & TV"
+        title="Details unavailable"
+        message={message}
+      >
         {error instanceof TmdbNotConfiguredError ? (
           <p className="rounded-2xl border border-border-subtle bg-surface-2/60 p-4 text-left text-xs text-faint">
             Add <code className="font-mono">TMDB_READ_ACCESS_TOKEN</code> to the
@@ -62,13 +65,7 @@ export default async function ScreenDetailPage({
             shown in the meantime.
           </p>
         ) : null}
-        <Link
-          href="/screen"
-          className="inline-flex text-sm font-medium text-accent-strong hover:underline"
-        >
-          Back to Films &amp; TV
-        </Link>
-      </div>
+      </MediaDetailError>
     );
   }
 
