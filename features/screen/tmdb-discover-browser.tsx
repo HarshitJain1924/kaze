@@ -87,7 +87,7 @@ function requestPath(
       q: query,
       page: String(page),
     });
-    if (filters.includeAdult) params.set("adult", "include");
+    if (filters.adult) params.set("adult", filters.adult);
     return `/api/tmdb/search?${params.toString()}`;
   }
   const params = new URLSearchParams({
@@ -96,7 +96,7 @@ function requestPath(
     page: String(page),
   });
   if (filters.genres?.length) params.set("genre", filters.genres.join(","));
-  if (filters.includeAdult) params.set("adult", "include");
+  if (filters.adult) params.set("adult", filters.adult);
   if (filters.year) params.set("year", String(filters.year));
   if (filters.minRating !== undefined) {
     params.set("rating", String(filters.minRating));
@@ -111,7 +111,7 @@ function countTmdbFilters(filters: TmdbDiscoverFilters): number {
     filters.year,
     filters.minRating !== undefined ? true : undefined,
     filters.sort,
-    filters.includeAdult ? true : undefined,
+    filters.adult ? true : undefined,
   ].filter((value) => value !== undefined).length;
 }
 
@@ -195,11 +195,13 @@ function TmdbFilterFields({
   filters,
   onChange,
   idPrefix,
+  adultAllowed = false,
 }: {
   kind: TmdbKind;
   filters: TmdbDiscoverFilters;
   onChange: (patch: Partial<TmdbDiscoverFilters>) => void;
   idPrefix: string;
+  adultAllowed?: boolean;
 }) {
   const genreOptions = tmdbGenresForKind(kind);
   const sortOptions = tmdbSortsForKind(kind);
@@ -315,16 +317,24 @@ function TmdbFilterFields({
           htmlFor={`${idPrefix}-adult`}
           className="text-xs font-medium text-muted lg:sr-only"
         >
-          Adult content
+          18+ content
         </label>
         <Select
           id={`${idPrefix}-adult`}
           aria-label="Filter by adult content"
-          value={filters.includeAdult ? "include" : ""}
+          value={filters.adult ?? ""}
+          disabled={!adultAllowed}
+          title={
+            adultAllowed
+              ? undefined
+              : "Enable adult titles in Settings to browse 18+ content"
+          }
           onChange={(event) =>
             onChange({
-              includeAdult:
-                event.target.value === "include" ? true : undefined,
+              adult:
+                event.target.value === ""
+                  ? undefined
+                  : (event.target.value as TmdbDiscoverFilters["adult"]),
             })
           }
         >
@@ -372,11 +382,13 @@ function TmdbFilters({
   filters,
   onChange,
   onClear,
+  adultAllowed = false,
 }: {
   kind: TmdbKind;
   filters: TmdbDiscoverFilters;
   onChange: (patch: Partial<TmdbDiscoverFilters>) => void;
   onClear: () => void;
+  adultAllowed?: boolean;
 }) {
   const [sheetOpen, setSheetOpen] = useState(false);
   const activeCount = countTmdbFilters(filters);
@@ -389,6 +401,7 @@ function TmdbFilters({
           kind={kind}
           filters={filters}
           onChange={onChange}
+          adultAllowed={adultAllowed}
           idPrefix={`${kind}-desktop-filters`}
         />
       </div>
@@ -417,7 +430,7 @@ function TmdbFilters({
         open={sheetOpen}
         onClose={() => setSheetOpen(false)}
         title={`Filter ${noun}`}
-        description="Refine by genre, release year, rating, adult content and sort order."
+        description="Refine by genre, release year, rating, 18+ content and sort order."
         mobileSheet
         footer={
           <>
@@ -440,6 +453,7 @@ function TmdbFilters({
           kind={kind}
           filters={filters}
           onChange={onChange}
+          adultAllowed={adultAllowed}
           idPrefix={`${kind}-sheet-filters`}
         />
       </Dialog>
@@ -454,6 +468,7 @@ export function TmdbDiscoverBrowser({
   initialQuery,
   initialFilters,
   initialError,
+  adultAllowed = false,
 }: {
   kind: TmdbKind;
   initialPage: TmdbSearchPage | null;
@@ -461,6 +476,7 @@ export function TmdbDiscoverBrowser({
   initialQuery: string;
   initialFilters: TmdbDiscoverFilters;
   initialError: string | null;
+  adultAllowed?: boolean;
 }) {
   const [queryInput, setQueryInput] = useState(initialQuery);
   const [query, setQuery] = useState(initialQuery.trim());
@@ -508,7 +524,7 @@ export function TmdbDiscoverBrowser({
     if (category !== "trending") params.set("category", category);
     if (query) params.set("q", query);
     if (filters.genres?.length) params.set("genre", filters.genres.join(","));
-    if (filters.includeAdult) params.set("adult", "include");
+    if (filters.adult) params.set("adult", filters.adult);
     if (filters.year) params.set("year", String(filters.year));
     if (filters.minRating !== undefined) {
       params.set("rating", String(filters.minRating));
@@ -621,7 +637,7 @@ export function TmdbDiscoverBrowser({
       year: undefined,
       minRating: undefined,
       sort: undefined,
-      includeAdult: undefined,
+      adult: undefined,
     });
 
   const toggleGenre = (value: string) => {
@@ -662,11 +678,11 @@ export function TmdbDiscoverBrowser({
       clear: () => applyFilter({ sort: undefined }),
     });
   }
-  if (filters.includeAdult) {
+  if (filters.adult) {
     chips.push({
       key: "adult",
-      label: "Adult: included",
-      clear: () => applyFilter({ includeAdult: undefined }),
+      label: filters.adult === "only" ? "18+: only" : "18+: included",
+      clear: () => applyFilter({ adult: undefined }),
     });
   }
 
@@ -746,6 +762,7 @@ export function TmdbDiscoverBrowser({
           filters={filters}
           onChange={applyFilter}
           onClear={clearFilters}
+          adultAllowed={adultAllowed}
         />
       </DiscoverDeck>
 
@@ -753,7 +770,9 @@ export function TmdbDiscoverBrowser({
         loading={isLoading}
         loadingLabel="Searching TMDB…"
         visibleCount={items.length}
-        totalCount={pageInfo?.totalResults ?? null}
+        totalCount={
+          filters.adult === "only" ? null : (pageInfo?.totalResults ?? null)
+        }
         emptyLabel={
           searchTooShort ? "Type at least two characters." : null
         }

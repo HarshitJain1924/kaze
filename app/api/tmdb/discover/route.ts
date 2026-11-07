@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { tmdbErrorResponse } from "@/lib/api/tmdb";
+import { getViewer } from "@/lib/auth";
 import { tmdbDiscoverParamsSchema } from "@/lib/validation/tmdb";
 import { discoverTmdb } from "@/services/tmdb/service";
 
@@ -28,6 +29,11 @@ export async function GET(request: Request) {
     );
   }
 
+  // 18+ catalogues are only served to viewers who enabled adult titles.
+  const viewer = await getViewer();
+  const requestedAdult = parsed.data.adult ?? "filtered";
+  const adult = viewer?.showAdult === true ? requestedAdult : "filtered";
+
   try {
     const page = await discoverTmdb(
       parsed.data.kind,
@@ -38,15 +44,18 @@ export async function GET(request: Request) {
         year: parsed.data.year,
         minRating: parsed.data.rating,
         sort: parsed.data.sort,
-        includeAdult: parsed.data.adult === "include",
+        adult: adult === "filtered" ? undefined : adult,
       },
     );
-    // Catalogue pages are public metadata, so browsers and proxies may reuse
-    // them for a few minutes instead of re-hitting TMDB.
     return NextResponse.json(page, {
-      headers: {
-        "cache-control": "public, s-maxage=300, stale-while-revalidate=3600",
-      },
+      headers:
+        adult === "filtered"
+          ? {
+              // Catalogue pages are public metadata, so browsers and proxies
+              // may reuse them instead of re-hitting TMDB.
+              "cache-control": "public, s-maxage=300, stale-while-revalidate=3600",
+            }
+          : { "cache-control": "private, no-store" },
     });
   } catch (error) {
     return tmdbErrorResponse(error);

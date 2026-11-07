@@ -25,7 +25,7 @@ export const tmdbSearchQuerySchema = z
   .min(1, "Enter a title to search for")
   .max(100, "Search terms must be 100 characters or fewer");
 
-export const tmdbAdultFilterSchema = z.enum(["filtered", "include"]);
+export const tmdbAdultFilterSchema = z.enum(["filtered", "include", "only"]);
 
 export const tmdbSearchParamsSchema = z.object({
   kind: tmdbKindSchema.default("movie"),

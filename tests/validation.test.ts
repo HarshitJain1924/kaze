@@ -213,6 +213,9 @@ describe("TMDB discovery parameters", () => {
       tmdbDiscoverParamsSchema.safeParse({ genres: "28,35,18,80,99,16" })
         .success,
     ).toBe(false);
+    expect(tmdbDiscoverParamsSchema.safeParse({ adult: "only" }).success).toBe(
+      true,
+    );
     expect(tmdbDiscoverParamsSchema.safeParse({ adult: "all" }).success).toBe(
       false,
     );

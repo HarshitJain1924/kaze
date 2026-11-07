@@ -34,7 +34,7 @@ export function TmdbCollectionSection({
             id="collection-heading"
             className="font-display text-lg font-semibold text-fg"
           >
-            Franchise &amp; Chronology
+            Franchise Order
           </h2>
           <span className="rounded-full bg-surface-3 px-2 py-0.5 text-xs font-semibold text-muted">
             {parts.length}
@@ -42,7 +42,8 @@ export function TmdbCollectionSection({
         </div>
         <p className="mt-1 text-xs text-muted">
           {collection.name} · {parts.length}{" "}
-          {parts.length === 1 ? "film" : "films"}, ordered by release date.
+          {parts.length === 1 ? "film" : "films"} in this collection, ordered by
+          release date.
         </p>
       </div>
 

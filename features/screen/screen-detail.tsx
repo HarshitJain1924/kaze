@@ -15,6 +15,7 @@ import { TmdbCreditsSection } from "@/features/screen/tmdb-credits";
 import { TmdbRecommendations } from "@/features/screen/tmdb-recommendations";
 import { TmdbSeasonsSection, tmdbEpisodeKey } from "@/features/screen/tmdb-seasons";
 import { TmdbTrackingPanel } from "@/features/screen/tmdb-tracking-panel";
+import { TmdbUniverseSection } from "@/features/screen/tmdb-universe";
 import type { WatchStatus } from "@/types/library";
 import type {
   TmdbDetails,
@@ -289,10 +290,26 @@ export function ScreenDetail({
     });
   }
 
+  if (details.universe && details.universe.entries.length > 0) {
+    sections.push({
+      id: "universe",
+      label: "Watch Order",
+      count: details.universe.total,
+      overview: true,
+      content: (
+        <TmdbUniverseSection
+          universe={details.universe}
+          kind={details.kind}
+          currentTmdbId={details.tmdbId}
+        />
+      ),
+    });
+  }
+
   if (details.collection && details.collection.parts.length > 0) {
     sections.push({
       id: "collection",
-      label: "Franchise & Chronology",
+      label: "Franchise Order",
       count: details.collection.parts.length,
       overview: true,
       content: (

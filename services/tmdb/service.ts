@@ -8,34 +8,44 @@ import {
   mapSearchPage,
   mapSeason,
 } from "@/services/tmdb/mappers";
+import { applyAdultMode } from "@/lib/tmdb/adult";
+import {
+  buildTmdbUniverse,
+  isListableUniverseEntry,
+  matchTmdbUniverse,
+  type TmdbUniverseDefinition,
+} from "@/lib/tmdb/universes";
 import {
   isTmdbSortForKind,
   type TmdbDetails,
   type TmdbDiscoverCategory,
   type TmdbDiscoverFilters,
+  type TmdbAdultFilter,
   type TmdbDiscoverSort,
   type TmdbKind,
   type TmdbSearchPage,
   type TmdbSeasonDetails,
+  type TmdbUniverse,
+  type TmdbUniverseEntry,
 } from "@/types/tmdb";
 
 export async function searchTmdb(
   kind: TmdbKind,
   query: string,
   page = 1,
-  includeAdult = false,
+  adult: TmdbAdultFilter = "filtered",
 ): Promise<TmdbSearchPage> {
   const path = kind === "movie" ? "/search/movie" : "/search/tv";
   const payload = await tmdbGet<unknown>(path, {
     query: {
       query,
       page,
-      include_adult: includeAdult,
+      include_adult: adult !== "filtered",
       language: "en-US",
     },
     revalidateSeconds: 600,
   });
-  return mapSearchPage(kind, payload);
+  return applyAdultMode(mapSearchPage(kind, payload), adult);
 }
 
 function defaultSortForCategory(
@@ -57,7 +67,7 @@ function hasDiscoverFilters(filters: TmdbDiscoverFilters): boolean {
       filters.year ||
       filters.minRating !== undefined ||
       filters.sort ||
-      filters.includeAdult,
+      filters.adult,
   );
 }
 
@@ -84,7 +94,9 @@ export async function discoverTmdb(
       // A pipe keeps the selection additive: any of the chosen genres matches.
       query.with_genres = filters.genres.join("|");
     }
-    if (filters.includeAdult) query.include_adult = true;
+    if (filters.adult && filters.adult !== "filtered") {
+      query.include_adult = true;
+    }
     if (filters.year) {
       query[kind === "movie" ? "primary_release_year" : "first_air_date_year"] =
         filters.year;
@@ -101,7 +113,7 @@ export async function discoverTmdb(
       query,
       revalidateSeconds: 900,
     });
-    return mapSearchPage(kind, filtered);
+    return applyAdultMode(mapSearchPage(kind, filtered), filters.adult);
   }
 
   const path =
@@ -119,7 +131,82 @@ export async function discoverTmdb(
     query: { page, language: "en-US" },
     revalidateSeconds: 900,
   });
-  return mapSearchPage(kind, payload);
+  return applyAdultMode(mapSearchPage(kind, payload), filters.adult);
+}
+
+const UNIVERSE_PAGE_SIZE = 20;
+const UNIVERSE_MAX_PAGES = 5;
+
+interface UniverseRoster {
+  total: number;
+  entries: TmdbUniverseEntry[];
+}
+
+/**
+ * Every title in a universe, in release order. Cached per universe because the
+ * roster is shared by all of its detail pages and changes rarely.
+ */
+async function loadUniverseRoster(
+  universe: TmdbUniverseDefinition,
+): Promise<UniverseRoster> {
+  const key = `tmdb:universe:v2:${universe.id}`;
+  const cached = await readTmdbCache<UniverseRoster>(key);
+  if (cached) return cached;
+
+  const path = universe.kind === "movie" ? "/discover/movie" : "/discover/tv";
+  const entries: TmdbUniverseEntry[] = [];
+  let total = 0;
+
+  for (let page = 1; page <= UNIVERSE_MAX_PAGES; page += 1) {
+    const payload = await tmdbGet<unknown>(path, {
+      query: {
+        language: "en-US",
+        page,
+        sort_by: `${universe.sortField}.asc`,
+        with_keywords: universe.keywordId,
+      },
+      revalidateSeconds: 86400,
+    });
+    const mapped = mapSearchPage(universe.kind, payload);
+    total = mapped.totalResults;
+    if (mapped.results.length === 0) break;
+
+    entries.push(
+      ...mapped.results
+        .map((item) => ({
+          tmdbId: item.tmdbId,
+          title: item.title,
+          posterUrl: item.posterUrl,
+          releaseDate: item.releaseDate,
+          year: item.year,
+          voteAverage: item.voteAverage,
+        }))
+        .filter((entry) => isListableUniverseEntry(entry, universe)),
+    );
+
+    if (page * UNIVERSE_PAGE_SIZE >= total) break;
+  }
+
+  const roster: UniverseRoster = { total: entries.length, entries };
+  await writeTmdbCache(key, roster);
+  return roster;
+}
+
+async function getTmdbUniverse(
+  kind: TmdbKind,
+  tmdbId: number,
+  keywordIds: readonly number[],
+): Promise<TmdbUniverse | null> {
+  const definition = matchTmdbUniverse(kind, keywordIds);
+  if (!definition) return null;
+
+  try {
+    const roster = await loadUniverseRoster(definition);
+    return buildTmdbUniverse(definition, roster, tmdbId);
+  } catch {
+    // Watch order is contextual navigation; the detail page stays usable.
+    return null;
+  }
 }
 
 export async function getTmdbDetails(
@@ -128,7 +215,7 @@ export async function getTmdbDetails(
 ): Promise<TmdbDetails> {
   // The version suffix prevents older cached payloads without credits,
   // recommendations or collections from reaching the shared detail view.
-  const key = `tmdb:details:v2:${kind}:${tmdbId}`;
+  const key = `tmdb:details:v4:${kind}:${tmdbId}`;
   const cached = await readTmdbCache<TmdbDetails>(key);
   if (cached) return cached;
 
@@ -137,7 +224,7 @@ export async function getTmdbDetails(
     query: {
       language: "en-US",
       append_to_response:
-        "external_ids,credits,recommendations,belongs_to_collection,videos",
+        "external_ids,credits,recommendations,belongs_to_collection,videos,keywords",
     },
     revalidateSeconds: 3600,
   });
@@ -166,6 +253,9 @@ export async function getTmdbDetails(
       // secondary request fails.
     }
   }
+
+  const universe = await getTmdbUniverse(kind, tmdbId, details.keywordIds ?? []);
+  if (universe) details = { ...details, universe };
 
   await writeTmdbCache(key, details);
   return details;

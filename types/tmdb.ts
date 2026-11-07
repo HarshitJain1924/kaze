@@ -152,16 +152,23 @@ export interface TmdbDiscoverFilters {
   year?: number;
   minRating?: number;
   sort?: TmdbDiscoverSort;
-  /** TMDB's adult flag; it is hidden unless this is explicitly enabled. */
-  includeAdult?: boolean;
+  /**
+   * `filtered` hides 18+ titles, `include` mixes them into normal results, and
+   * `only` shows 18+ titles on their own instead of mixed in.
+   */
+  adult?: TmdbAdultFilter;
 }
+
+/** TMDB only takes a boolean adult flag, so "only" is applied after mapping. */
+export type TmdbAdultFilter = "filtered" | "include" | "only";
 
 export const TMDB_ADULT_FILTERS: Array<{
   value: string;
   label: string;
 }> = [
-  { value: "", label: "Hide adult" },
-  { value: "include", label: "Include adult" },
+  { value: "", label: "Hide 18+" },
+  { value: "include", label: "Include 18+" },
+  { value: "only", label: "Only 18+" },
 ];
 
 export interface TmdbSearchResult {
@@ -176,6 +183,8 @@ export interface TmdbSearchResult {
   year: number | null;
   voteAverage: number | null;
   voteCount: number | null;
+  /** TMDB's 18+ flag, used to build the adult-only view. */
+  adult?: boolean;
 }
 
 export interface TmdbSearchPage {
@@ -241,6 +250,27 @@ export interface TmdbCollectionPart {
   overview: string | null;
 }
 
+export interface TmdbUniverseEntry {
+  tmdbId: number;
+  title: string;
+  posterUrl: string | null;
+  releaseDate: string | null;
+  year: number | null;
+  voteAverage: number | null;
+}
+
+/** A shared film/series universe (MCU, Star Wars, DC) with release ordering. */
+export interface TmdbUniverse {
+  id: string;
+  label: string;
+  shortLabel: string;
+  /** Number of titles the source reports for the universe. */
+  total: number;
+  /** 1-based release-order position of the current title, when listed. */
+  position: number | null;
+  entries: TmdbUniverseEntry[];
+}
+
 export interface TmdbCollection {
   id: number;
   name: string;
@@ -287,12 +317,16 @@ export interface TmdbDetails {
   voteCount: number | null;
   adult: boolean;
   productionCompanies: string[];
+  /** TMDB keyword ids, used to detect shared universes. */
+  keywordIds?: number[];
   networks: string[];
   cast: TmdbCastMember[];
   crew: TmdbCrewMember[];
   recommendations: TmdbRecommendation[];
   trailer: TmdbTrailer | null;
   collection: TmdbCollection | null;
+  /** Present when the title belongs to a known shared universe. */
+  universe?: TmdbUniverse | null;
   seasons: TmdbSeasonSummary[];
 }
 

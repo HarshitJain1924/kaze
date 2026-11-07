@@ -641,6 +641,7 @@ export function DiscoverBrowser({
           initialQuery={useServerPage ? initialTmdbQuery : ""}
           initialFilters={useServerPage ? initialTmdbFilters : {}}
           initialError={useServerPage ? initialTmdbError : null}
+          adultAllowed={adultAllowed}
         />
       </div>
     );

@@ -45,6 +45,7 @@ const searchItemSchema = z.object({
   first_air_date: nullableString,
   vote_average: nullableNumber,
   vote_count: nullableNumber,
+  adult: z.boolean().optional(),
 });
 
 const searchPageSchema = z.object({
@@ -163,6 +164,13 @@ const detailsSchema = z.object({
     .optional(),
   belongs_to_collection: collectionRefSchema.nullable().optional(),
   seasons: z.array(seasonSchema).optional(),
+  // Movies return `keywords.keywords`, series return `keywords.results`.
+  keywords: z
+    .object({
+      keywords: z.array(z.object({ id: z.number().int() })).optional(),
+      results: z.array(z.object({ id: z.number().int() })).optional(),
+    })
+    .optional(),
 });
 
 const episodeSchema = z.object({
@@ -301,6 +309,7 @@ export function mapSearchPage(
           year: yearFromDate(date),
           voteAverage: item.vote_average ?? null,
           voteCount: item.vote_count ?? null,
+          adult: item.adult ?? false,
         },
       ];
     }),
@@ -340,6 +349,10 @@ export function mapDetails(kind: TmdbKind, payload: unknown): TmdbDetails {
     productionCompanies: (parsed.production_companies ?? []).map(
       (company) => company.name,
     ),
+    keywordIds: [
+      ...(parsed.keywords?.keywords ?? []),
+      ...(parsed.keywords?.results ?? []),
+    ].map((keyword) => keyword.id),
     networks: (parsed.networks ?? []).map((network) => network.name),
     cast: mapCast(parsed.credits?.cast ?? []),
     crew: mapCrew(
