@@ -16,12 +16,14 @@ import {
 } from "@/lib/tmdb/universes";
 import {
   isTmdbSortForKind,
+  type ScreenScheduleEntry,
   type TmdbDetails,
   type TmdbDiscoverCategory,
   type TmdbDiscoverFilters,
   type TmdbDiscoverSort,
   type TmdbKind,
   type TmdbSearchPage,
+  type TmdbSearchResult,
   type TmdbSeasonDetails,
   type TmdbUniverse,
   type TmdbUniverseEntry,
@@ -126,6 +128,81 @@ export async function discoverTmdb(
     revalidateSeconds: 900,
   });
   return mapSearchPage(kind, payload);
+}
+
+function toScreenScheduleEntry(
+  item: TmdbSearchResult,
+  date: string,
+): ScreenScheduleEntry {
+  return {
+    tmdbId: item.tmdbId,
+    kind: item.kind,
+    title: item.title,
+    posterUrl: item.posterUrl,
+    year: item.year,
+    voteAverage: item.voteAverage,
+    date,
+  };
+}
+
+const SCREEN_SCHEDULE_PAGES = 2;
+
+/**
+ * A week of dated film releases or TV airings. TMDB publishes dates but no
+ * broadcast times, and its TV discover filter matches a series whose episode
+ * airs in a window without saying which day, so each day is queried on its own.
+ */
+export async function getScreenWeekSchedule(
+  kind: TmdbKind,
+  range: { from: string; to: string; days: string[] },
+): Promise<ScreenScheduleEntry[]> {
+  const key = `tmdb:schedule:v1:${kind}:${range.from}`;
+  const cached = await readTmdbCache<ScreenScheduleEntry[]>(key);
+  if (cached) return cached;
+
+  const entries: ScreenScheduleEntry[] = [];
+
+  if (kind === "movie") {
+    for (let page = 1; page <= SCREEN_SCHEDULE_PAGES; page += 1) {
+      const payload = await tmdbGet<unknown>("/discover/movie", {
+        query: {
+          language: "en-US",
+          page,
+          sort_by: "popularity.desc",
+          "primary_release_date.gte": range.from,
+          "primary_release_date.lte": range.to,
+        },
+        revalidateSeconds: 900,
+      });
+      const mapped = mapSearchPage("movie", payload);
+      for (const item of mapped.results) {
+        if (item.releaseDate) {
+          entries.push(toScreenScheduleEntry(item, item.releaseDate));
+        }
+      }
+      if (mapped.results.length === 0 || page >= mapped.totalPages) break;
+    }
+  } else {
+    for (const day of range.days) {
+      const payload = await tmdbGet<unknown>("/discover/tv", {
+        query: {
+          language: "en-US",
+          page: 1,
+          sort_by: "popularity.desc",
+          "air_date.gte": day,
+          "air_date.lte": day,
+        },
+        revalidateSeconds: 900,
+      });
+      const mapped = mapSearchPage("tv", payload);
+      for (const item of mapped.results) {
+        entries.push(toScreenScheduleEntry(item, day));
+      }
+    }
+  }
+
+  await writeTmdbCache(key, entries);
+  return entries;
 }
 
 const UNIVERSE_PAGE_SIZE = 20;

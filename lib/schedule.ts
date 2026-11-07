@@ -1,4 +1,5 @@
 import type { AiringScheduleEntry, WeeklyScheduleDay } from "@/types/anime";
+import type { ScreenScheduleEntry } from "@/types/tmdb";
 
 const DAY_NAMES = [
   "Sunday",
@@ -347,4 +348,39 @@ export function formatAiringRelative(
   }
   const days = Math.round(diffSec / 86400);
   return { label: `In ${days}d`, hasAired: false };
+}
+
+export interface ScreenScheduleDay {
+  date: string;
+  dayName: string;
+  dayShort: string;
+  dayNumber: number;
+  isToday: boolean;
+  entries: ScreenScheduleEntry[];
+}
+
+/**
+ * Groups dated film releases or TV airings into the week's seven days, keeping
+ * the source order (popularity) and one row per title per day.
+ */
+export function groupScreenScheduleByDay(
+  entries: ScreenScheduleEntry[],
+  weekDays: WeekRange["days"],
+): ScreenScheduleDay[] {
+  const map = new Map<string, ScreenScheduleEntry[]>();
+  for (const day of weekDays) {
+    map.set(day.date, []);
+  }
+
+  for (const entry of entries) {
+    const list = map.get(entry.date);
+    if (!list) continue;
+    if (list.some((item) => item.tmdbId === entry.tmdbId)) continue;
+    list.push(entry);
+  }
+
+  return weekDays.map((day) => ({
+    ...day,
+    entries: map.get(day.date) ?? [],
+  }));
 }

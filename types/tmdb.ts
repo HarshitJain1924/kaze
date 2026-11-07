@@ -231,6 +231,18 @@ export interface TmdbCollectionPart {
   overview: string | null;
 }
 
+/** One dated movie release or TV airing in the weekly screen calendar. */
+export interface ScreenScheduleEntry {
+  tmdbId: number;
+  kind: TmdbKind;
+  title: string;
+  posterUrl: string | null;
+  year: number | null;
+  voteAverage: number | null;
+  /** "YYYY-MM-DD" the release or airing belongs to. */
+  date: string;
+}
+
 export interface TmdbUniverseEntry {
   tmdbId: number;
   title: string;
