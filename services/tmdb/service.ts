@@ -145,8 +145,6 @@ function toScreenScheduleEntry(
   };
 }
 
-const SCREEN_SCHEDULE_PAGES = 2;
-
 /**
  * A week of dated film releases or TV airings. TMDB publishes dates but no
  * broadcast times, and its TV discover filter matches a series whose episode
@@ -161,43 +159,25 @@ export async function getScreenWeekSchedule(
   if (cached) return cached;
 
   const entries: ScreenScheduleEntry[] = [];
+  const path = kind === "movie" ? "/discover/movie" : "/discover/tv";
 
-  if (kind === "movie") {
-    for (let page = 1; page <= SCREEN_SCHEDULE_PAGES; page += 1) {
-      const payload = await tmdbGet<unknown>("/discover/movie", {
-        query: {
-          language: "en-US",
-          page,
-          sort_by: "popularity.desc",
-          "primary_release_date.gte": range.from,
-          "primary_release_date.lte": range.to,
-        },
-        revalidateSeconds: 900,
-      });
-      const mapped = mapSearchPage("movie", payload);
-      for (const item of mapped.results) {
-        if (item.releaseDate) {
-          entries.push(toScreenScheduleEntry(item, item.releaseDate));
-        }
-      }
-      if (mapped.results.length === 0 || page >= mapped.totalPages) break;
-    }
-  } else {
-    for (const day of range.days) {
-      const payload = await tmdbGet<unknown>("/discover/tv", {
-        query: {
-          language: "en-US",
-          page: 1,
-          sort_by: "popularity.desc",
-          "air_date.gte": day,
-          "air_date.lte": day,
-        },
-        revalidateSeconds: 900,
-      });
-      const mapped = mapSearchPage("tv", payload);
-      for (const item of mapped.results) {
-        entries.push(toScreenScheduleEntry(item, day));
-      }
+  // One query per day keeps every day populated: a single week-wide request
+  // sorted by popularity would leave quieter release days empty.
+  for (const day of range.days) {
+    const payload = await tmdbGet<unknown>(path, {
+      query: {
+        language: "en-US",
+        page: 1,
+        sort_by: "popularity.desc",
+        ...(kind === "movie"
+          ? { "primary_release_date.gte": day, "primary_release_date.lte": day }
+          : { "air_date.gte": day, "air_date.lte": day }),
+      },
+      revalidateSeconds: 900,
+    });
+    const mapped = mapSearchPage(kind, payload);
+    for (const item of mapped.results) {
+      entries.push(toScreenScheduleEntry(item, day));
     }
   }
 
