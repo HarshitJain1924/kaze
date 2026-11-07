@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import type { ComponentType, ReactNode } from "react";
+import { useEffect, useRef, type ComponentType, type ReactNode } from "react";
 
 import {
   ChevronRightIcon,
@@ -14,6 +14,7 @@ import {
   SlidersIcon,
   StarIcon,
 } from "@/components/icons";
+import { OpticalGlass } from "@/components/ui/optical-glass";
 import { cn, isHttpUrl } from "@/lib/utils";
 
 export interface DiscoverSpotlight {
@@ -26,7 +27,7 @@ export interface DiscoverSpotlight {
 }
 
 /**
- * The cinematic Discover header. Both catalogue sources render this so the
+ * The editorial Discover masthead. Both catalogue sources render this so the
  * page keeps one identity; only the copy and the artwork change.
  */
 export function DiscoverHero({
@@ -46,118 +47,167 @@ export function DiscoverHero({
   bannerUrl?: string | null;
   spotlight?: DiscoverSpotlight | null;
 }) {
-  const artwork = backdropUrl && isHttpUrl(backdropUrl) ? backdropUrl : null;
   const banner = bannerUrl && isHttpUrl(bannerUrl) ? bannerUrl : null;
+  const artwork =
+    banner ?? (backdropUrl && isHttpUrl(backdropUrl) ? backdropUrl : null);
 
   return (
-    <header className="group relative isolate overflow-hidden rounded-3xl border border-border-subtle bg-surface-2 shadow-2xl transition-all">
-      {artwork ? (
-        <div
-          aria-hidden="true"
-          className="pointer-events-none absolute inset-0 z-0 select-none overflow-hidden"
-        >
-          <div className="absolute inset-0 scale-125 opacity-25 blur-3xl saturate-200">
-            <Image
-              src={artwork}
-              alt=""
-              fill
-              unoptimized
-              sizes="100vw"
-              className="object-cover"
-            />
-          </div>
-          {banner ? (
-            <div className="absolute inset-0">
-              <Image
-                src={banner}
-                alt=""
-                fill
-                unoptimized
-                sizes="100vw"
-                className="object-cover object-[center_25%] opacity-30"
-              />
-            </div>
-          ) : null}
-          <div className="absolute inset-0 bg-gradient-to-r from-surface via-surface/90 via-50% to-surface/40" />
-          <div className="absolute inset-0 bg-gradient-to-t from-surface via-transparent to-transparent" />
-        </div>
-      ) : null}
+    <header className="border-b border-border pb-7">
+      <div className="flex flex-wrap items-baseline justify-between gap-x-6 gap-y-1">
+        <p className="text-[9px] font-semibold uppercase tracking-[0.22em] text-accent-strong">
+          {eyebrow}
+        </p>
+        <p className="text-[9px] font-medium uppercase tracking-[0.16em] text-faint">
+          {headlineMeta}
+        </p>
+      </div>
 
-      <div className="relative z-10 flex flex-col justify-between gap-5 p-5 sm:p-7 lg:flex-row lg:items-center">
-        <div className="max-w-2xl">
-          <div className="flex flex-wrap items-center gap-2">
-            <span className="radar-live-dot flex h-2 w-2 rounded-full bg-accent-strong" />
-            <span className="text-[11px] font-bold uppercase tracking-wider text-accent-strong">
-              {eyebrow}
-            </span>
-            <span className="text-faint">·</span>
-            <span className="text-xs font-medium text-muted">{headlineMeta}</span>
-          </div>
-
-          <h1 className="mt-2 font-display text-2xl font-bold tracking-tight text-fg sm:text-3xl lg:text-4xl">
+      <div className="mt-4 grid gap-7 lg:grid-cols-12 lg:items-end">
+        <div className="lg:col-span-7">
+          <h1 className="text-balance font-display text-[clamp(2.5rem,5vw,4.5rem)] font-semibold leading-[0.9] tracking-[-0.05em] text-fg">
             {title}
           </h1>
-
-          <p className="mt-2 text-xs leading-relaxed text-muted sm:text-sm">
+          <p className="mt-4 max-w-[36rem] text-[13px] leading-relaxed text-muted sm:text-sm">
             {description}
           </p>
         </div>
 
-        {spotlight ? (
-          <div className="flex items-center gap-3.5 rounded-2xl border border-border-subtle bg-surface/70 p-3 shadow-xl backdrop-blur-md lg:max-w-sm">
-            <Link
-              href={spotlight.href}
-              className="group/spot relative aspect-[2/3] w-16 shrink-0 overflow-hidden rounded-xl border border-white/20 shadow-md sm:w-20"
-            >
-              {spotlight.posterUrl && isHttpUrl(spotlight.posterUrl) ? (
-                <Image
-                  src={spotlight.posterUrl}
-                  alt=""
-                  fill
-                  unoptimized
-                  sizes="80px"
-                  className="object-cover transition-transform duration-300 group-hover/spot:scale-105"
-                />
-              ) : (
-                <div className="absolute inset-0 bg-surface-3" />
-              )}
-              {spotlight.score ? (
-                <span className="absolute left-1 top-1 inline-flex items-center gap-1 rounded-md border border-white/20 bg-black/80 px-1.5 py-0.5 text-[10px] font-bold text-amber-300 backdrop-blur-md">
-                  <StarIcon className="h-2.5 w-2.5 fill-amber-400 text-amber-400" />
-                  <span>{spotlight.score}</span>
-                </span>
-              ) : null}
-            </Link>
+        <div className="lg:col-span-5">
+          <div className="relative aspect-[16/10] overflow-hidden border border-border bg-surface-2">
+            {artwork ? (
+              <Image
+                src={artwork}
+                alt=""
+                fill
+                unoptimized
+                sizes="(max-width: 1024px) 100vw, 40vw"
+                className={cn(
+                  "object-cover transition-transform duration-700 ease-out",
+                  banner ? "object-[center_28%]" : "object-center",
+                )}
+              />
+            ) : (
+              <div
+                aria-hidden="true"
+                className="absolute inset-0 bg-[radial-gradient(120%_90%_at_15%_0%,var(--surface-3)_0%,var(--surface-2)_70%)]"
+              />
+            )}
 
-            <div className="min-w-0 flex-1">
-              <span className="text-[10px] font-bold uppercase tracking-wider text-accent-strong">
-                Top Result
-              </span>
-              <Link
-                href={spotlight.href}
-                className="mt-0.5 line-clamp-1 block font-display text-sm font-bold text-fg transition-colors hover:text-accent-strong"
-                title={spotlight.title}
+            <div
+              aria-hidden="true"
+              className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/85 via-black/25 to-transparent"
+            />
+
+            {spotlight?.score ? (
+              <OpticalGlass
+                variant="pill"
+                interactive={false}
+                className="absolute right-2.5 top-2.5 flex items-center gap-1 px-2 py-1 text-[9px] font-semibold tabular-nums text-white/90"
               >
-                {spotlight.title}
-              </Link>
-              <p className="mt-0.5 line-clamp-1 text-[11px] text-muted">
-                {spotlight.meta}
-              </p>
+                <StarIcon className="h-2.5 w-2.5 fill-current text-amber-300" />
+                {spotlight.score}
+              </OpticalGlass>
+            ) : null}
 
-              <div className="mt-2 flex items-center gap-2">
+            {spotlight ? (
+              <OpticalGlass
+                variant="card"
+                className="absolute inset-x-2 bottom-2 flex items-center gap-2.5 p-2 sm:inset-x-2.5 sm:bottom-2.5 sm:gap-3 sm:p-2.5"
+              >
                 <Link
                   href={spotlight.href}
-                  className="inline-flex h-7 items-center gap-1 rounded-lg bg-accent px-2.5 text-[11px] font-bold text-accent-contrast shadow-sm transition-colors hover:bg-accent-hover"
+                  className="relative aspect-[2/3] w-11 shrink-0 overflow-hidden border border-white/20 sm:w-12"
                 >
-                  <span>{spotlight.ctaLabel}</span>
-                  <ChevronRightIcon className="h-3 w-3" />
+                  {spotlight.posterUrl && isHttpUrl(spotlight.posterUrl) ? (
+                    <Image
+                      src={spotlight.posterUrl}
+                      alt=""
+                      fill
+                      unoptimized
+                      sizes="48px"
+                      className="object-cover"
+                    />
+                  ) : (
+                    <span className="absolute inset-0 bg-white/10" />
+                  )}
                 </Link>
-              </div>
-            </div>
+
+                <div className="min-w-0 flex-1">
+                  <p className="text-[8px] font-semibold uppercase tracking-[0.2em] text-accent-strong">
+                    Top result
+                  </p>
+                  <Link
+                    href={spotlight.href}
+                    className="mt-0.5 block truncate font-display text-[13px] font-semibold leading-tight text-white transition-colors hover:text-accent-strong"
+                    title={spotlight.title}
+                  >
+                    {spotlight.title}
+                  </Link>
+                  <p className="mt-0.5 truncate text-[10px] text-white/65">
+                    {spotlight.meta}
+                  </p>
+                </div>
+
+                <Link
+                  href={spotlight.href}
+                  aria-label={spotlight.ctaLabel}
+                  className="flex h-8 w-8 shrink-0 items-center justify-center border border-white/25 text-white/85 transition-colors hover:border-accent hover:text-accent-strong"
+                >
+                  <ChevronRightIcon className="h-3.5 w-3.5" />
+                </Link>
+              </OpticalGlass>
+            ) : null}
           </div>
-        ) : null}
+        </div>
       </div>
     </header>
+  );
+}
+
+export interface DiscoverTypeTab {
+  id: string;
+  label: string;
+}
+
+/** One ruled segmented bar for every catalogue source. */
+export function DiscoverTypeTabs({
+  tabs,
+  active,
+  onSelect,
+  ariaLabel = "Catalogue type",
+}: {
+  tabs: DiscoverTypeTab[];
+  active: string;
+  onSelect: (id: string) => void;
+  ariaLabel?: string;
+}) {
+  return (
+    <div
+      role="tablist"
+      aria-label={ariaLabel}
+      className="no-scrollbar flex w-full overflow-x-auto border border-border bg-surface/40"
+    >
+      {tabs.map((tab) => {
+        const isActive = tab.id === active;
+        return (
+          <button
+            key={tab.id}
+            type="button"
+            role="tab"
+            aria-selected={isActive}
+            onClick={() => onSelect(tab.id)}
+            className={cn(
+              "relative h-10 shrink-0 border-r border-border px-4 text-[10px] font-semibold uppercase tracking-[0.14em] transition-colors last:border-r-0 sm:h-11 sm:px-5",
+              isActive
+                ? "bg-accent text-accent-contrast"
+                : "text-muted hover:bg-surface-2 hover:text-fg",
+            )}
+          >
+            {tab.label}
+          </button>
+        );
+      })}
+    </div>
   );
 }
 
@@ -172,7 +222,7 @@ export interface DiscoverPill {
 /** One-tap discovery channels (AniList channels, TMDB categories). */
 export function DiscoverPills({ pills }: { pills: DiscoverPill[] }) {
   return (
-    <div className="no-scrollbar -mx-4 flex gap-2 overflow-x-auto px-4 pb-1 sm:-mx-0 sm:flex-wrap sm:overflow-visible sm:px-0">
+    <div className="no-scrollbar -mx-4 flex gap-1.5 overflow-x-auto border-y border-border px-4 py-3 sm:mx-0 sm:flex-wrap sm:overflow-visible sm:px-0">
       {pills.map((pill) => {
         const Icon = pill.icon;
         return (
@@ -181,15 +231,15 @@ export function DiscoverPills({ pills }: { pills: DiscoverPill[] }) {
             type="button"
             onClick={pill.onSelect}
             className={cn(
-              "inline-flex shrink-0 items-center gap-1.5 rounded-xl border px-3 py-1.5 text-xs font-semibold shadow-xs transition-all active:scale-95",
+              "inline-flex h-8 shrink-0 items-center gap-1.5 border px-2.5 text-[10px] font-semibold uppercase tracking-[0.1em] transition-colors",
               pill.active
-                ? "scale-102 border-accent bg-accent text-accent-contrast shadow-md"
-                : "border-border-subtle bg-surface-2 text-muted hover:border-border hover:bg-surface-3 hover:text-fg",
+                ? "border-accent bg-accent text-accent-contrast"
+                : "border-border text-muted hover:border-accent/60 hover:bg-surface-2 hover:text-fg",
             )}
           >
             <Icon
               className={cn(
-                "h-3.5 w-3.5 shrink-0 transition-colors",
+                "h-3 w-3 shrink-0",
                 pill.active ? "text-accent-contrast" : "text-accent-strong",
               )}
             />
@@ -243,12 +293,30 @@ export function DiscoverDeck({
   hint?: ReactNode;
   children?: ReactNode;
 }) {
+  const inputRef = useRef<HTMLInputElement>(null);
+  const isMac =
+    typeof navigator !== "undefined" &&
+    /Mac|iPhone|iPad|iPod/i.test(navigator.platform || navigator.userAgent);
+
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "k") {
+        event.preventDefault();
+        inputRef.current?.focus();
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, []);
+
   return (
-    <div className="space-y-3.5 rounded-2xl border border-border-subtle bg-surface-2/80 p-3 shadow-lg backdrop-blur-md sm:p-4">
+    <div className="space-y-3 border border-border bg-surface/70 p-3 backdrop-blur-md sm:p-4">
       <div className="flex flex-col gap-2.5 sm:flex-row sm:items-center">
         <div className="relative flex-1">
-          <SearchIcon className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-faint" />
+          <SearchIcon className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-faint" />
           <input
+            ref={inputRef}
             type="search"
             role="searchbox"
             aria-label={searchAriaLabel}
@@ -260,9 +328,9 @@ export function DiscoverDeck({
             placeholder={placeholder}
             autoComplete="off"
             spellCheck={false}
-            className="h-11 w-full rounded-xl border border-border bg-surface-3/50 pl-10 pr-20 text-sm text-fg placeholder:text-faint transition-colors focus:border-accent focus:bg-surface-3 focus:outline-none focus:ring-1 focus:ring-accent [&::-webkit-search-cancel-button]:appearance-none [&::-webkit-search-cancel-button]:hidden [&::-webkit-search-decoration]:appearance-none"
+            className="h-11 w-full border border-border bg-bg/60 pl-10 pr-20 text-[13px] text-fg placeholder:text-faint transition-colors focus:border-accent focus:outline-none [&::-webkit-search-cancel-button]:appearance-none [&::-webkit-search-cancel-button]:hidden [&::-webkit-search-decoration]:appearance-none"
           />
-          <div className="absolute right-2.5 top-1/2 flex -translate-y-1/2 items-center gap-1.5">
+          <div className="absolute right-2 top-1/2 flex -translate-y-1/2 items-center gap-1.5">
             {busy ? (
               <LoaderIcon className="h-4 w-4 animate-spin text-accent-strong" />
             ) : null}
@@ -271,13 +339,13 @@ export function DiscoverDeck({
                 type="button"
                 onClick={onClearSearch}
                 aria-label="Clear search"
-                className="flex h-7 w-7 items-center justify-center rounded-lg text-faint transition-colors hover:bg-surface-3 hover:text-fg"
+                className="flex h-7 w-7 items-center justify-center text-faint transition-colors hover:text-fg"
               >
                 <CloseIcon className="h-3.5 w-3.5" />
               </button>
             ) : (
-              <kbd className="hidden items-center rounded border border-border bg-surface-3/60 px-1.5 font-mono text-[10px] text-faint sm:inline-flex">
-                Ctrl K
+              <kbd className="hidden border border-border px-1.5 py-0.5 font-mono text-[9px] uppercase tracking-[0.08em] text-faint sm:inline-flex">
+                {isMac ? "⌘K" : "Ctrl K"}
               </kbd>
             )}
           </div>
@@ -289,16 +357,16 @@ export function DiscoverDeck({
             onClick={onToggleFilters}
             aria-expanded={filtersOpen}
             className={cn(
-              "inline-flex h-11 items-center gap-2 rounded-xl border px-4 text-xs font-semibold shadow-sm transition-all active:scale-95",
+              "inline-flex h-11 items-center gap-2 border px-3.5 text-[10px] font-semibold uppercase tracking-[0.12em] transition-colors",
               filtersOpen || filterCount > 0
-                ? "border-accent bg-accent/20 text-accent-strong"
-                : "border-border-subtle bg-surface-2 text-muted hover:bg-surface-3 hover:text-fg",
+                ? "border-accent bg-accent/10 text-accent-strong"
+                : "border-border text-muted hover:border-accent/60 hover:text-fg",
             )}
           >
-            <SlidersIcon className="h-4 w-4" />
+            <SlidersIcon className="h-3.5 w-3.5" />
             <span>Filters</span>
             {filterCount > 0 ? (
-              <span className="flex h-5 w-5 items-center justify-center rounded-full bg-accent text-[10px] font-bold text-accent-contrast">
+              <span className="flex h-4 min-w-4 items-center justify-center bg-accent px-1 font-mono text-[9px] font-bold text-accent-contrast tabular-nums">
                 {filterCount}
               </span>
             ) : null}
@@ -308,7 +376,7 @@ export function DiscoverDeck({
             <button
               type="button"
               onClick={onReset}
-              className="inline-flex h-11 items-center rounded-xl border border-border-subtle bg-surface-3/60 px-3 text-xs font-medium text-muted transition-colors hover:bg-surface-3 hover:text-fg"
+              className="inline-flex h-11 items-center border border-border px-3 text-[10px] font-semibold uppercase tracking-[0.12em] text-muted transition-colors hover:border-accent/60 hover:text-fg"
             >
               Reset
             </button>
@@ -317,31 +385,29 @@ export function DiscoverDeck({
       </div>
 
       {filtersOpen ? (
-        <div className="border-t border-border-subtle pt-2">{children}</div>
+        <div className="border-t border-border pt-3">{children}</div>
       ) : null}
 
       {chips.length > 0 ? (
-        <div className="flex flex-wrap items-center gap-1.5 pt-1">
-          <span className="mr-1 text-[11px] font-semibold text-faint">
-            Active filters:
+        <div className="flex flex-wrap items-center gap-1.5">
+          <span className="mr-1 text-[9px] font-semibold uppercase tracking-[0.16em] text-faint">
+            Active
           </span>
           {chips.map((chip) => (
             <button
               key={chip.key}
               type="button"
               onClick={chip.clear}
-              className="inline-flex items-center gap-1.5 rounded-full border border-accent/40 bg-accent/15 py-1 pl-2.5 pr-1.5 text-[11px] font-semibold text-accent-strong transition-all hover:bg-accent/25 active:scale-95"
+              className="inline-flex items-center gap-1.5 border border-accent/40 bg-accent/10 py-1 pl-2 pr-1.5 text-[10px] font-medium uppercase tracking-[0.06em] text-accent-strong transition-colors hover:bg-accent/20"
             >
-              <span>{chip.label}</span>
-              <span className="flex h-3.5 w-3.5 items-center justify-center rounded-full bg-accent/40 text-accent-contrast">
-                <CloseIcon className="h-2 w-2" />
-              </span>
+              <span className="normal-case tracking-normal">{chip.label}</span>
+              <CloseIcon className="h-2.5 w-2.5" />
             </button>
           ))}
           <button
             type="button"
             onClick={onClearAll}
-            className="ml-1 text-[11px] font-medium text-faint underline-offset-2 transition-colors hover:text-fg hover:underline"
+            className="ml-1 text-[10px] font-medium uppercase tracking-[0.08em] text-faint underline-offset-2 transition-colors hover:text-fg hover:underline"
           >
             Clear all
           </button>
@@ -363,13 +429,15 @@ export function DiscoverSortSelect({
   options: Array<{ value: string; label: string }>;
 }) {
   return (
-    <div className="flex items-center gap-1.5 text-xs text-muted">
-      <span className="hidden text-faint sm:inline">Sort by:</span>
+    <div className="flex items-center gap-1.5">
+      <span className="hidden text-[9px] font-semibold uppercase tracking-[0.14em] text-faint sm:inline">
+        Sort
+      </span>
       <select
         value={value}
         onChange={(event) => onChange(event.target.value)}
         aria-label="Sort results"
-        className="h-8 rounded-lg border border-border bg-surface-2 px-2.5 text-xs font-semibold text-fg focus:border-accent focus:outline-none"
+        className="h-8 border border-border bg-surface px-2 text-[10px] font-semibold uppercase tracking-[0.08em] text-fg focus:border-accent focus:outline-none"
       >
         {options.map((option) => (
           <option key={option.value} value={option.value}>
@@ -401,44 +469,53 @@ export function DiscoverResultsBar({
   onViewModeChange: (mode: "grid" | "list") => void;
 }) {
   return (
-    <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border-subtle pb-3">
-      <div className="flex items-center gap-2">
-        <p aria-live="polite" className="text-xs font-semibold text-muted">
-          {loading ? (
-            <span className="inline-flex items-center gap-1.5 text-accent-strong">
-              <span className="radar-live-dot h-2 w-2 rounded-full bg-accent-strong" />
-              {loadingLabel}
-            </span>
-          ) : emptyLabel ? (
-            <span className="text-faint">{emptyLabel}</span>
-          ) : totalCount != null ? (
-            <span>
-              Showing <span className="font-bold text-fg">{visibleCount}</span>{" "}
-              of{" "}
-              <span className="font-bold text-fg">
-                {totalCount.toLocaleString("en-US")}
-              </span>{" "}
-              results
-            </span>
-          ) : (
-            <span>{visibleCount} results</span>
-          )}
-        </p>
-      </div>
+    <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border pb-2.5">
+      <p
+        aria-live="polite"
+        className="text-[10px] font-medium uppercase tracking-[0.12em] text-faint"
+      >
+        {loading ? (
+          <span className="inline-flex items-center gap-1.5 text-accent-strong">
+            <span className="radar-live-dot h-1.5 w-1.5 rounded-full bg-accent-strong" />
+            {loadingLabel}
+          </span>
+        ) : emptyLabel ? (
+          <span>{emptyLabel}</span>
+        ) : totalCount != null ? (
+          <span>
+            Showing{" "}
+            <span className="font-semibold text-fg tabular-nums">
+              {visibleCount}
+            </span>{" "}
+            of{" "}
+            <span className="font-semibold text-fg tabular-nums">
+              {totalCount.toLocaleString("en-US")}
+            </span>{" "}
+            results
+          </span>
+        ) : (
+          <span>
+            <span className="font-semibold text-fg tabular-nums">
+              {visibleCount}
+            </span>{" "}
+            results
+          </span>
+        )}
+      </p>
 
       <div className="flex items-center gap-2.5">
         {sort}
 
-        <div className="inline-flex items-center rounded-lg border border-border bg-surface-2 p-0.5">
+        <div className="inline-flex items-center border border-border">
           <button
             type="button"
             onClick={() => onViewModeChange("grid")}
             aria-label="Poster grid view"
             title="Poster grid view"
             className={cn(
-              "flex h-7 w-7 items-center justify-center rounded-md transition-all",
+              "flex h-7 w-7 items-center justify-center transition-colors",
               viewMode === "grid"
-                ? "bg-accent font-bold text-accent-contrast shadow-xs"
+                ? "bg-accent text-accent-contrast"
                 : "text-muted hover:text-fg",
             )}
           >
@@ -450,9 +527,9 @@ export function DiscoverResultsBar({
             aria-label="Detailed list view"
             title="Detailed list view"
             className={cn(
-              "flex h-7 w-7 items-center justify-center rounded-md transition-all",
+              "flex h-7 w-7 items-center justify-center border-l border-border transition-colors",
               viewMode === "list"
-                ? "bg-accent font-bold text-accent-contrast shadow-xs"
+                ? "bg-accent text-accent-contrast"
                 : "text-muted hover:text-fg",
             )}
           >

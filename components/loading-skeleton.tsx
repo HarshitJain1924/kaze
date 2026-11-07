@@ -8,10 +8,10 @@ export function Skeleton({ className }: { className?: string }) {
 
 export function PosterCardSkeleton() {
   return (
-    <div className="space-y-2.5">
-      <Skeleton className="aspect-[2/3] w-full rounded-xl" />
-      <Skeleton className="h-3.5 w-4/5" />
-      <Skeleton className="h-3 w-2/5" />
+    <div className="space-y-2">
+      <Skeleton className="aspect-[2/3] w-full rounded-none" />
+      <Skeleton className="h-2.5 w-3/5 rounded-none" />
+      <Skeleton className="h-3 w-4/5 rounded-none" />
     </div>
   );
 }
@@ -25,7 +25,7 @@ export function PosterGridSkeleton({
 }) {
   return (
     <div role="status" aria-label={label}>
-      <div className="grid grid-cols-2 gap-x-3 gap-y-7 sm:grid-cols-3 sm:gap-x-5 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6">
+      <div className="grid grid-cols-2 gap-x-3 gap-y-5 sm:grid-cols-3 sm:gap-x-4 lg:grid-cols-4 xl:grid-cols-6">
         {Array.from({ length: count }, (_, index) => (
           <PosterCardSkeleton key={index} />
         ))}

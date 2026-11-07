@@ -1,5 +1,7 @@
 "use client";
 
+import type { ScreenLibraryStats } from "@/features/stats/calculate-screen-stats";
+
 import Image from "next/image";
 import Link from "next/link";
 import { useMemo, useState } from "react";
@@ -580,7 +582,11 @@ function GenreRadarChart({
   );
 }
 
-export function StatsView() {
+export function StatsView({
+  screenStats = null,
+}: {
+  screenStats?: ScreenLibraryStats | null;
+}) {
   const { items, loadError, showAdult } = useLibrary();
   const [mediaFilter, setMediaFilter] = useState<"all" | "anime" | "manga">(
     "all",
@@ -688,7 +694,7 @@ export function StatsView() {
     );
   }
 
-  if (stats.total === 0) {
+  if (stats.total === 0 && (screenStats?.total ?? 0) === 0) {
     return (
       <div className="space-y-6">
         <header className="rounded-3xl border border-border-subtle bg-surface p-6 sm:p-8">
@@ -703,7 +709,7 @@ export function StatsView() {
         <EmptyState
           icon={<ChartIcon className="h-6 w-6 text-accent-strong" />}
           title="No titles in this view"
-          description="Add anime or manga to your library and log progress to unlock statistics, genre mastery, and collector ranks."
+          description="Add anime, manga, films or TV shows to your library and log progress to unlock statistics, genre mastery, and collector ranks."
           action={
             <div className="flex flex-wrap items-center justify-center gap-2">
               {mediaFilter !== "all" ? (
@@ -913,6 +919,95 @@ export function StatsView() {
           iconClass="text-amber-400 light:text-amber-600"
         />
       </section>
+
+      {screenStats && screenStats.total > 0 ? (
+        <section
+          aria-labelledby="films-tv-stats"
+          className="space-y-4 rounded-3xl border border-border-subtle bg-surface p-5 sm:p-6 shadow-md"
+        >
+          <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border-subtle pb-3">
+            <div>
+              <h2
+                id="films-tv-stats"
+                className="font-display text-lg font-semibold tracking-tight text-fg"
+              >
+                Films &amp; TV
+              </h2>
+              <p className="text-xs text-muted">
+                {screenStats.movieCount} films and {screenStats.tvCount} series tracked
+                outside your anime library
+              </p>
+            </div>
+
+            <Link
+              href="/screen"
+              className="inline-flex items-center gap-1.5 rounded-xl border border-border bg-surface-2/70 px-3 py-1.5 text-xs font-semibold text-fg/80 transition-colors hover:bg-surface-2 hover:text-fg"
+            >
+              <span>Open film library</span>
+              <ChevronRightIcon className="h-3 w-3" />
+            </Link>
+          </div>
+
+          <div className="grid grid-cols-2 gap-3.5 lg:grid-cols-4">
+            <StatKpiCard
+              icon={LibraryIcon}
+              label="Films Tracked"
+              value={screenStats.movieCount}
+              subtext={`${screenStats.watchedFilms} watched`}
+              glowColor="#8b5cf6"
+              iconClass="text-accent-strong"
+            />
+            <StatKpiCard
+              icon={PlayIcon}
+              label="TV Series"
+              value={screenStats.tvCount}
+              subtext={`${screenStats.statusCounts.watching} watching`}
+              glowColor="#06b6d4"
+              iconClass="text-cyan-400 light:text-cyan-700"
+            />
+            <StatKpiCard
+              icon={ClockIcon}
+              label="Episodes Logged"
+              value={screenStats.episodesWatched}
+              subtext="across your tracked series"
+              glowColor="#f59e0b"
+              iconClass="text-amber-400 light:text-amber-600"
+            />
+            <StatKpiCard
+              icon={SparklesIcon}
+              label="Average Rating"
+              value={
+                screenStats.averageScore !== null
+                  ? screenStats.averageScore.toFixed(1)
+                  : "\u2014"
+              }
+              subtext={
+                screenStats.scoredCount > 0
+                  ? `${screenStats.scoredCount} rated titles`
+                  : "No ratings yet"
+              }
+              glowColor="#10b981"
+              iconClass="text-emerald-400 light:text-emerald-700"
+            />
+          </div>
+
+          <div className="grid grid-cols-2 gap-2 sm:grid-cols-5">
+            {WATCH_STATUS_ORDER.map((status) => (
+              <div
+                key={status}
+                className="rounded-xl border border-border-subtle bg-surface-2/50 p-3"
+              >
+                <p className="text-[11px] font-semibold uppercase tracking-wide text-muted">
+                  {WATCH_STATUS_META[status].label}
+                </p>
+                <p className="mt-1 font-display text-xl font-bold tracking-tight text-fg tabular-nums">
+                  {screenStats.statusCounts[status]}
+                </p>
+              </div>
+            ))}
+          </div>
+        </section>
+      ) : null}
 
       {/* 3. Modern Luxury Status Telemetry Matrix (Replaces Dated Corny Bar) */}
       <section

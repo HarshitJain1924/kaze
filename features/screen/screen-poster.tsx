@@ -23,68 +23,61 @@ export function ScreenPoster({
 }) {
   const [failed, setFailed] = useState(false);
   const showImage = item.posterUrl && isHttpUrl(item.posterUrl) && !failed;
+  const kind = kindLabel(item.kind);
 
   return (
-    <article
-      className={cn(
-        "group relative flex aspect-[2/3] w-full overflow-hidden rounded-2xl border border-white/[0.08] bg-surface-2 shadow-sm transition-all duration-200 hover:-translate-y-1 hover:border-accent/40 hover:shadow-xl",
-        className,
-      )}
-    >
-      {showImage ? (
-        <Image
-          src={item.posterUrl as string}
-          alt=""
-          fill
-          unoptimized
-          priority={priority}
-          sizes="(max-width: 640px) 46vw, (max-width: 1024px) 30vw, (max-width: 1280px) 22vw, 16vw"
-          className="object-cover transition-transform duration-300 ease-out group-hover:scale-105"
-          onError={() => setFailed(true)}
+    <article className={cn("group min-w-0", className)}>
+      <div className="relative aspect-[2/3] overflow-hidden border border-border bg-surface-2 transition-colors group-hover:border-accent/60">
+        {showImage ? (
+          <Image
+            src={item.posterUrl as string}
+            alt=""
+            fill
+            unoptimized
+            priority={priority}
+            sizes="(max-width: 640px) 46vw, (max-width: 1024px) 30vw, (max-width: 1280px) 22vw, 16vw"
+            className="object-cover transition-transform duration-500 ease-out group-hover:scale-[1.03]"
+            onError={() => setFailed(true)}
+          />
+        ) : (
+          <div
+            aria-hidden="true"
+            className="absolute inset-0 flex items-center justify-center bg-[radial-gradient(120%_90%_at_20%_0%,var(--surface-3)_0%,var(--surface-2)_70%)]"
+          >
+            <FilmIcon className="h-8 w-8 text-faint/60" />
+          </div>
+        )}
+
+        <Link
+          href={`/screen/${item.kind}/${item.tmdbId}`}
+          aria-label={`View details for ${item.title}`}
+          className="absolute inset-0 z-10 focus:outline-none focus-visible:ring-1 focus-visible:ring-accent"
         />
-      ) : (
-        <div
-          aria-hidden="true"
-          className="absolute inset-0 flex items-center justify-center bg-[radial-gradient(120%_90%_at_20%_0%,var(--surface-3)_0%,var(--surface-2)_70%)]"
-        >
-          <FilmIcon className="h-8 w-8 text-faint/60" />
-        </div>
-      )}
 
-      <div
-        aria-hidden="true"
-        className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/95 via-black/40 to-transparent"
-      />
-
-      <Link
-        href={`/screen/${item.kind}/${item.tmdbId}`}
-        aria-label={`View details for ${item.title}`}
-        className="absolute inset-0 z-10 rounded-2xl focus:outline-none focus:ring-2 focus:ring-accent"
-      />
-
-      <div className="pointer-events-none absolute inset-x-2 top-2 z-20 flex items-center justify-between gap-1">
         {item.voteAverage && item.voteAverage > 0 ? (
-          <span className="inline-flex items-center gap-1 rounded-md border border-white/15 bg-black/80 px-1.5 py-0.5 text-[11px] font-bold text-amber-300 backdrop-blur-md shadow-xs tabular-nums">
-            <StarIcon className="h-3 w-3 fill-amber-400 text-amber-400" />
+          <span className="pointer-events-none absolute left-0 top-0 z-20 inline-flex items-center gap-1 bg-bg/90 px-1.5 py-1 font-mono text-[10px] font-semibold text-fg tabular-nums">
+            <StarIcon className="h-2.5 w-2.5 fill-accent text-accent" />
             {item.voteAverage.toFixed(1)}
           </span>
-        ) : (
-          <span />
-        )}
-        <span className="rounded-md border border-white/15 bg-black/80 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-white/90 backdrop-blur-md">
-          {kindLabel(item.kind)}
+        ) : null}
+
+        <span className="pointer-events-none absolute bottom-0 right-0 z-20 bg-bg/90 px-1.5 py-1 text-[8px] font-semibold uppercase tracking-[0.1em] text-muted">
+          {kind}
         </span>
       </div>
 
-      <div className="pointer-events-none absolute inset-x-0 bottom-0 z-20 space-y-1 p-2.5">
-        <h3 className="line-clamp-2 font-display text-xs font-bold leading-snug text-white drop-shadow-sm sm:text-[13px]">
-          {item.title}
-        </h3>
-        <p className="text-[10px] font-medium text-white/70">
-          {[item.kind === "movie" ? "Film" : "Series", item.year]
-            .filter(Boolean)
-            .join(" · ")}
+      <div className="mt-2">
+        <p className="text-[8px] font-medium uppercase tracking-[0.14em] text-faint">
+          {[kind, item.year].filter(Boolean).join(" / ")}
         </p>
+        <h3
+          className="mt-0.5 line-clamp-2 font-display text-[13px] font-medium leading-snug text-fg transition-colors group-hover:text-accent-strong"
+          title={item.title}
+        >
+          <Link href={`/screen/${item.kind}/${item.tmdbId}`}>
+            {item.title}
+          </Link>
+        </h3>
       </div>
     </article>
   );

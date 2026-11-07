@@ -87,13 +87,115 @@ export function AnimePosterCard({
         ? 100
         : 0;
 
+  if (variant === "editorial") {
+    return (
+      <article className={cn("group relative min-w-0", className)}>
+        <div className="relative aspect-[2/3] overflow-hidden border border-border bg-surface-2 transition-colors group-hover:border-accent/60">
+          {cover && isHttpUrl(cover) && !imageFailed ? (
+            <Image
+              src={cover}
+              alt=""
+              fill
+              sizes={sizes}
+              priority={priority}
+              className="object-cover transition-transform duration-500 ease-out group-hover:scale-[1.03]"
+              onError={() => setImageFailed(true)}
+            />
+          ) : (
+            <PosterFallback color={anime.coverImage.color} />
+          )}
+
+          <Link
+            href={`/media/${anime.id}`}
+            aria-label={`View details for ${title}`}
+            className="absolute inset-0 z-10 focus:outline-none focus-visible:ring-1 focus-visible:ring-accent"
+          />
+
+          {score ? (
+            <span className="pointer-events-none absolute left-0 top-0 z-20 inline-flex items-center gap-1 bg-bg/90 px-1.5 py-1 font-mono text-[10px] font-semibold text-fg tabular-nums">
+              <StarIcon className="h-2.5 w-2.5 fill-accent text-accent" />
+              {score}
+            </span>
+          ) : null}
+
+          <span className="pointer-events-none absolute right-0 top-0 z-20 flex items-center gap-1">
+            {anime.isAdult ? (
+              <span className="bg-bg/90 px-1.5 py-1 text-[8px] font-semibold uppercase tracking-[0.1em] text-danger">
+                18+
+              </span>
+            ) : null}
+            {formatLabel ? (
+              <span className="bg-bg/90 px-1.5 py-1 text-[8px] font-semibold uppercase tracking-[0.1em] text-muted">
+                {formatLabel}
+              </span>
+            ) : null}
+          </span>
+
+          {showQuickAdd && !entry ? (
+            <button
+              type="button"
+              onClick={(event) => {
+                event.preventDefault();
+                event.stopPropagation();
+                requestAdd(anime);
+              }}
+              aria-label={`Add ${title} to your library`}
+              className="absolute bottom-0 right-0 z-20 flex h-7 w-7 items-center justify-center bg-bg/90 text-fg transition-colors hover:bg-accent hover:text-accent-contrast sm:opacity-0 sm:group-hover:opacity-100 group-focus-within:opacity-100 focus-visible:opacity-100"
+            >
+              <PlusIcon className="h-3 w-3" />
+            </button>
+          ) : null}
+
+          {entry ? (
+            <span className="pointer-events-none absolute bottom-0 left-0 z-20 bg-bg/90 px-1.5 py-1 text-[8px] font-semibold uppercase tracking-[0.1em] text-accent-strong">
+              {entry.status}
+            </span>
+          ) : null}
+        </div>
+
+        <div className="mt-2 flex items-start justify-between gap-2">
+          <div className="min-w-0">
+            <p className="text-[8px] font-medium uppercase tracking-[0.14em] text-faint">
+              {meta || "Catalogue"}
+            </p>
+            <h3
+              className="mt-0.5 line-clamp-2 font-display text-[13px] font-medium leading-snug text-fg transition-colors group-hover:text-accent-strong"
+              title={title}
+            >
+              <Link href={`/media/${anime.id}`}>
+                {title}
+              </Link>
+            </h3>
+          </div>
+          {entry && totalUnits ? (
+            <span className="shrink-0 pt-3 font-mono text-[9px] text-faint tabular-nums">
+              {entry.progress}/{totalUnits}
+            </span>
+          ) : null}
+        </div>
+
+        {entry && totalUnits && percent > 0 ? (
+          <div className="mt-1.5 h-[2px] w-full bg-border">
+            <div
+              className={cn(
+                "h-full",
+                entry.status === "completed" ? "bg-success" : "bg-accent",
+              )}
+              style={{ width: `${percent}%` }}
+            />
+          </div>
+        ) : null}
+
+        {footer}
+      </article>
+    );
+  }
+
   // Modern compact poster card: poster is the card, clean overlay at bottom, no elongated box
   return (
     <article
       className={cn(
-        variant === "editorial"
-          ? "group relative flex aspect-[2/3] w-full overflow-hidden rounded-sm border border-border bg-surface-2 transition-colors hover:border-accent/50"
-          : "group relative flex aspect-[2/3] w-full overflow-hidden rounded-2xl border border-white/[0.08] bg-surface-2 shadow-sm transition-all duration-200 hover:-translate-y-1 hover:border-accent/40 hover:shadow-xl",
+        "group relative flex aspect-[2/3] w-full overflow-hidden rounded-2xl border border-white/[0.08] bg-surface-2 shadow-sm transition-all duration-200 hover:-translate-y-1 hover:border-accent/40 hover:shadow-xl",
         className,
       )}
     >

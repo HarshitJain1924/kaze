@@ -11,15 +11,12 @@ import {
   ChevronRightIcon,
   FlameIcon,
   PlayIcon,
-  SlidersIcon,
   SparklesIcon,
   StarIcon,
   TrophyIcon,
 } from "@/components/icons";
 import { PosterGridSkeleton } from "@/components/loading-skeleton";
 import { TmdbAttribution } from "@/components/tmdb-attribution";
-import { Button } from "@/components/ui/button";
-import { Dialog } from "@/components/ui/dialog";
 import { Select } from "@/components/ui/field";
 import { fetchCachedJson } from "@/lib/cache/request-cache";
 import { ApiRequestError } from "@/lib/http";
@@ -116,10 +113,10 @@ function TmdbDiscoverListCard({ item }: { item: TmdbSearchResult }) {
     item.posterUrl && isHttpUrl(item.posterUrl) ? item.posterUrl : null;
 
   return (
-    <article className="group relative flex flex-col gap-4 rounded-2xl border border-border-subtle bg-surface-2 p-3.5 shadow-sm transition-all duration-200 hover:border-border hover:bg-surface-3 sm:flex-row sm:p-4">
+    <article className="group flex flex-col gap-4 border-b border-border py-4 sm:flex-row sm:items-start">
       <Link
         href={`/screen/${item.kind}/${item.tmdbId}`}
-        className="relative aspect-[2/3] w-24 shrink-0 overflow-hidden rounded-xl border border-white/15 bg-surface-3 shadow-md sm:w-28"
+        className="relative aspect-[2/3] w-20 shrink-0 overflow-hidden border border-border bg-surface-2 sm:w-24"
       >
         {poster ? (
           <Image
@@ -134,8 +131,8 @@ function TmdbDiscoverListCard({ item }: { item: TmdbSearchResult }) {
           <div className="absolute inset-0 bg-surface-3" />
         )}
         {item.voteAverage && item.voteAverage > 0 ? (
-          <span className="absolute left-1.5 top-1.5 inline-flex items-center gap-1 rounded-md border border-white/20 bg-black/80 px-1.5 py-0.5 text-[10px] font-bold text-amber-300 backdrop-blur-md">
-            <StarIcon className="h-2.5 w-2.5 fill-amber-400 text-amber-400" />
+          <span className="absolute left-0 top-0 inline-flex items-center gap-1 bg-bg/90 px-1.5 py-1 font-mono text-[10px] font-semibold text-fg tabular-nums">
+            <StarIcon className="h-2.5 w-2.5 fill-accent text-accent" />
             {item.voteAverage.toFixed(1)}
           </span>
         ) : null}
@@ -144,39 +141,39 @@ function TmdbDiscoverListCard({ item }: { item: TmdbSearchResult }) {
       <div className="flex min-w-0 flex-1 flex-col justify-between gap-3">
         <div>
           <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
-            <span className="rounded-lg border border-border-subtle bg-surface-3/60 px-2 py-0.5 text-[10px] font-medium text-muted">
+            <span className="border border-border px-1.5 py-0.5 text-[9px] font-medium uppercase tracking-[0.08em] text-muted">
               {kindLabel(item.kind)}
             </span>
             {item.year ? (
-              <span className="rounded-lg border border-border-subtle bg-surface-3/60 px-2 py-0.5 text-[10px] font-medium text-muted">
+              <span className="border border-border px-1.5 py-0.5 text-[9px] font-medium uppercase tracking-[0.08em] text-muted">
                 {item.year}
               </span>
             ) : null}
           </div>
 
-          <h3 className="mt-2 line-clamp-1 font-display text-base font-bold text-fg transition-colors group-hover:text-accent-strong sm:text-lg">
+          <h3 className="mt-2 line-clamp-2 font-display text-[15px] font-semibold leading-snug tracking-[-0.02em] text-fg transition-colors group-hover:text-accent-strong">
             <Link href={`/screen/${item.kind}/${item.tmdbId}`}>
               {item.title}
             </Link>
           </h3>
 
           {item.overview ? (
-            <p className="mt-2 line-clamp-3 text-xs leading-relaxed text-muted">
+            <p className="mt-1.5 line-clamp-2 text-[12px] leading-relaxed text-muted">
               {item.overview}
             </p>
           ) : null}
         </div>
 
-        <div className="flex items-center justify-between gap-2 border-t border-border-subtle pt-2.5">
+        <div className="flex items-center justify-between gap-2 border-t border-border pt-2.5">
           <Link
             href={`/screen/${item.kind}/${item.tmdbId}`}
-            className="inline-flex items-center gap-1 text-xs font-semibold text-accent-strong hover:underline"
+            className="inline-flex items-center gap-1 text-[10px] font-semibold uppercase tracking-[0.12em] text-accent-strong transition-colors hover:text-fg"
           >
-            <span>View {kindLabel(item.kind)} Details</span>
+            <span>Open details</span>
             <ChevronRightIcon className="h-3 w-3" />
           </Link>
           {item.voteCount ? (
-            <span className="text-[10px] tabular-nums text-faint">
+            <span className="font-mono text-[9px] uppercase tracking-[0.08em] text-faint tabular-nums">
               {item.voteCount.toLocaleString("en-US")} votes
             </span>
           ) : null}
@@ -210,9 +207,9 @@ function TmdbFilterFields({
 
   return (
     <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
-      <div className="space-y-1.5 sm:col-span-2 lg:col-span-4">
+      <div className="space-y-1 sm:col-span-2 lg:col-span-4">
         <div className="flex items-center justify-between gap-2">
-          <span className="text-xs font-medium text-muted">
+          <span className="block text-[9px] font-semibold uppercase tracking-[0.14em] text-faint">
             Genre
             {selectedGenres.length > 0
               ? ` · any of ${selectedGenres.length}`
@@ -222,13 +219,13 @@ function TmdbFilterFields({
             <button
               type="button"
               onClick={() => onChange({ genres: undefined })}
-              className="text-[11px] font-medium text-faint underline-offset-2 transition-colors hover:text-fg hover:underline"
+              className="text-[9px] font-medium uppercase tracking-[0.08em] text-faint underline-offset-2 transition-colors hover:text-fg hover:underline"
             >
               Clear genres
             </button>
           ) : null}
         </div>
-        <div className="flex flex-wrap gap-1.5">
+        <div className="flex flex-wrap gap-1.5 pt-0.5">
           {genreOptions.map((option) => {
             const active = selectedGenres.includes(option.value);
             return (
@@ -238,10 +235,10 @@ function TmdbFilterFields({
                 onClick={() => toggleGenre(option.value)}
                 aria-pressed={active}
                 className={cn(
-                  "rounded-full border px-2.5 py-1 text-[11px] font-semibold transition-all active:scale-95",
+                  "border px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.08em] transition-colors",
                   active
-                    ? "border-accent bg-accent text-accent-contrast shadow-sm"
-                    : "border-border-subtle bg-surface-2 text-muted hover:border-border hover:bg-surface-3 hover:text-fg",
+                    ? "border-accent bg-accent text-accent-contrast"
+                    : "border-border text-muted hover:border-accent/60 hover:bg-surface-2 hover:text-fg",
                 )}
               >
                 {option.label}
@@ -251,16 +248,17 @@ function TmdbFilterFields({
         </div>
       </div>
 
-      <div className="space-y-1.5">
+      <div className="space-y-1">
         <label
           htmlFor={`${idPrefix}-year`}
-          className="text-xs font-medium text-muted lg:sr-only"
+          className="block text-[9px] font-semibold uppercase tracking-[0.14em] text-faint"
         >
           Year
         </label>
         <Select
           id={`${idPrefix}-year`}
           aria-label="Filter by release year"
+          className="h-9 rounded-none border-border bg-surface text-xs font-medium focus:border-accent"
           value={filters.year ? String(filters.year) : ""}
           onChange={(event) =>
             onChange({
@@ -277,16 +275,17 @@ function TmdbFilterFields({
         </Select>
       </div>
 
-      <div className="space-y-1.5">
+      <div className="space-y-1">
         <label
           htmlFor={`${idPrefix}-rating`}
-          className="text-xs font-medium text-muted lg:sr-only"
+          className="block text-[9px] font-semibold uppercase tracking-[0.14em] text-faint"
         >
           Rating
         </label>
         <Select
           id={`${idPrefix}-rating`}
           aria-label="Filter by minimum rating"
+          className="h-9 rounded-none border-border bg-surface text-xs font-medium focus:border-accent"
           value={
             filters.minRating !== undefined ? String(filters.minRating) : ""
           }
@@ -306,16 +305,17 @@ function TmdbFilterFields({
         </Select>
       </div>
 
-      <div className="space-y-1.5">
+      <div className="space-y-1">
         <label
           htmlFor={`${idPrefix}-sort`}
-          className="text-xs font-medium text-muted lg:sr-only"
+          className="block text-[9px] font-semibold uppercase tracking-[0.14em] text-faint"
         >
           Sort
         </label>
         <Select
           id={`${idPrefix}-sort`}
           aria-label="Sort results"
+          className="h-9 rounded-none border-border bg-surface text-xs font-medium focus:border-accent"
           value={filters.sort ?? ""}
           onChange={(event) =>
             onChange({
@@ -341,78 +341,20 @@ function TmdbFilters({
   kind,
   filters,
   onChange,
-  onClear,
 }: {
   kind: TmdbKind;
   filters: TmdbDiscoverFilters;
   onChange: (patch: Partial<TmdbDiscoverFilters>) => void;
-  onClear: () => void;
+  onClear?: () => void;
 }) {
-  const [sheetOpen, setSheetOpen] = useState(false);
-  const activeCount = countTmdbFilters(filters);
-  const noun = kind === "movie" ? "movies" : "TV shows";
-
   return (
     <div className="space-y-3">
-      <div className="hidden lg:block">
-        <TmdbFilterFields
-          kind={kind}
-          filters={filters}
-          onChange={onChange}
-          idPrefix={`${kind}-desktop-filters`}
-        />
-      </div>
-
-      <div className="flex items-center gap-2 lg:hidden">
-        <Button
-          variant="secondary"
-          onClick={() => setSheetOpen(true)}
-          className="h-11 flex-1 justify-between"
-        >
-          <span className="inline-flex items-center gap-2">
-            <SlidersIcon className="h-4 w-4" />
-            Filters
-          </span>
-          {activeCount > 0 ? (
-            <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-accent px-1.5 text-[11px] font-semibold text-accent-contrast">
-              {activeCount}
-            </span>
-          ) : (
-            <span className="text-xs text-faint">None</span>
-          )}
-        </Button>
-      </div>
-
-      <Dialog
-        open={sheetOpen}
-        onClose={() => setSheetOpen(false)}
-        title={`Filter ${noun}`}
-        description="Refine by genre, release year, rating and sort order."
-        mobileSheet
-        footer={
-          <>
-            <Button
-              variant="ghost"
-              onClick={() => {
-                onClear();
-                setSheetOpen(false);
-              }}
-            >
-              Reset all
-            </Button>
-            <Button variant="primary" onClick={() => setSheetOpen(false)}>
-              Show results
-            </Button>
-          </>
-        }
-      >
-        <TmdbFilterFields
-          kind={kind}
-          filters={filters}
-          onChange={onChange}
-          idPrefix={`${kind}-sheet-filters`}
-        />
-      </Dialog>
+      <TmdbFilterFields
+        kind={kind}
+        filters={filters}
+        onChange={onChange}
+        idPrefix={`${kind}-filters`}
+      />
     </div>
   );
 }
@@ -640,7 +582,7 @@ export function TmdbDiscoverBrowser({
   }));
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-7 sm:space-y-8">
       <DiscoverHero
         eyebrow="TMDB Catalogue"
         headlineMeta={
@@ -697,7 +639,9 @@ export function TmdbDiscoverBrowser({
         onClearAll={resetAll}
         hint={
           searchTooShort ? (
-            <p className="text-xs text-faint">Type at least two characters.</p>
+            <p className="text-[10px] font-medium uppercase tracking-[0.12em] text-faint">
+              Type at least two characters
+            </p>
           ) : null
         }
       >
@@ -759,9 +703,13 @@ export function TmdbDiscoverBrowser({
                   : "No titles matched this category. Try another category."
             }
             action={
-              <Button variant="secondary" size="sm" onClick={resetAll}>
+              <button
+                type="button"
+                onClick={resetAll}
+                className="h-8 border border-border px-4 text-[10px] font-semibold uppercase tracking-[0.12em] text-fg transition-colors hover:border-accent hover:text-accent-strong"
+              >
                 Reset discovery
-              </Button>
+              </button>
             }
           />
         )
@@ -778,7 +726,7 @@ export function TmdbDiscoverBrowser({
               ))}
             </div>
           ) : (
-            <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+            <div className="grid grid-cols-1 gap-x-8 md:grid-cols-2">
               {items.map((item) => (
                 <TmdbDiscoverListCard
                   key={`${item.kind}-${item.tmdbId}`}
@@ -800,32 +748,30 @@ export function TmdbDiscoverBrowser({
             />
           ) : null}
 
-          <div className="flex flex-col items-center gap-3 pt-4">
+          <div className="flex flex-col items-center gap-3 pt-5">
             {hasNextPage ? (
-              <Button
-                variant="secondary"
+              <button
+                type="button"
                 onClick={() => {
                   setStatus("loadingMore");
                   setError(null);
                   setPage((value) => value + 1);
                 }}
                 disabled={status === "loadingMore"}
-                className="h-10 min-w-44 font-bold"
+                className="h-10 min-w-48 border border-border px-6 text-[10px] font-semibold uppercase tracking-[0.14em] text-fg transition-colors hover:border-accent hover:text-accent-strong disabled:opacity-50"
               >
-                {status === "loadingMore"
-                  ? "Loading more titles…"
-                  : `Load more ${kindLabelPlural}`}
-              </Button>
+                {status === "loadingMore" ? "Loading more…" : "Load more"}
+              </button>
             ) : (
-              <p className="text-xs text-faint">
-                You have reached the end of these results.
+              <p className="text-[10px] font-medium uppercase tracking-[0.12em] text-faint">
+                End of these results
               </p>
             )}
           </div>
         </>
       )}
 
-      <TmdbAttribution className="mt-2 border-t border-border-subtle pt-3 text-[10px]" />
+      <TmdbAttribution className="border-t border-border pt-3 text-[10px]" />
     </div>
   );
 }

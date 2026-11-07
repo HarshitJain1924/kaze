@@ -1,10 +1,7 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
 
-import { SlidersIcon } from "@/components/icons";
-import { Button } from "@/components/ui/button";
-import { Dialog } from "@/components/ui/dialog";
 import { Select } from "@/components/ui/field";
 import { seasonLabel } from "@/lib/season";
 import { cn } from "@/lib/utils";
@@ -138,16 +135,17 @@ function FilterFields({
 
   return (
     <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
-      <div className="space-y-1.5">
+      <div className="space-y-1">
         <label
           htmlFor={`${idPrefix}-genre`}
-          className="text-xs font-medium text-muted lg:sr-only"
+          className="block text-[9px] font-semibold uppercase tracking-[0.14em] text-faint"
         >
           Genre
         </label>
         <Select
           id={`${idPrefix}-genre`}
           aria-label="Filter by genre"
+          className="h-9 rounded-none border-border bg-surface text-xs font-medium focus:border-accent"
           value={value.genre ?? ""}
           onChange={(event) => {
             const genre = event.target.value || undefined;
@@ -169,16 +167,17 @@ function FilterFields({
         </Select>
       </div>
 
-      <div className="space-y-1.5">
+      <div className="space-y-1">
         <label
           htmlFor={`${idPrefix}-format`}
-          className="text-xs font-medium text-muted lg:sr-only"
+          className="block text-[9px] font-semibold uppercase tracking-[0.14em] text-faint"
         >
           Format
         </label>
         <Select
           id={`${idPrefix}-format`}
           aria-label="Filter by format"
+          className="h-9 rounded-none border-border bg-surface text-xs font-medium focus:border-accent"
           value={value.format ?? ""}
           onChange={(event) =>
             onChange({
@@ -199,16 +198,17 @@ function FilterFields({
         </Select>
       </div>
 
-      <div className="space-y-1.5">
+      <div className="space-y-1">
         <label
           htmlFor={`${idPrefix}-status`}
-          className="text-xs font-medium text-muted lg:sr-only"
+          className="block text-[9px] font-semibold uppercase tracking-[0.14em] text-faint"
         >
           Status
         </label>
         <Select
           id={`${idPrefix}-status`}
           aria-label="Filter by release status"
+          className="h-9 rounded-none border-border bg-surface text-xs font-medium focus:border-accent"
           value={value.status ?? ""}
           onChange={(event) =>
             onChange({
@@ -227,16 +227,17 @@ function FilterFields({
         </Select>
       </div>
 
-      <div className="space-y-1.5">
+      <div className="space-y-1">
         <label
           htmlFor={`${idPrefix}-season`}
-          className="text-xs font-medium text-muted lg:sr-only"
+          className="block text-[9px] font-semibold uppercase tracking-[0.14em] text-faint"
         >
           Season
         </label>
         <Select
           id={`${idPrefix}-season`}
           aria-label="Filter by season"
+          className="h-9 rounded-none border-border bg-surface text-xs font-medium focus:border-accent"
           value={value.season ?? ""}
           onChange={(event) =>
             onChange({
@@ -255,16 +256,17 @@ function FilterFields({
         </Select>
       </div>
 
-      <div className="space-y-1.5">
+      <div className="space-y-1">
         <label
           htmlFor={`${idPrefix}-year`}
-          className="text-xs font-medium text-muted lg:sr-only"
+          className="block text-[9px] font-semibold uppercase tracking-[0.14em] text-faint"
         >
           Year
         </label>
         <Select
           id={`${idPrefix}-year`}
           aria-label="Filter by year"
+          className="h-9 rounded-none border-border bg-surface text-xs font-medium focus:border-accent"
           value={value.year ? String(value.year) : ""}
           onChange={(event) =>
             onChange({
@@ -283,16 +285,17 @@ function FilterFields({
         </Select>
       </div>
 
-      <div className="space-y-1.5">
+      <div className="space-y-1">
         <label
           htmlFor={`${idPrefix}-source`}
-          className="text-xs font-medium text-muted lg:sr-only"
+          className="block text-[9px] font-semibold uppercase tracking-[0.14em] text-faint"
         >
           Source
         </label>
         <Select
           id={`${idPrefix}-source`}
           aria-label="Filter by source material"
+          className="h-9 rounded-none border-border bg-surface text-xs font-medium focus:border-accent"
           value={value.source ?? ""}
           onChange={(event) =>
             onChange({
@@ -311,16 +314,17 @@ function FilterFields({
         </Select>
       </div>
 
-      <div className="space-y-1.5">
+      <div className="space-y-1">
         <label
           htmlFor={`${idPrefix}-country`}
-          className="text-xs font-medium text-muted lg:sr-only"
+          className="block text-[9px] font-semibold uppercase tracking-[0.14em] text-faint"
         >
           Country
         </label>
         <Select
           id={`${idPrefix}-country`}
           aria-label="Filter by country of origin"
+          className="h-9 rounded-none border-border bg-surface text-xs font-medium focus:border-accent"
           value={value.countryOfOrigin ?? ""}
           onChange={(event) =>
             onChange({
@@ -339,16 +343,17 @@ function FilterFields({
         </Select>
       </div>
 
-      <div className="space-y-1.5">
+      <div className="space-y-1">
         <label
           htmlFor={`${idPrefix}-adult`}
-          className="text-xs font-medium text-muted lg:sr-only"
+          className="block text-[9px] font-semibold uppercase tracking-[0.14em] text-faint"
         >
           Adult content
         </label>
         <Select
           id={`${idPrefix}-adult`}
           aria-label="Filter by adult content"
+          className="h-9 rounded-none border-border bg-surface text-xs font-medium focus:border-accent"
           value={
             value.adultContent === "filtered" ? "" : (value.adultContent ?? "")
           }
@@ -372,16 +377,17 @@ function FilterFields({
         </Select>
       </div>
 
-      <div className="space-y-1.5">
+      <div className="space-y-1">
         <label
           htmlFor={`${idPrefix}-sort`}
-          className="text-xs font-medium text-muted lg:sr-only"
+          className="block text-[9px] font-semibold uppercase tracking-[0.14em] text-faint"
         >
           Sort
         </label>
         <Select
           id={`${idPrefix}-sort`}
           aria-label="Sort results"
+          className="h-9 rounded-none border-border bg-surface text-xs font-medium focus:border-accent"
           value={value.sort}
           onChange={(event) =>
             onChange({ sort: event.target.value as AnimeSort })
@@ -401,103 +407,24 @@ function FilterFields({
 export function AnimeFilters({
   value,
   onChange,
-  onClear,
-  disabled = false,
   className,
   adultAllowed = false,
 }: {
   value: AnimeFilterState;
   onChange: (patch: Partial<AnimeFilterState>) => void;
-  onClear: () => void;
+  onClear?: () => void;
   disabled?: boolean;
   className?: string;
   adultAllowed?: boolean;
 }) {
-  const [sheetOpen, setSheetOpen] = useState(false);
-
-  const activeCount =
-    (value.genre ? 1 : 0) +
-    (value.format ? 1 : 0) +
-    (value.status ? 1 : 0) +
-    (value.season ? 1 : 0) +
-    (value.year ? 1 : 0) +
-    (value.source ? 1 : 0) +
-    (value.countryOfOrigin ? 1 : 0) +
-    (value.adultContent && value.adultContent !== "filtered" ? 1 : 0);
-
   return (
     <div className={cn("space-y-3", className)}>
-      <div className="hidden lg:block">
-        <FilterFields
-          value={value}
-          onChange={onChange}
-          idPrefix="desktop-filters"
-          adultAllowed={adultAllowed}
-        />
-      </div>
-
-      <div className="flex items-center gap-2 lg:hidden">
-        <Button
-          variant="secondary"
-          onClick={() => setSheetOpen(true)}
-          disabled={disabled}
-          className="h-11 flex-1 justify-between"
-        >
-          <span className="inline-flex items-center gap-2">
-            <SlidersIcon className="h-4 w-4" />
-            Filters
-          </span>
-          {activeCount > 0 ? (
-            <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-accent px-1.5 text-[11px] font-semibold text-accent-contrast">
-              {activeCount}
-            </span>
-          ) : (
-            <span className="text-xs text-faint">None</span>
-          )}
-        </Button>
-
-        {activeCount > 0 ? (
-          <Button
-            variant="ghost"
-            onClick={onClear}
-            disabled={disabled}
-            className="h-11"
-          >
-            Clear
-          </Button>
-        ) : null}
-      </div>
-
-      <Dialog
-        open={sheetOpen}
-        onClose={() => setSheetOpen(false)}
-        title={value.mediaType === "manga" ? "Filter manga" : "Filter anime"}
-        description="Refine by genre, format, release status, season, year, source material, country and adult content."
-        mobileSheet
-        footer={
-          <>
-            <Button
-              variant="ghost"
-              onClick={() => {
-                onClear();
-                setSheetOpen(false);
-              }}
-            >
-              Reset all
-            </Button>
-            <Button variant="primary" onClick={() => setSheetOpen(false)}>
-              Show results
-            </Button>
-          </>
-        }
-      >
-        <FilterFields
-          value={value}
-          onChange={onChange}
-          idPrefix="sheet-filters"
-          adultAllowed={adultAllowed}
-        />
-      </Dialog>
+      <FilterFields
+        value={value}
+        onChange={onChange}
+        idPrefix="desktop-filters"
+        adultAllowed={adultAllowed}
+      />
     </div>
   );
 }

@@ -43,13 +43,13 @@ import { EmptyState } from "@/components/empty-state";
 import { ErrorState } from "@/components/error-state";
 import { PosterGridSkeleton } from "@/components/loading-skeleton";
 import { usePreferences } from "@/components/providers/preferences-provider";
-import { Button } from "@/components/ui/button";
 import {
   DiscoverDeck,
   DiscoverHero,
   DiscoverPills,
   DiscoverResultsBar,
   DiscoverSortSelect,
+  DiscoverTypeTabs,
 } from "@/features/discover/discover-chrome";
 import { useLibrary } from "@/features/library/library-provider";
 import { TmdbDiscoverBrowser } from "@/features/screen/tmdb-discover-browser";
@@ -197,11 +197,11 @@ function DiscoverDetailedCard({ anime }: { anime: AnimeSummary }) {
   const entry = entryFor(anime.id);
 
   return (
-    <article className="group relative flex flex-col sm:flex-row gap-4 p-3.5 sm:p-4 rounded-2xl border border-border-subtle bg-surface-2 transition-all duration-200 shadow-sm hover:border-border hover:bg-surface-3">
+    <article className={cn("group flex flex-col gap-4 border-b border-border py-4 sm:flex-row sm:items-start")}>
       {/* Poster */}
       <Link
         href={`/media/${anime.id}`}
-        className="relative aspect-[2/3] w-24 sm:w-28 shrink-0 overflow-hidden rounded-xl border border-white/15 bg-surface-3 shadow-md"
+        className="relative aspect-[2/3] w-20 shrink-0 overflow-hidden border border-border bg-surface-2 sm:w-24"
       >
         {cover && isHttpUrl(cover) ? (
           <Image
@@ -217,8 +217,8 @@ function DiscoverDetailedCard({ anime }: { anime: AnimeSummary }) {
         )}
 
         {score ? (
-          <span className="absolute top-1.5 left-1.5 inline-flex items-center gap-1 rounded-md border border-white/20 bg-black/80 px-1.5 py-0.5 text-[10px] font-bold text-amber-300 backdrop-blur-md">
-            <StarIcon className="h-2.5 w-2.5 fill-amber-400 text-amber-400" />
+          <span className="absolute left-0 top-0 inline-flex items-center gap-1 bg-bg/90 px-1.5 py-1 font-mono text-[10px] font-semibold text-fg tabular-nums">
+            <StarIcon className="h-2.5 w-2.5 fill-accent text-accent" />
             {score}
           </span>
         ) : null}
@@ -229,28 +229,28 @@ function DiscoverDetailedCard({ anime }: { anime: AnimeSummary }) {
         <div>
           <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
             {anime.status ? (
-              <span className="inline-flex items-center rounded-lg px-2 py-0.5 text-[10px] font-semibold border-success/30 bg-success/15 text-success">
+              <span className="inline-flex items-center border px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-[0.1em] border-success/30 bg-success/10 text-success">
                 {anime.status}
               </span>
             ) : null}
             {formatLabel ? (
-              <span className="rounded-lg border border-border-subtle bg-surface-3/60 px-2 py-0.5 text-[10px] font-medium text-muted">
+              <span className="border border-border px-1.5 py-0.5 text-[9px] font-medium uppercase tracking-[0.08em] text-muted">
                 {formatLabel}
               </span>
             ) : null}
             {anime.seasonYear ? (
-              <span className="rounded-lg border border-border-subtle bg-surface-3/60 px-2 py-0.5 text-[10px] font-medium text-muted">
+              <span className="border border-border px-1.5 py-0.5 text-[9px] font-medium uppercase tracking-[0.08em] text-muted">
                 {anime.seasonYear}
               </span>
             ) : null}
             {anime.episodes ? (
-              <span className="rounded-lg border border-border-subtle bg-surface-3/60 px-2 py-0.5 text-[10px] font-medium text-muted">
+              <span className="border border-border px-1.5 py-0.5 text-[9px] font-medium uppercase tracking-[0.08em] text-muted">
                 {formatEpisodeCount(anime.episodes, { short: true })}
               </span>
             ) : null}
           </div>
 
-          <h3 className="mt-2 font-display text-base sm:text-lg font-bold text-fg transition-colors group-hover:text-accent-strong line-clamp-1">
+          <h3 className="mt-2 line-clamp-2 font-display text-[15px] font-semibold leading-snug tracking-[-0.02em] text-fg transition-colors group-hover:text-accent-strong">
             <Link href={`/media/${anime.id}`}>
               {title}
             </Link>
@@ -262,7 +262,7 @@ function DiscoverDetailedCard({ anime }: { anime: AnimeSummary }) {
               {anime.genres.slice(0, 4).map((genre) => (
                 <span
                   key={genre}
-                  className="rounded-md border border-border-subtle bg-surface-3/60 px-2 py-0.5 text-[10px] font-medium text-faint"
+                  className="border border-border px-1.5 py-0.5 text-[9px] uppercase tracking-[0.08em] text-faint"
                 >
                   {genre}
                 </span>
@@ -272,12 +272,12 @@ function DiscoverDetailedCard({ anime }: { anime: AnimeSummary }) {
         </div>
 
         {/* Bottom Actions Row */}
-        <div className="flex items-center justify-between gap-2 border-t border-border-subtle pt-2.5">
+        <div className="flex items-center justify-between gap-2 border-t border-border pt-2.5">
           <Link
             href={`/media/${anime.id}`}
-            className="inline-flex items-center gap-1 text-xs font-semibold text-accent-strong hover:underline"
+            className="inline-flex items-center gap-1 text-[10px] font-semibold uppercase tracking-[0.12em] text-accent-strong transition-colors hover:text-fg"
           >
-            <span>View Anime Details</span>
+            <span>Open details</span>
             <ChevronRightIcon className="h-3 w-3" />
           </Link>
 
@@ -285,7 +285,7 @@ function DiscoverDetailedCard({ anime }: { anime: AnimeSummary }) {
             <button
               type="button"
               onClick={() => requestAdd(anime)}
-              className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-accent/40 bg-accent/20 px-3 text-xs font-semibold text-accent-strong hover:bg-accent/30 transition-colors"
+              className="inline-flex h-8 items-center gap-1.5 border border-accent/40 bg-accent/10 px-2.5 text-[10px] font-semibold uppercase tracking-[0.08em] text-accent-strong transition-colors hover:bg-accent/20"
             >
               <CheckIcon className="h-3.5 w-3.5" />
               <span className="capitalize">{entry.status}</span>
@@ -294,10 +294,10 @@ function DiscoverDetailedCard({ anime }: { anime: AnimeSummary }) {
             <button
               type="button"
               onClick={() => requestAdd(anime)}
-              className="inline-flex h-8 items-center gap-1.5 rounded-lg bg-accent px-3 text-xs font-semibold text-accent-contrast hover:bg-accent-hover transition-colors shadow-xs"
+              className="inline-flex h-8 items-center gap-1.5 border border-accent bg-accent px-2.5 text-[10px] font-semibold uppercase tracking-[0.08em] text-accent-contrast transition-colors hover:bg-accent-hover"
             >
               <PlusIcon className="h-3.5 w-3.5" />
-              <span>Add to Watchlist</span>
+              <span>Add to library</span>
             </button>
           )}
         </div>
@@ -470,7 +470,10 @@ export function DiscoverBrowser({
 
   const selectView = (next: DiscoverView) => {
     setActiveView(next);
-    if (next === "movie" || next === "tv") return;
+    if (next === "movie" || next === "tv") {
+      window.history.replaceState(null, "", `/discover?type=${next}`);
+      return;
+    }
 
     setFilters((current) => ({
       ...current,
@@ -599,29 +602,14 @@ export function DiscoverBrowser({
   const topArtwork = topAnime ? topAnime.bannerImage ?? topCover : null;
 
   const discoverTypeTabs = (
-    <div
-      role="tablist"
-      aria-label="Catalogue type"
-      className="inline-flex w-fit flex-wrap items-center gap-1 rounded-2xl border border-border-subtle bg-surface-2 p-1"
-    >
-      {DISCOVER_VIEWS.map((view) => (
-        <button
-          key={view}
-          type="button"
-          role="tab"
-          aria-selected={activeView === view}
-          onClick={() => selectView(view)}
-          className={cn(
-            "rounded-xl px-4 py-2 text-xs font-semibold transition-colors",
-            activeView === view
-              ? "bg-accent text-accent-contrast shadow-sm"
-              : "text-muted hover:bg-surface-3 hover:text-fg",
-          )}
-        >
-          {DISCOVER_VIEW_LABELS[view]}
-        </button>
-      ))}
-    </div>
+    <DiscoverTypeTabs
+      active={activeView}
+      onSelect={(id) => selectView(id as DiscoverView)}
+      tabs={DISCOVER_VIEWS.map((view) => ({
+        id: view,
+        label: DISCOVER_VIEW_LABELS[view],
+      }))}
+    />
   );
 
   if (isTmdbView) {
@@ -629,7 +617,7 @@ export function DiscoverBrowser({
     const useServerPage = activeView === initialView;
 
     return (
-      <div className="space-y-6">
+      <div className="space-y-7">
         {discoverTypeTabs}
         <TmdbDiscoverBrowser
           key={tmdbKind}
@@ -647,7 +635,7 @@ export function DiscoverBrowser({
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-7 sm:space-y-8">
       {discoverTypeTabs}
 
       {/* 1. Cinematic Discover Header & Ambient Showcase */}
@@ -751,30 +739,37 @@ export function DiscoverBrowser({
         status === "error" ? (
           <ErrorState
             title="Catalogue temporarily unavailable"
-            message={error ?? "The anime catalogue could not be loaded."}
+            message={
+              error ??
+              `The ${activeView === "manhwa" ? "manhwa" : activeView === "manga" ? "manga" : "anime"} catalogue could not be loaded.`
+            }
             onRetry={() => setRetryNonce((value) => value + 1)}
           />
         ) : (
           <EmptyState
-            title="No anime found"
+            title={`No ${activeView === "manhwa" ? "manhwa" : activeView === "manga" ? "manga" : "anime"} found`}
             description={
               query
                 ? `Nothing matched “${query}”. Try a shorter title or remove active filters.`
                 : "No titles matched these filters. Try another genre, format, or year."
             }
             action={
-              <Button variant="secondary" size="sm" onClick={resetAll}>
+              <button
+                type="button"
+                onClick={resetAll}
+                className="h-8 border border-border px-4 text-[10px] font-semibold uppercase tracking-[0.12em] text-fg transition-colors hover:border-accent hover:text-accent-strong"
+              >
                 Clear filters
-              </Button>
+              </button>
             }
           />
         )
       ) : (
         <>
           {viewMode === "grid" ? (
-            <AnimeGrid items={items} priorityCount={6} />
+            <AnimeGrid items={items} priorityCount={6} variant="editorial" />
           ) : (
-            <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+            <div className="grid grid-cols-1 gap-x-8 md:grid-cols-2">
               {items.map((anime) => (
                 <DiscoverDetailedCard key={anime.id} anime={anime} />
               ))}
@@ -790,21 +785,21 @@ export function DiscoverBrowser({
           ) : null}
 
           {/* Pagination / Load more */}
-          <div className="flex flex-col items-center gap-3 pt-4">
+          <div className="flex flex-col items-center gap-3 pt-5">
             {pageInfo?.hasNextPage ? (
-              <Button
-                variant="secondary"
+              <button
+                type="button"
                 onClick={() => setPage((value) => value + 1)}
                 disabled={status === "loadingMore"}
-                className="min-w-44 h-10 font-bold"
+                className="h-10 min-w-48 border border-border px-6 text-[10px] font-semibold uppercase tracking-[0.14em] text-fg transition-colors hover:border-accent hover:text-accent-strong disabled:opacity-50"
               >
-                {status === "loadingMore" ? "Loading more titles…" : "Load more anime"}
-              </Button>
+                {status === "loadingMore" ? "Loading more…" : "Load more"}
+              </button>
             ) : (
-              <p className="text-xs text-faint">
+              <p className="text-[10px] font-medium uppercase tracking-[0.12em] text-faint">
                 {pageInfo?.total != null
-                  ? "You have reached the end of these results."
-                  : "No further results."}
+                  ? "End of these results"
+                  : "No further results"}
               </p>
             )}
             {isTyping ? (
