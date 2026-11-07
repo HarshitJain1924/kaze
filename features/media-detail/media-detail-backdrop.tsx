@@ -29,6 +29,7 @@ export function MediaDetailBackdrop({
             alt=""
             fill
             priority
+            unoptimized
             sizes="100vw"
             className="object-cover"
           />
@@ -74,6 +75,7 @@ export function MediaDetailBackdrop({
             alt=""
             fill
             priority
+            unoptimized
             sizes="100vw"
             className="object-cover"
           />

@@ -8,6 +8,7 @@ import {
   BookmarkIcon,
   CalendarIcon,
   ChartIcon,
+  ChevronRightIcon,
   CompassIcon,
   HomeIcon,
   LibraryIcon,
@@ -75,7 +76,7 @@ function isActive(pathname: string, item: NavItem): boolean {
 
 function Tooltip({ children }: { children: React.ReactNode }) {
   return (
-    <span className="pointer-events-none absolute left-full z-50 ml-3 hidden whitespace-nowrap border border-border bg-bg px-2.5 py-1.5 text-[11px] font-medium text-fg shadow-sm group-hover:block">
+    <span className="pointer-events-none absolute left-full z-50 ml-3 hidden whitespace-nowrap border border-border bg-surface px-2.5 py-1 font-mono text-[10px] uppercase tracking-wider text-fg shadow-md group-hover:block">
       {children}
     </span>
   );
@@ -97,23 +98,24 @@ export function DesktopSidebar({ viewer }: { viewer: Viewer | null }) {
   return (
     <aside
       className={cn(
-        "fixed inset-y-0 left-0 z-40 hidden flex-col border-r border-border bg-bg transition-[width,padding] duration-300 ease-out lg:flex",
-        isCollapsed ? "w-16 items-center px-2 py-5" : "w-[228px] px-4 py-5",
+        "fixed inset-y-0 left-0 z-40 hidden flex-col border-r border-border bg-bg/95 backdrop-blur-xl transition-[width,padding] duration-300 ease-out lg:flex",
+        isCollapsed ? "w-[72px] items-center px-2 py-4" : "w-[238px] px-3.5 py-4",
       )}
     >
+      {/* Top Header / Brand & Toggle */}
       <div
         className={cn(
-          "flex w-full items-center border-b border-border pb-5",
-          isCollapsed ? "justify-center" : "justify-between",
+          "flex w-full items-center border-b border-border pb-3.5",
+          isCollapsed ? "justify-center" : "justify-between px-1",
         )}
       >
         {isCollapsed ? (
           <Link href="/" aria-label="Kaze home" className="group relative">
-            <LogoMark />
+            <LogoMark size="sm" />
             <Tooltip>Kaze Home</Tooltip>
           </Link>
         ) : (
-          <Logo />
+          <Logo size="sm" />
         )}
 
         {!isCollapsed ? (
@@ -122,9 +124,9 @@ export function DesktopSidebar({ viewer }: { viewer: Viewer | null }) {
             onClick={toggleSidebar}
             title="Collapse sidebar"
             aria-label="Collapse sidebar to icons"
-            className="group relative flex h-8 w-8 items-center justify-center text-faint transition-colors hover:text-fg focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+            className="flex h-7 w-7 items-center justify-center border border-border/60 bg-surface/40 text-faint transition-colors hover:border-accent hover:bg-surface hover:text-fg focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
           >
-            <PanelLeftCloseIcon className="h-4 w-4" />
+            <PanelLeftCloseIcon className="h-3.5 w-3.5" />
           </button>
         ) : null}
       </div>
@@ -135,20 +137,25 @@ export function DesktopSidebar({ viewer }: { viewer: Viewer | null }) {
           onClick={toggleSidebar}
           title="Expand sidebar"
           aria-label="Expand sidebar"
-          className="group relative mt-4 flex h-9 w-9 items-center justify-center text-faint transition-colors hover:text-fg"
+          className="group relative mt-3 flex h-8 w-8 items-center justify-center border border-border/60 bg-surface/40 text-faint transition-colors hover:border-accent hover:bg-surface hover:text-fg"
         >
-          <PanelLeftOpenIcon className="h-4 w-4" />
+          <PanelLeftOpenIcon className="h-3.5 w-3.5" />
           <Tooltip>Expand sidebar</Tooltip>
         </button>
       ) : null}
 
-      <nav aria-label="Primary" className="mt-7 w-full">
+      {/* Primary Navigation */}
+      <nav aria-label="Primary" className="mt-5 w-full">
         {!isCollapsed ? (
-          <p className="mb-2 px-3 text-[9px] font-semibold uppercase tracking-[0.2em] text-faint">
-            Library
-          </p>
+          <div className="mb-2 flex items-center gap-1.5 px-2">
+            <span className="h-1 w-1 bg-accent" />
+            <span className="text-[9px] font-semibold uppercase tracking-[0.2em] text-accent-strong">
+              Archive Index
+            </span>
+          </div>
         ) : null}
-        <div className="space-y-0.5">
+
+        <div className="space-y-1">
           {NAV_ITEMS.map((item) => {
             const active = isActive(pathname, item);
             const Icon = item.icon;
@@ -160,31 +167,31 @@ export function DesktopSidebar({ viewer }: { viewer: Viewer | null }) {
                 className={cn(
                   "group relative flex items-center transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent",
                   isCollapsed
-                    ? "mx-auto h-10 w-10 justify-center"
-                    : "h-9 gap-3 px-3 text-[13px]",
+                    ? "mx-auto h-9 w-9 justify-center border"
+                    : "h-9 gap-2.5 px-2.5 text-[12.5px] border",
                   active
-                    ? "bg-surface-2 text-fg"
-                    : "text-muted hover:bg-surface/60 hover:text-fg",
+                    ? isCollapsed
+                      ? "border-accent bg-accent/15 text-accent-strong"
+                      : "border-border bg-surface text-fg font-medium"
+                    : "border-transparent text-muted hover:border-border/60 hover:bg-surface/50 hover:text-fg",
                 )}
               >
-                {active ? (
+                {active && !isCollapsed ? (
                   <span
                     aria-hidden="true"
-                    className="absolute inset-y-1 left-0 w-[2px] bg-accent"
+                    className="absolute inset-y-1.5 left-0 w-[2px] bg-accent"
                   />
                 ) : null}
                 <Icon
                   className={cn(
-                    "h-[17px] w-[17px] shrink-0",
+                    "h-4 w-4 shrink-0 transition-colors",
                     active
                       ? "text-accent-strong"
-                      : "text-faint group-hover:text-muted",
+                      : "text-muted group-hover:text-fg",
                   )}
                 />
                 {!isCollapsed ? (
-                  <span className={cn("truncate", active && "font-medium")}>
-                    {item.label}
-                  </span>
+                  <span className="truncate">{item.label}</span>
                 ) : null}
                 {isCollapsed ? <Tooltip>{item.label}</Tooltip> : null}
               </Link>
@@ -193,7 +200,9 @@ export function DesktopSidebar({ viewer }: { viewer: Viewer | null }) {
         </div>
       </nav>
 
-      <div className="mt-auto w-full border-t border-border pt-4">
+      {/* Footer / Customization & Account */}
+      <div className="mt-auto w-full border-t border-border pt-3.5 space-y-2.5">
+        {/* Appearance Control */}
         {isCollapsed ? (
           <div className="group relative flex justify-center">
             <button
@@ -201,12 +210,12 @@ export function DesktopSidebar({ viewer }: { viewer: Viewer | null }) {
               onClick={() => setMode(resolved === "dark" ? "light" : "dark")}
               title={`Switch to ${resolved === "dark" ? "light" : "dark"} mode`}
               aria-label="Toggle dark/light mode"
-              className="flex h-9 w-9 items-center justify-center text-muted transition-colors hover:text-fg"
+              className="flex h-8 w-8 items-center justify-center border border-border/60 bg-surface/40 text-muted transition-colors hover:border-accent hover:text-fg"
             >
               {resolved === "dark" ? (
-                <MoonIcon className="h-4 w-4 text-accent-strong" />
+                <MoonIcon className="h-3.5 w-3.5 text-accent-strong" />
               ) : (
-                <SunIcon className="h-4 w-4 text-warning" />
+                <SunIcon className="h-3.5 w-3.5 text-warning" />
               )}
             </button>
             <Tooltip>
@@ -214,48 +223,52 @@ export function DesktopSidebar({ viewer }: { viewer: Viewer | null }) {
             </Tooltip>
           </div>
         ) : (
-          <div className="space-y-3 px-1">
+          <div className="border border-border bg-surface/30 p-2.5 space-y-2">
+            {/* Theme Mode: 3-Way Segmented Control */}
             <div className="flex items-center justify-between">
-              <span className="text-[9px] font-semibold uppercase tracking-[0.18em] text-faint">
-                Appearance
+              <span className="text-[9px] font-semibold uppercase tracking-[0.16em] text-faint">
+                Theme
               </span>
               <div
                 role="group"
                 aria-label="Theme mode"
-                className="flex items-center gap-1"
+                className="flex items-center gap-px border border-border bg-border"
               >
                 {(
                   [
-                    ["dark", MoonIcon],
-                    ["light", SunIcon],
-                    ["system", MonitorIcon],
+                    ["dark", MoonIcon, "Dark"],
+                    ["light", SunIcon, "Light"],
+                    ["system", MonitorIcon, "System"],
                   ] as const
-                ).map(([value, Icon]) => (
+                ).map(([value, Icon, label]) => (
                   <button
                     key={value}
                     type="button"
                     aria-pressed={mode === value}
                     onClick={() => setMode(value)}
-                    title={`${value} appearance`}
+                    title={`${label} mode`}
                     className={cn(
-                      "flex h-7 w-7 items-center justify-center border transition-colors",
+                      "flex h-6 w-6 items-center justify-center transition-colors",
                       mode === value
-                        ? "border-accent/50 bg-accent-soft text-accent-strong"
-                        : "border-transparent text-faint hover:border-border hover:text-fg",
+                        ? "bg-accent text-accent-contrast"
+                        : "bg-surface text-faint hover:bg-surface-2 hover:text-fg",
                     )}
                   >
-                    <Icon className="h-3.5 w-3.5" />
+                    <Icon className="h-3 w-3" />
                   </button>
                 ))}
               </div>
             </div>
 
-            <div className="flex items-center justify-between">
-              <span className="text-[10px] text-faint">Accent</span>
+            {/* Accent Palette Swatches */}
+            <div className="flex items-center justify-between border-t border-border/60 pt-2">
+              <span className="text-[9px] font-semibold uppercase tracking-[0.16em] text-faint">
+                Accent
+              </span>
               <div
                 role="group"
                 aria-label="Accent theme"
-                className="flex items-center gap-2"
+                className="flex items-center gap-1.5"
               >
                 {ACCENT_PALETTES.map((pal) => (
                   <button
@@ -265,14 +278,14 @@ export function DesktopSidebar({ viewer }: { viewer: Viewer | null }) {
                     onClick={() => setDesign(pal.value)}
                     title={pal.label}
                     className={cn(
-                      "flex h-6 w-6 items-center justify-center border transition-colors",
+                      "flex h-5 w-5 items-center justify-center border transition-all",
                       design === pal.value
-                        ? "border-accent/60"
-                        : "border-transparent hover:border-border",
+                        ? "border-accent bg-accent/20 scale-105"
+                        : "border-border/80 hover:border-accent/60",
                     )}
                   >
                     <span
-                      className={cn("h-3 w-3 rounded-full", pal.dotColor)}
+                      className={cn("h-2.5 w-2.5", pal.dotColor)}
                     />
                   </button>
                 ))}
@@ -281,46 +294,50 @@ export function DesktopSidebar({ viewer }: { viewer: Viewer | null }) {
           </div>
         )}
 
+        {/* Settings Link */}
         <Link
           href="/settings"
           aria-current={pathname === "/settings" ? "page" : undefined}
           className={cn(
-            "group relative mt-3 flex items-center transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent",
+            "group relative flex items-center transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent",
             isCollapsed
-              ? "mx-auto h-10 w-10 justify-center"
-              : "h-9 gap-3 px-3 text-[13px]",
+              ? "mx-auto h-9 w-9 justify-center border"
+              : "h-9 gap-2.5 px-2.5 text-[12.5px] border",
             pathname === "/settings"
-              ? "bg-surface-2 text-fg"
-              : "text-muted hover:bg-surface/60 hover:text-fg",
+              ? isCollapsed
+                ? "border-accent bg-accent/15 text-accent-strong"
+                : "border-border bg-surface text-fg font-medium"
+              : "border-transparent text-muted hover:border-border/60 hover:bg-surface/50 hover:text-fg",
           )}
         >
-          <SettingsIcon className="h-[17px] w-[17px] text-faint" />
+          <SettingsIcon className="h-4 w-4 text-muted group-hover:text-fg transition-colors" />
           {!isCollapsed ? <span>Settings</span> : null}
           {isCollapsed ? <Tooltip>Settings</Tooltip> : null}
         </Link>
 
+        {/* User Account Vault / Sign In Block */}
         {viewer ? (
           <Link
             href="/settings"
             className={cn(
-              "group relative mt-3 flex items-center border-t border-border transition-colors hover:bg-surface/60",
+              "group relative flex items-center border border-border bg-surface/40 transition-colors hover:border-accent hover:bg-surface",
               isCollapsed
-                ? "mx-auto h-10 w-10 justify-center"
-                : "gap-2.5 pt-3",
+                ? "mx-auto h-9 w-9 justify-center p-0"
+                : "gap-2.5 p-2",
             )}
           >
-            <UserAvatar email={viewer.email} />
+            <UserAvatar email={viewer.email} size="sm" />
             {!isCollapsed ? (
               <>
                 <span className="min-w-0 flex-1">
-                  <span className="block truncate text-[12px] font-medium text-fg">
+                  <span className="block truncate text-[11.5px] font-semibold text-fg transition-colors group-hover:text-accent-strong">
                     {displayName}
                   </span>
-                  <span className="block truncate text-[10px] text-faint">
+                  <span className="block truncate font-mono text-[9.5px] text-faint">
                     {viewer.email}
                   </span>
                 </span>
-                <span className="text-faint">›</span>
+                <ChevronRightIcon className="h-3 w-3 text-faint transition-transform group-hover:translate-x-0.5 group-hover:text-fg" />
               </>
             ) : null}
             {isCollapsed ? <Tooltip>{displayName}</Tooltip> : null}
@@ -329,12 +346,12 @@ export function DesktopSidebar({ viewer }: { viewer: Viewer | null }) {
           <Link
             href="/login"
             className={cn(
-              "mt-3 flex items-center justify-center bg-accent text-xs font-semibold text-accent-contrast transition-colors hover:bg-accent-hover",
-              isCollapsed ? "mx-auto h-10 w-10" : "h-9 gap-2 px-3",
+              "flex items-center justify-center border border-accent bg-accent text-[11px] font-semibold uppercase tracking-[0.14em] text-accent-contrast transition-colors hover:bg-accent-hover",
+              isCollapsed ? "mx-auto h-9 w-9 p-0" : "h-9 gap-2 px-3",
             )}
           >
-            <UserIcon className="h-4 w-4" />
-            {!isCollapsed ? <span>Sign in</span> : null}
+            <UserIcon className="h-3.5 w-3.5" />
+            {!isCollapsed ? <span>Sign In</span> : null}
           </Link>
         )}
       </div>

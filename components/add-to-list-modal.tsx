@@ -13,7 +13,8 @@ interface AddToListModalProps {
 }
 
 export function AddToListModal({ anime, isOpen, onClose }: AddToListModalProps) {
-  const { lists, addItemToList, removeItemFromList, isAnimeInList } = useCustomLists();
+  const { lists, addItemToList, removeItemFromList, isAnimeInList } =
+    useCustomLists();
   const [notes, setNotes] = useState("");
   const displayTitle = getDisplayTitle(anime.title, true);
   const cover = anime.coverImage.large ?? anime.coverImage.extraLarge;
@@ -48,40 +49,42 @@ export function AddToListModal({ anime, isOpen, onClose }: AddToListModalProps) 
     >
       {/* Backdrop */}
       <div
-        className="fixed inset-0 bg-black/80 backdrop-blur-xl transition-opacity animate-in fade-in duration-200"
+        className="fixed inset-0 bg-black/80 backdrop-blur-md transition-opacity animate-in fade-in duration-200"
         onClick={onClose}
         aria-hidden="true"
       />
 
       {/* Modal Dialog */}
-      <div className="relative z-10 w-full max-w-md overflow-hidden rounded-3xl border border-white/20 bg-slate-950/95 p-6 shadow-2xl backdrop-blur-2xl ring-1 ring-white/10 animate-in zoom-in-95 duration-200">
-        <div className="flex items-center justify-between border-b border-white/10 pb-4">
+      <div className="relative z-10 w-full max-w-md border border-border bg-surface/95 p-6 shadow-2xl backdrop-blur-2xl animate-in zoom-in-95 duration-200">
+        <div className="flex items-center justify-between border-b border-border pb-3.5">
           <div className="flex items-center gap-2.5">
-            <span className="flex h-7 w-7 items-center justify-center rounded-xl bg-accent text-accent-contrast">
-              <BookmarkIcon className="h-4 w-4" />
+            <span className="flex h-6 w-6 items-center justify-center border border-border bg-surface text-accent-strong">
+              <BookmarkIcon className="h-3.5 w-3.5" />
             </span>
             <div className="min-w-0">
-              <h3 className="truncate font-display text-base font-bold text-white">
+              <h3 className="truncate font-display text-base font-semibold text-fg">
                 Add to Curated List
               </h3>
-              <p className="truncate text-xs text-white/50">{displayTitle}</p>
+              <p className="truncate font-mono text-[11px] text-faint">
+                {displayTitle}
+              </p>
             </div>
           </div>
 
           <button
             type="button"
             onClick={onClose}
-            className="flex h-8 w-8 items-center justify-center rounded-xl bg-white/10 text-white/70 hover:bg-white/20 hover:text-white transition-colors"
+            className="flex h-7 w-7 items-center justify-center border border-border bg-surface text-muted hover:border-accent hover:text-fg transition-colors"
           >
-            <CloseIcon className="h-4 w-4" />
+            <CloseIcon className="h-3.5 w-3.5" />
           </button>
         </div>
 
-        {/* Optional ranking note for when adding */}
+        {/* Optional commentary note */}
         <div className="mt-4">
           <label
             htmlFor="item-note"
-            className="block text-xs font-semibold text-white/70"
+            className="block text-xs font-semibold text-fg"
           >
             Personal Ranking / Commentary Note (Optional)
           </label>
@@ -91,15 +94,15 @@ export function AddToListModal({ anime, isOpen, onClose }: AddToListModalProps) 
             value={notes}
             onChange={(e) => setNotes(e.target.value)}
             placeholder='e.g. "Peak animation in episode 19, must watch"'
-            className="mt-1.5 w-full rounded-xl border border-white/15 bg-white/5 px-3 py-2 text-xs text-white placeholder-white/40 focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent"
+            className="mt-1.5 h-9 w-full border border-border bg-surface-2/60 px-3 text-xs text-fg placeholder:text-faint focus:border-accent focus:bg-surface focus:outline-none"
           />
         </div>
 
-        {/* List of custom collections */}
+        {/* Collections checklist */}
         <div className="mt-4 space-y-2 max-h-60 overflow-y-auto pr-1">
           {lists.length === 0 ? (
-            <p className="py-4 text-center text-xs text-white/50">
-              No lists created yet. Create a list below!
+            <p className="border border-dashed border-border p-4 text-center text-xs text-muted">
+              No lists created yet. Create a list from Custom Lists first!
             </p>
           ) : (
             lists.map((list) => {
@@ -109,27 +112,29 @@ export function AddToListModal({ anime, isOpen, onClose }: AddToListModalProps) 
                   key={list.id}
                   type="button"
                   onClick={() => handleToggle(list.id)}
-                  className={`flex w-full items-center justify-between rounded-xl border p-3 text-left transition-all ${
+                  className={`flex w-full items-center justify-between border p-3 text-left transition-colors ${
                     inList
-                      ? "border-accent bg-accent/15 text-white"
-                      : "border-white/10 bg-white/5 text-white/80 hover:bg-white/10 hover:border-white/20"
+                      ? "border-accent bg-accent/15 text-fg"
+                      : "border-border bg-surface-2/40 text-muted hover:border-accent/40 hover:bg-surface"
                   }`}
                 >
                   <div className="min-w-0 pr-3">
-                    <p className="truncate text-xs font-bold">{list.title}</p>
-                    <p className="truncate text-[10px] text-white/50">
+                    <p className="truncate text-xs font-semibold text-fg">
+                      {list.title}
+                    </p>
+                    <p className="truncate font-mono text-[10px] text-faint">
                       {list.items.length} titles
                     </p>
                   </div>
 
                   <span
-                    className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-lg border transition-all ${
+                    className={`flex h-5 w-5 shrink-0 items-center justify-center border transition-all ${
                       inList
-                        ? "border-accent bg-accent text-accent-contrast shadow-sm"
-                        : "border-white/20 bg-white/5 text-transparent"
+                        ? "border-accent bg-accent text-accent-contrast"
+                        : "border-border bg-surface text-transparent"
                     }`}
                   >
-                    <CheckIcon className="h-3.5 w-3.5 stroke-[3]" />
+                    <CheckIcon className="h-3 w-3 stroke-[2.5]" />
                   </span>
                 </button>
               );
@@ -137,11 +142,11 @@ export function AddToListModal({ anime, isOpen, onClose }: AddToListModalProps) 
           )}
         </div>
 
-        <div className="mt-5 border-t border-white/10 pt-4 flex justify-end">
+        <div className="mt-5 border-t border-border pt-4 flex justify-end">
           <button
             type="button"
             onClick={onClose}
-            className="rounded-xl bg-accent px-5 py-2 text-xs font-bold text-accent-contrast shadow-md shadow-accent/20 hover:scale-[1.02] active:scale-[0.98] transition-all"
+            className="h-9 border border-accent bg-accent px-5 text-[11px] font-semibold uppercase tracking-wider text-accent-contrast hover:bg-accent-hover transition-colors"
           >
             Done
           </button>

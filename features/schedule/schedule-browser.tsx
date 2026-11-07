@@ -25,7 +25,7 @@ import {
 } from "@/components/providers/preferences-provider";
 import { TimezoneSelector } from "@/components/timezone-selector";
 import { StatusBadge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
+import { OpticalGlass } from "@/components/ui/optical-glass";
 import { useLibrary } from "@/features/library/library-provider";
 import { useNow } from "@/lib/use-now";
 import {
@@ -181,7 +181,6 @@ export function ScheduleBrowser({
 
   // High-res backdrop from the most popular anime airing this week
   const heroBackdrop = useMemo(() => {
-    // 1. Try to find one from user's watchlist that has a banner or large cover
     const activeWatching = allEntries.find(
       (e) =>
         watchingSet.has(e.mediaId) &&
@@ -194,14 +193,12 @@ export function ScheduleBrowser({
         null
       );
     }
-    // 2. Highest score / popular anime with banner
     const withBanner = [...allEntries]
       .filter((e) => e.media.bannerImage)
       .sort((a, b) => (b.media.averageScore ?? 0) - (a.media.averageScore ?? 0))[0];
     if (withBanner?.media.bannerImage) {
       return withBanner.media.bannerImage;
     }
-    // 3. Fallback to any cover
     return allEntries[0]?.media.coverImage.extraLarge ?? null;
   }, [allEntries, watchingSet]);
 
@@ -227,271 +224,312 @@ export function ScheduleBrowser({
     router.push(`/schedule?date=${todayIso}`);
   };
 
+  const nextUpcomingTitle = nextUpcomingEntry
+    ? getDisplayTitle(nextUpcomingEntry.media.title, preferences.titleLanguage === "english")
+    : null;
+
   return (
-    <div className="space-y-6">
-      {/* Cinematic Ambient Broadcast Center Hero Banner */}
-      <header className="relative overflow-hidden rounded-3xl border border-border-subtle bg-surface/85 p-6 sm:p-7 md:p-8 backdrop-blur-xl shadow-2xl">
-        {/* Ambient high-res backdrop with dark multi-stop vignette */}
-        {heroBackdrop && isHttpUrl(heroBackdrop) ? (
-          <div className="pointer-events-none absolute inset-0 overflow-hidden">
-            <Image
-              src={heroBackdrop}
-              alt=""
-              fill
-              priority
-              unoptimized
-              sizes="100vw"
-              className="object-cover object-center opacity-20 blur-md scale-105"
-            />
-            <div className="absolute inset-0 bg-gradient-to-r from-bg via-bg/90 to-bg/50" />
-            <div className="absolute inset-0 bg-gradient-to-t from-bg via-transparent to-transparent" />
-          </div>
-        ) : (
-          <div className="pointer-events-none absolute -right-20 -top-20 h-72 w-72 rounded-full bg-accent/15 blur-3xl" />
-        )}
-
-        <div className="relative z-10 space-y-5">
-          {/* Top Row: Beacon Badge, Week Range & Week Navigation */}
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <div className="inline-flex items-center gap-2 rounded-full border border-accent/30 bg-accent-soft px-3.5 py-1 text-xs font-semibold text-accent-strong backdrop-blur-md shadow-xs">
-              <span className="h-2 w-2 rounded-full bg-accent radar-live-dot" />
-              <span>Broadcast Radar</span>
-              <span className="text-faint">/</span>
-              <span className="text-muted">{week.weekLabel}</span>
-            </div>
-
-            {/* Week navigation buttons */}
-            <div className="flex items-center gap-1.5">
-              <Button
-                variant="secondary"
-                size="sm"
-                onClick={handlePrevWeek}
-                aria-label="Previous week"
-                className="h-8 rounded-xl border border-border-subtle bg-surface-2/80 px-2.5 text-xs text-muted hover:border-border hover:text-fg"
-              >
-                <ChevronLeftIcon className="h-4 w-4" />
-                <span className="hidden sm:inline">Prev week</span>
-              </Button>
-
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={handleToday}
-                className="h-8 rounded-xl border border-accent/40 bg-accent/15 px-3 text-xs font-semibold text-accent-strong transition-colors hover:bg-accent/25"
-              >
-                Today
-              </Button>
-
-              <Button
-                variant="secondary"
-                size="sm"
-                onClick={handleNextWeek}
-                aria-label="Next week"
-                className="h-8 rounded-xl border border-border-subtle bg-surface-2/80 px-2.5 text-xs text-muted hover:border-border hover:text-fg"
-              >
-                <span className="hidden sm:inline">Next week</span>
-                <ChevronRightIcon className="h-4 w-4" />
-              </Button>
-            </div>
+    <div className="space-y-7 sm:space-y-8">
+      {/* Editorial Brutalist Masthead */}
+      <header className="border-b border-border pb-7">
+        {/* Top Eyebrow Row with Week Navigation */}
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className="flex items-center gap-2">
+            <span className="text-[9px] font-semibold uppercase tracking-[0.22em] text-accent-strong">
+              Broadcast Radar · Weekly Simulcast Index
+            </span>
+            <span className="text-faint">/</span>
+            <span className="font-mono text-[10px] uppercase tracking-[0.08em] text-muted">
+              {week.weekLabel}
+            </span>
           </div>
 
-          {/* Heading & Subtitle with Timezone Pill */}
-          <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between md:gap-6">
-            <div className="min-w-0">
-              <h1 className="font-display text-2xl font-bold tracking-tight text-fg sm:text-3xl lg:text-4xl">
-                Weekly Broadcast Schedule
-              </h1>
-              <p className="mt-1.5 text-[13px] sm:text-sm text-muted">
-                Tracking{" "}
-                <span className="font-semibold text-fg tabular-nums">
-                  {allEntries.length} releases
-                </span>{" "}
-                across global simulcasts this week ·{" "}
-                <span className="font-semibold text-accent-strong tabular-nums">
-                  {totalWatchingInWeek} episodes
-                </span>{" "}
-                in your watchlist.
-              </p>
-            </div>
+          {/* Week navigation buttons */}
+          <div className="flex items-center gap-1.5">
+            <button
+              type="button"
+              onClick={handlePrevWeek}
+              aria-label="Previous week"
+              className="inline-flex h-7 items-center gap-1 border border-border bg-surface px-2.5 text-[10px] font-semibold uppercase tracking-[0.1em] text-muted transition-colors hover:border-accent hover:text-fg"
+            >
+              <ChevronLeftIcon className="h-3 w-3" />
+              <span className="hidden sm:inline">Prev</span>
+            </button>
 
-            {/* Timezone pill container */}
-            <div className="inline-flex max-w-full shrink-0 items-center gap-2 self-start rounded-2xl border border-border-subtle bg-surface-2/70 px-3.5 py-1.5 text-xs text-muted backdrop-blur-md md:self-auto">
-              <ClockIcon className="h-3.5 w-3.5 shrink-0 text-accent-strong" />
-              <span className="whitespace-nowrap text-faint">Local Timezone:</span>
-              <TimezoneSelector className="shrink-0" />
+            <button
+              type="button"
+              onClick={handleToday}
+              className="inline-flex h-7 items-center border border-accent bg-accent/15 px-2.5 text-[10px] font-semibold uppercase tracking-[0.1em] text-accent-strong transition-colors hover:bg-accent hover:text-accent-contrast"
+            >
+              Today
+            </button>
+
+            <button
+              type="button"
+              onClick={handleNextWeek}
+              aria-label="Next week"
+              className="inline-flex h-7 items-center gap-1 border border-border bg-surface px-2.5 text-[10px] font-semibold uppercase tracking-[0.1em] text-muted transition-colors hover:border-accent hover:text-fg"
+            >
+              <span className="hidden sm:inline">Next</span>
+              <ChevronRightIcon className="h-3 w-3" />
+            </button>
+          </div>
+        </div>
+
+        {/* Main Title & Spotlight Deck */}
+        <div className="mt-4 grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_340px] xl:grid-cols-[minmax(0,1fr)_380px]">
+          <div>
+            <h1 className="font-display text-[clamp(2.25rem,4.5vw,3.75rem)] font-semibold leading-[0.95] tracking-[-0.04em] text-fg">
+              Weekly Broadcast Schedule
+            </h1>
+            <p className="mt-3 max-w-[34rem] text-[13px] leading-relaxed text-muted">
+              Tracking{" "}
+              <span className="font-mono font-medium text-fg tabular-nums">
+                {allEntries.length} releases
+              </span>{" "}
+              across global simulcasts this week ·{" "}
+              <span className="font-mono font-medium text-accent-strong tabular-nums">
+                {totalWatchingInWeek} episodes
+              </span>{" "}
+              in your active watchlist.
+            </p>
+
+            {/* Timezone readout pill */}
+            <div className="mt-4 inline-flex max-w-full items-center gap-2 border border-border bg-surface/60 px-2.5 py-1 text-[10px] text-muted">
+              <ClockIcon className="h-3 w-3 shrink-0 text-accent-strong" />
+              <span className="uppercase tracking-[0.1em] text-faint">Local Timezone:</span>
+              <TimezoneSelector className="shrink-0 font-mono text-[11px]" />
             </div>
           </div>
 
-          {/* Bento Telemetry Strip */}
-          <div className="grid grid-cols-2 gap-2.5 pt-1 sm:grid-cols-4 sm:gap-3">
-            {/* Bento Pod 1: Week Total */}
-            <div className="flex flex-col rounded-2xl border border-border-subtle bg-surface-2/50 p-3 backdrop-blur-md">
-              <div className="flex items-center gap-1.5 text-[11px] font-semibold text-muted">
-                <CalendarIcon className="h-3 w-3 text-accent-strong" />
-                <span>Week Airings</span>
-              </div>
-              <div className="mt-1 flex items-baseline gap-1">
-                <span className="font-display text-lg font-bold tabular-nums text-fg sm:text-xl">
-                  {allEntries.length}
-                </span>
-                <span className="text-[11px] text-faint">episodes</span>
-              </div>
-            </div>
+          {/* Spotlight Frame: Next Upcoming Airing */}
+          {nextUpcomingEntry ? (
+            <div className="relative aspect-[16/10] overflow-hidden border border-border bg-surface-2">
+              {heroBackdrop && isHttpUrl(heroBackdrop) ? (
+                <Image
+                  src={heroBackdrop}
+                  alt=""
+                  fill
+                  priority
+                  unoptimized
+                  sizes="(max-width: 1024px) 100vw, 380px"
+                  className="object-cover object-top opacity-55 transition-transform duration-700 hover:scale-105"
+                />
+              ) : (
+                <div className="absolute inset-0 bg-surface-3" />
+              )}
+              <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/30 to-black/10" />
 
-            {/* Bento Pod 2: Today's Releases */}
-            <div className="flex flex-col rounded-2xl border border-border-subtle bg-surface-2/50 p-3 backdrop-blur-md">
-              <div className="flex items-center gap-1.5 text-[11px] font-semibold text-emerald-300 light:text-emerald-700">
-                <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 shadow-[0_0_6px_rgba(52,211,153,0.8)]" />
-                <span>Today&apos;s Broadcasts</span>
-              </div>
-              <div className="mt-1 flex items-baseline gap-1">
-                <span className="font-display text-lg font-bold tabular-nums text-fg sm:text-xl">
-                  {localDays.find((d) => d.isToday)?.entries.length ?? 0}
-                </span>
-                <span className="text-[11px] text-faint">airing today</span>
-              </div>
-            </div>
-
-            {/* Bento Pod 3: Watchlist Episodes */}
-            <div className="flex flex-col rounded-2xl border border-border-subtle bg-surface-2/50 p-3 backdrop-blur-md">
-              <div className="flex items-center gap-1.5 text-[11px] font-semibold text-purple-300 light:text-purple-700">
-                <FlameIcon className="h-3 w-3 text-purple-400 light:text-purple-700" />
-                <span>Watchlist Queue</span>
-              </div>
-              <div className="mt-1 flex items-baseline gap-1">
-                <span className="font-display text-lg font-bold tabular-nums text-fg sm:text-xl">
-                  {totalWatchingInWeek}
-                </span>
-                <span className="text-[11px] text-faint">tracked series</span>
-              </div>
-            </div>
-
-            {/* Bento Pod 4: Next Airing Countdown */}
-            <div className="flex flex-col rounded-2xl border border-border-subtle bg-surface-2/50 p-3 backdrop-blur-md">
-              <div className="flex items-center gap-1.5 text-[11px] font-semibold text-amber-300 light:text-amber-700">
-                <span className="h-1.5 w-1.5 rounded-full bg-amber-400 radar-live-dot" />
+              <span className="absolute right-2.5 top-2.5 inline-flex items-center gap-1 border border-accent/40 bg-black/80 px-2 py-0.5 font-mono text-[9px] font-semibold text-accent-strong backdrop-blur-md">
+                <span className="h-1.5 w-1.5 rounded-full bg-accent-strong radar-live-dot" />
                 <span>Next Upcoming</span>
-              </div>
-              <div className="mt-1 flex items-baseline gap-1">
-                {nextUpcomingEntry ? (
-                  <span
-                    className="truncate font-display text-xs font-semibold text-fg"
-                    title={getDisplayTitle(nextUpcomingEntry.media.title, true)}
+              </span>
+
+              <OpticalGlass
+                variant="card"
+                className="absolute inset-x-2.5 bottom-2.5 flex items-center gap-2.5 p-2 sm:gap-3 sm:p-2.5"
+              >
+                <Link
+                  href={`/media/${nextUpcomingEntry.media.id}`}
+                  className="relative aspect-[2/3] w-10 shrink-0 overflow-hidden border border-white/20 sm:w-11"
+                >
+                  {nextUpcomingEntry.media.coverImage?.extraLarge ||
+                  nextUpcomingEntry.media.coverImage?.large ? (
+                    <Image
+                      src={
+                        nextUpcomingEntry.media.coverImage.extraLarge ??
+                        nextUpcomingEntry.media.coverImage.large ??
+                        ""
+                      }
+                      alt=""
+                      fill
+                      unoptimized
+                      sizes="44px"
+                      className="object-cover"
+                    />
+                  ) : (
+                    <span className="absolute inset-0 bg-white/10" />
+                  )}
+                </Link>
+
+                <div className="min-w-0 flex-1">
+                  <p className="text-[8px] font-semibold uppercase tracking-[0.2em] text-accent-strong">
+                    Episode {nextUpcomingEntry.episode}
+                  </p>
+                  <Link
+                    href={`/media/${nextUpcomingEntry.media.id}`}
+                    className="mt-0.5 block truncate font-display text-[13px] font-medium leading-tight text-white transition-colors hover:text-accent-strong"
+                    title={nextUpcomingTitle ?? ""}
                   >
+                    {nextUpcomingTitle}
+                  </Link>
+                  <p className="mt-0.5 truncate font-mono text-[10px] text-white/70 tabular-nums">
                     {formatAiringRelative(nextUpcomingEntry.airingAt, nowMs).label}
-                  </span>
-                ) : (
-                  <span className="text-xs text-faint">None remaining</span>
-                )}
-              </div>
+                  </p>
+                </div>
+
+                <Link
+                  href={`/media/${nextUpcomingEntry.media.id}`}
+                  aria-label={`Open ${nextUpcomingTitle}`}
+                  className="flex h-7 w-7 shrink-0 items-center justify-center border border-white/25 text-white/85 transition-colors hover:border-accent hover:text-accent-strong"
+                >
+                  <ChevronRightIcon className="h-3 w-3" />
+                </Link>
+              </OpticalGlass>
             </div>
+          ) : null}
+        </div>
+
+        {/* Telemetry Strip / Metric Pods */}
+        <div className="mt-6 grid grid-cols-2 gap-2.5 border-t border-border pt-4 sm:grid-cols-4 sm:gap-3">
+          <div className="flex flex-col border border-border bg-surface/40 p-3">
+            <span className="inline-flex items-center gap-1.5 text-[9px] font-semibold uppercase tracking-[0.16em] text-muted">
+              <CalendarIcon className="h-2.5 w-2.5 text-accent-strong" />
+              Week Airings
+            </span>
+            <span className="mt-1 font-mono text-xl font-bold tabular-nums text-fg">
+              {allEntries.length}
+            </span>
+            <span className="text-[10px] uppercase tracking-[0.08em] text-faint">
+              total broadcasts
+            </span>
+          </div>
+
+          <div className="flex flex-col border border-border bg-surface/40 p-3">
+            <span className="inline-flex items-center gap-1.5 text-[9px] font-semibold uppercase tracking-[0.16em] text-success">
+              <span className="h-1.5 w-1.5 rounded-full bg-success shadow-[0_0_6px_rgba(52,211,153,0.8)]" />
+              Today&apos;s Airings
+            </span>
+            <span className="mt-1 font-mono text-xl font-bold tabular-nums text-fg">
+              {localDays.find((d) => d.isToday)?.entries.length ?? 0}
+            </span>
+            <span className="text-[10px] uppercase tracking-[0.08em] text-faint">
+              episodes today
+            </span>
+          </div>
+
+          <div className="flex flex-col border border-border bg-surface/40 p-3">
+            <span className="inline-flex items-center gap-1.5 text-[9px] font-semibold uppercase tracking-[0.16em] text-accent-strong">
+              <FlameIcon className="h-2.5 w-2.5" />
+              Watchlist Queue
+            </span>
+            <span className="mt-1 font-mono text-xl font-bold tabular-nums text-fg">
+              {totalWatchingInWeek}
+            </span>
+            <span className="text-[10px] uppercase tracking-[0.08em] text-faint">
+              tracked series
+            </span>
+          </div>
+
+          <div className="flex flex-col border border-border bg-surface/40 p-3">
+            <span className="inline-flex items-center gap-1.5 text-[9px] font-semibold uppercase tracking-[0.16em] text-amber-400">
+              <ClockIcon className="h-2.5 w-2.5 text-amber-400" />
+              Next Airing
+            </span>
+            <span className="mt-1 truncate font-mono text-xs font-semibold tabular-nums text-fg sm:text-sm">
+              {nextUpcomingEntry
+                ? formatAiringRelative(nextUpcomingEntry.airingAt, nowMs).label
+                : "None"}
+            </span>
+            <span className="text-[10px] uppercase tracking-[0.08em] text-faint">
+              countdown
+            </span>
           </div>
         </div>
       </header>
 
-      {/* 7-Day Studio Broadcast Dock (Mon - Sun) */}
-      <div className="rounded-2xl border border-border-subtle bg-surface/70 p-2 backdrop-blur-md shadow-xs">
-        <div
-          role="group"
-          aria-label="Filter by day of week"
-          className="no-scrollbar flex gap-2 overflow-x-auto sm:grid sm:grid-cols-7"
-        >
-          {localDays.map((day) => {
-            const isSelected = day.date === selectedDate;
-            const dayWatchingCount = day.entries.filter((e) =>
-              watchingSet.has(e.mediaId),
-            ).length;
+      {/* 7-Day Ruled Segmented Broadcast Dock */}
+      <div
+        role="group"
+        aria-label="Filter by day of week"
+        className="no-scrollbar flex gap-1.5 overflow-x-auto border-y border-border py-2.5 sm:grid sm:grid-cols-7 sm:gap-2"
+      >
+        {localDays.map((day) => {
+          const isSelected = day.date === selectedDate;
+          const dayWatchingCount = day.entries.filter((e) =>
+            watchingSet.has(e.mediaId),
+          ).length;
 
-            return (
-              <button
-                key={day.date}
-                type="button"
-                aria-pressed={isSelected}
-                aria-label={`${day.dayName} ${day.dayNumber}, ${day.entries.length} releases`}
-                onClick={() => setSelectedDate(day.date)}
-                className={cn(
-                  "group relative flex min-w-[76px] shrink-0 flex-col items-center justify-center rounded-xl border p-2.5 text-center transition-all duration-150 ease-out select-none sm:min-w-0 sm:shrink active:scale-[0.98]",
-                  isSelected
-                    ? "border-accent/60 bg-accent-soft shadow-[0_0_12px_rgba(139,92,246,0.25)]"
-                    : "border-transparent bg-transparent hover:bg-surface-2",
-                )}
-              >
-                {/* Day Name or Today Badge */}
-                {day.isToday ? (
-                  <span className="rounded-md border border-accent/40 bg-accent/20 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider text-accent-strong">
-                    Today
-                  </span>
-                ) : (
-                  <span
-                    className={cn(
-                      "text-[11px] font-semibold transition-colors",
-                      isSelected
-                        ? "text-fg"
-                        : "text-muted group-hover:text-fg",
-                    )}
-                  >
-                    {day.dayShort}
-                  </span>
-                )}
-
-                {/* Day Number */}
+          return (
+            <button
+              key={day.date}
+              type="button"
+              aria-pressed={isSelected}
+              aria-label={`${day.dayName} ${day.dayNumber}, ${day.entries.length} releases`}
+              onClick={() => setSelectedDate(day.date)}
+              className={cn(
+                "group relative flex min-w-[76px] shrink-0 flex-col items-center justify-center border p-2 text-center transition-colors select-none sm:min-w-0 sm:shrink",
+                isSelected
+                  ? "border-accent bg-accent-soft/40"
+                  : "border-border bg-surface/40 hover:border-accent/40 hover:bg-surface",
+              )}
+            >
+              {/* Day Name or Today Badge */}
+              {day.isToday ? (
+                <span className="border border-accent/40 bg-accent/20 px-1 py-0.5 text-[8px] font-bold uppercase tracking-[0.12em] text-accent-strong">
+                  Today
+                </span>
+              ) : (
                 <span
                   className={cn(
-                    "mt-1 font-display text-xl font-bold tabular-nums transition-colors",
-                    isSelected ? "text-accent-strong" : "text-fg",
+                    "text-[9px] font-semibold uppercase tracking-[0.14em] transition-colors",
+                    isSelected ? "text-fg" : "text-muted group-hover:text-fg",
                   )}
                 >
-                  {day.dayNumber}
+                  {day.dayShort}
+                </span>
+              )}
+
+              {/* Day Number */}
+              <span
+                className={cn(
+                  "mt-1 font-mono text-xl font-bold tabular-nums transition-colors",
+                  isSelected ? "text-accent-strong" : "text-fg",
+                )}
+              >
+                {day.dayNumber}
+              </span>
+
+              {/* Release Count and Watchlist Dot */}
+              <div className="mt-1 flex items-center gap-1.5 font-mono text-[10px] tabular-nums">
+                <span className={isSelected ? "text-accent-strong" : "text-faint"}>
+                  {day.entries.length} eps
                 </span>
 
-                {/* Release Count and Watchlist Dot */}
-                <div className="mt-1 flex items-center gap-1.5 text-[11px] tabular-nums">
+                {dayWatchingCount > 0 ? (
                   <span
-                    className={cn(
-                      "rounded-full px-1.5 py-0.5 text-[10px] font-medium",
-                      isSelected
-                        ? "bg-accent/30 text-accent-strong"
-                        : "bg-surface-3 text-muted",
-                    )}
-                  >
-                    {day.entries.length} eps
-                  </span>
-
-                  {dayWatchingCount > 0 ? (
-                    <span
-                      title={`${dayWatchingCount} in your watchlist`}
-                      className="h-2 w-2 rounded-full bg-purple-400 shadow-[0_0_6px_rgba(168,85,247,0.9)]"
-                    />
-                  ) : null}
-                </div>
-              </button>
-            );
-          })}
-        </div>
+                    title={`${dayWatchingCount} in your watchlist`}
+                    className="h-1.5 w-1.5 rounded-full bg-accent-strong radar-live-dot"
+                  />
+                ) : null}
+              </div>
+            </button>
+          );
+        })}
       </div>
 
-      {/* Control Bar: Filter (All vs Watching) & Search Input */}
+      {/* Control Bar: Filter Mode (All vs Watching) & Search Input */}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         {/* All vs Watching segmented filter */}
         <div
           role="group"
           aria-label="Filter schedule releases"
-          className="flex rounded-xl border border-border-subtle bg-surface/70 p-1 backdrop-blur-md"
+          className="inline-flex border border-border bg-surface/40 p-0.5"
         >
           <button
             type="button"
             aria-pressed={filterMode === "all"}
             onClick={() => setFilterMode("all")}
             className={cn(
-              "inline-flex items-center gap-2 rounded-lg px-3.5 py-1.5 text-xs font-semibold transition-all duration-150 active:scale-95",
+              "h-8 border-r border-border px-3.5 text-[10px] font-semibold uppercase tracking-[0.12em] transition-colors inline-flex items-center gap-1.5",
               filterMode === "all"
-                ? "border border-accent/40 bg-accent-soft text-accent-strong shadow-xs"
-                : "text-muted hover:text-fg",
+                ? "bg-accent text-accent-contrast"
+                : "text-muted hover:bg-surface-2 hover:text-fg",
             )}
           >
             <span>All Releases</span>
-            <span className="rounded-full bg-surface-3 px-1.5 py-0.5 text-[10px] font-bold tabular-nums text-muted">
-              {activeDay?.entries.length ?? 0}
+            <span className="font-mono text-[9px] font-bold tabular-nums opacity-80">
+              ({activeDay?.entries.length ?? 0})
             </span>
           </button>
 
@@ -500,17 +538,19 @@ export function ScheduleBrowser({
             aria-pressed={filterMode === "watching"}
             onClick={() => setFilterMode("watching")}
             className={cn(
-              "inline-flex items-center gap-2 rounded-lg px-3.5 py-1.5 text-xs font-semibold transition-all duration-150 active:scale-95",
+              "h-8 px-3.5 text-[10px] font-semibold uppercase tracking-[0.12em] transition-colors inline-flex items-center gap-1.5",
               filterMode === "watching"
-                ? "border border-purple-500/50 bg-purple-500/20 text-purple-200 light:bg-purple-500/10 light:text-purple-700 shadow-[0_0_10px_rgba(168,85,247,0.25)]"
-                : "text-muted hover:text-fg",
+                ? "bg-accent text-accent-contrast"
+                : "text-muted hover:bg-surface-2 hover:text-fg",
             )}
           >
-            <span className="h-1.5 w-1.5 rounded-full bg-purple-400 shadow-[0_0_6px_rgba(168,85,247,0.8)]" />
+            <span className="h-1.5 w-1.5 rounded-full bg-accent-strong" />
             <span>My Watchlist</span>
-            <span className="rounded-full bg-surface-3 px-1.5 py-0.5 text-[10px] font-bold tabular-nums text-purple-300 light:text-purple-700">
+            <span className="font-mono text-[9px] font-bold tabular-nums opacity-80">
+              (
               {activeDay?.entries.filter((e) => watchingSet.has(e.mediaId))
                 .length ?? 0}
+              )
             </span>
           </button>
         </div>
@@ -520,7 +560,7 @@ export function ScheduleBrowser({
           <label htmlFor="schedule-day-search" className="sr-only">
             Filter today&apos;s releases
           </label>
-          <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-faint">
+          <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-2.5 text-faint">
             <SearchIcon className="h-3.5 w-3.5" />
           </div>
           <input
@@ -528,19 +568,19 @@ export function ScheduleBrowser({
             type="search"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Filter by title…"
-            className="h-10 w-full rounded-xl border border-border-subtle bg-surface/70 pl-8 pr-3 text-xs text-fg placeholder:text-faint/70 transition-all focus:border-accent focus:bg-surface-2 focus:outline-none focus:ring-1 focus:ring-accent [&::-webkit-search-cancel-button]:appearance-none [&::-webkit-search-cancel-button]:hidden [&::-webkit-search-decoration]:appearance-none"
+            placeholder="Search titles airing on this day…"
+            className="h-8 w-full border border-border bg-bg/60 pl-8 pr-3 text-[13px] text-fg placeholder:text-faint/70 transition-colors focus:border-accent focus:bg-surface focus:outline-none [&::-webkit-search-cancel-button]:appearance-none [&::-webkit-search-cancel-button]:hidden [&::-webkit-search-decoration]:appearance-none"
           />
         </div>
       </div>
 
       {/* Active Day Releases Header & Grid */}
       <div className="space-y-4">
-        <div className="flex items-center justify-between gap-3">
-          <h2 className="font-display text-base font-semibold text-fg sm:text-lg">
+        <div className="flex items-center justify-between border-b border-border pb-2">
+          <h2 className="font-display text-sm font-semibold uppercase tracking-[0.1em] text-fg sm:text-base">
             {activeDay ? formatDayHeading(activeDay.date) : ""}
           </h2>
-          <span className="rounded-full border border-border-subtle bg-surface-2 px-2.5 py-1 text-xs font-medium tabular-nums text-muted">
+          <span className="font-mono text-[11px] tabular-nums text-faint">
             {filteredEntries.length}{" "}
             {filteredEntries.length === 1 ? "release" : "releases"}
           </span>
@@ -548,7 +588,7 @@ export function ScheduleBrowser({
 
         {filteredEntries.length === 0 ? (
           <EmptyState
-            icon={<CalendarIcon className="h-7 w-7 text-faint" />}
+            icon={<CalendarIcon className="h-6 w-6 text-faint" />}
             title={
               filterMode === "watching"
                 ? "No tracked anime air on this day"
@@ -565,27 +605,25 @@ export function ScheduleBrowser({
             }
             action={
               filterMode === "watching" ? (
-                <Button
-                  variant="secondary"
-                  size="sm"
+                <button
+                  type="button"
                   onClick={() => setFilterMode("all")}
-                  className="rounded-xl"
+                  className="inline-flex h-8 items-center border border-border bg-surface px-3 text-[10px] font-semibold uppercase tracking-[0.1em] text-fg transition-colors hover:border-accent hover:text-accent-strong"
                 >
                   View all releases
-                </Button>
+                </button>
               ) : searchQuery ? (
-                <Button
-                  variant="secondary"
-                  size="sm"
+                <button
+                  type="button"
                   onClick={() => setSearchQuery("")}
-                  className="rounded-xl"
+                  className="inline-flex h-8 items-center border border-border bg-surface px-3 text-[10px] font-semibold uppercase tracking-[0.1em] text-fg transition-colors hover:border-accent hover:text-accent-strong"
                 >
                   Clear search
-                </Button>
+                </button>
               ) : (
                 <Link
                   href="/discover"
-                  className="inline-flex h-9 items-center rounded-xl border border-border-subtle bg-surface-2 px-4 text-xs font-semibold text-fg transition-colors hover:border-border hover:bg-surface-3"
+                  className="inline-flex h-8 items-center border border-border bg-surface px-3 text-[10px] font-semibold uppercase tracking-[0.1em] text-fg transition-colors hover:border-accent hover:text-accent-strong"
                 >
                   Explore anime in Discover
                 </Link>
@@ -656,7 +694,6 @@ function ScheduleReleaseCard({
   const tzAbbr = getTimeZoneAbbr(entry.airingAt, timeZone);
   const relative = formatAiringRelative(entry.airingAt, nowMs);
 
-  // Check if this specific episode has been watched. Individual records are the source of truth when present.
   const isWatched =
     watchedEpisodes.length > 0
       ? watchedEpisodes.includes(entry.episode)
@@ -677,24 +714,24 @@ function ScheduleReleaseCard({
   return (
     <article
       className={cn(
-        "group relative flex gap-3.5 rounded-2xl border p-3.5 backdrop-blur-md transition-all duration-200 hover:-translate-y-0.5 hover:shadow-xl",
+        "group relative flex gap-3 border p-3 transition-colors",
         inWatching
-          ? "border-purple-500/40 bg-purple-500/10 shadow-[0_0_15px_rgba(168,85,247,0.12)] hover:border-purple-500/60"
-          : "border-border-subtle bg-surface/75 hover:border-border hover:bg-surface-2/80",
+          ? "border-accent/50 bg-accent-soft/20"
+          : "border-border bg-surface/60 hover:border-accent/40 hover:bg-surface",
       )}
     >
-      {/* Accent beacon rail on watchlist entries */}
+      {/* Accent left indicator rail on watchlist entries */}
       {inWatching ? (
         <span
           aria-hidden="true"
-          className="absolute inset-y-3.5 left-0 w-1 rounded-r-full bg-purple-400 shadow-[0_0_8px_rgba(168,85,247,0.9)]"
+          className="absolute inset-y-0 left-0 w-[2px] bg-accent"
         />
       ) : null}
 
-      {/* Poster Artwork with direct CDN delivery */}
+      {/* Poster Artwork Container */}
       <Link
         href={`/media/${anime.id}`}
-        className="relative block h-[122px] w-[82px] shrink-0 overflow-hidden rounded-xl border border-border-subtle bg-surface-3 shadow-md"
+        className="relative aspect-[2/3] w-20 shrink-0 overflow-hidden border border-border bg-surface-2 sm:w-24"
         aria-label={`Open details for ${title}`}
       >
         {cover && isHttpUrl(cover) ? (
@@ -703,17 +740,15 @@ function ScheduleReleaseCard({
             alt=""
             fill
             unoptimized
-            sizes="82px"
-            className="object-cover transition-transform duration-300 ease-out group-hover:scale-105"
+            sizes="96px"
+            className="object-cover transition-transform duration-300 group-hover:scale-105"
           />
         ) : (
           <PosterFallback color={anime.coverImage.color} />
         )}
 
-        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent" />
-
-        {/* Episode badge overlay on artwork */}
-        <span className="absolute bottom-1.5 inset-x-1.5 rounded-md border border-white/20 bg-black/85 px-1 py-0.5 text-center text-[10px] font-bold text-amber-300 backdrop-blur-md">
+        {/* Flush Episode chip at bottom of artwork */}
+        <span className="absolute inset-x-0 bottom-0 bg-bg/90 py-0.5 text-center font-mono text-[9px] font-semibold text-fg tabular-nums">
           Ep {entry.episode}
         </span>
       </Link>
@@ -723,13 +758,13 @@ function ScheduleReleaseCard({
         <div>
           {/* Airing Timestamp & Countdown Header */}
           <div className="flex flex-wrap items-center justify-between gap-1 text-[11px]">
-            <div className="flex items-center gap-1.5">
+            <div className="flex items-center gap-1 font-mono text-[10px]">
               <span
                 suppressHydrationWarning
-                className="font-mono font-semibold tabular-nums text-fg"
+                className="font-semibold tabular-nums text-fg"
               >
                 {airingTimeStr}{" "}
-                <span className="text-[10px] font-medium text-faint">
+                <span className="text-[9px] font-normal text-faint">
                   {tzAbbr}
                 </span>
               </span>
@@ -738,12 +773,12 @@ function ScheduleReleaseCard({
                 className={cn(
                   "font-medium",
                   relative.hasAired
-                    ? "text-muted"
+                    ? "text-faint"
                     : "text-accent-strong font-semibold flex items-center gap-1",
                 )}
               >
                 {!relative.hasAired && (
-                  <span className="h-1.5 w-1.5 rounded-full bg-accent-strong radar-live-dot" />
+                  <span className="h-1 w-1 rounded-full bg-accent-strong radar-live-dot" />
                 )}
                 <span>{relative.label}</span>
               </span>
@@ -751,37 +786,29 @@ function ScheduleReleaseCard({
 
             {/* In-Watchlist Badge or Status Badge */}
             {inWatching ? (
-              <span className="inline-flex items-center gap-1 rounded-full border border-purple-500/40 bg-purple-500/20 px-2 py-0.5 text-[10px] font-semibold text-purple-300 light:text-purple-700">
-                <span
-                  aria-hidden="true"
-                  className="h-1 w-1 rounded-full bg-purple-400 shadow-[0_0_4px_rgba(168,85,247,0.8)]"
-                />
+              <span className="inline-flex items-center gap-1 border border-accent/40 bg-accent/15 px-1.5 py-0.5 text-[8px] font-semibold uppercase tracking-[0.1em] text-accent-strong">
                 Watching
               </span>
             ) : libraryEntry ? (
               <StatusBadge
                 status={libraryEntry.status}
-                className="text-[10px] px-2 py-0.5"
+                className="text-[8px] px-1.5 py-0.5 uppercase tracking-[0.1em]"
               />
             ) : null}
           </div>
 
           {/* Anime Title */}
-          <Link
-            href={`/media/${anime.id}`}
-            className="mt-1 line-clamp-2-safe font-display text-sm font-semibold leading-snug text-fg transition-colors hover:text-accent-strong"
-            title={title}
-          >
-            {title}
-          </Link>
+          <h3 className="mt-1 line-clamp-2 font-display text-[13px] font-medium leading-snug text-fg transition-colors group-hover:text-accent-strong" title={title}>
+            <Link href={`/media/${anime.id}`}>{title}</Link>
+          </h3>
 
           {/* Subtitle Metadata */}
-          <div className="mt-1 flex items-center gap-2 text-[11px] text-faint">
+          <div className="mt-1 flex items-center gap-2 text-[8px] font-medium uppercase tracking-[0.14em] text-faint">
             {formatText && <span>{formatText}</span>}
             {anime.seasonYear && <span>· {anime.seasonYear}</span>}
             {score && (
-              <span className="inline-flex items-center gap-1 font-semibold text-amber-300 light:text-amber-700">
-                · <StarIcon className="h-2.5 w-2.5 fill-current" />
+              <span className="inline-flex items-center gap-0.5 font-mono text-[9px] font-semibold text-amber-400 tabular-nums">
+                · <StarIcon className="h-2 w-2 fill-current" />
                 {score}
               </span>
             )}
@@ -796,10 +823,10 @@ function ScheduleReleaseCard({
                 type="button"
                 disabled={isPending || toggling}
                 onClick={handleMarkWatched}
-                className="inline-flex h-8 items-center gap-1.5 rounded-xl border border-emerald-500/30 bg-emerald-500/15 px-3 text-xs font-semibold text-emerald-400 light:text-emerald-700 transition-all hover:bg-emerald-500/25 active:scale-95"
+                className="inline-flex h-7 items-center gap-1 border border-success/30 bg-success-soft/20 px-2 text-[9px] font-semibold uppercase tracking-[0.1em] text-success transition-colors hover:bg-success-soft/40"
                 aria-label={`Unmark Episode ${entry.episode}`}
               >
-                <CheckIcon className="h-3.5 w-3.5" />
+                <CheckIcon className="h-3 w-3" />
                 <span>Watched</span>
               </button>
             ) : relative.hasAired ? (
@@ -807,16 +834,16 @@ function ScheduleReleaseCard({
                 type="button"
                 disabled={isPending || toggling}
                 onClick={handleMarkWatched}
-                className="inline-flex h-8 items-center gap-1.5 rounded-xl border border-accent/40 bg-accent/15 px-3 text-xs font-semibold text-fg transition-all hover:border-accent hover:bg-accent hover:text-white active:scale-95 disabled:opacity-50"
+                className="inline-flex h-7 items-center gap-1 border border-border bg-surface px-2.5 text-[9px] font-semibold uppercase tracking-[0.1em] text-fg transition-colors hover:border-accent hover:bg-accent hover:text-accent-contrast disabled:opacity-50"
               >
                 {toggling ? (
-                  <span className="inline-flex items-center gap-1.5">
-                    <LoaderIcon className="h-3 w-3 animate-spin" />
+                  <span className="inline-flex items-center gap-1">
+                    <LoaderIcon className="h-2.5 w-2.5 animate-spin" />
                     <span>Saving…</span>
                   </span>
                 ) : (
                   <>
-                    <PlusIcon className="h-3 w-3 text-accent-strong" />
+                    <PlusIcon className="h-2.5 w-2.5" />
                     <span>Mark Ep {entry.episode} Watched</span>
                   </>
                 )}
@@ -824,27 +851,27 @@ function ScheduleReleaseCard({
             ) : inWatching ? (
               <span
                 suppressHydrationWarning
-                className="inline-flex h-8 items-center gap-1.5 text-xs font-medium text-faint"
+                className="inline-flex h-7 items-center gap-1 text-[10px] font-medium text-faint"
               >
-                <ClockIcon className="h-3.5 w-3.5 text-muted" />
+                <ClockIcon className="h-3 w-3 text-muted" />
                 <span>Airs {airingTimeStr}</span>
               </span>
             ) : (
               <button
                 type="button"
                 onClick={() => onRequestAdd(anime)}
-                className="inline-flex h-8 items-center gap-1.5 rounded-xl border border-border-subtle bg-surface-2 px-3 text-xs font-medium text-muted transition-all hover:border-accent/40 hover:bg-surface-3 hover:text-fg active:scale-95"
+                className="inline-flex h-7 items-center gap-1 border border-border bg-surface px-2.5 text-[9px] font-semibold uppercase tracking-[0.1em] text-muted transition-colors hover:border-accent hover:text-fg"
               >
-                <PlusIcon className="h-3 w-3" />
+                <PlusIcon className="h-2.5 w-2.5" />
                 <span>Track Anime</span>
               </button>
             )
           ) : (
             <Link
               href={`/media/${anime.id}`}
-              className="inline-flex h-8 items-center gap-1 text-xs font-medium text-muted hover:text-fg"
+              className="inline-flex h-7 items-center text-[10px] font-semibold uppercase tracking-[0.1em] text-accent-strong hover:underline"
             >
-              View details →
+              View details &rarr;
             </Link>
           )}
         </div>

@@ -96,6 +96,7 @@ export function AnimePosterCard({
               src={cover}
               alt=""
               fill
+              unoptimized
               sizes={sizes}
               priority={priority}
               className="object-cover transition-transform duration-500 ease-out group-hover:scale-[1.03]"
@@ -205,6 +206,7 @@ export function AnimePosterCard({
           src={cover}
           alt=""
           fill
+          unoptimized
           sizes={sizes}
           priority={priority}
           className="object-cover transition-transform duration-300 ease-out group-hover:scale-105"

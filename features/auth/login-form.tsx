@@ -6,6 +6,7 @@ import { useMemo, useState } from "react";
 import {
   AlertIcon,
   CheckIcon,
+  ChevronRightIcon,
   CompassIcon,
   EyeIcon,
   EyeOffIcon,
@@ -16,8 +17,10 @@ import {
 import { Button } from "@/components/ui/button";
 import { Field, Input } from "@/components/ui/field";
 import { LinkButton } from "@/components/ui/link-button";
+import { OpticalGlass } from "@/components/ui/optical-glass";
 import { getSupabaseBrowserClient } from "@/lib/supabase/client";
 import { SUPABASE_ENV_VARS } from "@/lib/supabase/config";
+import { cn } from "@/lib/utils";
 
 type AuthMode = "signin" | "signup" | "forgot";
 
@@ -99,7 +102,7 @@ export function LoginForm({
       : mode === "signin"
         ? "Welcome back"
         : mode === "signup"
-          ? "Create your vault"
+          ? "Create personal vault"
           : "Reset your password";
 
   const subtitle =
@@ -211,46 +214,45 @@ export function LoginForm({
 
   if (!configured) {
     return (
-      <div className="relative w-full max-w-md">
-        <div className="pointer-events-none absolute -inset-1 rounded-3xl bg-amber-500/10 blur-xl" />
-        <div className="relative rounded-3xl border border-border bg-surface/90 p-6 sm:p-8 shadow-2xl backdrop-blur-2xl ring-1 ring-border">
-          <span className="flex h-11 w-11 items-center justify-center rounded-2xl border border-warning/30 bg-warning/10 text-warning shadow-inner">
-            <AlertIcon className="h-5 w-5" />
-          </span>
-          <h1 className="mt-4 font-display text-xl font-bold text-fg sm:text-2xl">
-            Connect Supabase to enable accounts
-          </h1>
-          <p className="mt-2 text-xs leading-relaxed text-muted sm:text-sm">
-            Discovery and anime details already operate live with the public AniList
-            GraphQL API. Cloud authentication and your personal library require a Supabase project.
+      <div className="relative w-full max-w-md border border-border bg-surface/90 p-6 sm:p-8 backdrop-blur-xl">
+        <div className="flex h-10 w-10 items-center justify-center border border-warning/40 bg-warning/10 text-warning">
+          <AlertIcon className="h-5 w-5" />
+        </div>
+        <h1 className="mt-4 font-display text-xl font-semibold text-fg sm:text-2xl">
+          Connect Supabase to enable accounts
+        </h1>
+        <p className="mt-2 text-xs leading-relaxed text-muted sm:text-sm">
+          Discovery and anime details already operate live with the public AniList
+          GraphQL API. Cloud authentication and your personal library require a Supabase project.
+        </p>
+
+        <div className="mt-4 border border-border bg-surface-2/60 p-3.5">
+          <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-faint">
+            Required environment variables
           </p>
-          <div className="mt-4 rounded-xl border border-border-subtle bg-surface-2/80 p-3.5 backdrop-blur-md">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-faint">
-              Required environment variables
-            </p>
-            <ul className="mt-2 space-y-1 font-mono text-[11px] text-muted">
-              {SUPABASE_ENV_VARS.map((name) => (
-                <li key={name} className="flex items-center gap-1.5">
-                  <span className="h-1.5 w-1.5 rounded-full bg-accent/60" />
-                  <span>{name}</span>
-                </li>
-              ))}
-            </ul>
-          </div>
-          <p className="mt-4 text-xs leading-relaxed text-faint">
-            Copy <code className="text-fg/80">.env.example</code> to{" "}
-            <code className="text-fg/80">.env.local</code> and set your project
-            credentials.
-          </p>
-          <div className="mt-6">
-            <LinkButton
-              href="/discover"
-              variant="primary"
-              className="h-11 w-full rounded-xl bg-accent font-semibold text-accent-contrast shadow-lg shadow-accent/25 hover:bg-accent-hover"
-            >
-              Browse anime while you set up
-            </LinkButton>
-          </div>
+          <ul className="mt-2 space-y-1 font-mono text-[11px] text-muted">
+            {SUPABASE_ENV_VARS.map((name) => (
+              <li key={name} className="flex items-center gap-1.5">
+                <span className="h-1.5 w-1.5 bg-accent" />
+                <span>{name}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+
+        <p className="mt-4 font-mono text-[11px] leading-relaxed text-faint">
+          Copy <code className="text-fg/80">.env.example</code> to{" "}
+          <code className="text-fg/80">.env.local</code> and set credentials.
+        </p>
+
+        <div className="mt-6">
+          <LinkButton
+            href="/discover"
+            variant="primary"
+            className="h-10 w-full border border-accent bg-accent text-[11px] font-semibold uppercase tracking-[0.14em] text-accent-contrast transition-colors hover:bg-accent-hover"
+          >
+            Browse anime while you set up
+          </LinkButton>
         </div>
       </div>
     );
@@ -258,34 +260,31 @@ export function LoginForm({
 
   if (notice) {
     return (
-      <div className="relative w-full max-w-md">
-        <div className="pointer-events-none absolute -inset-1 rounded-3xl bg-emerald-500/15 blur-xl" />
-        <div className="relative rounded-3xl border border-border bg-surface/90 p-6 sm:p-8 shadow-2xl backdrop-blur-2xl ring-1 ring-border">
-          <span className="flex h-12 w-12 items-center justify-center rounded-2xl border border-emerald-500/30 bg-emerald-500/15 text-emerald-400 light:text-emerald-700 shadow-inner">
-            <CheckIcon className="h-6 w-6" />
-          </span>
-          <h1 className="mt-5 font-display text-2xl font-bold tracking-tight text-fg">
-            {notice.title}
-          </h1>
-          <p className="mt-2 text-sm leading-relaxed text-muted">
-            {notice.body}
-          </p>
-          <div className="mt-6 flex flex-col gap-2.5">
-            <Button
-              variant="primary"
-              onClick={() => switchMode("signin")}
-              className="h-11 w-full rounded-xl bg-accent font-semibold text-accent-contrast shadow-lg shadow-accent/25 hover:bg-accent-hover"
-            >
-              Back to sign in
-            </Button>
-            <LinkButton
-              href="/discover"
-              variant="ghost"
-              className="h-11 w-full rounded-xl border border-border-subtle hover:bg-surface-3"
-            >
-              Keep browsing
-            </LinkButton>
-          </div>
+      <div className="relative w-full max-w-md border border-border bg-surface/90 p-6 sm:p-8 backdrop-blur-xl">
+        <div className="flex h-10 w-10 items-center justify-center border border-emerald-500/40 bg-emerald-500/10 text-emerald-400">
+          <CheckIcon className="h-5 w-5" />
+        </div>
+        <h1 className="mt-4 font-display text-xl font-semibold tracking-tight text-fg sm:text-2xl">
+          {notice.title}
+        </h1>
+        <p className="mt-2 text-xs leading-relaxed text-muted sm:text-sm">
+          {notice.body}
+        </p>
+        <div className="mt-6 flex flex-col gap-2.5">
+          <Button
+            variant="primary"
+            onClick={() => switchMode("signin")}
+            className="h-10 w-full border border-accent bg-accent text-[11px] font-semibold uppercase tracking-[0.14em] text-accent-contrast transition-colors hover:bg-accent-hover"
+          >
+            Back to sign in
+          </Button>
+          <LinkButton
+            href="/discover"
+            variant="ghost"
+            className="h-10 w-full border border-border bg-surface text-[11px] font-semibold uppercase tracking-[0.14em] text-muted hover:border-accent hover:text-fg"
+          >
+            Keep browsing
+          </LinkButton>
         </div>
       </div>
     );
@@ -293,36 +292,43 @@ export function LoginForm({
 
   return (
     <div className="relative w-full max-w-md">
-      {/* Dynamic ambient halo behind login card */}
-      <div className="pointer-events-none absolute -inset-1.5 rounded-3xl bg-gradient-to-tr from-accent/25 via-purple-500/10 to-accent/20 opacity-75 blur-2xl transition-all duration-500" />
-
-      {/* Main Liquid-Glass Container */}
-      <div className="relative rounded-3xl border border-border bg-surface/90 p-6 sm:p-8 shadow-2xl backdrop-blur-2xl ring-1 ring-border-subtle">
+      {/* Main Sharp Architectural Card */}
+      <OpticalGlass
+        variant="card"
+        className="relative border border-border bg-surface/85 p-6 sm:p-8 backdrop-blur-xl"
+      >
         {/* Card Header */}
-        <div className="space-y-1.5">
-          <h2 className="font-display text-2xl font-bold tracking-tight text-fg sm:text-3xl">
+        <div className="border-b border-border pb-3.5">
+          <div className="flex items-center gap-2">
+            <span className="h-1.5 w-1.5 bg-accent" />
+            <span className="text-[9px] font-semibold uppercase tracking-[0.22em] text-accent-strong">
+              Access Ledger · Authentication
+            </span>
+          </div>
+          <h2 className="mt-2 font-display text-2xl font-semibold tracking-tight text-fg sm:text-3xl">
             {title}
           </h2>
-          <p className="text-xs leading-relaxed text-muted sm:text-sm">{subtitle}</p>
+          <p className="mt-1 text-xs leading-relaxed text-muted">{subtitle}</p>
         </div>
 
-        {/* Tab Switcher */}
+        {/* Segmented Mode Switcher */}
         {mode !== "forgot" ? (
           <div
             role="tablist"
             aria-label="Authentication mode"
-            className="mt-6 grid grid-cols-2 gap-1 rounded-2xl border border-border-subtle bg-surface-2/70 p-1 backdrop-blur-md"
+            className="mt-5 grid grid-cols-2 gap-px border border-border bg-border"
           >
             <button
               type="button"
               role="tab"
               aria-selected={mode === "signin"}
               onClick={() => switchMode("signin")}
-              className={`h-10 rounded-xl text-xs sm:text-sm font-semibold transition-all duration-200 ${
+              className={cn(
+                "h-9 text-[10px] font-semibold uppercase tracking-[0.14em] transition-colors",
                 mode === "signin"
-                  ? "bg-surface-3 text-fg shadow-md border border-border"
-                  : "text-muted hover:text-fg hover:bg-surface-3"
-              }`}
+                  ? "bg-accent text-accent-contrast"
+                  : "bg-surface text-muted hover:bg-surface-2 hover:text-fg",
+              )}
             >
               Sign In
             </button>
@@ -331,11 +337,12 @@ export function LoginForm({
               role="tab"
               aria-selected={mode === "signup"}
               onClick={() => switchMode("signup")}
-              className={`h-10 rounded-xl text-xs sm:text-sm font-semibold transition-all duration-200 ${
+              className={cn(
+                "h-9 text-[10px] font-semibold uppercase tracking-[0.14em] transition-colors",
                 mode === "signup"
-                  ? "bg-surface-3 text-fg shadow-md border border-border"
-                  : "text-muted hover:text-fg hover:bg-surface-3"
-              }`}
+                  ? "bg-accent text-accent-contrast"
+                  : "bg-surface text-muted hover:bg-surface-2 hover:text-fg",
+              )}
             >
               Create Account
             </button>
@@ -343,10 +350,10 @@ export function LoginForm({
         ) : null}
 
         {/* Form Fields */}
-        <form onSubmit={handleSubmit} className="mt-6 space-y-4" noValidate>
+        <form onSubmit={handleSubmit} className="mt-5 space-y-4" noValidate>
           <Field label="Email address" htmlFor="auth-email">
             <div className="relative">
-              <span className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-faint">
+              <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-faint">
                 <MailIcon className="h-4 w-4" />
               </span>
               <Input
@@ -362,7 +369,7 @@ export function LoginForm({
                 onChange={(event) => setEmail(event.target.value)}
                 disabled={busy}
                 required
-                className="h-11 sm:h-12 pl-10 rounded-xl border-border bg-surface-2/80 text-sm focus:border-accent focus:ring-2 focus:ring-accent/20"
+                className="h-11 rounded-none border border-border bg-surface-2/60 pl-10 text-sm focus:border-accent focus:bg-surface focus:ring-0"
               />
             </div>
           </Field>
@@ -378,7 +385,7 @@ export function LoginForm({
               }
             >
               <div className="relative">
-                <span className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-faint">
+                <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-faint">
                   <LockIcon className="h-4 w-4" />
                 </span>
                 <Input
@@ -396,13 +403,13 @@ export function LoginForm({
                   value={password}
                   onChange={(event) => setPassword(event.target.value)}
                   disabled={busy}
-                  className="h-11 sm:h-12 pl-10 pr-12 rounded-xl border-border bg-surface-2/80 text-sm focus:border-accent focus:ring-2 focus:ring-accent/20"
+                  className="h-11 rounded-none border border-border bg-surface-2/60 pl-10 pr-11 text-sm focus:border-accent focus:bg-surface focus:ring-0"
                   required
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword((value) => !value)}
-                  className="absolute right-2.5 top-1/2 -translate-y-1/2 rounded-lg p-1.5 text-faint transition-colors hover:bg-surface-3 hover:text-fg"
+                  className="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 text-faint transition-colors hover:text-fg"
                   aria-label={showPassword ? "Hide password" : "Show password"}
                 >
                   {showPassword ? (
@@ -418,7 +425,7 @@ export function LoginForm({
           {mode === "signup" ? (
             <Field label="Confirm password" htmlFor="auth-confirm">
               <div className="relative">
-                <span className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-faint">
+                <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-faint">
                   <LockIcon className="h-4 w-4" />
                 </span>
                 <Input
@@ -430,7 +437,7 @@ export function LoginForm({
                   value={confirmPassword}
                   onChange={(event) => setConfirmPassword(event.target.value)}
                   disabled={busy}
-                  className="h-11 sm:h-12 pl-10 rounded-xl border-border bg-surface-2/80 text-sm focus:border-accent focus:ring-2 focus:ring-accent/20"
+                  className="h-11 rounded-none border border-border bg-surface-2/60 pl-10 text-sm focus:border-accent focus:bg-surface focus:ring-0"
                   required
                 />
               </div>
@@ -440,7 +447,7 @@ export function LoginForm({
           {error ? (
             <div
               role="alert"
-              className="flex items-start gap-2.5 rounded-xl border border-danger/30 bg-danger/10 p-3 text-xs leading-relaxed text-danger"
+              className="flex items-start gap-2.5 border border-danger/40 bg-danger/10 p-3 text-xs leading-relaxed text-danger"
             >
               <AlertIcon className="mt-0.5 h-4 w-4 shrink-0" />
               <span>{error}</span>
@@ -450,7 +457,7 @@ export function LoginForm({
           <Button
             type="submit"
             variant="primary"
-            className="h-12 w-full rounded-xl bg-accent font-semibold text-accent-contrast shadow-lg shadow-accent/25 hover:bg-accent-hover active:scale-[0.98] transition-all"
+            className="h-11 w-full border border-accent bg-accent text-[11px] font-semibold uppercase tracking-[0.14em] text-accent-contrast transition-colors hover:bg-accent-hover active:scale-[0.99] disabled:opacity-50"
             disabled={busy}
           >
             {busy ? (
@@ -459,7 +466,7 @@ export function LoginForm({
                 <span>Authenticating…</span>
               </span>
             ) : mode === "signin" ? (
-              "Sign In to Kaze"
+              "Sign In to Vault"
             ) : mode === "signup" ? (
               "Create Account"
             ) : (
@@ -469,12 +476,12 @@ export function LoginForm({
         </form>
 
         {/* Footer Navigation */}
-        <div className="mt-5 flex flex-wrap items-center justify-between gap-2 border-t border-border-subtle pt-4 text-xs">
+        <div className="mt-5 flex flex-wrap items-center justify-between gap-2 border-t border-border pt-4 text-xs">
           {mode === "signin" ? (
             <button
               type="button"
               onClick={() => switchMode("forgot")}
-              className="text-muted transition-colors hover:text-fg"
+              className="text-[11px] text-muted transition-colors hover:text-fg"
             >
               Forgot your password?
             </button>
@@ -482,25 +489,27 @@ export function LoginForm({
             <button
               type="button"
               onClick={() => switchMode("signin")}
-              className="text-muted transition-colors hover:text-fg"
+              className="text-[11px] text-muted transition-colors hover:text-fg"
             >
               Back to sign in
             </button>
           )}
+
           <LinkButton
             href="/discover"
             variant="ghost"
             size="sm"
-            className="flex items-center gap-1.5 text-xs text-muted hover:text-fg"
+            className="flex items-center gap-1.5 text-[11px] text-muted hover:text-fg"
           >
             <CompassIcon className="h-3.5 w-3.5" />
             <span>Keep browsing</span>
+            <ChevronRightIcon className="h-2.5 w-2.5" />
           </LinkButton>
         </div>
-      </div>
+      </OpticalGlass>
 
-      <p className="mt-4 text-center text-[11px] leading-relaxed text-faint">
-        Your library and episode progress are private to your account and protected by row-level security.
+      <p className="mt-4 text-center font-mono text-[10px] uppercase tracking-[0.12em] text-faint">
+        Private vault isolated by PostgreSQL Row-Level Security (RLS)
       </p>
     </div>
   );

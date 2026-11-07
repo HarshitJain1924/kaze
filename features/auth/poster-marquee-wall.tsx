@@ -79,11 +79,11 @@ function PosterTrack({
         } as React.CSSProperties
       }
     >
-      <div className="flex gap-4 pr-4">
+      <div className="flex gap-3.5 pr-3.5">
         {loopPosters.map((poster, index) => (
           <div
             key={`${poster.id}-${index}`}
-            className="group relative h-40 w-28 shrink-0 overflow-hidden rounded-xl border border-border-subtle bg-surface-2 shadow-xl transition-transform duration-300 sm:h-48 sm:w-32"
+            className="group relative h-40 w-28 shrink-0 overflow-hidden border border-border/80 bg-surface-2 transition-transform duration-300 sm:h-48 sm:w-32"
           >
             <Image
               src={poster.src}
@@ -94,8 +94,8 @@ function PosterTrack({
               priority={index < 4}
             />
             {/* Subtle gloss overlay */}
-            <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent opacity-80" />
-            <div className="absolute inset-0 ring-1 ring-inset ring-white/10 rounded-xl" />
+            <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/25 to-transparent opacity-85" />
+            <div className="absolute inset-0 ring-1 ring-inset ring-white/10" />
           </div>
         ))}
       </div>
@@ -166,7 +166,7 @@ export function MiniPosterMarquee() {
           {loopPosters.map((poster, index) => (
             <div
               key={`mini-${poster.id}-${index}`}
-              className="relative h-28 w-20 shrink-0 overflow-hidden rounded-lg border border-border-subtle"
+              className="relative h-28 w-20 shrink-0 overflow-hidden border border-border/80 bg-surface-2"
             >
               <Image
                 src={poster.src}

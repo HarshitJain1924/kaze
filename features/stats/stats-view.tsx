@@ -6,6 +6,8 @@ import Image from "next/image";
 import Link from "next/link";
 import { useMemo, useState } from "react";
 
+import { EmptyState } from "@/components/empty-state";
+import { ErrorState } from "@/components/error-state";
 import {
   BookmarkIcon,
   ChartIcon,
@@ -20,16 +22,14 @@ import {
   PlayIcon,
   SparklesIcon,
   StarIcon,
-  TrophyIcon,
 } from "@/components/icons";
-import { EmptyState } from "@/components/empty-state";
-import { ErrorState } from "@/components/error-state";
 import { RetryButton } from "@/components/retry-button";
 import { LinkButton } from "@/components/ui/link-button";
+import { OpticalGlass } from "@/components/ui/optical-glass";
+import { useLibrary } from "@/features/library/library-provider";
 import { calculateStats } from "@/features/stats/calculate-stats";
 import type { LibraryStats } from "@/features/stats/calculate-stats";
 import { KazeWrappedModal } from "@/features/stats/kaze-wrapped-modal";
-import { useLibrary } from "@/features/library/library-provider";
 import { WATCH_STATUS_META, WATCH_STATUS_ORDER } from "@/lib/library-meta";
 import { cn, formatFormat, isHttpUrl } from "@/lib/utils";
 import type { AnimeFormat } from "@/types/anime";
@@ -45,8 +45,6 @@ interface OtakuTier {
   level: string;
   minEpisodes: number;
   nextMin: number;
-  badgeClass: string;
-  accentColor: string;
 }
 
 function getOtakuTier(episodes: number): OtakuTier {
@@ -56,8 +54,6 @@ function getOtakuTier(episodes: number): OtakuTier {
       level: "Tier VI",
       minEpisodes: 3000,
       nextMin: 5000,
-      badgeClass: "border-amber-400/50 bg-amber-500/15 text-amber-300 light:text-amber-700",
-      accentColor: "#f59e0b",
     };
   }
   if (episodes >= 1500) {
@@ -66,8 +62,6 @@ function getOtakuTier(episodes: number): OtakuTier {
       level: "Tier V",
       minEpisodes: 1500,
       nextMin: 3000,
-      badgeClass: "border-purple-400/50 bg-purple-500/15 text-purple-300 light:text-purple-700",
-      accentColor: "#a855f7",
     };
   }
   if (episodes >= 750) {
@@ -76,8 +70,6 @@ function getOtakuTier(episodes: number): OtakuTier {
       level: "Tier IV",
       minEpisodes: 750,
       nextMin: 1500,
-      badgeClass: "border-violet-400/50 bg-violet-500/15 text-violet-300 light:text-violet-700",
-      accentColor: "#8b5cf6",
     };
   }
   if (episodes >= 250) {
@@ -86,8 +78,6 @@ function getOtakuTier(episodes: number): OtakuTier {
       level: "Tier III",
       minEpisodes: 250,
       nextMin: 750,
-      badgeClass: "border-cyan-400/50 bg-cyan-500/15 text-cyan-300 light:text-cyan-700",
-      accentColor: "#06b6d4",
     };
   }
   if (episodes >= 50) {
@@ -96,8 +86,6 @@ function getOtakuTier(episodes: number): OtakuTier {
       level: "Tier II",
       minEpisodes: 50,
       nextMin: 250,
-      badgeClass: "border-emerald-400/50 bg-emerald-500/15 text-emerald-300 light:text-emerald-700",
-      accentColor: "#10b981",
     };
   }
   return {
@@ -105,8 +93,6 @@ function getOtakuTier(episodes: number): OtakuTier {
     level: "Tier I",
     minEpisodes: 0,
     nextMin: 50,
-    badgeClass: "border-border bg-surface-3 text-fg/80",
-    accentColor: "#71717a",
   };
 }
 
@@ -129,7 +115,10 @@ function calculateWatchTime(episodesWatched: number) {
   return { days, hours, minutes, totalHours, formatted };
 }
 
-const STATUS_ICONS: Record<WatchStatus, React.ComponentType<{ className?: string }>> = {
+const STATUS_ICONS: Record<
+  WatchStatus,
+  React.ComponentType<{ className?: string }>
+> = {
   watching: PlayIcon,
   completed: CheckIcon,
   planning: BookmarkIcon,
@@ -137,111 +126,49 @@ const STATUS_ICONS: Record<WatchStatus, React.ComponentType<{ className?: string
   dropped: CloseIcon,
 };
 
-const STATUS_GLOWS: Record<WatchStatus, { border: string; bg: string; text: string; dotShadow: string }> = {
-  watching: {
-    border: "hover:border-violet-500/50 hover:bg-violet-500/10",
-    bg: "bg-violet-500/15",
-    text: "text-violet-300 light:text-violet-700",
-    dotShadow: "0 0 10px rgba(139, 92, 246, 0.8)",
-  },
-  completed: {
-    border: "hover:border-emerald-500/50 hover:bg-emerald-500/10",
-    bg: "bg-emerald-500/15",
-    text: "text-emerald-300 light:text-emerald-700",
-    dotShadow: "0 0 10px rgba(16, 185, 129, 0.8)",
-  },
-  planning: {
-    border: "hover:border-cyan-500/50 hover:bg-cyan-500/10",
-    bg: "bg-cyan-500/15",
-    text: "text-cyan-300 light:text-cyan-700",
-    dotShadow: "0 0 10px rgba(6, 182, 212, 0.8)",
-  },
-  on_hold: {
-    border: "hover:border-amber-500/50 hover:bg-amber-500/10",
-    bg: "bg-amber-500/15",
-    text: "text-amber-300 light:text-amber-700",
-    dotShadow: "0 0 10px rgba(245, 158, 11, 0.8)",
-  },
-  dropped: {
-    border: "hover:border-rose-500/50 hover:bg-rose-500/10",
-    bg: "bg-rose-500/15",
-    text: "text-rose-300 light:text-rose-700",
-    dotShadow: "0 0 10px rgba(244, 63, 94, 0.8)",
-  },
-};
-
-const GENRE_STYLES: Record<string, { bg: string; text: string; bar: string }> = {
-  Action: { bg: "bg-rose-500/15 border-rose-500/30", text: "text-rose-300 light:text-rose-700", bar: "bg-rose-500" },
-  Adventure: { bg: "bg-amber-500/15 border-amber-500/30", text: "text-amber-300 light:text-amber-700", bar: "bg-amber-500" },
-  Fantasy: { bg: "bg-purple-500/15 border-purple-500/30", text: "text-purple-300 light:text-purple-700", bar: "bg-purple-500" },
-  Comedy: { bg: "bg-yellow-500/15 border-yellow-500/30", text: "text-yellow-300 light:text-yellow-700", bar: "bg-yellow-500" },
-  Supernatural: { bg: "bg-violet-500/15 border-violet-500/30", text: "text-violet-300 light:text-violet-700", bar: "bg-violet-500" },
-  Drama: { bg: "bg-sky-500/15 border-sky-500/30", text: "text-sky-300 light:text-sky-700", bar: "bg-sky-500" },
-  "Sci-Fi": { bg: "bg-cyan-500/15 border-cyan-500/30", text: "text-cyan-300 light:text-cyan-700", bar: "bg-cyan-500" },
-  Romance: { bg: "bg-pink-500/15 border-pink-500/30", text: "text-pink-300 light:text-pink-700", bar: "bg-pink-500" },
-  Mystery: { bg: "bg-indigo-500/15 border-indigo-500/30", text: "text-indigo-300 light:text-indigo-700", bar: "bg-indigo-500" },
-  "Slice of Life": { bg: "bg-emerald-500/15 border-emerald-500/30", text: "text-emerald-300 light:text-emerald-700", bar: "bg-emerald-500" },
-  Sports: { bg: "bg-orange-500/15 border-orange-500/30", text: "text-orange-300 light:text-orange-700", bar: "bg-orange-500" },
-  Psychological: { bg: "bg-teal-500/15 border-teal-500/30", text: "text-teal-300 light:text-teal-700", bar: "bg-teal-500" },
-};
-
-function getGenreStyle(genre: string) {
-  return (
-    GENRE_STYLES[genre] ?? {
-      bg: "bg-accent/15 border-accent/30",
-      text: "text-accent-strong",
-      bar: "bg-accent",
-    }
-  );
-}
-
 function StatKpiCard({
   icon: Icon,
   label,
   value,
   subtext,
-  glowColor,
-  iconClass,
+  accentClass,
 }: {
   icon: React.ComponentType<{ className?: string }>;
   label: string;
   value: string | number;
   subtext: string;
-  glowColor: string;
-  iconClass: string;
+  accentClass?: string;
 }) {
   return (
-    <div className="group relative overflow-hidden rounded-2xl border border-border-subtle bg-surface p-4 sm:p-5 shadow-md transition-all duration-300 hover:border-border hover:bg-surface-2">
-      <div
-        aria-hidden="true"
-        className="pointer-events-none absolute -right-6 -top-6 h-24 w-24 rounded-full opacity-20 blur-2xl transition-opacity group-hover:opacity-40"
-        style={{ backgroundColor: glowColor }}
-      />
-
+    <div className="group relative flex flex-col justify-between border border-border bg-surface/40 p-4 transition-colors hover:border-accent/50 hover:bg-surface">
       <div className="flex items-center justify-between">
-        <span className="text-xs font-medium text-muted">{label}</span>
+        <span className="text-[9px] font-semibold uppercase tracking-[0.16em] text-muted">
+          {label}
+        </span>
         <div
           className={cn(
-            "flex h-8 w-8 items-center justify-center rounded-xl border border-border-subtle bg-surface-2/70 shadow-xs transition-transform duration-300 group-hover:scale-110",
-            iconClass,
+            "flex h-6 w-6 items-center justify-center border border-border bg-surface-2 text-faint transition-colors group-hover:border-accent/40 group-hover:text-fg",
+            accentClass,
           )}
         >
-          <Icon className="h-4 w-4" />
+          <Icon className="h-3 w-3" />
         </div>
       </div>
-
-      <p className="mt-3 font-display text-3xl sm:text-4xl font-bold tracking-tight text-fg tabular-nums">
-        {typeof value === "number" ? value.toLocaleString("en-US") : value}
-      </p>
-
-      <p className="mt-1 text-xs text-faint">{subtext}</p>
+      <div className="mt-3">
+        <p className="font-mono text-2xl font-bold tracking-tight text-fg tabular-nums sm:text-3xl">
+          {typeof value === "number" ? value.toLocaleString("en-US") : value}
+        </p>
+        <p className="mt-1 truncate text-[11px] uppercase tracking-[0.06em] text-faint">
+          {subtext}
+        </p>
+      </div>
     </div>
   );
 }
 
 /**
- * Modern Luxury Radial Telemetry Gauge
- * Replaces the corny linear progress bars with an interactive circular ring gauge and dynamic center readout hub.
+ * Editorial Dial Telemetry Gauge
+ * Precision SVG dial ring with crisp tabular center readout.
  */
 function StatusDonutTelemetry({
   stats,
@@ -253,7 +180,7 @@ function StatusDonutTelemetry({
   onHoverStatus: (status: WatchStatus | null) => void;
 }) {
   const radius = 68;
-  const strokeWidth = 14;
+  const strokeWidth = 12;
   const circumference = 2 * Math.PI * radius; // ~427.256
 
   const total = stats.total || 1;
@@ -261,7 +188,7 @@ function StatusDonutTelemetry({
     (status) => stats.statusCounts[status] > 0,
   ).length;
 
-  const gapAnglePx = activeCount > 1 ? 5 : 0;
+  const gapAnglePx = activeCount > 1 ? 4 : 0;
   const totalGapsPx = gapAnglePx * activeCount;
   const usableCircumference = Math.max(0, circumference - totalGapsPx);
 
@@ -284,7 +211,7 @@ function StatusDonutTelemetry({
       if (count === 0) return acc;
       const meta = WATCH_STATUS_META[status];
       const fraction = count / total;
-      const arcLength = Math.max(1, fraction * usableCircumference);
+      const arcLength = Math.max(2, fraction * usableCircumference);
       const previous = acc[acc.length - 1];
       const offset = previous
         ? previous.offset + previous.arcLength + gapAnglePx
@@ -315,93 +242,80 @@ function StatusDonutTelemetry({
   const displayCount = activeStatus
     ? stats.statusCounts[activeStatus]
     : stats.total;
-  const displayLabel = hoveredMeta ? hoveredMeta.label : "Total Anime";
+  const displayLabel = hoveredMeta ? hoveredMeta.label : "Total Titles";
   const displaySub = activeStatus
-    ? `${percent(stats.statusCounts[activeStatus], stats.total)}% of Library`
-    : `${completionPercent}% Completed`;
+    ? `${percent(stats.statusCounts[activeStatus], stats.total)}% of archive`
+    : `${completionPercent}% completed`;
 
   return (
     <div className="relative flex flex-col items-center justify-center p-2">
-      <div className="relative flex h-52 w-52 sm:h-60 sm:w-60 items-center justify-center">
+      <div className="relative flex h-52 w-52 items-center justify-center sm:h-56 sm:w-56">
         <svg
           viewBox="0 0 180 180"
           className="h-full w-full -rotate-90 transform"
         >
-          {/* Track background */}
+          {/* Background track */}
           <circle
             cx="90"
             cy="90"
             r={radius}
             fill="none"
-            stroke="var(--border-subtle)"
+            stroke="var(--border)"
             strokeWidth={strokeWidth}
           />
 
-          {/* Active Status Segments */}
+          {/* Active status segments */}
           {segments.map((seg) => (
             <circle
-              key={seg!.status}
+              key={seg.status}
               cx="90"
               cy="90"
               r={radius}
               fill="none"
-              stroke={seg!.color}
-              strokeWidth={seg!.isHovered ? strokeWidth + 4 : strokeWidth}
-              strokeDasharray={seg!.strokeDasharray}
-              strokeDashoffset={seg!.strokeDashoffset}
-              strokeLinecap="round"
-              className="cursor-pointer transition-all duration-300"
-              onMouseEnter={() => onHoverStatus(seg!.status)}
+              stroke={seg.color}
+              strokeWidth={seg.isHovered ? strokeWidth + 4 : strokeWidth}
+              strokeDasharray={seg.strokeDasharray}
+              strokeDashoffset={seg.strokeDashoffset}
+              strokeLinecap="butt"
+              className="cursor-pointer transition-all duration-200"
+              onMouseEnter={() => onHoverStatus(seg.status)}
               onMouseLeave={() => onHoverStatus(null)}
-              style={{
-                filter: seg!.isHovered
-                  ? `drop-shadow(0 0 10px ${seg!.color})`
-                  : `drop-shadow(0 0 4px ${seg!.color}66)`,
-              }}
+              opacity={activeStatus && !seg.isHovered ? 0.35 : 1}
             />
           ))}
         </svg>
 
-        {/* Center Readout Telemetry Hub */}
-        <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center select-none text-center">
-          <span
-            className="font-display text-4xl sm:text-5xl font-bold tracking-tight text-fg tabular-nums transition-all"
-            style={{
-              color: hoveredMeta ? hoveredMeta.color : "var(--fg)",
-              textShadow: hoveredMeta ? `0 0 20px ${hoveredMeta.color}80` : undefined,
-            }}
-          >
+        {/* Center Readout Telemetry */}
+        <div className="pointer-events-none absolute inset-0 flex select-none flex-col items-center justify-center text-center">
+          <span className="font-mono text-4xl font-bold tracking-tight text-fg tabular-nums transition-colors sm:text-5xl">
             {displayCount}
           </span>
-          <span className="mt-0.5 text-xs font-bold uppercase tracking-wider text-muted">
+          <span className="mt-0.5 text-[9px] font-semibold uppercase tracking-[0.2em] text-muted">
             {displayLabel}
           </span>
-          <span
-            className={cn(
-              "mt-2 inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-[10px] font-bold transition-colors",
-              activeStatus
-                ? "border-border bg-surface-3 text-fg"
-                : "border-emerald-500/30 bg-emerald-500/10 text-emerald-300 light:text-emerald-700",
-            )}
-          >
+          <span className="mt-1.5 inline-flex items-center gap-1.5 border border-border bg-surface px-2 py-0.5 font-mono text-[10px] text-fg/80">
             <span
-              className="h-1.5 w-1.5 rounded-full"
+              className="h-1.5 w-1.5 shrink-0"
               style={{
-                backgroundColor: hoveredMeta ? hoveredMeta.color : "#10b981",
+                backgroundColor: hoveredMeta
+                  ? hoveredMeta.color
+                  : "var(--accent)",
               }}
             />
             <span>{displaySub}</span>
           </span>
         </div>
       </div>
-      <p className="mt-2 text-[11px] text-faint">Hover ring segments or tiles to inspect</p>
+      <p className="mt-3 font-mono text-[9px] uppercase tracking-[0.14em] text-faint">
+        Hover segment or card to inspect
+      </p>
     </div>
   );
 }
 
 /**
- * Modern Multidimensional Genre Affinity Radar Chart
- * Replaces linear progress bars with an interactive spider/radar web mapping multidimensional taste.
+ * Editorial Multidimensional Genre Affinity Radar Chart
+ * Crisp concentric polygons with sharp vertex nodes.
  */
 function GenreRadarChart({
   genres,
@@ -418,7 +332,7 @@ function GenreRadarChart({
 
   const cx = 150;
   const cy = 150;
-  const radius = 92;
+  const radius = 90;
   const maxCount = Math.max(1, ...axes.map((g) => g.count));
 
   const angles = axes.map((_, i) => -Math.PI / 2 + (2 * Math.PI * i) / count);
@@ -437,15 +351,10 @@ function GenreRadarChart({
   return (
     <div className="relative flex flex-col items-center justify-center p-2">
       <div className="relative h-64 w-64 sm:h-72 sm:w-72">
-        <svg viewBox="0 0 300 300" className="h-full w-full select-none overflow-visible">
-          <defs>
-            <radialGradient id="radar-glow-grad" cx="50%" cy="50%" r="50%">
-              <stop offset="0%" stopColor="#8b5cf6" stopOpacity="0.45" />
-              <stop offset="70%" stopColor="#06b6d4" stopOpacity="0.18" />
-              <stop offset="100%" stopColor="#06b6d4" stopOpacity="0" />
-            </radialGradient>
-          </defs>
-
+        <svg
+          viewBox="0 0 300 300"
+          className="h-full w-full select-none overflow-visible"
+        >
           {/* Concentric Web Polygons */}
           {rings.map((ring) => {
             const points = angles
@@ -461,9 +370,10 @@ function GenreRadarChart({
                 key={ring}
                 points={points}
                 fill="none"
-                stroke="var(--border-subtle)"
+                stroke="var(--border)"
                 strokeWidth={1}
-                strokeDasharray={ring < 1.0 ? "3 3" : undefined}
+                strokeDasharray={ring < 1.0 ? "2 2" : undefined}
+                opacity={0.8}
               />
             );
           })}
@@ -481,6 +391,7 @@ function GenreRadarChart({
                 y2={y}
                 stroke="var(--border)"
                 strokeWidth={1}
+                opacity={0.6}
               />
             );
           })}
@@ -488,16 +399,17 @@ function GenreRadarChart({
           {/* Filled Radar Polygon */}
           <polygon
             points={polygonPath}
-            fill="url(#radar-glow-grad)"
-            stroke="#a78bfa"
-            strokeWidth={2}
-            className="transition-all duration-300 drop-shadow-[0_0_12px_rgba(167,139,250,0.45)]"
+            fill="var(--accent)"
+            fillOpacity={0.16}
+            stroke="var(--accent)"
+            strokeWidth={1.5}
+            className="transition-all duration-300"
           />
 
           {/* Axis Labels */}
           {axes.map((g, i) => {
             const angle = angles[i] ?? 0;
-            const labelDist = radius + 20;
+            const labelDist = radius + 18;
             const x = cx + labelDist * Math.cos(angle);
             const y = cy + labelDist * Math.sin(angle);
 
@@ -519,7 +431,7 @@ function GenreRadarChart({
                   textAnchor={anchor}
                   fill={isHovered ? "var(--fg)" : "var(--muted)"}
                   fontSize={10}
-                  fontWeight={isHovered ? "bold" : "600"}
+                  fontWeight={isHovered ? "700" : "500"}
                   className="select-none font-sans"
                 >
                   {g.genre}
@@ -538,23 +450,14 @@ function GenreRadarChart({
                 onMouseEnter={() => onHoverGenre(p.genre)}
                 onMouseLeave={() => onHoverGenre(null)}
               >
-                {isHovered ? (
-                  <circle
-                    cx={p.x}
-                    cy={p.y}
-                    r={8}
-                    fill="#a78bfa"
-                    fillOpacity={0.4}
-                    className="animate-ping"
-                  />
-                ) : null}
-                <circle
-                  cx={p.x}
-                  cy={p.y}
-                  r={isHovered ? 5.5 : 3.5}
-                  fill={isHovered ? "var(--fg)" : "#a78bfa"}
-                  stroke={isHovered ? "#8b5cf6" : "var(--fg)"}
-                  strokeWidth={2}
+                <rect
+                  x={p.x - (isHovered ? 4 : 2.5)}
+                  y={p.y - (isHovered ? 4 : 2.5)}
+                  width={isHovered ? 8 : 5}
+                  height={isHovered ? 8 : 5}
+                  fill={isHovered ? "var(--fg)" : "var(--accent)"}
+                  stroke="var(--border)"
+                  strokeWidth={1}
                   className="transition-all duration-200"
                 />
               </g>
@@ -563,24 +466,28 @@ function GenreRadarChart({
         </svg>
 
         {/* Center Readout Telemetry */}
-        <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center select-none text-center">
-          <span className="font-display text-2xl font-bold tracking-tight text-fg tabular-nums">
+        <div className="pointer-events-none absolute inset-0 flex select-none flex-col items-center justify-center text-center">
+          <span className="font-mono text-2xl font-bold tracking-tight text-fg tabular-nums">
             {hoveredGenre
-              ? axes.find((a) => a.genre === hoveredGenre)?.count ?? ""
+              ? (axes.find((a) => a.genre === hoveredGenre)?.count ?? "")
               : axes.length}
           </span>
-          <span className="text-[10px] font-bold uppercase tracking-wider text-accent-strong">
+          <span className="text-[9px] font-semibold uppercase tracking-[0.2em] text-accent-strong">
             {hoveredGenre ?? "Core Genres"}
           </span>
-          <span className="text-[9px] text-faint">
-            {hoveredGenre ? "series tracked" : "affinity axes"}
+          <span className="font-mono text-[9px] text-faint">
+            {hoveredGenre ? "titles mapped" : "affinity axes"}
           </span>
         </div>
       </div>
-      <p className="mt-2 text-[11px] text-faint">Hover axes or cards to inspect affinity</p>
+      <p className="mt-3 font-mono text-[9px] uppercase tracking-[0.14em] text-faint">
+        Hover vertex or genre card to inspect
+      </p>
     </div>
   );
 }
+
+export type StatsMediaFilter = "all" | "anime" | "manga" | "movie" | "tv";
 
 export function StatsView({
   screenStats = null,
@@ -588,9 +495,8 @@ export function StatsView({
   screenStats?: ScreenLibraryStats | null;
 }) {
   const { items, loadError, showAdult } = useLibrary();
-  const [mediaFilter, setMediaFilter] = useState<"all" | "anime" | "manga">(
-    "all",
-  );
+  const [mediaFilter, setMediaFilter] = useState<StatsMediaFilter>("all");
+
   const visibleItems = useMemo(
     () =>
       items.filter(
@@ -601,16 +507,20 @@ export function StatsView({
       ),
     [items, mediaFilter, showAdult],
   );
+
   const stats = calculateStats(visibleItems);
   const [hoveredStatus, setHoveredStatus] = useState<WatchStatus | null>(null);
   const [hoveredGenre, setHoveredGenre] = useState<string | null>(null);
   const [isWrappedOpen, setIsWrappedOpen] = useState(false);
 
-  // Top banner for atmospheric header background
+  // Ambient backdrop from top rated series
   const ambientBanner = useMemo(() => {
     const withBanner = visibleItems
       .filter((it) => it.anime?.bannerImage)
-      .sort((a, b) => (b.anime?.averageScore ?? 0) - (a.anime?.averageScore ?? 0));
+      .sort(
+        (a, b) =>
+          (b.anime?.averageScore ?? 0) - (a.anime?.averageScore ?? 0),
+      );
     return withBanner[0]?.anime?.bannerImage ?? null;
   }, [visibleItems]);
 
@@ -636,7 +546,7 @@ export function StatsView({
   // Format Breakdown
   const formatCounts = useMemo(() => {
     const map = new Map<string, number>();
-    for (const item of items) {
+    for (const item of visibleItems) {
       const fmt = item.anime?.format ?? "UNKNOWN";
       if (fmt !== "UNKNOWN") {
         map.set(fmt, (map.get(fmt) ?? 0) + 1);
@@ -650,7 +560,7 @@ export function StatsView({
         percent: stats.total > 0 ? Math.round((count / stats.total) * 100) : 0,
       }))
       .sort((a, b) => b.count - a.count);
-  }, [items, stats.total]);
+  }, [visibleItems, stats.total]);
 
   // Era Breakdown
   const eraCounts = useMemo(() => {
@@ -659,7 +569,7 @@ export function StatsView({
     let digital2000s = 0;
     let classicPre2000 = 0;
 
-    for (const item of items) {
+    for (const item of visibleItems) {
       const year = item.anime?.seasonYear;
       if (!year) continue;
       if (year >= 2020) modern2020s += 1;
@@ -668,21 +578,38 @@ export function StatsView({
       else classicPre2000 += 1;
     }
 
-    const totalWithYear = modern2020s + golden2010s + digital2000s + classicPre2000;
+    const totalWithYear =
+      modern2020s + golden2010s + digital2000s + classicPre2000;
     if (totalWithYear === 0) return [];
 
     return [
-      { label: "2020s (Modern Wave)", count: modern2020s, color: "bg-accent" },
-      { label: "2010s (Golden Era)", count: golden2010s, color: "bg-cyan-500" },
-      { label: "2000s (Digital Age)", count: digital2000s, color: "bg-emerald-500" },
-      { label: "Classic (Pre-2000)", count: classicPre2000, color: "bg-amber-500" },
+      {
+        label: "2020s (Modern Wave)",
+        count: modern2020s,
+        color: "bg-accent",
+      },
+      {
+        label: "2010s (Golden Era)",
+        count: golden2010s,
+        color: "bg-cyan-500",
+      },
+      {
+        label: "2000s (Digital Age)",
+        count: digital2000s,
+        color: "bg-emerald-500",
+      },
+      {
+        label: "Classic (Pre-2000)",
+        count: classicPre2000,
+        color: "bg-amber-500",
+      },
     ]
       .filter((e) => e.count > 0)
       .map((e) => ({
         ...e,
         percent: Math.round((e.count / totalWithYear) * 100),
       }));
-  }, [items]);
+  }, [visibleItems]);
 
   if (loadError && items.length === 0) {
     return (
@@ -697,26 +624,33 @@ export function StatsView({
   if (stats.total === 0 && (screenStats?.total ?? 0) === 0) {
     return (
       <div className="space-y-6">
-        <header className="rounded-3xl border border-border-subtle bg-surface p-6 sm:p-8">
-          <h1 className="font-display text-2xl font-bold tracking-tight text-fg sm:text-3xl">
-            Anime Watching Analytics
+        <header className="border border-border bg-surface/40 p-6 sm:p-8">
+          <div className="flex items-center gap-2">
+            <span className="h-1.5 w-1.5 bg-accent" />
+            <span className="text-[9px] font-semibold uppercase tracking-[0.22em] text-accent-strong">
+              Personal Archive · Analytics
+            </span>
+          </div>
+          <h1 className="mt-3 font-display text-3xl font-semibold tracking-[-0.03em] text-fg sm:text-4xl">
+            Archive Statistics
           </h1>
-          <p className="mt-1 text-sm text-muted">
-            Track your journey through Japanese animation with verified statistics.
+          <p className="mt-2 max-w-xl text-xs leading-relaxed text-muted sm:text-sm">
+            Track your journey through Japanese animation, manga, and cinema with
+            verified runtime metrics and genre telemetry.
           </p>
         </header>
 
         <EmptyState
           icon={<ChartIcon className="h-6 w-6 text-accent-strong" />}
           title="No titles in this view"
-          description="Add anime, manga, films or TV shows to your library and log progress to unlock statistics, genre mastery, and collector ranks."
+          description="Add anime, manga, films, or TV series to your library and log progress to unlock verified statistics, genre telemetry, and collector ranks."
           action={
             <div className="flex flex-wrap items-center justify-center gap-2">
               {mediaFilter !== "all" ? (
                 <button
                   type="button"
                   onClick={() => setMediaFilter("all")}
-                  className="inline-flex h-9 items-center rounded-xl border border-border bg-surface-2 px-3 text-xs font-semibold text-fg transition-colors hover:bg-surface-3"
+                  className="inline-flex h-8 items-center border border-border bg-surface px-3 text-[10px] font-semibold uppercase tracking-[0.14em] text-fg transition-colors hover:border-accent"
                 >
                   Show all media
                 </button>
@@ -732,19 +666,35 @@ export function StatsView({
   }
 
   const completionRate = percent(stats.statusCounts.completed, stats.total);
-  const maxScoreCount = Math.max(1, ...stats.scoreDistribution.map((b) => b.count));
-  const topGenres = stats.genreDistribution.slice(0, 10);
+  const maxScoreCount = Math.max(
+    1,
+    ...stats.scoreDistribution.map((b) => b.count),
+  );
+  const topGenres = stats.genreDistribution.slice(0, 9);
+
+  const mediaFilterTabs: { id: StatsMediaFilter; label: string }[] = [
+    { id: "all", label: "All media" },
+    { id: "anime", label: "Anime" },
+    { id: "manga", label: "Manga" },
+    ...(screenStats && screenStats.total > 0
+      ? [
+          { id: "movie" as const, label: "Movies" },
+          { id: "tv" as const, label: "TV Shows" },
+        ]
+      : []),
+  ];
 
   return (
-    <div className="space-y-7">
-      {/* 1. Cinematic Hero Header & Collector Profile Showcase */}
-      <header className="group relative isolate overflow-hidden rounded-3xl border border-border bg-black/85 light:bg-surface/90 p-6 shadow-2xl sm:p-8">
+    <div className="space-y-6">
+      {/* 1. Masthead: Editorial Header & Collector Rank Deck */}
+      <header className="relative border border-border bg-surface/40 p-5 sm:p-7">
+        {/* Ambient subtle backdrop banner */}
         {ambientBanner && isHttpUrl(ambientBanner) ? (
           <div
             aria-hidden="true"
-            className="pointer-events-none absolute inset-0 select-none overflow-hidden z-0"
+            className="pointer-events-none absolute inset-0 z-0 select-none overflow-hidden"
           >
-            <div className="absolute inset-0 scale-125 blur-3xl saturate-200 opacity-20">
+            <div className="absolute inset-0 scale-110 opacity-15 blur-2xl">
               <Image
                 src={ambientBanner}
                 alt=""
@@ -754,666 +704,947 @@ export function StatsView({
                 className="object-cover"
               />
             </div>
-            <div className="absolute inset-0 bg-gradient-to-r from-black via-black/90 to-black/40 light:from-surface light:via-surface/90 light:to-surface/40" />
-            <div className="absolute inset-0 bg-gradient-to-t from-black via-transparent to-transparent light:from-surface/80" />
+            <div className="absolute inset-0 bg-gradient-to-r from-surface via-surface/90 to-surface/60" />
+            <div className="absolute inset-0 bg-gradient-to-t from-surface via-transparent to-transparent" />
           </div>
         ) : null}
 
-        <div className="relative z-10 flex flex-col justify-between gap-6 lg:flex-row lg:items-center">
-          {/* Left Title & Otaku Tier */}
-          <div className="max-w-2xl space-y-3">
-            <div className="flex flex-wrap items-center gap-2">
-              <span className="flex h-2 w-2 rounded-full bg-accent-strong radar-live-dot" />
-              <span className="text-[11px] font-bold uppercase tracking-wider text-accent-strong">
-                Otaku Analytics
-              </span>
-              <span className="text-faint">·</span>
-              <span className="text-xs font-medium text-muted">
-                Live Library Intelligence
+        <div className="relative z-10">
+          {/* Eyebrow Navigation Strip */}
+          <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border pb-3">
+            <div className="flex items-center gap-2">
+              <span className="h-1.5 w-1.5 bg-accent" />
+              <span className="text-[9px] font-semibold uppercase tracking-[0.22em] text-accent-strong">
+                Personal Archive · Analytics &amp; Telemetry
               </span>
             </div>
 
-            <h1 className="font-display text-2xl font-bold tracking-tight text-fg sm:text-3xl lg:text-4xl drop-shadow-sm">
-              Your Media Statistics
-            </h1>
-
-            <p className="text-xs leading-relaxed text-fg/75 sm:text-sm">
-              Derived from <span className="font-semibold text-fg">{stats.total} titles</span> in your library. {stats.episodesWatched} episodes watched, {stats.chaptersRead} chapters read, {stats.volumesRead} volumes logged, plus personal ratings and genre signatures.
-            </p>
-
-            <div
-              role="tablist"
-              aria-label="Filter statistics by media type"
-              className="inline-flex w-fit items-center gap-1 rounded-xl border border-border-subtle bg-surface-2 p-1"
-            >
-              {(["all", "anime", "manga"] as const).map((type) => (
-                <button
-                  key={type}
-                  type="button"
-                  role="tab"
-                  aria-selected={mediaFilter === type}
-                  onClick={() => setMediaFilter(type)}
-                  className={cn(
-                    "rounded-lg px-3 py-1.5 text-[11px] font-semibold capitalize transition-colors",
-                    mediaFilter === type
-                      ? "bg-accent text-accent-contrast"
-                      : "text-muted hover:bg-surface-3 hover:text-fg",
-                  )}
-                >
-                  {type === "all" ? "All media" : type}
-                </button>
-              ))}
-            </div>
-
-            {/* Otaku Rank & Collector Tier Badge */}
-            <div className="inline-flex flex-wrap items-center gap-3 pt-1">
-              <div
-                className={cn(
-                  "inline-flex items-center gap-2 rounded-xl border px-3 py-1.5 text-xs font-bold shadow-md backdrop-blur-md",
-                  tier.badgeClass,
-                )}
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => setIsWrappedOpen(true)}
+                className="inline-flex h-7 items-center gap-1.5 border border-accent/60 bg-accent/10 px-2.5 text-[10px] font-semibold uppercase tracking-[0.12em] text-accent-strong transition-colors hover:bg-accent hover:text-accent-contrast"
               >
-                <CrownIcon className="h-4 w-4" />
-                <span>{tier.name}</span>
-                <span className="rounded-md border border-border bg-black/40 light:bg-surface-2 px-1.5 py-0.5 text-[10px] font-mono">
+                <SparklesIcon className="h-3 w-3" />
+                <span>Kaze Wrapped</span>
+              </button>
+
+              <Link
+                href="/library"
+                className="inline-flex h-7 items-center gap-1.5 border border-border bg-surface px-2.5 text-[10px] font-semibold uppercase tracking-[0.12em] text-muted transition-colors hover:border-accent hover:text-fg"
+              >
+                <LibraryIcon className="h-3 w-3 text-accent-strong" />
+                <span>Open Library</span>
+                <ChevronRightIcon className="h-2.5 w-2.5 text-faint" />
+              </Link>
+            </div>
+          </div>
+
+          {/* Main Title & Collector Tier Spotlight Grid */}
+          <div className="mt-5 grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_340px] xl:grid-cols-[minmax(0,1fr)_380px]">
+            <div>
+              <h1 className="font-display text-[clamp(2.25rem,4.5vw,3.75rem)] font-semibold leading-[0.95] tracking-[-0.04em] text-fg">
+                Archive Statistics
+              </h1>
+              <p className="mt-3 max-w-[36rem] text-[13px] leading-relaxed text-muted">
+                Personal telemetry verified across{" "}
+                <span className="font-mono font-medium text-fg">
+                  {stats.total} titles
+                </span>{" "}
+                in your active catalog.{" "}
+                <span className="font-mono font-medium text-fg tabular-nums">
+                  {watchTime.formatted}
+                </span>{" "}
+                watch time logged ({watchTime.totalHours} hours) across{" "}
+                {stats.episodesWatched.toLocaleString()} episodes and{" "}
+                {stats.chaptersRead.toLocaleString()} manga chapters.
+              </p>
+            </div>
+
+            {/* Collector Tier Spotlight Card */}
+            <OpticalGlass
+              variant="card"
+              className="relative overflow-hidden border border-border bg-surface-2/60 p-4 sm:p-5"
+            >
+              <div className="flex items-center justify-between border-b border-border/80 pb-2.5">
+                <div className="flex items-center gap-1.5">
+                  <CrownIcon className="h-3.5 w-3.5 text-accent-strong" />
+                  <span className="text-[9px] font-semibold uppercase tracking-[0.18em] text-accent-strong">
+                    Collector Tier
+                  </span>
+                </div>
+                <span className="border border-border bg-surface px-1.5 py-0.5 font-mono text-[10px] font-bold text-fg">
                   {tier.level}
                 </span>
               </div>
 
-              {stats.episodesWatched < 3000 ? (
-                <div className="flex items-center gap-2 text-xs text-muted">
-                  <div className="h-1.5 w-24 overflow-hidden rounded-full bg-surface-3">
-                    <div
-                      className="h-full rounded-full bg-accent transition-all duration-500"
-                      style={{ width: `${tierProgress}%` }}
-                    />
-                  </div>
-                  <span className="text-[11px] tabular-nums">
-                    {stats.episodesWatched}/{tier.nextMin} eps
-                  </span>
-                </div>
-              ) : null}
-            </div>
-          </div>
-
-          {/* Right Action & Watch Time Showcase Deck */}
-          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 lg:max-w-md">
-            <button
-              type="button"
-              onClick={() => setIsWrappedOpen(true)}
-              className="group relative flex items-center justify-center gap-2.5 overflow-hidden rounded-2xl border border-accent/40 bg-gradient-to-r from-accent/25 to-purple-600/25 p-4 text-xs font-bold text-accent-strong shadow-lg shadow-accent/15 transition-all hover:scale-[1.02] active:scale-[0.98] hover:border-accent hover:text-fg backdrop-blur-md"
-            >
-              <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-accent text-accent-contrast shadow-md transition-transform group-hover:rotate-12">
-                <SparklesIcon className="h-4 w-4" />
-              </span>
-              <div className="text-left">
-                <p className="font-display text-sm font-extrabold tracking-tight">Kaze Wrapped</p>
-                <p className="text-[10px] font-medium text-muted">Generate Taste Story</p>
-              </div>
-            </button>
-
-            <div className="flex items-center gap-4 rounded-2xl border border-border bg-surface-2/70 p-4 sm:p-5 backdrop-blur-md shadow-xl flex-1">
-              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-amber-400/30 bg-amber-500/15 text-amber-300 light:text-amber-700 shadow-md">
-                <ClockIcon className="h-6 w-6" />
+              <div className="mt-3 flex items-baseline justify-between">
+                <h3 className="font-display text-lg font-semibold tracking-tight text-fg">
+                  {tier.name}
+                </h3>
+                <span className="font-mono text-xs tabular-nums text-muted">
+                  {stats.episodesWatched.toLocaleString()} /{" "}
+                  {tier.nextMin.toLocaleString()} eps
+                </span>
               </div>
 
-              <div className="min-w-0 flex-1">
-                <div className="flex items-center justify-between">
-                  <span className="text-[11px] font-bold uppercase tracking-wider text-amber-400 light:text-amber-600">
-                    Total Watch Time
-                  </span>
-                  <span className="rounded-md border border-border-subtle bg-surface-2/70 px-1.5 py-0.5 text-[10px] font-semibold text-fg/80">
-                    {completionRate}% finished
-                  </span>
-                </div>
-
-                <p className="mt-0.5 font-display text-2xl sm:text-3xl font-bold tracking-tight text-fg tabular-nums">
-                  {watchTime.formatted}
-                </p>
-
-                <p className="text-[11px] text-muted">
-                  {watchTime.totalHours} hours across {stats.episodesWatched.toLocaleString("en-US")} episodes
-                </p>
+              {/* Ruled Progress Bar */}
+              <div className="mt-2.5 h-1.5 w-full border border-border bg-surface-3">
+                <div
+                  className="h-full bg-accent transition-all duration-500"
+                  style={{ width: `${tierProgress}%` }}
+                />
               </div>
-            </div>
+
+              <div className="mt-2.5 flex items-center justify-between text-[10px]">
+                <span className="text-muted">
+                  {stats.episodesWatched >= tier.nextMin
+                    ? "Maximum tier reached"
+                    : `${(tier.nextMin - stats.episodesWatched).toLocaleString()} eps to next tier`}
+                </span>
+                <span className="font-mono font-medium text-accent-strong tabular-nums">
+                  {tierProgress}%
+                </span>
+              </div>
+            </OpticalGlass>
           </div>
         </div>
       </header>
 
-      {/* 2. Top Key KPI Metrics Grid */}
-      <section aria-label="Library totals" className="grid grid-cols-2 gap-3.5 lg:grid-cols-4">
-        <StatKpiCard
-          icon={LibraryIcon}
-          label="Tracked Anime"
-          value={stats.total}
-          subtext={`${completionRate}% completion rate`}
-          glowColor="#8b5cf6"
-          iconClass="text-accent-strong"
-        />
-        <StatKpiCard
-          icon={PlayIcon}
-          label="Currently Watching"
-          value={stats.statusCounts.watching}
-          subtext={`${stats.statusCounts.on_hold} on hold · active shows`}
-          glowColor="#a855f7"
-          iconClass="text-purple-400 light:text-purple-700"
-        />
-        <StatKpiCard
-          icon={CheckIcon}
-          label="Completed Series"
-          value={stats.statusCounts.completed}
-          subtext={`${stats.statusCounts.dropped} dropped series`}
-          glowColor="#10b981"
-          iconClass="text-emerald-400 light:text-emerald-700"
-        />
-        <StatKpiCard
-          icon={ClockIcon}
-          label="Episodes Logged"
-          value={stats.episodesWatched}
-          subtext={
-            stats.entriesWithUnknownEpisodeTotals > 0
-              ? `${stats.entriesWithUnknownEpisodeTotals} with unknown totals`
-              : "100% verified progress"
-          }
-          glowColor="#f59e0b"
-          iconClass="text-amber-400 light:text-amber-600"
-        />
-      </section>
-
-      {screenStats && screenStats.total > 0 ? (
-        <section
-          aria-labelledby="films-tv-stats"
-          className="space-y-4 rounded-3xl border border-border-subtle bg-surface p-5 sm:p-6 shadow-md"
+      {/* 2. Media Filter Segmented Control */}
+      <div className="flex flex-wrap items-center justify-between gap-3 border-y border-border py-2.5">
+        <div
+          role="tablist"
+          aria-label="Filter statistics by media type"
+          className="flex flex-wrap items-center gap-px border border-border bg-border"
         >
-          <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border-subtle pb-3">
-            <div>
-              <h2
-                id="films-tv-stats"
-                className="font-display text-lg font-semibold tracking-tight text-fg"
-              >
-                Films &amp; TV
-              </h2>
-              <p className="text-xs text-muted">
-                {screenStats.movieCount} films and {screenStats.tvCount} series tracked
-                outside your anime library
-              </p>
-            </div>
-
-            <Link
-              href="/screen"
-              className="inline-flex items-center gap-1.5 rounded-xl border border-border bg-surface-2/70 px-3 py-1.5 text-xs font-semibold text-fg/80 transition-colors hover:bg-surface-2 hover:text-fg"
+          {mediaFilterTabs.map((tab) => (
+            <button
+              key={tab.id}
+              type="button"
+              role="tab"
+              aria-selected={mediaFilter === tab.id}
+              onClick={() => setMediaFilter(tab.id)}
+              className={cn(
+                "h-8 px-3.5 text-[10px] font-semibold uppercase tracking-[0.14em] transition-colors",
+                mediaFilter === tab.id
+                  ? "bg-accent text-accent-contrast"
+                  : "bg-surface text-muted hover:bg-surface-2 hover:text-fg",
+              )}
             >
-              <span>Open film library</span>
-              <ChevronRightIcon className="h-3 w-3" />
-            </Link>
-          </div>
-
-          <div className="grid grid-cols-2 gap-3.5 lg:grid-cols-4">
-            <StatKpiCard
-              icon={LibraryIcon}
-              label="Films Tracked"
-              value={screenStats.movieCount}
-              subtext={`${screenStats.watchedFilms} watched`}
-              glowColor="#8b5cf6"
-              iconClass="text-accent-strong"
-            />
-            <StatKpiCard
-              icon={PlayIcon}
-              label="TV Series"
-              value={screenStats.tvCount}
-              subtext={`${screenStats.statusCounts.watching} watching`}
-              glowColor="#06b6d4"
-              iconClass="text-cyan-400 light:text-cyan-700"
-            />
-            <StatKpiCard
-              icon={ClockIcon}
-              label="Episodes Logged"
-              value={screenStats.episodesWatched}
-              subtext="across your tracked series"
-              glowColor="#f59e0b"
-              iconClass="text-amber-400 light:text-amber-600"
-            />
-            <StatKpiCard
-              icon={SparklesIcon}
-              label="Average Rating"
-              value={
-                screenStats.averageScore !== null
-                  ? screenStats.averageScore.toFixed(1)
-                  : "\u2014"
-              }
-              subtext={
-                screenStats.scoredCount > 0
-                  ? `${screenStats.scoredCount} rated titles`
-                  : "No ratings yet"
-              }
-              glowColor="#10b981"
-              iconClass="text-emerald-400 light:text-emerald-700"
-            />
-          </div>
-
-          <div className="grid grid-cols-2 gap-2 sm:grid-cols-5">
-            {WATCH_STATUS_ORDER.map((status) => (
-              <div
-                key={status}
-                className="rounded-xl border border-border-subtle bg-surface-2/50 p-3"
-              >
-                <p className="text-[11px] font-semibold uppercase tracking-wide text-muted">
-                  {WATCH_STATUS_META[status].label}
-                </p>
-                <p className="mt-1 font-display text-xl font-bold tracking-tight text-fg tabular-nums">
-                  {screenStats.statusCounts[status]}
-                </p>
-              </div>
-            ))}
-          </div>
-        </section>
-      ) : null}
-
-      {/* 3. Modern Luxury Status Telemetry Matrix (Replaces Dated Corny Bar) */}
-      <section
-        aria-labelledby="status-telemetry"
-        className="space-y-5 rounded-3xl border border-border-subtle bg-surface p-5 sm:p-7 shadow-xl backdrop-blur-md"
-      >
-        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border-subtle pb-4">
-          <div className="flex items-center gap-2.5">
-            <span className="flex h-2.5 w-2.5 rounded-full bg-accent-strong radar-live-dot" />
-            <div>
-              <h2
-                id="status-telemetry"
-                className="font-display text-lg sm:text-xl font-bold tracking-tight text-fg"
-              >
-                Library Status Telemetry
-              </h2>
-              <p className="text-xs text-muted">
-                Interactive radial ring gauge and live collection matrix
-              </p>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-2">
-            <Link
-              href="/library"
-              className="inline-flex items-center gap-1.5 rounded-xl border border-border bg-surface-2/70 px-3 py-1.5 text-xs font-semibold text-fg/80 hover:bg-surface-2 hover:text-fg transition-colors"
-            >
-              <span>View Full Library</span>
-              <ChevronRightIcon className="h-3 w-3" />
-            </Link>
-          </div>
+              {tab.label}
+            </button>
+          ))}
         </div>
 
-        {/* Radial Telemetry Showcase Layout */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-center">
-          {/* Left: Futuristic Circular Ring Gauge */}
-          <div className="lg:col-span-5 flex justify-center border-b lg:border-b-0 lg:border-r border-border-subtle pb-6 lg:pb-0 lg:pr-6">
-            <StatusDonutTelemetry
-              stats={stats}
-              activeStatus={hoveredStatus}
-              onHoverStatus={setHoveredStatus}
-            />
-          </div>
-
-          {/* Right: Modern Bento Grid of Interactive Status Pods */}
-          <div className="lg:col-span-7 grid grid-cols-1 sm:grid-cols-2 gap-3">
-            {WATCH_STATUS_ORDER.map((status) => {
-              const count = stats.statusCounts[status];
-              const share = percent(count, stats.total);
-              const meta = WATCH_STATUS_META[status];
-              const Icon = STATUS_ICONS[status];
-              const glow = STATUS_GLOWS[status];
-              const isHovered = hoveredStatus === status;
-
-              return (
-                <Link
-                  key={status}
-                  href={`/library?status=${status}`}
-                  onMouseEnter={() => setHoveredStatus(status)}
-                  onMouseLeave={() => setHoveredStatus(null)}
-                  className={cn(
-                    "group relative flex flex-col justify-between rounded-2xl border p-4 transition-all duration-300 shadow-sm",
-                    isHovered
-                      ? "border-accent/60 bg-surface-3 scale-[1.02] shadow-xl ring-1 ring-accent/30"
-                      : cn("border-border-subtle bg-surface-2/50", glow.border),
-                  )}
-                >
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <span
-                        className="h-2.5 w-2.5 rounded-full transition-transform duration-300 group-hover:scale-125"
-                        style={{
-                          backgroundColor: meta.color,
-                          boxShadow: glow.dotShadow,
-                        }}
-                      />
-                      <span className="text-xs font-bold text-fg/90 group-hover:text-fg">
-                        {meta.label}
-                      </span>
-                    </div>
-                    <div className="flex h-7 w-7 items-center justify-center rounded-lg border border-border-subtle bg-surface-2/70 text-faint group-hover:text-fg transition-colors">
-                      <Icon className="h-3.5 w-3.5" />
-                    </div>
-                  </div>
-
-                  <div className="mt-3 flex items-baseline justify-between">
-                    <span className="font-display text-2xl font-bold tracking-tight text-fg tabular-nums">
-                      {count}
-                    </span>
-                    <span
-                      className={cn(
-                        "rounded-md border border-border-subtle bg-surface-2/70 px-2 py-0.5 text-xs font-bold tabular-nums",
-                        glow.text,
-                      )}
-                    >
-                      {share}%
-                    </span>
-                  </div>
-                </Link>
-              );
-            })}
-          </div>
-        </div>
-      </section>
-
-      {/* 4. Ratings Distribution & Media Formats Grid */}
-      <div className="grid gap-5 lg:grid-cols-2">
-        {/* Ratings Distribution */}
-        <section
-          aria-labelledby="rating-distribution"
-          className="flex flex-col justify-between space-y-4 rounded-3xl border border-border-subtle bg-surface p-5 sm:p-6 shadow-lg backdrop-blur-md"
-        >
-          <div>
-            <div className="flex items-center justify-between border-b border-border-subtle pb-3">
-              <div className="flex items-center gap-2">
-                <StarIcon className="h-4 w-4 fill-amber-400 text-amber-400 light:text-amber-600" />
-                <h2
-                  id="rating-distribution"
-                  className="font-display text-base sm:text-lg font-bold text-fg"
-                >
-                  Personal Ratings
-                </h2>
-              </div>
-              <span className="rounded-lg border border-border-subtle bg-surface-2/70 px-2.5 py-1 text-xs font-semibold text-fg/80 tabular-nums">
-                {stats.averageScore !== null
-                  ? `Mean: ★ ${stats.averageScore}/10`
-                  : "No scores yet"}
-              </span>
-            </div>
-
-            {stats.scoredCount > 0 ? (
-              <div className="mt-4 space-y-4">
-                <div className="flex h-44 items-end gap-1.5 sm:gap-2 pt-2">
-                  {stats.scoreDistribution.map((bucket) => {
-                    const height =
-                      bucket.count === 0
-                        ? 0
-                        : Math.max(8, (bucket.count / maxScoreCount) * 100);
-                    const isPeak = bucket.count === maxScoreCount && bucket.count > 0;
-
-                    return (
-                      <div
-                        key={bucket.score}
-                        className="flex h-full flex-1 flex-col items-center justify-end gap-1.5"
-                        title={`${bucket.count} anime rated ${bucket.score}/10`}
-                      >
-                        <span className="text-[10px] font-bold tabular-nums text-muted">
-                          {bucket.count > 0 ? bucket.count : ""}
-                        </span>
-                        <div
-                          className={cn(
-                            "w-full rounded-t-lg transition-all duration-300",
-                            isPeak
-                              ? "bg-amber-400 shadow-md shadow-amber-400/20"
-                              : bucket.count > 0
-                                ? "bg-accent/80 hover:bg-accent"
-                                : "bg-surface-2/70",
-                          )}
-                          style={{ height: `${height}%` }}
-                        />
-                        <span
-                          className={cn(
-                            "text-[11px] font-bold tabular-nums",
-                            isPeak ? "text-amber-300 light:text-amber-700" : "text-faint",
-                          )}
-                        >
-                          {bucket.score}
-                        </span>
-                      </div>
-                    );
-                  })}
-                </div>
-
-                <div className="flex items-center justify-between border-t border-border-subtle pt-3 text-xs text-faint">
-                  <span>{stats.scoredCount} of {stats.total} titles scored</span>
-                  <span>Personal 1–10 Ratings</span>
-                </div>
-              </div>
-            ) : (
-              /* Enhanced Empty Ratings State */
-              <div className="mt-6 flex flex-col items-center justify-center rounded-2xl border border-dashed border-border bg-surface-2/40 p-6 text-center">
-                <div className="flex h-12 w-12 items-center justify-center rounded-2xl border border-amber-400/30 bg-amber-500/10 text-amber-300 light:text-amber-700 shadow-md">
-                  <StarIcon className="h-6 w-6 fill-amber-400/40 text-amber-400 light:text-amber-600" />
-                </div>
-                <h3 className="mt-3 font-display text-sm font-bold text-fg">
-                  No Personal Ratings Recorded Yet
-                </h3>
-                <p className="mt-1.5 max-w-sm text-xs leading-relaxed text-muted">
-                  Rate your anime from 1 to 10 in your library to unlock your personal rating curve, mean score analysis, and top-tier picks.
-                </p>
-                <Link
-                  href="/library"
-                  className="mt-4 inline-flex items-center gap-1.5 rounded-xl bg-accent px-3.5 py-1.5 text-xs font-bold text-accent-contrast shadow-sm hover:bg-accent-hover transition-colors"
-                >
-                  <span>Go to Library to Score</span>
-                  <ChevronRightIcon className="h-3 w-3" />
-                </Link>
-              </div>
-            )}
-          </div>
-        </section>
-
-        {/* Media Formats Breakdown */}
-        {formatCounts.length > 0 ? (
-          <section
-            aria-label="Format breakdown"
-            className="flex flex-col justify-between space-y-4 rounded-3xl border border-border-subtle bg-surface p-5 sm:p-6 shadow-lg backdrop-blur-md"
-          >
-            <div>
-              <div className="flex items-center justify-between border-b border-border-subtle pb-3">
-                <div className="flex items-center gap-2">
-                  <FilmIcon className="h-4 w-4 text-accent-strong" />
-                  <h3 className="font-display text-base sm:text-lg font-bold text-fg">
-                    Media Formats
-                  </h3>
-                </div>
-                <span className="text-xs text-faint">{formatCounts.length} types</span>
-              </div>
-
-              <div className="mt-4 space-y-2.5">
-                {formatCounts.map((fmt) => (
-                  <div
-                    key={fmt.format}
-                    className="flex items-center justify-between rounded-xl border border-border-subtle bg-surface-2/40 p-3 text-xs"
-                  >
-                    <div className="flex items-center gap-2.5">
-                      <span className="rounded-lg border border-border-subtle bg-surface-2/70 px-2 py-0.5 font-bold text-accent-strong">
-                        {fmt.label}
-                      </span>
-                      <span className="text-muted">
-                        {fmt.count} {fmt.count === 1 ? "title" : "titles"}
-                      </span>
-                    </div>
-                    <span className="font-bold tabular-nums text-fg">
-                      {fmt.percent}%
-                    </span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </section>
-        ) : null}
+        <span className="font-mono text-[11px] text-faint">
+          Derived from active library records
+        </span>
       </div>
 
-      {/* 5. Multidimensional Genre Affinity & Taste Matrix */}
-      <section
-        aria-labelledby="genre-affinity-matrix"
-        className="space-y-6 rounded-3xl border border-border-subtle bg-surface p-5 sm:p-7 shadow-xl backdrop-blur-md"
-      >
-        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border-subtle pb-4">
-          <div className="flex items-center gap-2.5">
-            <TrophyIcon className="h-5 w-5 text-amber-400 light:text-amber-600" />
-            <div>
-              <h2
-                id="genre-affinity-matrix"
-                className="font-display text-lg sm:text-xl font-bold tracking-tight text-fg"
-              >
-                Genre Affinity & Taste Matrix
-              </h2>
-              <p className="text-xs text-muted">
-                Multidimensional radar telemetry across your catalogue&apos;s genre spectrum
-              </p>
-            </div>
-          </div>
-          <div className="flex items-center gap-2">
-            <span className="rounded-xl border border-amber-400/30 bg-amber-500/10 px-3 py-1 text-xs font-bold text-amber-300 light:text-amber-700">
-              {stats.genreDistribution[0]?.genre ?? "Diverse"} Dominant
-            </span>
-          </div>
-        </div>
-
-        {/* Dual Panel Layout: Left Radar Web, Right Interactive Bento Matrix */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-center">
-          {/* Left: Precision SVG Radar Web */}
-          <div className="lg:col-span-5 flex justify-center border-b lg:border-b-0 lg:border-r border-border-subtle pb-6 lg:pb-0 lg:pr-6">
-            <GenreRadarChart
-              genres={stats.genreDistribution}
-              hoveredGenre={hoveredGenre}
-              onHoverGenre={setHoveredGenre}
+      {/* 3. Specialized View: Movies (when filtered) */}
+      {mediaFilter === "movie" && screenStats ? (
+        <div className="space-y-6">
+          <section
+            aria-label="Movie Statistics"
+            className="grid grid-cols-2 gap-2.5 sm:grid-cols-4 sm:gap-3"
+          >
+            <StatKpiCard
+              icon={FilmIcon}
+              label="Cinema Catalog"
+              value={screenStats.movieCount}
+              subtext="tracked films"
+              accentClass="text-accent-strong"
             />
-          </div>
+            <StatKpiCard
+              icon={CheckIcon}
+              label="Watched Films"
+              value={screenStats.watchedFilms}
+              subtext={`${percent(screenStats.watchedFilms, screenStats.movieCount)}% watched`}
+              accentClass="text-emerald-400"
+            />
+            <StatKpiCard
+              icon={StarIcon}
+              label="Mean Rating"
+              value={
+                screenStats.averageScore !== null
+                  ? `★ ${screenStats.averageScore.toFixed(1)}`
+                  : "—"
+              }
+              subtext={`${screenStats.scoredCount} rated titles`}
+              accentClass="text-amber-400"
+            />
+            <StatKpiCard
+              icon={BookmarkIcon}
+              label="Plan to Watch"
+              value={screenStats.statusCounts.planning}
+              subtext="queued cinema"
+              accentClass="text-sky-400"
+            />
+          </section>
 
-          {/* Right: Modern Bento Grid of Genre Taste Pods */}
-          <div className="lg:col-span-7 space-y-3">
-            <div className="flex items-center justify-between text-xs text-faint px-1">
-              <span>Top {topGenres.length} Genre Pillars</span>
-              <span>Sorted by catalogue density</span>
+          {/* Movie Status Matrix */}
+          <section
+            aria-label="Movie Status Breakdown"
+            className="border border-border bg-surface/40 p-5 sm:p-6"
+          >
+            <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border pb-3">
+              <div>
+                <h2 className="font-display text-base font-semibold text-fg sm:text-lg">
+                  Cinema Status Ledger
+                </h2>
+                <p className="text-xs text-muted">
+                  Distribution of films across personal watch statuses
+                </p>
+              </div>
+              <Link
+                href="/library?media=movie"
+                className="inline-flex items-center gap-1.5 border border-border bg-surface px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.12em] text-muted hover:border-accent hover:text-fg"
+              >
+                <span>Open Film Library</span>
+                <ChevronRightIcon className="h-3 w-3" />
+              </Link>
             </div>
 
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
-              {topGenres.map((genre, index) => {
-                const isHovered = hoveredGenre === genre.genre;
-                const share = percent(genre.count, stats.total);
-                const isTop3 = index < 3;
-                const style = getGenreStyle(genre.genre);
+            <div className="mt-4 grid grid-cols-2 gap-2.5 sm:grid-cols-5 sm:gap-3">
+              {WATCH_STATUS_ORDER.map((status) => {
+                const count = screenStats.statusCounts[status];
+                const share = percent(count, screenStats.movieCount);
+                const meta = WATCH_STATUS_META[status];
+                const Icon = STATUS_ICONS[status];
 
                 return (
                   <Link
-                    key={genre.genre}
-                    href={`/library?genre=${encodeURIComponent(genre.genre)}`}
-                    onMouseEnter={() => setHoveredGenre(genre.genre)}
-                    onMouseLeave={() => setHoveredGenre(null)}
-                    className={cn(
-                      "group relative flex flex-col justify-between rounded-2xl border p-3.5 transition-all duration-300 shadow-sm",
-                      isHovered
-                        ? "border-accent bg-accent/15 scale-[1.03] shadow-lg ring-1 ring-accent/30 z-10"
-                        : isTop3
-                          ? "border-border bg-surface-2/60 hover:border-border hover:bg-surface-2"
-                          : "border-border-subtle bg-surface-2/40 hover:border-border hover:bg-surface-2/60",
-                    )}
+                    key={status}
+                    href={`/library?media=movie&status=${status}`}
+                    className="flex flex-col justify-between border border-border bg-surface/50 p-3.5 transition-colors hover:border-accent hover:bg-surface"
                   >
                     <div className="flex items-center justify-between">
-                      <span
-                        className={cn(
-                          "inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[10px] font-bold tracking-wide",
-                          index === 0
-                            ? "bg-amber-400 text-black font-extrabold"
-                            : index === 1
-                              ? "bg-cyan-400 text-black font-extrabold"
-                              : index === 2
-                                ? "bg-purple-400 text-black font-extrabold"
-                                : "border border-border-subtle bg-surface-2/70 text-muted",
-                        )}
-                      >
-                        #{index + 1}
+                      <div className="flex items-center gap-2">
+                        <span
+                          className="h-2 w-2 shrink-0"
+                          style={{ backgroundColor: meta.color }}
+                        />
+                        <span className="text-[10px] font-semibold uppercase tracking-[0.14em] text-fg">
+                          {meta.label}
+                        </span>
+                      </div>
+                      <Icon className="h-3.5 w-3.5 text-muted" />
+                    </div>
+
+                    <div className="mt-3 flex items-baseline justify-between">
+                      <span className="font-mono text-2xl font-bold tabular-nums text-fg">
+                        {count}
                       </span>
-                      <span className="font-display text-base font-bold text-fg tabular-nums">
-                        {genre.count} <span className="text-[10px] font-normal text-faint">titles</span>
+                      <span className="font-mono text-xs tabular-nums text-muted">
+                        {share}%
                       </span>
                     </div>
 
-                    <div className="mt-2.5">
-                      <h4 className="font-display text-sm font-bold text-fg group-hover:text-accent-strong transition-colors line-clamp-1">
-                        {genre.genre}
-                      </h4>
-                      <p className="mt-0.5 text-[11px] font-medium text-faint">
-                        <span className="font-bold text-fg/80 tabular-nums">{share}%</span> of library
-                      </p>
-                    </div>
-
-                    <div className="mt-2 flex items-center gap-1.5">
-                      <span className={cn("h-1.5 w-1.5 rounded-full shrink-0", style.bar)} />
-                      <span className={cn("text-[10px] font-semibold truncate", style.text)}>
-                        {index === 0 ? "Primary Pillar" : index === 1 ? "Secondary Arc" : index === 2 ? "Core Foundation" : "Genre Affinity"}
-                      </span>
+                    <div className="mt-2.5 h-0.5 w-full bg-surface-3">
+                      <div
+                        className="h-full"
+                        style={{
+                          width: `${share}%`,
+                          backgroundColor: meta.color,
+                        }}
+                      />
                     </div>
                   </Link>
                 );
               })}
             </div>
-          </div>
+          </section>
         </div>
-      </section>
-
-      {/* 6. Release Era Timeline */}
-      {eraCounts.length > 0 ? (
-        <section
-          aria-label="Release era timeline"
-          className="space-y-4 rounded-3xl border border-border-subtle bg-surface p-5 sm:p-6 shadow-lg backdrop-blur-md"
-        >
-          <div className="flex items-center justify-between border-b border-border-subtle pb-3">
-            <div className="flex items-center gap-2">
-              <SparklesIcon className="h-4 w-4 text-cyan-400 light:text-cyan-700" />
-              <h3 className="font-display text-base font-bold text-fg">
-                Release Eras
-              </h3>
-            </div>
-            <span className="text-xs text-faint">Broadcast decade</span>
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-            {eraCounts.map((era) => (
-              <div
-                key={era.label}
-                className="flex flex-col justify-between rounded-xl border border-border-subtle bg-surface-2/40 p-3.5 text-xs"
-              >
-                <div className="flex items-center justify-between font-medium">
-                  <span className="text-fg/90 font-semibold">{era.label}</span>
-                  <span className="tabular-nums font-bold text-fg">
-                    {era.percent}%
-                  </span>
-                </div>
-                <p className="mt-1 text-[11px] text-faint">{era.count} series</p>
-                <div className="mt-2.5 h-1.5 overflow-hidden rounded-full bg-surface-3">
-                  <div
-                    className={cn("h-full rounded-full transition-all duration-300", era.color)}
-                    style={{ width: `${era.percent}%` }}
-                  />
-                </div>
-              </div>
-            ))}
-          </div>
-        </section>
       ) : null}
 
-      {/* 7. Data Integrity & Verification Footnote */}
-      <footer className="rounded-2xl border border-border-subtle bg-surface-2/40 p-4 sm:p-5 text-xs text-muted">
-        <div className="flex items-center gap-2 font-semibold text-fg/90">
+      {/* 4. Specialized View: TV Shows (when filtered) */}
+      {mediaFilter === "tv" && screenStats ? (
+        <div className="space-y-6">
+          <section
+            aria-label="Television Statistics"
+            className="grid grid-cols-2 gap-2.5 sm:grid-cols-4 sm:gap-3"
+          >
+            <StatKpiCard
+              icon={FilmIcon}
+              label="Tracked Series"
+              value={screenStats.tvCount}
+              subtext="TV productions"
+              accentClass="text-accent-strong"
+            />
+            <StatKpiCard
+              icon={PlayIcon}
+              label="In Progress"
+              value={screenStats.statusCounts.watching}
+              subtext="active broadcast series"
+              accentClass="text-purple-400"
+            />
+            <StatKpiCard
+              icon={ClockIcon}
+              label="Episodes Logged"
+              value={screenStats.episodesWatched}
+              subtext="verified logged units"
+              accentClass="text-amber-400"
+            />
+            <StatKpiCard
+              icon={StarIcon}
+              label="Mean Rating"
+              value={
+                screenStats.averageScore !== null
+                  ? `★ ${screenStats.averageScore.toFixed(1)}`
+                  : "—"
+              }
+              subtext={`${screenStats.scoredCount} rated series`}
+              accentClass="text-emerald-400"
+            />
+          </section>
+
+          {/* TV Status Matrix */}
+          <section
+            aria-label="TV Series Status Breakdown"
+            className="border border-border bg-surface/40 p-5 sm:p-6"
+          >
+            <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border pb-3">
+              <div>
+                <h2 className="font-display text-base font-semibold text-fg sm:text-lg">
+                  Television Status Ledger
+                </h2>
+                <p className="text-xs text-muted">
+                  Distribution of TV series across personal watch statuses
+                </p>
+              </div>
+              <Link
+                href="/library?media=tv"
+                className="inline-flex items-center gap-1.5 border border-border bg-surface px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.12em] text-muted hover:border-accent hover:text-fg"
+              >
+                <span>Open TV Library</span>
+                <ChevronRightIcon className="h-3 w-3" />
+              </Link>
+            </div>
+
+            <div className="mt-4 grid grid-cols-2 gap-2.5 sm:grid-cols-5 sm:gap-3">
+              {WATCH_STATUS_ORDER.map((status) => {
+                const count = screenStats.statusCounts[status];
+                const share = percent(count, screenStats.tvCount);
+                const meta = WATCH_STATUS_META[status];
+                const Icon = STATUS_ICONS[status];
+
+                return (
+                  <Link
+                    key={status}
+                    href={`/library?media=tv&status=${status}`}
+                    className="flex flex-col justify-between border border-border bg-surface/50 p-3.5 transition-colors hover:border-accent hover:bg-surface"
+                  >
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <span
+                          className="h-2 w-2 shrink-0"
+                          style={{ backgroundColor: meta.color }}
+                        />
+                        <span className="text-[10px] font-semibold uppercase tracking-[0.14em] text-fg">
+                          {meta.label}
+                        </span>
+                      </div>
+                      <Icon className="h-3.5 w-3.5 text-muted" />
+                    </div>
+
+                    <div className="mt-3 flex items-baseline justify-between">
+                      <span className="font-mono text-2xl font-bold tabular-nums text-fg">
+                        {count}
+                      </span>
+                      <span className="font-mono text-xs tabular-nums text-muted">
+                        {share}%
+                      </span>
+                    </div>
+
+                    <div className="mt-2.5 h-0.5 w-full bg-surface-3">
+                      <div
+                        className="h-full"
+                        style={{
+                          width: `${share}%`,
+                          backgroundColor: meta.color,
+                        }}
+                      />
+                    </div>
+                  </Link>
+                );
+              })}
+            </div>
+          </section>
+        </div>
+      ) : null}
+
+      {/* 5. Standard Unified Telemetry Grid (All Media / Anime / Manga) */}
+      {mediaFilter !== "movie" && mediaFilter !== "tv" ? (
+        <div className="space-y-6">
+          {/* Main 4-Pod KPI Metric Ledger */}
+          <section
+            aria-label="Library totals"
+            className="grid grid-cols-2 gap-2.5 sm:grid-cols-4 sm:gap-3"
+          >
+            <StatKpiCard
+              icon={LibraryIcon}
+              label="Tracked Titles"
+              value={stats.total}
+              subtext={`${completionRate}% completion rate`}
+              accentClass="text-accent-strong"
+            />
+            <StatKpiCard
+              icon={ClockIcon}
+              label="Total Watch Time"
+              value={watchTime.formatted}
+              subtext={`${watchTime.totalHours} hrs logged (~24m/ep)`}
+              accentClass="text-amber-400"
+            />
+            <StatKpiCard
+              icon={PlayIcon}
+              label={mediaFilter === "manga" ? "Chapters Read" : "Episodes Logged"}
+              value={
+                mediaFilter === "manga"
+                  ? stats.chaptersRead
+                  : stats.episodesWatched
+              }
+              subtext={
+                mediaFilter === "manga"
+                  ? `${stats.volumesRead} volumes logged`
+                  : stats.chaptersRead > 0
+                    ? `${stats.chaptersRead} manga chapters`
+                    : "100% verified progress"
+              }
+              accentClass="text-purple-400"
+            />
+            <StatKpiCard
+              icon={StarIcon}
+              label="Personal Rating"
+              value={
+                stats.averageScore !== null
+                  ? `★ ${stats.averageScore}/10`
+                  : "—"
+              }
+              subtext={
+                stats.scoredCount > 0
+                  ? `${stats.scoredCount} of ${stats.total} scored`
+                  : "No scores yet"
+              }
+              accentClass="text-emerald-400"
+            />
+          </section>
+
+          {/* Status Distribution & Telemetry Section */}
+          <section
+            aria-labelledby="status-telemetry"
+            className="border border-border bg-surface/40 p-5 sm:p-7"
+          >
+            <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border pb-4">
+              <div>
+                <span className="text-[9px] font-semibold uppercase tracking-[0.2em] text-accent-strong">
+                  Telemetry Matrix
+                </span>
+                <h2
+                  id="status-telemetry"
+                  className="font-display text-base font-semibold tracking-tight text-fg sm:text-lg"
+                >
+                  Library Status Distribution
+                </h2>
+              </div>
+
+              <Link
+                href="/library"
+                className="inline-flex items-center gap-1.5 border border-border bg-surface px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.12em] text-muted transition-colors hover:border-accent hover:text-fg"
+              >
+                <span>View Full Library</span>
+                <ChevronRightIcon className="h-3 w-3" />
+              </Link>
+            </div>
+
+            {/* Radial Telemetry Showcase Layout */}
+            <div className="mt-5 grid grid-cols-1 items-center gap-6 lg:grid-cols-12">
+              {/* Left: Precision SVG Donut Ring */}
+              <div className="flex justify-center border-b border-border pb-6 lg:col-span-5 lg:border-b-0 lg:border-r lg:pb-0 lg:pr-6">
+                <StatusDonutTelemetry
+                  stats={stats}
+                  activeStatus={hoveredStatus}
+                  onHoverStatus={setHoveredStatus}
+                />
+              </div>
+
+              {/* Right: Ruled Bento Grid of Status Pods */}
+              <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2 lg:col-span-7 sm:gap-3">
+                {WATCH_STATUS_ORDER.map((status) => {
+                  const count = stats.statusCounts[status];
+                  const share = percent(count, stats.total);
+                  const meta = WATCH_STATUS_META[status];
+                  const Icon = STATUS_ICONS[status];
+                  const isHovered = hoveredStatus === status;
+
+                  return (
+                    <Link
+                      key={status}
+                      href={`/library?status=${status}`}
+                      onMouseEnter={() => setHoveredStatus(status)}
+                      onMouseLeave={() => setHoveredStatus(null)}
+                      className={cn(
+                        "group relative flex flex-col justify-between border p-3.5 transition-all",
+                        isHovered
+                          ? "border-accent bg-accent/10"
+                          : "border-border bg-surface/50 hover:border-accent/40 hover:bg-surface",
+                      )}
+                    >
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <span
+                            className="h-2 w-2 shrink-0"
+                            style={{ backgroundColor: meta.color }}
+                          />
+                          <span className="text-[10px] font-semibold uppercase tracking-[0.14em] text-fg">
+                            {meta.label}
+                          </span>
+                        </div>
+                        <Icon className="h-3.5 w-3.5 text-muted transition-colors group-hover:text-fg" />
+                      </div>
+
+                      <div className="mt-3 flex items-baseline justify-between">
+                        <span className="font-mono text-2xl font-bold tabular-nums text-fg">
+                          {count}
+                        </span>
+                        <span className="font-mono text-xs tabular-nums text-muted">
+                          {share}%
+                        </span>
+                      </div>
+
+                      {/* Ruled bottom accent track */}
+                      <div className="mt-2.5 h-0.5 w-full bg-surface-3">
+                        <div
+                          className="h-full transition-all duration-300"
+                          style={{
+                            width: `${share}%`,
+                            backgroundColor: meta.color,
+                          }}
+                        />
+                      </div>
+                    </Link>
+                  );
+                })}
+              </div>
+            </div>
+          </section>
+
+          {/* Ratings Curve & Media Formats Grid */}
+          <div className="grid gap-6 lg:grid-cols-2">
+            {/* Personal Ratings Histogram */}
+            <section
+              aria-labelledby="rating-distribution"
+              className="flex flex-col justify-between border border-border bg-surface/40 p-5 sm:p-6"
+            >
+              <div>
+                <div className="flex items-center justify-between border-b border-border pb-3">
+                  <div className="flex items-center gap-2">
+                    <StarIcon className="h-4 w-4 text-amber-400" />
+                    <h2
+                      id="rating-distribution"
+                      className="font-display text-base font-semibold text-fg"
+                    >
+                      Personal Ratings Curve
+                    </h2>
+                  </div>
+                  <span className="border border-border bg-surface px-2.5 py-1 font-mono text-xs font-semibold tabular-nums text-fg">
+                    {stats.averageScore !== null
+                      ? `Mean: ★ ${stats.averageScore}/10`
+                      : "No ratings"}
+                  </span>
+                </div>
+
+                {stats.scoredCount > 0 ? (
+                  <div className="mt-4 space-y-4">
+                    <div className="flex h-44 items-end gap-1.5 pt-2 sm:gap-2">
+                      {stats.scoreDistribution.map((bucket) => {
+                        const height =
+                          bucket.count === 0
+                            ? 0
+                            : Math.max(
+                                8,
+                                (bucket.count / maxScoreCount) * 100,
+                              );
+                        const isPeak =
+                          bucket.count === maxScoreCount && bucket.count > 0;
+
+                        return (
+                          <div
+                            key={bucket.score}
+                            className="flex h-full flex-1 flex-col items-center justify-end gap-1.5"
+                            title={`${bucket.count} titles rated ${bucket.score}/10`}
+                          >
+                            <span className="font-mono text-[10px] tabular-nums text-muted">
+                              {bucket.count > 0 ? bucket.count : ""}
+                            </span>
+                            <div
+                              className={cn(
+                                "w-full transition-all duration-300",
+                                isPeak
+                                  ? "bg-amber-400"
+                                  : bucket.count > 0
+                                    ? "bg-accent/80 hover:bg-accent"
+                                    : "bg-surface-2",
+                              )}
+                              style={{ height: `${height}%` }}
+                            />
+                            <span
+                              className={cn(
+                                "font-mono text-[11px] tabular-nums",
+                                isPeak ? "font-bold text-amber-400" : "text-faint",
+                              )}
+                            >
+                              {bucket.score}
+                            </span>
+                          </div>
+                        );
+                      })}
+                    </div>
+
+                    <div className="flex items-center justify-between border-t border-border pt-3 font-mono text-[11px] text-faint">
+                      <span>
+                        {stats.scoredCount} of {stats.total} titles scored
+                      </span>
+                      <span>Personal 1–10 Scale</span>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="mt-6 flex flex-col items-center justify-center border border-dashed border-border bg-surface-2/40 p-6 text-center">
+                    <div className="flex h-10 w-10 items-center justify-center border border-border bg-surface text-amber-400">
+                      <StarIcon className="h-5 w-5" />
+                    </div>
+                    <h3 className="mt-3 font-display text-sm font-semibold text-fg">
+                      No Personal Ratings Recorded Yet
+                    </h3>
+                    <p className="mt-1.5 max-w-sm text-xs leading-relaxed text-muted">
+                      Score titles from 1 to 10 in your library to unlock your personal rating curve, mean score analysis, and top-tier picks.
+                    </p>
+                    <Link
+                      href="/library"
+                      className="mt-4 inline-flex items-center gap-1.5 border border-accent bg-accent px-3 py-1.5 text-xs font-semibold text-accent-contrast transition-colors hover:bg-accent-hover"
+                    >
+                      <span>Go to Library to Score</span>
+                      <ChevronRightIcon className="h-3 w-3" />
+                    </Link>
+                  </div>
+                )}
+              </div>
+            </section>
+
+            {/* Media Formats Breakdown */}
+            <section
+              aria-label="Format breakdown"
+              className="flex flex-col justify-between border border-border bg-surface/40 p-5 sm:p-6"
+            >
+              <div>
+                <div className="flex items-center justify-between border-b border-border pb-3">
+                  <div className="flex items-center gap-2">
+                    <FilmIcon className="h-4 w-4 text-accent-strong" />
+                    <h3 className="font-display text-base font-semibold text-fg">
+                      Media Formats
+                    </h3>
+                  </div>
+                  <span className="font-mono text-xs text-faint">
+                    {formatCounts.length} formats
+                  </span>
+                </div>
+
+                <div className="mt-4 space-y-2.5">
+                  {formatCounts.length > 0 ? (
+                    formatCounts.map((fmt) => (
+                      <div
+                        key={fmt.format}
+                        className="flex flex-col gap-1.5 border border-border bg-surface-2/40 p-3 text-xs"
+                      >
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <span className="border border-border bg-surface px-1.5 py-0.5 font-mono text-[10px] font-bold uppercase tracking-wider text-accent-strong">
+                              {fmt.label}
+                            </span>
+                            <span className="text-muted">
+                              {fmt.count} {fmt.count === 1 ? "title" : "titles"}
+                            </span>
+                          </div>
+                          <span className="font-mono font-bold tabular-nums text-fg">
+                            {fmt.percent}%
+                          </span>
+                        </div>
+
+                        {/* Ruled meter track */}
+                        <div className="mt-1 h-1 w-full border border-border bg-surface-3">
+                          <div
+                            className="h-full bg-accent"
+                            style={{ width: `${fmt.percent}%` }}
+                          />
+                        </div>
+                      </div>
+                    ))
+                  ) : (
+                    <p className="text-xs text-muted">
+                      No format metadata available for this selection.
+                    </p>
+                  )}
+                </div>
+              </div>
+            </section>
+          </div>
+
+          {/* Genre Affinity & Radar Matrix */}
+          <section
+            aria-labelledby="genre-affinity-matrix"
+            className="border border-border bg-surface/40 p-5 sm:p-7"
+          >
+            <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border pb-4">
+              <div>
+                <span className="text-[9px] font-semibold uppercase tracking-[0.2em] text-accent-strong">
+                  Genre Affinity
+                </span>
+                <h2
+                  id="genre-affinity-matrix"
+                  className="font-display text-base font-semibold tracking-tight text-fg sm:text-lg"
+                >
+                  Taste &amp; Genre Architecture
+                </h2>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <span className="border border-accent/40 bg-accent/10 px-2.5 py-0.5 font-mono text-[10px] font-semibold uppercase tracking-wider text-accent-strong">
+                  {stats.genreDistribution[0]?.genre ?? "Diverse"} Dominant
+                </span>
+              </div>
+            </div>
+
+            {/* Radar Web & Bento Matrix Grid */}
+            <div className="mt-5 grid grid-cols-1 items-center gap-6 lg:grid-cols-12">
+              {/* Left: Precision SVG Radar Web */}
+              <div className="flex justify-center border-b border-border pb-6 lg:col-span-5 lg:border-b-0 lg:border-r lg:pb-0 lg:pr-6">
+                <GenreRadarChart
+                  genres={stats.genreDistribution}
+                  hoveredGenre={hoveredGenre}
+                  onHoverGenre={setHoveredGenre}
+                />
+              </div>
+
+              {/* Right: Ranked Bento Grid of Top Genres */}
+              <div className="space-y-3 lg:col-span-7">
+                <div className="flex items-center justify-between font-mono text-[10px] text-faint">
+                  <span>Top {topGenres.length} Genre Pillars</span>
+                  <span>Sorted by catalog density</span>
+                </div>
+
+                <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3">
+                  {topGenres.map((genre, index) => {
+                    const isHovered = hoveredGenre === genre.genre;
+                    const share = percent(genre.count, stats.total);
+
+                    return (
+                      <Link
+                        key={genre.genre}
+                        href={`/library?genre=${encodeURIComponent(genre.genre)}`}
+                        onMouseEnter={() => setHoveredGenre(genre.genre)}
+                        onMouseLeave={() => setHoveredGenre(null)}
+                        className={cn(
+                          "group relative flex flex-col justify-between border p-3 transition-colors",
+                          isHovered
+                            ? "border-accent bg-accent/15"
+                            : "border-border bg-surface-2/40 hover:border-accent hover:bg-surface-2",
+                        )}
+                      >
+                        <div className="flex items-center justify-between">
+                          <span className="border border-border bg-surface px-1.5 py-0.5 font-mono text-[9px] font-bold text-muted">
+                            #{String(index + 1).padStart(2, "0")}
+                          </span>
+                          <span className="font-mono text-xs font-bold tabular-nums text-fg">
+                            {genre.count}
+                          </span>
+                        </div>
+
+                        <div className="mt-2.5">
+                          <h4 className="font-display text-sm font-semibold text-fg transition-colors group-hover:text-accent-strong">
+                            {genre.genre}
+                          </h4>
+                          <p className="mt-0.5 font-mono text-[10px] text-faint">
+                            {share}% of library
+                          </p>
+                        </div>
+
+                        {/* Flush progress indicator */}
+                        <div className="mt-2 h-0.5 w-full bg-surface-3">
+                          <div
+                            className="h-full bg-accent"
+                            style={{ width: `${Math.min(100, share * 2)}%` }}
+                          />
+                        </div>
+                      </Link>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+          </section>
+
+          {/* Release Era Timeline */}
+          {eraCounts.length > 0 ? (
+            <section
+              aria-label="Release era timeline"
+              className="border border-border bg-surface/40 p-5 sm:p-6"
+            >
+              <div className="flex items-center justify-between border-b border-border pb-3">
+                <div className="flex items-center gap-2">
+                  <SparklesIcon className="h-4 w-4 text-cyan-400" />
+                  <h3 className="font-display text-base font-semibold text-fg">
+                    Release Eras
+                  </h3>
+                </div>
+                <span className="font-mono text-xs text-faint">
+                  Broadcast decades
+                </span>
+              </div>
+
+              <div className="mt-4 grid grid-cols-1 gap-2.5 sm:grid-cols-2 lg:grid-cols-4 sm:gap-3">
+                {eraCounts.map((era) => (
+                  <div
+                    key={era.label}
+                    className="flex flex-col justify-between border border-border bg-surface-2/40 p-3.5 text-xs"
+                  >
+                    <div className="flex items-center justify-between font-medium">
+                      <span className="font-semibold text-fg/90">
+                        {era.label}
+                      </span>
+                      <span className="font-mono font-bold tabular-nums text-fg">
+                        {era.percent}%
+                      </span>
+                    </div>
+                    <p className="mt-1 font-mono text-[10px] text-faint">
+                      {era.count} {era.count === 1 ? "series" : "series"}
+                    </p>
+                    <div className="mt-2.5 h-1 w-full border border-border bg-surface-3">
+                      <div
+                        className={cn("h-full", era.color)}
+                        style={{ width: `${era.percent}%` }}
+                      />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </section>
+          ) : null}
+
+          {/* TMDB Films & TV Section (When viewing all media) */}
+          {mediaFilter === "all" && screenStats && screenStats.total > 0 ? (
+            <section
+              aria-labelledby="films-tv-stats"
+              className="border border-border bg-surface/40 p-5 sm:p-6"
+            >
+              <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border pb-3">
+                <div>
+                  <span className="text-[9px] font-semibold uppercase tracking-[0.2em] text-accent-strong">
+                    TMDB Archive · Cinema &amp; Television
+                  </span>
+                  <h2
+                    id="films-tv-stats"
+                    className="font-display text-base font-semibold text-fg sm:text-lg"
+                  >
+                    Films &amp; TV Telemetry
+                  </h2>
+                  <p className="text-xs text-muted">
+                    {screenStats.movieCount} movies and {screenStats.tvCount} TV series
+                    tracked outside Japanese animation
+                  </p>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <Link
+                    href="/library?media=movie"
+                    className="inline-flex items-center gap-1 border border-border bg-surface px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.12em] text-muted hover:border-accent hover:text-fg"
+                  >
+                    <span>Films</span>
+                    <ChevronRightIcon className="h-2.5 w-2.5" />
+                  </Link>
+                  <Link
+                    href="/library?media=tv"
+                    className="inline-flex items-center gap-1 border border-border bg-surface px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.12em] text-muted hover:border-accent hover:text-fg"
+                  >
+                    <span>TV Shows</span>
+                    <ChevronRightIcon className="h-2.5 w-2.5" />
+                  </Link>
+                </div>
+              </div>
+
+              <div className="mt-4 grid grid-cols-2 gap-2.5 sm:grid-cols-4 sm:gap-3">
+                <StatKpiCard
+                  icon={FilmIcon}
+                  label="Films Tracked"
+                  value={screenStats.movieCount}
+                  subtext={`${screenStats.watchedFilms} watched`}
+                  accentClass="text-accent-strong"
+                />
+                <StatKpiCard
+                  icon={PlayIcon}
+                  label="TV Series"
+                  value={screenStats.tvCount}
+                  subtext={`${screenStats.statusCounts.watching} in progress`}
+                  accentClass="text-cyan-400"
+                />
+                <StatKpiCard
+                  icon={ClockIcon}
+                  label="Episodes Logged"
+                  value={screenStats.episodesWatched}
+                  subtext="verified logged units"
+                  accentClass="text-amber-400"
+                />
+                <StatKpiCard
+                  icon={StarIcon}
+                  label="Average Rating"
+                  value={
+                    screenStats.averageScore !== null
+                      ? `★ ${screenStats.averageScore.toFixed(1)}`
+                      : "—"
+                  }
+                  subtext={
+                    screenStats.scoredCount > 0
+                      ? `${screenStats.scoredCount} rated titles`
+                      : "No ratings"
+                  }
+                  accentClass="text-emerald-400"
+                />
+              </div>
+
+              {/* Status matrix row */}
+              <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-5">
+                {WATCH_STATUS_ORDER.map((status) => (
+                  <div
+                    key={status}
+                    className="border border-border bg-surface-2/40 p-2.5 text-xs"
+                  >
+                    <p className="text-[10px] font-semibold uppercase tracking-wider text-muted">
+                      {WATCH_STATUS_META[status].label}
+                    </p>
+                    <p className="mt-1 font-mono text-lg font-bold tabular-nums text-fg">
+                      {screenStats.statusCounts[status]}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            </section>
+          ) : null}
+        </div>
+      ) : null}
+
+      {/* 6. Data Integrity & Verification Footnote */}
+      <footer className="border border-border bg-surface/30 p-4 text-xs text-muted sm:p-5">
+        <div className="flex items-center gap-2 font-semibold text-fg">
           <InfoIcon className="h-4 w-4 text-accent-strong" />
           <span>Library Data Integrity Guarantee</span>
         </div>
-        <p className="mt-1.5 leading-relaxed">
-          Watch time calculations are calculated using verified broadcast runtimes (~24 minutes per standard TV episode) based on your real logged progress. No fabricated streaks or synthetic numbers are ever displayed.
+        <p className="mt-1.5 leading-relaxed text-muted">
+          Watch time calculations are calculated using verified broadcast runtimes
+          (~24 minutes per standard TV episode) based strictly on your real logged progress.
+          No synthetic streaks or fabricated telemetry numbers are displayed.
         </p>
       </footer>
 
+      {/* Kaze Wrapped Modal Trigger */}
       <KazeWrappedModal
         stats={stats}
         items={visibleItems}

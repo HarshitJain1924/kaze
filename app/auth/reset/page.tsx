@@ -7,7 +7,7 @@ import { ResetPasswordForm } from "@/features/auth/reset-password-form";
 import { getViewer } from "@/lib/auth";
 
 export const metadata: Metadata = {
-  title: "Reset password",
+  title: "Reset password · Kaze Anime Platform",
   description: "Choose a new password for your Kaze account.",
 };
 
@@ -19,21 +19,21 @@ export default async function ResetPasswordPage() {
   return (
     <div className="flex min-h-dvh flex-col items-center justify-center bg-bg px-5 py-10">
       <div className="w-full max-w-md">
-        <div className="mb-6">
+        <div className="mb-6 flex justify-center">
           <Logo />
         </div>
 
         {viewer ? (
           <ResetPasswordForm />
         ) : (
-          <div className="rounded-2xl border border-border-subtle bg-surface p-5 sm:p-7">
-            <span className="flex h-10 w-10 items-center justify-center rounded-xl border border-warning/30 bg-warning/10 text-warning">
+          <div className="border border-border bg-surface p-6 sm:p-8">
+            <div className="flex h-10 w-10 items-center justify-center border border-warning/40 bg-warning/10 text-warning">
               <AlertIcon className="h-5 w-5" />
-            </span>
-            <h1 className="mt-4 font-display text-xl font-bold text-fg">
+            </div>
+            <h1 className="mt-4 font-display text-xl font-semibold text-fg">
               This reset link is no longer valid
             </h1>
-            <p className="mt-2 text-sm leading-relaxed text-muted">
+            <p className="mt-2 text-xs leading-relaxed text-muted sm:text-sm">
               Reset links expire quickly for security. Request a new one from
               the sign-in screen.
             </p>
@@ -41,7 +41,7 @@ export default async function ResetPasswordPage() {
               <LinkButton
                 href="/login"
                 variant="primary"
-                className="w-full"
+                className="h-10 w-full border border-accent bg-accent text-[11px] font-semibold uppercase tracking-[0.14em] text-accent-contrast transition-colors hover:bg-accent-hover"
               >
                 Request a new link
               </LinkButton>
@@ -49,9 +49,8 @@ export default async function ResetPasswordPage() {
           </div>
         )}
 
-        <p className="mt-4 text-center text-[11px] text-faint">
-          Need help? Sign in again and use “Forgot your password?” on the login
-          screen.
+        <p className="mt-4 text-center font-mono text-[10px] uppercase tracking-[0.12em] text-faint">
+          Protected by PostgreSQL Row-Level Security (RLS)
         </p>
       </div>
     </div>

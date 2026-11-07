@@ -51,7 +51,7 @@ function ScheduleTypeTabs({
   return (
     <nav
       aria-label="Schedule type"
-      className="inline-flex rounded-xl border border-border-subtle bg-surface/70 p-1 backdrop-blur-md"
+      className="inline-flex border border-border bg-surface/40 p-0.5"
     >
       {SCHEDULE_TABS.map((tab) => {
         const params = new URLSearchParams();
@@ -66,10 +66,10 @@ function ScheduleTypeTabs({
             href={query ? `/schedule?${query}` : "/schedule"}
             aria-current={active ? "page" : undefined}
             className={cn(
-              "rounded-lg px-3 py-1.5 text-xs font-semibold transition-colors",
+              "inline-flex h-8 items-center border-r border-border last:border-r-0 px-3.5 text-[10px] font-semibold uppercase tracking-[0.14em] transition-colors",
               active
-                ? "border border-accent/40 bg-accent-soft text-accent-strong shadow-xs"
-                : "border border-transparent text-muted hover:text-fg",
+                ? "bg-accent text-accent-contrast"
+                : "text-muted hover:bg-surface-2 hover:text-fg",
             )}
           >
             {tab.label}
@@ -115,7 +115,7 @@ export default async function SchedulePage({
     }
 
     return (
-      <div className="space-y-5">
+      <div className="space-y-7 sm:space-y-8">
         {tabs}
         {screenError ? (
           <div className="py-6">
@@ -195,7 +195,7 @@ export default async function SchedulePage({
   const days = groupScheduleByDay(entries, week.days);
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-7 sm:space-y-8">
       {tabs}
       <ScheduleBrowser
         week={week}

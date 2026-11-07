@@ -6,7 +6,6 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
   ArrowLeftIcon,
-  BookmarkIcon,
   CheckIcon,
   CloseIcon,
   ExternalIcon,
@@ -28,7 +27,7 @@ function ListItemThumbnail({
   const [hasError, setHasError] = useState(false);
 
   return (
-    <div className="relative aspect-[2/3] w-14 shrink-0 overflow-hidden rounded-xl border border-white/10 bg-surface-2 shadow-sm">
+    <div className="relative aspect-[2/3] w-12 sm:w-14 shrink-0 overflow-hidden border border-border/80 bg-surface-2">
       {!hasError && src ? (
         <Image
           src={src}
@@ -39,8 +38,8 @@ function ListItemThumbnail({
           onError={() => setHasError(true)}
         />
       ) : (
-        <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-surface-3 to-surface-2">
-          <FilmIcon className="h-5 w-5 text-faint/70" />
+        <div className="absolute inset-0 flex items-center justify-center bg-surface-3">
+          <FilmIcon className="h-5 w-5 text-faint" />
         </div>
       )}
     </div>
@@ -54,8 +53,13 @@ interface PageProps {
 export default function CustomListDetailPage({ params }: PageProps) {
   const { id } = use(params);
   const router = useRouter();
-  const { getList, deleteList, removeItemFromList, updateItemNotes, calculateProgress } =
-    useCustomLists();
+  const {
+    getList,
+    deleteList,
+    removeItemFromList,
+    updateItemNotes,
+    calculateProgress,
+  } = useCustomLists();
   const { items: libraryItems } = useLibrary();
 
   const [copied, setCopied] = useState(false);
@@ -66,16 +70,18 @@ export default function CustomListDetailPage({ params }: PageProps) {
 
   if (!list) {
     return (
-      <div className="py-16 text-center">
-        <h1 className="font-display text-2xl font-bold text-fg">Collection Not Found</h1>
-        <p className="mt-2 text-sm text-muted">
+      <div className="border border-border bg-surface/40 p-12 text-center">
+        <h1 className="font-display text-xl font-semibold text-fg">
+          Collection Not Found
+        </h1>
+        <p className="mt-2 text-xs text-muted">
           This list may have been deleted or does not exist.
         </p>
         <Link
           href="/lists"
-          className="mt-6 inline-flex items-center gap-2 rounded-xl bg-accent px-4 py-2 text-xs font-semibold text-accent-contrast"
+          className="mt-5 inline-flex items-center gap-1.5 border border-accent bg-accent px-3 py-1.5 text-xs font-semibold text-accent-contrast transition-colors hover:bg-accent-hover"
         >
-          <ArrowLeftIcon className="h-4 w-4" />
+          <ArrowLeftIcon className="h-3.5 w-3.5" />
           <span>Back to Collections</span>
         </Link>
       </div>
@@ -93,7 +99,7 @@ export default function CustomListDetailPage({ params }: PageProps) {
   };
 
   const handleDelete = () => {
-    if (confirm(`Are you sure you want to delete the list "${list.title}"?`)) {
+    if (confirm(`Are you sure you want to delete the collection "${list.title}"?`)) {
       deleteList(list.id);
       router.push("/lists");
     }
@@ -105,63 +111,44 @@ export default function CustomListDetailPage({ params }: PageProps) {
   };
 
   return (
-    <div className="space-y-8 pb-16">
-      {/* Back button */}
+    <div className="space-y-6 pb-16">
+      {/* 1. Back Navigation */}
       <div>
         <Link
           href="/lists"
-          className="inline-flex items-center gap-1.5 text-xs font-medium text-muted transition-colors hover:text-fg"
+          className="inline-flex items-center gap-1.5 border border-border bg-surface px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-muted transition-colors hover:border-accent hover:text-fg"
         >
-          <ArrowLeftIcon className="h-3.5 w-3.5" />
-          <span>Back to all collections</span>
+          <ArrowLeftIcon className="h-3 w-3" />
+          <span>Back to Collections</span>
         </Link>
       </div>
 
-      {/* Hero Header */}
-      <header className="relative isolate overflow-hidden rounded-3xl border border-border bg-gradient-to-br from-surface to-surface-2 p-6 sm:p-8 shadow-xl">
-        <div
-          aria-hidden="true"
-          className="pointer-events-none absolute -right-10 -top-10 h-72 w-72 rounded-full bg-accent/20 blur-3xl"
-        />
-
-        <div className="relative z-10 flex flex-col justify-between gap-6 lg:flex-row lg:items-center">
-          <div className="max-w-3xl space-y-3">
-            <div className="flex flex-wrap items-center gap-2">
-              <span className="inline-flex items-center gap-1.5 rounded-full border border-accent/40 bg-accent/15 px-3 py-1 text-xs font-semibold text-accent-strong">
-                <BookmarkIcon className="h-3.5 w-3.5" />
-                <span>Themed Collection</span>
-              </span>
-              <span className="text-xs text-muted">·</span>
-              <span className="text-xs text-muted">
-                {list.items.length} ranked titles
-              </span>
-            </div>
-
-            <h1 className="font-display text-2xl font-bold tracking-tight text-fg sm:text-3xl lg:text-4xl">
-              {list.title}
-            </h1>
-
-            <p className="text-sm leading-relaxed text-fg/80 max-w-2xl">
-              {list.description || "No description provided."}
-            </p>
+      {/* 2. Hero Header */}
+      <header className="border border-border bg-surface/40 p-5 sm:p-7">
+        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border pb-3">
+          <div className="flex items-center gap-2">
+            <span className="h-1.5 w-1.5 bg-accent" />
+            <span className="text-[9px] font-semibold uppercase tracking-[0.22em] text-accent-strong">
+              Themed Anthology // {list.items.length} Titles
+            </span>
           </div>
 
           {/* Action Buttons */}
-          <div className="flex flex-wrap items-center gap-3 shrink-0">
+          <div className="flex items-center gap-2">
             <button
               type="button"
               onClick={handleShare}
-              className="inline-flex items-center gap-2 rounded-xl border border-border bg-surface-2 px-4 py-2.5 text-xs font-bold text-fg transition-all hover:bg-surface-3 hover:border-accent/40 active:scale-95 shadow-sm"
+              className="inline-flex h-7 items-center gap-1.5 border border-border bg-surface px-2.5 text-[10px] font-semibold uppercase tracking-[0.12em] text-fg transition-colors hover:border-accent"
             >
               {copied ? (
                 <>
-                  <CheckIcon className="h-4 w-4 text-emerald-400" />
-                  <span className="text-emerald-400">Link Copied!</span>
+                  <CheckIcon className="h-3 w-3 text-emerald-400" />
+                  <span className="text-emerald-400">Link Copied</span>
                 </>
               ) : (
                 <>
-                  <ExternalIcon className="h-4 w-4 text-muted" />
-                  <span>Share Collection</span>
+                  <ExternalIcon className="h-3 w-3 text-muted" />
+                  <span>Share</span>
                 </>
               )}
             </button>
@@ -169,40 +156,54 @@ export default function CustomListDetailPage({ params }: PageProps) {
             <button
               type="button"
               onClick={handleDelete}
-              className="inline-flex items-center gap-1.5 rounded-xl border border-rose-500/30 bg-rose-500/10 px-3 py-2.5 text-xs font-semibold text-rose-400 hover:bg-rose-500/20 transition-colors"
+              className="inline-flex h-7 items-center gap-1.5 border border-danger/30 bg-danger/10 px-2.5 text-[10px] font-semibold uppercase tracking-[0.12em] text-danger transition-colors hover:bg-danger/20"
               title="Delete this collection"
             >
-              <TrashIcon className="h-4 w-4" />
+              <TrashIcon className="h-3 w-3" />
+              <span>Delete</span>
             </button>
           </div>
         </div>
 
-        {/* Live Watch Progress Bar (Letterboxd Style) */}
-        <div className="relative z-10 mt-6 rounded-2xl border border-white/10 bg-black/40 p-4 sm:p-5 backdrop-blur-md">
+        <div className="mt-4 max-w-3xl">
+          <h1 className="font-display text-[clamp(2rem,4vw,3.25rem)] font-semibold leading-[0.98] tracking-[-0.04em] text-fg">
+            {list.title}
+          </h1>
+          <p className="mt-2 text-xs leading-relaxed text-muted sm:text-sm">
+            {list.description || "No description provided."}
+          </p>
+        </div>
+
+        {/* Completion Status Ledger */}
+        <div className="mt-6 border border-border bg-surface-2/40 p-4">
           <div className="flex flex-wrap items-center justify-between gap-2">
             <div>
-              <p className="text-[11px] font-bold uppercase tracking-wider text-accent-strong">
-                Your Completion Status
+              <p className="text-[9px] font-semibold uppercase tracking-[0.18em] text-accent-strong">
+                Library Synchronization
               </p>
-              <p className="mt-0.5 text-sm font-semibold text-white">
-                Watched <span className="text-accent">{progress.watchedCount}</span> of {progress.totalCount} titles ({progress.percentage}%)
+              <p className="mt-0.5 font-mono text-xs sm:text-sm text-fg">
+                Watched{" "}
+                <span className="font-bold text-accent-strong">
+                  {progress.watchedCount}
+                </span>{" "}
+                of {progress.totalCount} titles ({progress.percentage}%)
               </p>
             </div>
 
             {progress.isFullyWatched && progress.totalCount > 0 ? (
-              <span className="inline-flex items-center gap-1.5 rounded-xl border border-emerald-500/40 bg-emerald-500/20 px-3 py-1 text-xs font-bold text-emerald-300">
-                <CheckIcon className="h-3.5 w-3.5" />
-                Collection Completed!
+              <span className="inline-flex items-center gap-1.5 border border-emerald-500/40 bg-emerald-500/10 px-2.5 py-1 font-mono text-[10px] font-bold text-emerald-400">
+                <CheckIcon className="h-3 w-3" />
+                Collection Completed
               </span>
             ) : null}
           </div>
 
-          <div className="mt-3 h-2 w-full overflow-hidden rounded-full bg-white/10">
+          <div className="mt-2.5 h-1.5 w-full border border-border bg-surface-3">
             <div
-              className={`h-full rounded-full transition-all duration-500 ${
+              className={`h-full transition-all duration-300 ${
                 progress.isFullyWatched
-                  ? "bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.8)]"
-                  : "bg-gradient-to-r from-accent to-purple-400"
+                  ? "bg-emerald-500"
+                  : "bg-accent"
               }`}
               style={{ width: `${progress.percentage}%` }}
             />
@@ -210,104 +211,121 @@ export default function CustomListDetailPage({ params }: PageProps) {
         </div>
       </header>
 
-      {/* Ranked Titles List */}
-      <div className="space-y-4">
-        <h2 className="font-display text-lg font-bold text-fg">Ranked Entries</h2>
+      {/* 3. Ranked Entries Ledger */}
+      <section aria-label="Ranked Entries" className="space-y-3">
+        <div className="flex items-center justify-between border-b border-border pb-2.5">
+          <h2 className="font-display text-base font-semibold text-fg">
+            Ranked Entries
+          </h2>
+          <span className="font-mono text-xs text-faint">
+            {list.items.length} {list.items.length === 1 ? "entry" : "entries"}
+          </span>
+        </div>
 
         {list.items.length === 0 ? (
-          <div className="rounded-3xl border border-border-subtle bg-surface/50 p-12 text-center">
-            <BookmarkIcon className="mx-auto h-8 w-8 text-muted opacity-40" />
-            <h3 className="mt-3 text-sm font-bold text-fg">No titles in this list yet</h3>
+          <div className="border border-border bg-surface/40 p-10 text-center">
+            <h3 className="text-sm font-semibold text-fg">
+              No titles in this list yet
+            </h3>
             <p className="mt-1 text-xs text-muted">
-              Browse anime or manga on Discover and click &ldquo;Add to Curated List&rdquo; to populate this collection.
+              Browse Discover and click &ldquo;Add to Curated List&rdquo; on any title to populate this collection.
             </p>
             <Link
               href="/discover"
-              className="mt-5 inline-flex items-center gap-1.5 rounded-xl bg-accent px-4 py-2 text-xs font-semibold text-accent-contrast"
+              className="mt-4 inline-flex items-center gap-1.5 border border-accent bg-accent px-3 py-1.5 text-xs font-semibold text-accent-contrast transition-colors hover:bg-accent-hover"
             >
-              <span>Explore Titles</span>
+              <span>Explore Discover</span>
             </Link>
           </div>
         ) : (
-          <div className="space-y-3.5">
+          <div className="space-y-2">
             {list.items.map((item, idx) => {
               const libraryMatch = libraryItems.find(
                 (lib) => lib.entry.anilistId === item.anilistId,
               );
               const userStatus = libraryMatch?.entry.status;
-              const statusMeta = userStatus ? WATCH_STATUS_META[userStatus] : null;
-              const isWatched = userStatus === "completed" || (libraryMatch?.entry.progress ?? 0) > 0;
+              const statusMeta = userStatus
+                ? WATCH_STATUS_META[userStatus]
+                : null;
+              const isWatched =
+                userStatus === "completed" ||
+                (libraryMatch?.entry.progress ?? 0) > 0;
 
               return (
                 <div
                   key={item.id}
-                  className={`group relative flex flex-col sm:flex-row sm:items-center justify-between gap-4 overflow-hidden rounded-2xl border p-4 backdrop-blur-md transition-all ${
+                  className={`group relative flex flex-col sm:flex-row sm:items-center justify-between gap-3 border p-3 transition-colors ${
                     isWatched
-                      ? "border-emerald-500/20 bg-surface/90"
-                      : "border-border-subtle bg-surface/70 hover:border-border"
+                      ? "border-border bg-surface/60 hover:bg-surface"
+                      : "border-border bg-surface/30 hover:border-accent/40 hover:bg-surface/60"
                   }`}
                 >
-                  {/* Left: Rank + Poster + Title & Notes */}
-                  <div className="flex items-start sm:items-center gap-4 min-w-0 flex-1">
+                  {/* Left: Rank + Thumbnail + Details */}
+                  <div className="flex items-start sm:items-center gap-3 min-w-0 flex-1">
                     {/* Rank Badge */}
-                    <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-surface-3 font-display text-sm font-extrabold text-fg shadow-inner">
-                      #{idx + 1}
+                    <span className="flex h-7 w-7 shrink-0 items-center justify-center border border-border bg-surface font-mono text-xs font-bold text-accent-strong">
+                      #{String(idx + 1).padStart(2, "0")}
                     </span>
 
                     {/* Poster Thumbnail */}
-                    <ListItemThumbnail src={item.coverImage} title={item.title} />
+                    <ListItemThumbnail
+                      src={item.coverImage}
+                      title={item.title}
+                    />
 
                     {/* Meta & Notes */}
                     <div className="min-w-0 flex-1">
                       <div className="flex flex-wrap items-center gap-2">
                         <Link
                           href={`/media/${item.anilistId}`}
-                          className="font-display text-base font-bold text-fg hover:text-accent-strong transition-colors line-clamp-1"
+                          className="font-display text-sm font-semibold text-fg transition-colors hover:text-accent-strong line-clamp-1"
                         >
                           {item.title}
                         </Link>
                         {item.format ? (
-                          <span className="rounded bg-surface-3 px-1.5 py-0.5 text-[9px] font-semibold uppercase text-muted">
+                          <span className="border border-border bg-surface px-1.5 py-0.5 font-mono text-[9px] font-bold uppercase text-muted">
                             {item.format}
                           </span>
                         ) : null}
                         {item.averageScore ? (
-                          <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-warning">
+                          <span className="inline-flex items-center gap-0.5 font-mono text-[11px] font-semibold text-amber-400">
                             <StarIcon className="h-3 w-3 fill-current" />
-                            {item.averageScore / 10}
+                            {(item.averageScore / 10).toFixed(1)}
                           </span>
                         ) : null}
                       </div>
 
-                      {/* Personal Ranking Notes */}
+                      {/* Personal Commentary Note */}
                       {editingNoteId === item.anilistId ? (
                         <div className="mt-2 flex items-center gap-2">
                           <input
                             type="text"
                             value={noteText}
                             onChange={(e) => setNoteText(e.target.value)}
-                            placeholder="Add your personal commentary / ranking note..."
-                            className="flex-1 rounded-lg border border-border bg-surface-2 px-2.5 py-1 text-xs text-fg focus:border-accent focus:outline-none"
+                            placeholder="Add your personal ranking note..."
+                            className="h-7 flex-1 border border-border bg-surface px-2.5 text-xs text-fg focus:border-accent focus:outline-none"
                           />
                           <button
                             type="button"
                             onClick={() => handleSaveNote(item.anilistId)}
-                            className="rounded-lg bg-accent px-2.5 py-1 text-xs font-semibold text-accent-contrast"
+                            className="h-7 border border-accent bg-accent px-2 text-[10px] font-semibold uppercase tracking-wider text-accent-contrast hover:bg-accent-hover"
                           >
                             Save
                           </button>
                           <button
                             type="button"
                             onClick={() => setEditingNoteId(null)}
-                            className="text-xs text-muted hover:text-fg"
+                            className="h-7 border border-border bg-surface px-2 text-[10px] uppercase text-muted hover:text-fg"
                           >
                             Cancel
                           </button>
                         </div>
                       ) : (
                         <div className="mt-1 flex items-center gap-2">
-                          <p className="text-xs leading-relaxed text-muted line-clamp-2 italic">
-                            {item.notes ? `“${item.notes}”` : "No ranking note added yet."}
+                          <p className="text-xs text-muted line-clamp-1 italic">
+                            {item.notes
+                              ? `“${item.notes}”`
+                              : "No ranking commentary added."}
                           </p>
                           <button
                             type="button"
@@ -315,43 +333,43 @@ export default function CustomListDetailPage({ params }: PageProps) {
                               setEditingNoteId(item.anilistId);
                               setNoteText(item.notes ?? "");
                             }}
-                            className="opacity-0 group-hover:opacity-100 text-[10px] font-medium text-accent hover:underline transition-opacity shrink-0"
+                            className="text-[10px] font-mono text-accent-strong hover:underline shrink-0"
                           >
-                            Edit note
+                            [Edit note]
                           </button>
                         </div>
                       )}
                     </div>
                   </div>
 
-                  {/* Right: User Library Progress Tag & Actions */}
-                  <div className="flex items-center justify-between sm:justify-end gap-3 shrink-0 pt-2 sm:pt-0 border-t sm:border-t-0 border-border-subtle">
-                    {/* Live library watched indicator */}
+                  {/* Right: Library Status Tag & Remove */}
+                  <div className="flex items-center justify-between sm:justify-end gap-2.5 shrink-0 pt-2 sm:pt-0 border-t sm:border-t-0 border-border">
                     {statusMeta ? (
                       <span
-                        className="inline-flex items-center gap-1.5 rounded-xl border px-2.5 py-1 text-[11px] font-semibold"
+                        className="inline-flex items-center gap-1 border px-2 py-0.5 font-mono text-[10px] font-bold"
                         style={{
-                          borderColor: `${statusMeta.color}40`,
+                          borderColor: `${statusMeta.color}50`,
                           backgroundColor: `${statusMeta.color}15`,
                           color: statusMeta.color,
                         }}
                       >
                         {userStatus === "completed" ? (
-                          <CheckIcon className="h-3.5 w-3.5" />
+                          <CheckIcon className="h-3 w-3" />
                         ) : null}
                         <span>{statusMeta.label}</span>
                       </span>
                     ) : (
-                      <span className="rounded-xl border border-white/10 bg-surface-2 px-2.5 py-1 text-[11px] font-medium text-muted">
+                      <span className="border border-border bg-surface px-2 py-0.5 font-mono text-[10px] text-faint">
                         Not in library
                       </span>
                     )}
 
-                    {/* Quick remove from list */}
                     <button
                       type="button"
-                      onClick={() => removeItemFromList(list.id, item.anilistId)}
-                      className="flex h-7 w-7 items-center justify-center rounded-lg text-muted hover:bg-rose-500/10 hover:text-rose-400 transition-colors"
+                      onClick={() =>
+                        removeItemFromList(list.id, item.anilistId)
+                      }
+                      className="flex h-7 w-7 items-center justify-center border border-transparent text-muted hover:border-danger/40 hover:bg-danger/10 hover:text-danger transition-colors"
                       title="Remove from list"
                     >
                       <CloseIcon className="h-3.5 w-3.5" />
@@ -362,7 +380,7 @@ export default function CustomListDetailPage({ params }: PageProps) {
             })}
           </div>
         )}
-      </div>
+      </section>
     </div>
   );
 }

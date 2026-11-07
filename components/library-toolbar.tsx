@@ -1,6 +1,6 @@
 "use client";
 
-import { CloseIcon, GridIcon, ListIcon, SearchIcon, SlidersIcon } from "@/components/icons";
+import { CloseIcon, GridIcon, ListIcon, SearchIcon } from "@/components/icons";
 import {
   LIBRARY_SORT_LABELS,
   WATCH_STATUS_META,
@@ -10,60 +10,6 @@ import { cn } from "@/lib/utils";
 import type { LibrarySort, LibraryView, WatchStatus } from "@/types/library";
 
 export type LibraryStatusFilter = WatchStatus | "all";
-
-const STATUS_PILL_CONFIG: Record<
-  LibraryStatusFilter,
-  {
-    beacon: string;
-    activeBorder: string;
-    activeBg: string;
-    activeText: string;
-    activeBadge: string;
-  }
-> = {
-  all: {
-    beacon: "bg-fg/70",
-    activeBorder: "border-accent/50 shadow-[0_0_12px_rgba(139,92,246,0.25)]",
-    activeBg: "bg-accent-soft",
-    activeText: "text-fg font-semibold",
-    activeBadge: "bg-accent/25 text-accent-strong",
-  },
-  watching: {
-    beacon: "bg-purple-400 shadow-[0_0_8px_rgba(168,85,247,0.8)]",
-    activeBorder: "border-purple-500/50 shadow-[0_0_12px_rgba(168,85,247,0.25)]",
-    activeBg: "bg-purple-500/15",
-    activeText: "text-purple-200 font-semibold light:text-purple-700",
-    activeBadge: "bg-purple-500/25 text-purple-300 light:bg-purple-500/15 light:text-purple-700",
-  },
-  planning: {
-    beacon: "bg-sky-400 shadow-[0_0_8px_rgba(56,189,248,0.8)]",
-    activeBorder: "border-sky-500/50 shadow-[0_0_12px_rgba(56,189,248,0.25)]",
-    activeBg: "bg-sky-500/15",
-    activeText: "text-sky-200 font-semibold light:text-sky-700",
-    activeBadge: "bg-sky-500/25 text-sky-300 light:bg-sky-500/15 light:text-sky-700",
-  },
-  on_hold: {
-    beacon: "bg-amber-400 shadow-[0_0_8px_rgba(251,191,36,0.8)]",
-    activeBorder: "border-amber-500/50 shadow-[0_0_12px_rgba(251,191,36,0.25)]",
-    activeBg: "bg-amber-500/15",
-    activeText: "text-amber-200 font-semibold light:text-amber-700",
-    activeBadge: "bg-amber-500/25 text-amber-300 light:bg-amber-500/15 light:text-amber-700",
-  },
-  completed: {
-    beacon: "bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.8)]",
-    activeBorder: "border-emerald-500/50 shadow-[0_0_12px_rgba(52,211,153,0.25)]",
-    activeBg: "bg-emerald-500/15",
-    activeText: "text-emerald-200 font-semibold light:text-emerald-700",
-    activeBadge: "bg-emerald-500/25 text-emerald-300 light:bg-emerald-500/15 light:text-emerald-700",
-  },
-  dropped: {
-    beacon: "bg-rose-400 shadow-[0_0_8px_rgba(244,63,94,0.8)]",
-    activeBorder: "border-rose-500/50 shadow-[0_0_12px_rgba(244,63,94,0.25)]",
-    activeBg: "bg-rose-500/15",
-    activeText: "text-rose-200 font-semibold light:text-rose-700",
-    activeBadge: "bg-rose-500/25 text-rose-300 light:bg-rose-500/15 light:text-rose-700",
-  },
-};
 
 export function LibraryToolbar({
   status,
@@ -89,68 +35,54 @@ export function LibraryToolbar({
   const filterList: LibraryStatusFilter[] = ["all", ...WATCH_STATUS_ORDER];
 
   return (
-    <div className="space-y-4">
-      {/* Status Segmented Bar */}
-      <div className="relative rounded-2xl border border-border-subtle bg-surface/70 p-1.5 backdrop-blur-md shadow-xs">
-        <div
-          role="group"
-          aria-label="Filter by watch status"
-          className="no-scrollbar flex items-center gap-1.5 overflow-x-auto"
-        >
-          {filterList.map((value) => {
-            const active = status === value;
-            const label =
-              value === "all" ? "All Series" : WATCH_STATUS_META[value].shortLabel;
-            const conf = STATUS_PILL_CONFIG[value];
-            const count = statusCounts[value];
+    <div className="space-y-3">
+      {/* Status Filter Strip */}
+      <div
+        role="group"
+        aria-label="Filter by watch status"
+        className="no-scrollbar -mx-4 flex gap-1.5 overflow-x-auto border-y border-border px-4 py-2.5 sm:mx-0 sm:flex-wrap sm:overflow-visible sm:px-0"
+      >
+        {filterList.map((value) => {
+          const active = status === value;
+          const label =
+            value === "all" ? "All" : WATCH_STATUS_META[value].shortLabel;
+          const count = statusCounts[value];
 
-            return (
-              <button
-                key={value}
-                type="button"
-                aria-pressed={active}
-                onClick={() => onStatusChange(value)}
+          return (
+            <button
+              key={value}
+              type="button"
+              aria-pressed={active}
+              onClick={() => onStatusChange(value)}
+              className={cn(
+                "inline-flex h-8 shrink-0 items-center gap-1.5 border px-2.5 text-[10px] font-semibold uppercase tracking-[0.1em] transition-colors",
+                active
+                  ? "border-accent bg-accent text-accent-contrast"
+                  : "border-border text-muted hover:border-accent/60 hover:bg-surface-2 hover:text-fg",
+              )}
+            >
+              <span>{label}</span>
+              <span
                 className={cn(
-                  "group relative inline-flex shrink-0 items-center gap-2 rounded-xl border px-3.5 py-2 text-[13px] font-medium transition-all duration-150 ease-out select-none active:scale-[0.98]",
-                  active
-                    ? cn(conf.activeBorder, conf.activeBg, conf.activeText)
-                    : "border-transparent bg-transparent text-muted hover:bg-surface-2 hover:text-fg",
+                  "font-mono text-[9px] tabular-nums",
+                  active ? "text-accent-contrast/85" : "text-faint",
                 )}
               >
-                {/* Status beacon dot */}
-                <span
-                  aria-hidden="true"
-                  className={cn(
-                    "h-2 w-2 rounded-full transition-all duration-150",
-                    conf.beacon,
-                    active ? "scale-110 opacity-100" : "opacity-50 group-hover:opacity-85",
-                  )}
-                />
-                <span>{label}</span>
-                <span
-                  className={cn(
-                    "rounded-full px-2 py-0.5 text-[11px] font-semibold tabular-nums transition-colors",
-                    active
-                      ? conf.activeBadge
-                      : "bg-surface-3/80 text-faint group-hover:text-muted",
-                  )}
-                >
-                  {count}
-                </span>
-              </button>
-            );
-          })}
-        </div>
+                {count}
+              </span>
+            </button>
+          );
+        })}
       </div>
 
-      {/* Control bar: Search, Sort & View Switcher */}
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        {/* Search input with custom clear button & suppressed WebKit cancel icon */}
-        <div className="relative w-full sm:max-w-md">
+      {/* Search, Sort & View Mode Switcher Deck */}
+      <div className="flex flex-col gap-2.5 border border-border bg-surface/70 p-3 backdrop-blur-md sm:flex-row sm:items-center sm:justify-between sm:p-3.5">
+        {/* Search input with custom clear button */}
+        <div className="relative flex-1">
           <label htmlFor="library-search" className="sr-only">
             Search your library
           </label>
-          <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3.5 text-faint">
+          <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-faint">
             <SearchIcon className="h-4 w-4" />
           </div>
           <input
@@ -159,29 +91,26 @@ export function LibraryToolbar({
             value={query}
             onChange={(e) => onQueryChange(e.target.value)}
             placeholder="Search titles in library…"
-            className="h-11 w-full rounded-xl border border-border-subtle bg-surface/70 pl-10 pr-9 text-sm text-fg placeholder:text-faint/70 transition-all focus:border-accent focus:bg-surface-2 focus:outline-none focus:ring-1 focus:ring-accent [&::-webkit-search-cancel-button]:appearance-none [&::-webkit-search-cancel-button]:hidden [&::-webkit-search-decoration]:appearance-none"
+            className="h-10 w-full border border-border bg-bg/60 pl-9 pr-8 text-[13px] text-fg placeholder:text-faint transition-colors focus:border-accent focus:outline-none [&::-webkit-search-cancel-button]:appearance-none [&::-webkit-search-cancel-button]:hidden [&::-webkit-search-decoration]:appearance-none"
           />
           {query.trim().length > 0 && (
             <button
               type="button"
               onClick={() => onQueryChange("")}
               aria-label="Clear search"
-              className="absolute inset-y-0 right-0 flex items-center pr-3 text-faint transition-colors hover:text-fg"
+              className="absolute inset-y-0 right-0 flex items-center pr-2.5 text-faint transition-colors hover:text-fg"
             >
-              <CloseIcon className="h-4 w-4" />
+              <CloseIcon className="h-3.5 w-3.5" />
             </button>
           )}
         </div>
 
         {/* Sort & View Mode Switcher */}
-        <div className="flex items-center gap-2.5">
-          <div className="relative flex items-center">
-            <div className="pointer-events-none absolute left-3 text-faint">
-              <SlidersIcon className="h-3.5 w-3.5" />
-            </div>
-            <label htmlFor="library-sort" className="sr-only">
-              Sort library
-            </label>
+        <div className="flex items-center justify-between gap-2.5 sm:justify-end">
+          <div className="flex items-center gap-1.5">
+            <span className="hidden text-[9px] font-semibold uppercase tracking-[0.14em] text-faint sm:inline">
+              Sort
+            </span>
             <select
               id="library-sort"
               aria-label="Sort library"
@@ -189,7 +118,7 @@ export function LibraryToolbar({
               onChange={(event) =>
                 onSortChange(event.target.value as LibrarySort)
               }
-              className="h-11 rounded-xl border border-border-subtle bg-surface/70 pl-9 pr-8 text-xs font-medium text-fg transition-all focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent"
+              className="h-8 border border-border bg-surface px-2 text-[10px] font-semibold uppercase tracking-[0.08em] text-fg focus:border-accent focus:outline-none"
             >
               {(
                 Object.entries(LIBRARY_SORT_LABELS) as Array<[LibrarySort, string]>
@@ -205,37 +134,37 @@ export function LibraryToolbar({
           <div
             role="group"
             aria-label="Library layout view"
-            className="flex rounded-xl border border-border-subtle bg-surface/70 p-1 backdrop-blur-md"
+            className="inline-flex items-center border border-border"
           >
             <button
               type="button"
               aria-pressed={view === "grid"}
               onClick={() => onViewChange("grid")}
               className={cn(
-                "flex h-9 w-9 items-center justify-center rounded-lg transition-all duration-150 active:scale-95",
+                "flex h-7 w-7 items-center justify-center transition-colors",
                 view === "grid"
-                  ? "border border-accent/40 bg-accent-soft text-accent-strong shadow-xs"
-                  : "text-faint hover:text-muted hover:bg-surface-2",
+                  ? "bg-accent text-accent-contrast"
+                  : "text-muted hover:text-fg",
               )}
               aria-label="Poster grid view"
               title="Poster grid view"
             >
-              <GridIcon className="h-4 w-4" />
+              <GridIcon className="h-3.5 w-3.5" />
             </button>
             <button
               type="button"
               aria-pressed={view === "list"}
               onClick={() => onViewChange("list")}
               className={cn(
-                "flex h-9 w-9 items-center justify-center rounded-lg transition-all duration-150 active:scale-95",
+                "flex h-7 w-7 items-center justify-center border-l border-border transition-colors",
                 view === "list"
-                  ? "border border-accent/40 bg-accent-soft text-accent-strong shadow-xs"
-                  : "text-faint hover:text-muted hover:bg-surface-2",
+                  ? "bg-accent text-accent-contrast"
+                  : "text-muted hover:text-fg",
               )}
               aria-label="Detailed list view"
               title="Detailed list view"
             >
-              <ListIcon className="h-4 w-4" />
+              <ListIcon className="h-3.5 w-3.5" />
             </button>
           </div>
         </div>

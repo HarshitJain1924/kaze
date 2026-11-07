@@ -14,7 +14,6 @@ import {
   TrashIcon,
 } from "@/components/icons";
 import { usePreferences } from "@/components/providers/preferences-provider";
-import { StatusBadge } from "@/components/ui/badge";
 import { getNextEpisodeNumber } from "@/features/library/continue-watching";
 import { useLibrary } from "@/features/library/library-provider";
 import {
@@ -52,27 +51,34 @@ export function LibraryItemCard({ item }: { item: LibraryItem }) {
   // Missing AniList metadata fallback
   if (!item.anime) {
     return (
-      <article className="flex flex-col">
-        <div className="flex aspect-[2/3] flex-col items-center justify-center gap-2 rounded-2xl border border-dashed border-border bg-surface-2/60 p-4 text-center">
-          <AlertIcon className="h-6 w-6 text-faint" />
-          <p className="text-xs font-semibold text-muted">Metadata unavailable</p>
-          <p className="text-[11px] text-faint">
-            AniList ID {item.entry.anilistId}
+      <article className="flex flex-col min-w-0">
+        <div className="flex aspect-[2/3] flex-col items-center justify-center gap-2 border border-dashed border-border bg-surface-2/60 p-4 text-center">
+          <AlertIcon className="h-5 w-5 text-faint" />
+          <p className="text-[11px] font-semibold uppercase tracking-[0.1em] text-muted">
+            Metadata unavailable
+          </p>
+          <p className="font-mono text-[10px] text-faint">
+            ID {item.entry.anilistId}
           </p>
           <button
             type="button"
             onClick={() => requestRemove(item.entry.anilistId)}
-            className="mt-2 inline-flex items-center gap-1.5 rounded-lg border border-danger/30 bg-danger-soft px-2.5 py-1 text-xs font-medium text-danger transition-colors hover:bg-danger/20"
+            className="mt-2 inline-flex h-7 items-center gap-1 border border-danger/30 bg-danger-soft/30 px-2 text-[9px] font-semibold uppercase tracking-[0.1em] text-danger transition-colors hover:bg-danger-soft/60"
           >
-            <TrashIcon className="h-3 w-3" />
+            <TrashIcon className="h-2.5 w-2.5" />
             Remove
           </button>
         </div>
-        <div className="mt-2.5 space-y-1">
-          <p className="text-sm font-semibold text-muted">Untitled entry</p>
-          <div className="flex items-center gap-2 text-xs text-faint">
-            <StatusBadge status={item.entry.status} />
-            <span className="tabular-nums">{item.entry.progress} watched</span>
+        <div className="mt-2 space-y-0.5">
+          <p className="font-display text-[13px] font-medium text-muted">
+            Untitled entry
+          </p>
+          <div className="flex items-center gap-2 font-mono text-[10px] text-faint">
+            <span className="uppercase tracking-[0.1em] text-accent-strong">
+              {item.entry.status}
+            </span>
+            <span>·</span>
+            <span className="tabular-nums">{item.entry.progress} logged</span>
           </div>
         </div>
       </article>
@@ -123,9 +129,9 @@ export function LibraryItemCard({ item }: { item: LibraryItem }) {
   const metaSubtitle = [formatText, yearText].filter(Boolean).join(" · ");
 
   return (
-    <article className="group relative flex flex-col rounded-2xl border border-border-subtle bg-surface/70 p-2.5 backdrop-blur-md transition-all duration-200 hover:-translate-y-1 hover:border-border hover:bg-surface-2/80 hover:shadow-xl">
+    <article className="group relative flex min-w-0 flex-col">
       {/* Poster Artwork container */}
-      <div className="relative aspect-[2/3] w-full overflow-hidden rounded-xl bg-surface-3">
+      <div className="relative aspect-[2/3] w-full overflow-hidden border border-border bg-surface-2 transition-colors group-hover:border-accent/60">
         {cover && isHttpUrl(cover) && !imageFailed ? (
           <Image
             src={cover}
@@ -133,74 +139,65 @@ export function LibraryItemCard({ item }: { item: LibraryItem }) {
             fill
             unoptimized
             sizes="(max-width: 640px) 46vw, (max-width: 1024px) 30vw, (max-width: 1280px) 20vw, 16vw"
-            className="object-cover transition-transform duration-300 ease-out group-hover:scale-105"
+            className="object-cover transition-transform duration-500 ease-out group-hover:scale-[1.03]"
             onError={() => setImageFailed(true)}
           />
         ) : (
           <PosterFallback color={anime.coverImage.color} />
         )}
 
-        {/* Ambient Dark Scrim */}
-        <div
-          aria-hidden="true"
-          className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/90 via-black/25 to-transparent"
-        />
-
         {/* Clickable Full Poster Link */}
-        <Link            href={`/media/${anime.id}`}
-            aria-label={`View details for ${title}`}
-          className="absolute inset-0 z-10 rounded-xl focus:outline-none focus:ring-2 focus:ring-accent"
+        <Link
+          href={`/media/${anime.id}`}
+          aria-label={`View details for ${title}`}
+          className="absolute inset-0 z-10 focus:outline-none focus-visible:ring-1 focus-visible:ring-accent"
         />
 
         {/* Top Badges Row */}
-        <div className="pointer-events-none absolute inset-x-2 top-2 z-20 flex items-center justify-between gap-1">
-          {scoreDisplay ? (
-            <span
-              className={cn(
-                "inline-flex items-center gap-1 rounded-md border px-1.5 py-0.5 text-[11px] font-bold backdrop-blur-md shadow-xs tabular-nums",
-                scoreDisplay.isPersonal
-                  ? "border-amber-400/40 bg-black/80 text-amber-300"
-                  : "border-white/15 bg-black/75 text-amber-300/90",
-              )}
-            >
-              <StarIcon className="h-3 w-3 fill-current" />
-              <span>{scoreDisplay.value}</span>
-            </span>
-          ) : (
-            <span />
-          )}
+        {scoreDisplay ? (
+          <span className="pointer-events-none absolute left-0 top-0 z-20 inline-flex items-center gap-1 bg-bg/90 px-1.5 py-1 font-mono text-[10px] font-semibold text-fg tabular-nums">
+            <StarIcon className="h-2.5 w-2.5 fill-accent text-accent" />
+            <span>{scoreDisplay.value}</span>
+          </span>
+        ) : null}
 
-          {formatText && (
-            <span className="rounded-md border border-white/15 bg-black/75 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-white/90 backdrop-blur-md">
+        <span className="pointer-events-none absolute right-0 top-0 z-20 flex items-center gap-1">
+          {anime.isAdult ? (
+            <span className="bg-bg/90 px-1.5 py-1 text-[8px] font-semibold uppercase tracking-[0.1em] text-danger">
+              18+
+            </span>
+          ) : null}
+          {formatText ? (
+            <span className="bg-bg/90 px-1.5 py-1 text-[8px] font-semibold uppercase tracking-[0.1em] text-muted">
               {formatText}
             </span>
-          )}
-        </div>
+          ) : null}
+        </span>
 
-        {/* Bottom Progress Telemetry on Poster */}
+        {/* Bottom Progress Telemetry on Poster with Flush Ruled Progress Bar */}
         <div className="pointer-events-none absolute inset-x-0 bottom-0 z-20">
-          <div className="flex items-center justify-between px-2.5 pb-2 text-[11px] font-medium text-white/90 drop-shadow-sm">
-            <span className="tabular-nums">
+          <div className="flex items-center justify-between bg-gradient-to-t from-bg/95 via-bg/75 to-transparent px-2 pb-1.5 pt-3">
+            <span className="font-mono text-[10px] font-medium tabular-nums text-fg">
               {entry.progress}
-              {total ? ` / ${total}` : ""} {unitShort}
+              {total ? `/${total}` : ""} {unitShort}
             </span>
             {total && total > 0 ? (
-              <span className="text-[10px] font-bold tabular-nums text-white/75">
+              <span className="font-mono text-[9px] tabular-nums text-faint">
                 {percent}%
               </span>
             ) : null}
           </div>
 
           {/* Integrated Flush Progress Track */}
-          <div className="h-1.5 w-full overflow-hidden bg-white/20">
+          <div className="h-[2px] w-full bg-border">
             <div
               className={cn(
                 "h-full transition-all duration-300",
                 isCompleted
-                  ? "bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.8)]"
+                  ? "bg-success"
                   : entry.status === "on_hold"
                     ? "bg-amber-400"
-                    : "bg-accent-strong shadow-[0_0_8px_rgba(167,139,250,0.8)]",
+                    : "bg-accent",
               )}
               style={{ width: `${percent}%` }}
             />
@@ -209,32 +206,35 @@ export function LibraryItemCard({ item }: { item: LibraryItem }) {
       </div>
 
       {/* Information & Action Section Below Poster */}
-      <div className="mt-2.5 flex flex-1 flex-col">
-        <Link
-          href={`/media/${anime.id}`}
-          className="line-clamp-1 font-display text-[13px] font-semibold text-fg transition-colors hover:text-accent-strong sm:text-sm"
-          title={title}
-        >
-          {title}
-        </Link>
-
-        <div className="mt-1 flex items-center justify-between gap-1 text-[11px] text-faint">
+      <div className="mt-2 flex flex-1 flex-col">
+        <div className="flex items-center justify-between gap-1 text-[8px] font-medium uppercase tracking-[0.14em] text-faint">
           <span>{metaSubtitle || "Series"}</span>
-          <StatusBadge
-            status={entry.status}
-            mediaType={entry.mediaType}
-            className="border-0 bg-transparent px-0 py-0 text-[11px]"
-          />
+          <span
+            className={cn(
+              "font-semibold uppercase tracking-[0.1em]",
+              isCompleted
+                ? "text-success"
+                : entry.status === "watching"
+                  ? "text-accent-strong"
+                  : "text-muted",
+            )}
+          >
+            {entry.status}
+          </span>
         </div>
 
+        <h3 className="mt-0.5 line-clamp-1 font-display text-[13px] font-medium leading-snug text-fg transition-colors group-hover:text-accent-strong" title={title}>
+          <Link href={`/media/${anime.id}`}>{title}</Link>
+        </h3>
+
         {/* One-tap Next Episode Stepper Action */}
-        <div className="mt-3 pt-0.5">
+        <div className="mt-2.5">
           {isCompleted ? (
-            <div className="inline-flex h-8 w-full items-center justify-center gap-1.5 rounded-lg border border-emerald-500/25 bg-emerald-500/10 px-2 text-xs font-semibold text-emerald-400 light:text-emerald-700">
-              <CheckIcon className="h-3.5 w-3.5 shrink-0" />
+            <div className="inline-flex h-7 w-full items-center justify-center gap-1.5 border border-success/30 bg-success-soft/20 text-[9px] font-semibold uppercase tracking-[0.12em] text-success">
+              <CheckIcon className="h-3 w-3 shrink-0" />
               <span>
                 {total
-                  ? `All ${total} ${manga ? "chapters read" : "eps watched"}`
+                  ? `All ${total} ${manga ? "ch read" : "eps logged"}`
                   : "Completed"}
               </span>
             </div>
@@ -246,18 +246,20 @@ export function LibraryItemCard({ item }: { item: LibraryItem }) {
                 e.preventDefault();
                 void incrementProgress(entry.anilistId);
               }}
-              className="inline-flex h-8 w-full items-center justify-center gap-1.5 rounded-lg border border-accent/40 bg-accent/15 px-2 text-xs font-semibold text-fg transition-all duration-150 hover:border-accent hover:bg-accent hover:text-white active:scale-95 disabled:opacity-50"
+              className="inline-flex h-7 w-full items-center justify-center gap-1 border border-border bg-surface/60 text-[9px] font-semibold uppercase tracking-[0.12em] text-fg transition-colors hover:border-accent hover:bg-accent hover:text-accent-contrast disabled:opacity-50"
               aria-label={`Mark ${manga ? "chapter" : "episode"} ${nextEp} ${manga ? "read" : "watched"} for ${title}`}
             >
               {pending ? (
-                <span className="inline-flex items-center gap-1.5">
-                  <LoaderIcon className="h-3.5 w-3.5 animate-spin" />
+                <span className="inline-flex items-center gap-1">
+                  <LoaderIcon className="h-2.5 w-2.5 animate-spin" />
                   <span>Saving…</span>
                 </span>
               ) : (
                 <>
-                  <PlusIcon className="h-3.5 w-3.5 text-accent-strong" />
-                  <span>{manga ? "Chapter" : "Episode"} {nextEp}</span>
+                  <PlusIcon className="h-2.5 w-2.5" />
+                  <span>
+                    +1 {manga ? "Ch" : "Ep"} {nextEp}
+                  </span>
                 </>
               )}
             </button>

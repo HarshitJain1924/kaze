@@ -13,9 +13,9 @@ import {
   TrashIcon,
 } from "@/components/icons";
 import { usePreferences } from "@/components/providers/preferences-provider";
-import { StatusBadge } from "@/components/ui/badge";
 import { getNextEpisodeNumber } from "@/features/library/continue-watching";
 import { useLibrary } from "@/features/library/library-provider";
+import { getWatchStatusLabel } from "@/lib/library-meta";
 import {
   cn,
   formatFormat,
@@ -25,6 +25,17 @@ import {
   isHttpUrl,
 } from "@/lib/utils";
 import type { LibraryItem } from "@/types/library";
+import type { TmdbLibraryItem } from "@/types/tmdb";
+
+export type UnifiedLibraryItem =
+  | { kind: "anilist"; item: LibraryItem }
+  | { kind: "screen"; item: TmdbLibraryItem };
+
+export type LibraryListItem = LibraryItem | UnifiedLibraryItem;
+
+function isUnifiedItem(item: LibraryListItem): item is UnifiedLibraryItem {
+  return "kind" in item && (item.kind === "anilist" || item.kind === "screen");
+}
 
 function PosterFallback({ color }: { color: string | null }) {
   return (
@@ -42,14 +53,146 @@ function PosterFallback({ color }: { color: string | null }) {
   );
 }
 
-export function LibraryList({ items }: { items: LibraryItem[] }) {
+export function LibraryList({ items }: { items: LibraryListItem[] }) {
   const { incrementProgress, requestRemove, pendingIds, watchedEpisodesFor } =
     useLibrary();
   const { preferences } = usePreferences();
 
   return (
-    <ul className="space-y-3" role="list">
-      {items.map((item) => {
+    <ul className="divide-y divide-border border-y border-border" role="list">
+      {items.map((rawItem) => {
+        if (isUnifiedItem(rawItem) && rawItem.kind === "screen") {
+          const { entry, watchedCount } = rawItem.item;
+          const total = entry.totalEpisodes ?? 0;
+          const isMovie = entry.mediaType === "movie";
+          const percent =
+            !isMovie && total > 0
+              ? Math.min(100, Math.round((watchedCount / total) * 100))
+              : isMovie && entry.watched
+                ? 100
+                : 0;
+          const isCompleted =
+            (isMovie && entry.watched) ||
+            (!isMovie && total > 0 && watchedCount >= total) ||
+            entry.status === "completed";
+
+          return (
+            <li
+              key={`screen:${entry.id}`}
+              className="group flex flex-col gap-4 py-4 sm:flex-row sm:items-start"
+            >
+              {/* Thumbnail Poster */}
+              <Link
+                href={`/screen/${entry.mediaType}/${entry.tmdbId}`}
+                className="relative aspect-[2/3] w-20 shrink-0 overflow-hidden border border-border bg-surface-2 sm:w-24"
+                aria-label={`Open details for ${entry.title}`}
+              >
+                {entry.posterPath && isHttpUrl(entry.posterPath) ? (
+                  <Image
+                    src={entry.posterPath}
+                    alt=""
+                    fill
+                    unoptimized
+                    sizes="96px"
+                    className="object-cover transition-transform duration-300 group-hover:scale-105"
+                  />
+                ) : (
+                  <div className="absolute inset-0 flex items-center justify-center bg-surface-3">
+                    <FilmIcon className="h-6 w-6 text-faint/60" />
+                  </div>
+                )}
+                <div className="absolute inset-x-0 bottom-0 h-[2px] w-full bg-border">
+                  <div
+                    className={cn(
+                      "h-full transition-all duration-300",
+                      isCompleted ? "bg-success" : "bg-accent",
+                    )}
+                    style={{ width: `${percent}%` }}
+                  />
+                </div>
+              </Link>
+
+              {/* Central Information & Progress Column */}
+              <div className="flex min-w-0 flex-1 flex-col justify-between self-stretch">
+                <div>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="text-[9px] font-medium uppercase tracking-[0.14em] text-faint">
+                      {[
+                        isMovie ? "Film" : "Series",
+                        entry.releaseDate ? entry.releaseDate.slice(0, 4) : null,
+                      ]
+                        .filter(Boolean)
+                        .join(" · ")}
+                    </span>
+                    {entry.score ? (
+                      <span className="inline-flex items-center gap-1 font-mono text-[10px] font-semibold text-amber-400 tabular-nums">
+                        <StarIcon className="h-2.5 w-2.5 fill-current" />
+                        {entry.score}/10
+                      </span>
+                    ) : null}
+                    <span
+                      className={cn(
+                        "text-[9px] font-semibold uppercase tracking-[0.14em]",
+                        isCompleted
+                          ? "text-success"
+                          : entry.status === "watching"
+                            ? "text-accent-strong"
+                            : "text-muted",
+                      )}
+                    >
+                      · {getWatchStatusLabel(entry.status)}
+                    </span>
+                  </div>
+
+                  <h3 className="mt-1 font-display text-base font-medium leading-snug text-fg transition-colors group-hover:text-accent-strong">
+                    <Link href={`/screen/${entry.mediaType}/${entry.tmdbId}`}>
+                      {entry.title}
+                    </Link>
+                  </h3>
+                </div>
+
+                <div className="mt-4 space-y-1.5">
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="font-mono text-[11px] tabular-nums text-fg">
+                      {isMovie
+                        ? entry.watched
+                          ? "Watched"
+                          : "Not watched"
+                        : `${watchedCount}${total ? ` / ${total}` : ""} episodes (${percent}%)`}
+                    </span>
+                    <span className="font-mono text-[10px] uppercase tracking-[0.08em] text-faint">
+                      Updated {formatShortIsoDate(entry.updatedAt)}
+                    </span>
+                  </div>
+
+                  <div className="h-[2px] w-full bg-border">
+                    <div
+                      className={cn(
+                        "h-full transition-all duration-300",
+                        isCompleted ? "bg-success" : "bg-accent",
+                      )}
+                      style={{ width: `${percent}%` }}
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Right Action Controls Column */}
+              <div className="flex items-center justify-end gap-2 pt-1 sm:flex-col sm:items-end sm:justify-start sm:pt-0">
+                <Link
+                  href={`/screen/${entry.mediaType}/${entry.tmdbId}`}
+                  className="flex h-8 w-8 items-center justify-center border border-border bg-surface text-faint transition-colors hover:border-accent hover:text-fg"
+                  aria-label={`View details for ${entry.title}`}
+                  title="View details"
+                >
+                  <ChevronRightIcon className="h-3.5 w-3.5" />
+                </Link>
+              </div>
+            </li>
+          );
+        }
+
+        const item = isUnifiedItem(rawItem) ? rawItem.item : rawItem;
         const { entry, anime } = item;
         const title = anime
           ? getDisplayTitle(
@@ -89,13 +232,13 @@ export function LibraryList({ items }: { items: LibraryItem[] }) {
 
         return (
           <li
-            key={entry.id}
-            className="group relative flex flex-col gap-3 rounded-2xl border border-border-subtle bg-surface/70 p-3 sm:flex-row sm:items-center sm:gap-4 sm:p-4 backdrop-blur-md transition-all duration-200 hover:border-border hover:bg-surface-2/80 hover:shadow-lg"
+            key={`anilist:${entry.id}`}
+            className="group flex flex-col gap-4 py-4 sm:flex-row sm:items-start"
           >
             {/* Thumbnail Poster */}
             <Link
               href={`/media/${entry.anilistId}`}
-              className="relative h-28 w-20 shrink-0 overflow-hidden rounded-xl bg-surface-3 shadow-sm transition-transform duration-200 group-hover:scale-[1.02]"
+              className="relative aspect-[2/3] w-20 shrink-0 overflow-hidden border border-border bg-surface-2 sm:w-24"
               aria-label={`Open details for ${title}`}
             >
               {cover && isHttpUrl(cover) ? (
@@ -104,22 +247,23 @@ export function LibraryList({ items }: { items: LibraryItem[] }) {
                   alt=""
                   fill
                   unoptimized
-                  sizes="80px"
-                  className="object-cover"
+                  sizes="96px"
+                  className="object-cover transition-transform duration-300 group-hover:scale-105"
                 />
               ) : (
                 <PosterFallback color={anime?.coverImage?.color ?? null} />
               )}
-              {/* Integrated Bottom Progress Bar on Thumbnail */}
-              <div className="absolute inset-x-0 bottom-0 h-1.5 bg-white/20">
+
+              {/* Flush bottom progress bar */}
+              <div className="absolute inset-x-0 bottom-0 h-[2px] w-full bg-border">
                 <div
                   className={cn(
                     "h-full transition-all duration-300",
                     isCompleted
-                      ? "bg-emerald-400"
+                      ? "bg-success"
                       : entry.status === "on_hold"
                         ? "bg-amber-400"
-                        : "bg-accent-strong",
+                        : "bg-accent",
                   )}
                   style={{ width: `${percent}%` }}
                 />
@@ -129,63 +273,57 @@ export function LibraryList({ items }: { items: LibraryItem[] }) {
             {/* Central Information & Progress Column */}
             <div className="flex min-w-0 flex-1 flex-col justify-between self-stretch">
               <div>
-                <div className="flex flex-wrap items-center justify-between gap-2">
-                  <Link
-                    href={`/media/${entry.anilistId}`}
-                    className="line-clamp-1 font-display text-sm font-semibold text-fg transition-colors hover:text-accent-strong sm:text-base"
-                  >
-                    {title}
-                  </Link>
-                  <StatusBadge
-                    status={entry.status}
-                    mediaType={entry.mediaType}
-                    className="shrink-0"
-                  />
-                </div>
-
-                {/* Subtitle Metadata Chips */}
-                <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-faint">
-                  {formatText && (
-                    <span className="rounded-md border border-border-subtle bg-surface-3/60 px-1.5 py-0.5 text-[11px] font-medium text-muted">
-                      {formatText}
-                    </span>
-                  )}
-                  {yearText && <span>{yearText}</span>}
-                  {total ? (
-                    <span>
-                      · {total} {unitShort}
-                    </span>
-                  ) : null}
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="text-[9px] font-medium uppercase tracking-[0.14em] text-faint">
+                    {[formatText, yearText].filter(Boolean).join(" · ") || "Series"}
+                  </span>
                   {entry.score ? (
-                    <span className="inline-flex items-center gap-1 font-semibold text-amber-400 light:text-amber-600">
-                      · <StarIcon className="h-3 w-3 fill-current" />
+                    <span className="inline-flex items-center gap-1 font-mono text-[10px] font-semibold text-amber-400 tabular-nums">
+                      <StarIcon className="h-2.5 w-2.5 fill-current" />
                       {entry.score}/10
                     </span>
                   ) : null}
+                  <span
+                    className={cn(
+                      "text-[9px] font-semibold uppercase tracking-[0.14em]",
+                      isCompleted
+                        ? "text-success"
+                        : entry.status === "watching"
+                          ? "text-accent-strong"
+                          : "text-muted",
+                    )}
+                  >
+                    · {entry.status}
+                  </span>
                 </div>
+
+                <h3 className="mt-1 font-display text-base font-medium leading-snug text-fg transition-colors group-hover:text-accent-strong">
+                  <Link href={`/media/${entry.anilistId}`}>{title}</Link>
+                </h3>
               </div>
 
               {/* Episode Progress Bar & Timeline */}
-              <div className="mt-3 space-y-1.5 pt-1">
-                <div className="flex items-center justify-between text-xs text-muted">
-                  <span className="font-medium tabular-nums text-fg">
+              <div className="mt-4 space-y-1.5">
+                <div className="flex items-center justify-between text-xs">
+                  <span className="font-mono text-[11px] tabular-nums text-fg">
                     {entry.progress}
                     {total ? ` / ${total}` : ""} {unitShort} {manga ? "read" : "watched"}
                     {total && total > 0 ? ` (${percent}%)` : ""}
                   </span>
-                  <span className="text-[11px] text-faint">
+                  <span className="font-mono text-[10px] uppercase tracking-[0.08em] text-faint">
                     Updated {formatShortIsoDate(entry.updatedAt)}
                   </span>
                 </div>
-                <div className="h-2 w-full overflow-hidden rounded-full bg-surface-3">
+
+                <div className="h-[2px] w-full bg-border">
                   <div
                     className={cn(
-                      "h-full rounded-full transition-all duration-300",
+                      "h-full transition-all duration-300",
                       isCompleted
-                        ? "bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.8)]"
+                        ? "bg-success"
                         : entry.status === "on_hold"
                           ? "bg-amber-400"
-                          : "bg-accent-strong shadow-[0_0_8px_rgba(167,139,250,0.8)]",
+                          : "bg-accent",
                     )}
                     style={{ width: `${percent}%` }}
                   />
@@ -194,29 +332,31 @@ export function LibraryList({ items }: { items: LibraryItem[] }) {
             </div>
 
             {/* Right Action Controls Column */}
-            <div className="flex items-center justify-end gap-2 pt-1 sm:flex-col sm:justify-center sm:pt-0">
+            <div className="flex items-center justify-end gap-2 pt-1 sm:flex-col sm:items-end sm:justify-start sm:pt-0">
               {isCompleted ? (
-                <div className="inline-flex h-9 items-center gap-1.5 rounded-xl border border-emerald-500/25 bg-emerald-500/10 px-3 text-xs font-semibold text-emerald-400 light:text-emerald-700">
-                  <CheckIcon className="h-3.5 w-3.5" />
-                  <span>{manga ? "Finished" : "Finished"}</span>
+                <div className="inline-flex h-8 items-center gap-1.5 border border-success/30 bg-success-soft/20 px-2.5 text-[9px] font-semibold uppercase tracking-[0.12em] text-success">
+                  <CheckIcon className="h-3 w-3" />
+                  <span>Finished</span>
                 </div>
               ) : (
                 <button
                   type="button"
                   disabled={pending}
                   onClick={() => void incrementProgress(entry.anilistId)}
-                  className="inline-flex h-9 items-center gap-1.5 rounded-xl border border-accent/40 bg-accent/15 px-3.5 text-xs font-semibold text-fg transition-all duration-150 hover:border-accent hover:bg-accent hover:text-white active:scale-95 disabled:opacity-50"
+                  className="inline-flex h-8 items-center gap-1.5 border border-border bg-surface px-3 text-[10px] font-semibold uppercase tracking-[0.1em] text-fg transition-colors hover:border-accent hover:bg-accent hover:text-accent-contrast disabled:opacity-50"
                   aria-label={`Add one ${manga ? "read chapter" : "watched episode"} to ${title}`}
                 >
                   {pending ? (
                     <span className="inline-flex items-center gap-1.5">
-                      <LoaderIcon className="h-3.5 w-3.5 animate-spin" />
+                      <LoaderIcon className="h-3 w-3 animate-spin" />
                       <span>Saving…</span>
                     </span>
                   ) : (
                     <>
-                      <PlusIcon className="h-3.5 w-3.5 text-accent-strong" />
-                      <span>+ {manga ? "Ch" : "Ep"} {nextEp}</span>
+                      <PlusIcon className="h-3 w-3" />
+                      <span>
+                        +1 {manga ? "Ch" : "Ep"} {nextEp}
+                      </span>
                     </>
                   )}
                 </button>
@@ -225,11 +365,11 @@ export function LibraryList({ items }: { items: LibraryItem[] }) {
               <div className="flex items-center gap-1">
                 <Link
                   href={`/media/${entry.anilistId}`}
-                  className="flex h-9 w-9 items-center justify-center rounded-xl border border-border-subtle bg-surface-2 text-faint transition-colors hover:border-border hover:text-fg"
+                  className="flex h-8 w-8 items-center justify-center border border-border bg-surface text-faint transition-colors hover:border-accent hover:text-fg"
                   aria-label={`View full details for ${title}`}
-                  title="View anime details"
+                  title="View details"
                 >
-                  <ChevronRightIcon className="h-4 w-4" />
+                  <ChevronRightIcon className="h-3.5 w-3.5" />
                 </Link>
 
                 <button
@@ -237,9 +377,9 @@ export function LibraryList({ items }: { items: LibraryItem[] }) {
                   onClick={() => requestRemove(entry.anilistId)}
                   aria-label={`Remove ${title} from library`}
                   title="Remove from library"
-                  className="flex h-9 w-9 items-center justify-center rounded-xl border border-transparent text-faint transition-colors hover:border-danger/30 hover:bg-danger-soft hover:text-danger"
+                  className="flex h-8 w-8 items-center justify-center border border-border bg-surface text-faint transition-colors hover:border-danger/40 hover:bg-danger-soft/20 hover:text-danger"
                 >
-                  <TrashIcon className="h-4 w-4" />
+                  <TrashIcon className="h-3.5 w-3.5" />
                 </button>
               </div>
             </div>

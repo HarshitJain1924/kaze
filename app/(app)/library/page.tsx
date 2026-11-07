@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 
 import type { LibraryStatusFilter } from "@/components/library-toolbar";
 import { LibraryBrowser } from "@/features/library/library-browser";
-import { ScreenLibrarySection } from "@/features/screen/screen-library-section";
+import { loadScreenLibrary } from "@/lib/api/tmdb";
 import { requireViewer } from "@/lib/auth";
 import { getCurrentSeason } from "@/lib/season";
 import { getCatalogService } from "@/services/catalog/catalog-service";
@@ -46,15 +46,20 @@ export default async function LibraryPage({
   const params = await searchParams;
   const initialStatus = parseStatus(params.status);
   const suggestions = await loadSeasonPicks();
+  const screenItems = await loadScreenLibrary(viewer.id).catch((error: unknown) => {
+    console.error(
+      "[screen-library] could not load film and TV entries",
+      error instanceof Error ? error.message : "unknown error",
+    );
+    return [];
+  });
 
   return (
-    <div className="space-y-10">
-      <LibraryBrowser
-        key={initialStatus}
-        initialStatus={initialStatus}
-        suggestions={suggestions}
-      />
-      <ScreenLibrarySection viewerId={viewer.id} />
-    </div>
+    <LibraryBrowser
+      key={initialStatus}
+      initialStatus={initialStatus}
+      suggestions={suggestions}
+      screenItems={screenItems}
+    />
   );
 }

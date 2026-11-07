@@ -44,29 +44,34 @@ export function CreateListModal({
     >
       {/* Backdrop */}
       <div
-        className="fixed inset-0 bg-black/80 backdrop-blur-xl transition-opacity animate-in fade-in duration-200"
+        className="fixed inset-0 bg-black/80 backdrop-blur-md transition-opacity animate-in fade-in duration-200"
         onClick={onClose}
         aria-hidden="true"
       />
 
       {/* Modal Dialog */}
-      <div className="relative z-10 w-full max-w-lg overflow-hidden rounded-3xl border border-white/20 bg-slate-950/95 p-6 shadow-2xl backdrop-blur-2xl ring-1 ring-white/10 animate-in zoom-in-95 duration-200">
-        <div className="flex items-center justify-between border-b border-white/10 pb-4">
+      <div className="relative z-10 w-full max-w-lg border border-border bg-surface/95 p-6 shadow-2xl backdrop-blur-2xl animate-in zoom-in-95 duration-200">
+        <div className="flex items-center justify-between border-b border-border pb-3.5">
           <div className="flex items-center gap-2">
-            <span className="flex h-7 w-7 items-center justify-center rounded-xl bg-accent text-accent-contrast">
-              <BookmarkIcon className="h-4 w-4" />
+            <span className="flex h-6 w-6 items-center justify-center border border-border bg-surface text-accent-strong">
+              <BookmarkIcon className="h-3.5 w-3.5" />
             </span>
-            <h3 className="font-display text-lg font-bold text-white">
-              Create Curated List
-            </h3>
+            <div>
+              <span className="text-[9px] font-semibold uppercase tracking-[0.2em] text-accent-strong">
+                Collection Builder
+              </span>
+              <h3 className="font-display text-base font-semibold text-fg">
+                Create Curated List
+              </h3>
+            </div>
           </div>
 
           <button
             type="button"
             onClick={onClose}
-            className="flex h-8 w-8 items-center justify-center rounded-xl bg-white/10 text-white/70 hover:bg-white/20 hover:text-white transition-colors"
+            className="flex h-7 w-7 items-center justify-center border border-border bg-surface text-muted hover:border-accent hover:text-fg transition-colors"
           >
-            <CloseIcon className="h-4 w-4" />
+            <CloseIcon className="h-3.5 w-3.5" />
           </button>
         </div>
 
@@ -74,9 +79,9 @@ export function CreateListModal({
           <div>
             <label
               htmlFor="list-title"
-              className="block text-xs font-semibold text-white/80"
+              className="block text-xs font-semibold text-fg"
             >
-              List Title <span className="text-red-400">*</span>
+              List Title <span className="text-danger">*</span>
             </label>
             <input
               id="list-title"
@@ -84,15 +89,15 @@ export function CreateListModal({
               required
               value={title}
               onChange={(e) => setTitle(e.target.value)}
-              placeholder='e.g. "Peak Fiction: Overpowered MC Manhwa"'
-              className="mt-1.5 w-full rounded-xl border border-white/15 bg-white/5 px-3.5 py-2.5 text-sm text-white placeholder-white/40 focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent"
+              placeholder='e.g. "Peak Fiction: Psychological Masterpieces"'
+              className="mt-1.5 h-10 w-full border border-border bg-surface-2/60 px-3 text-xs text-fg placeholder:text-faint focus:border-accent focus:bg-surface focus:outline-none"
             />
           </div>
 
           <div>
             <label
               htmlFor="list-desc"
-              className="block text-xs font-semibold text-white/80"
+              className="block text-xs font-semibold text-fg"
             >
               Description / Theme Note
             </label>
@@ -101,16 +106,16 @@ export function CreateListModal({
               rows={3}
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              placeholder="Explain the vibe, ranking criteria, or aesthetic of this collection..."
-              className="mt-1.5 w-full rounded-xl border border-white/15 bg-white/5 px-3.5 py-2.5 text-sm text-white placeholder-white/40 focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent"
+              placeholder="Explain the criteria, ranking order, or aesthetic of this anthology..."
+              className="mt-1.5 w-full border border-border bg-surface-2/60 p-3 text-xs text-fg placeholder:text-faint focus:border-accent focus:bg-surface focus:outline-none"
             />
           </div>
 
-          <div className="flex items-center justify-between rounded-xl border border-white/10 bg-white/5 p-3">
+          <div className="flex items-center justify-between border border-border bg-surface-2/40 p-3">
             <div>
-              <p className="text-xs font-semibold text-white">Public & Shareable</p>
-              <p className="text-[11px] text-white/50">
-                Anyone with the link can explore and track their progress on this list
+              <p className="text-xs font-semibold text-fg">Public &amp; Shareable</p>
+              <p className="text-[11px] text-muted">
+                Anyone with the direct link can explore and track their progress on this list
               </p>
             </div>
             <button
@@ -118,30 +123,28 @@ export function CreateListModal({
               role="switch"
               aria-checked={isPublic}
               onClick={() => setIsPublic(!isPublic)}
-              className={`relative h-6 w-11 rounded-full transition-colors ${
-                isPublic ? "bg-accent" : "bg-white/20"
+              className={`h-7 px-2.5 font-mono text-[10px] font-bold uppercase tracking-wider border transition-colors ${
+                isPublic
+                  ? "border-accent bg-accent text-accent-contrast"
+                  : "border-border bg-surface text-muted"
               }`}
             >
-              <span
-                className={`inline-block h-5 w-5 rounded-full bg-white transition-transform ${
-                  isPublic ? "translate-x-5" : "translate-x-0.5"
-                }`}
-              />
+              {isPublic ? "Public" : "Private"}
             </button>
           </div>
 
-          <div className="flex justify-end gap-2 pt-2">
+          <div className="flex justify-end gap-2 border-t border-border pt-4">
             <button
               type="button"
               onClick={onClose}
-              className="rounded-xl border border-white/10 px-4 py-2 text-xs font-semibold text-white/70 hover:bg-white/10 hover:text-white transition-colors"
+              className="h-9 border border-border bg-surface px-4 text-[11px] font-semibold uppercase tracking-wider text-muted hover:border-accent hover:text-fg transition-colors"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={!title.trim()}
-              className="inline-flex items-center gap-1.5 rounded-xl bg-accent px-5 py-2 text-xs font-bold text-accent-contrast shadow-md shadow-accent/20 hover:scale-[1.02] active:scale-[0.98] transition-all disabled:opacity-40 disabled:pointer-events-none"
+              className="inline-flex h-9 items-center gap-1.5 border border-accent bg-accent px-4 text-[11px] font-semibold uppercase tracking-wider text-accent-contrast hover:bg-accent-hover transition-colors disabled:opacity-40 disabled:pointer-events-none"
             >
               <SparklesIcon className="h-3.5 w-3.5" />
               <span>Create Collection</span>
@@ -152,4 +155,3 @@ export function CreateListModal({
     </div>
   );
 }
-

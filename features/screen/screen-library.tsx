@@ -16,7 +16,7 @@ function labelForKind(kind: TmdbKind): string {
   return kind === "movie" ? "Film" : "TV";
 }
 
-function ScreenLibraryCard({ item }: { item: TmdbLibraryItem }) {
+export function ScreenLibraryCard({ item }: { item: TmdbLibraryItem }) {
   const { entry, watchedCount } = item;
   const total = entry.totalEpisodes ?? 0;
   const percent =
@@ -26,9 +26,15 @@ function ScreenLibraryCard({ item }: { item: TmdbLibraryItem }) {
         ? 100
         : 0;
 
+  const isCompleted =
+    (entry.mediaType === "movie" && entry.watched) ||
+    (entry.mediaType === "tv" && total > 0 && watchedCount >= total) ||
+    entry.status === "completed";
+
   return (
-    <article className="group relative flex flex-col rounded-2xl border border-border-subtle bg-surface/70 p-2.5 backdrop-blur-md transition-all duration-200 hover:-translate-y-1 hover:border-border hover:bg-surface-2/80 hover:shadow-xl">
-      <div className="relative aspect-[2/3] w-full overflow-hidden rounded-xl bg-surface-3">
+    <article className="group relative flex min-w-0 flex-col">
+      {/* Poster Artwork Container */}
+      <div className="relative aspect-[2/3] w-full overflow-hidden border border-border bg-surface-2 transition-colors group-hover:border-accent/60">
         {entry.posterPath && isHttpUrl(entry.posterPath) ? (
           <Image
             src={entry.posterPath}
@@ -36,50 +42,54 @@ function ScreenLibraryCard({ item }: { item: TmdbLibraryItem }) {
             fill
             unoptimized
             sizes="(max-width: 640px) 46vw, (max-width: 1024px) 30vw, 20vw"
-            className="object-cover transition-transform duration-300 group-hover:scale-105"
+            className="object-cover transition-transform duration-500 ease-out group-hover:scale-[1.03]"
           />
         ) : (
           <div className="absolute inset-0 flex items-center justify-center bg-surface-3">
             <FilmIcon className="h-8 w-8 text-faint/60" />
           </div>
         )}
-        <div
-          aria-hidden="true"
-          className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent"
-        />
+
         <Link
           href={`/screen/${entry.mediaType}/${entry.tmdbId}`}
           aria-label={`View ${entry.title}`}
-          className="absolute inset-0 z-10 rounded-xl focus:outline-none focus:ring-2 focus:ring-accent"
+          className="absolute inset-0 z-10 focus:outline-none focus-visible:ring-1 focus-visible:ring-accent"
         />
-        <div className="pointer-events-none absolute inset-x-2 top-2 z-20 flex items-center justify-between">
-          {entry.score ? (
-            <span className="inline-flex items-center gap-1 rounded-md border border-amber-400/40 bg-black/80 px-1.5 py-0.5 text-[11px] font-bold text-amber-300 backdrop-blur-md">
-              <StarIcon className="h-3 w-3 fill-current" />
-              {entry.score}
-            </span>
-          ) : (
-            <span />
-          )}
-          <span className="rounded-md border border-white/15 bg-black/75 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-white/90 backdrop-blur-md">
-            {labelForKind(entry.mediaType)}
+
+        {/* Top Badges Row */}
+        {entry.score ? (
+          <span className="pointer-events-none absolute left-0 top-0 z-20 inline-flex items-center gap-1 bg-bg/90 px-1.5 py-1 font-mono text-[10px] font-semibold text-fg tabular-nums">
+            <StarIcon className="h-2.5 w-2.5 fill-accent text-accent" />
+            {entry.score}
           </span>
-        </div>
-        <div className="pointer-events-none absolute inset-x-0 bottom-0 z-20 px-2.5 pb-2">
-          <p className="text-[11px] font-medium text-white/90">
-            {entry.mediaType === "movie"
-              ? entry.watched
-                ? "Watched"
-                : "Not watched"
-              : `${watchedCount}${total ? ` / ${total}` : ""} episodes`}
-          </p>
-          <div className="mt-1 h-1.5 w-full overflow-hidden rounded-full bg-white/20">
+        ) : null}
+
+        <span className="pointer-events-none absolute right-0 top-0 z-20 bg-bg/90 px-1.5 py-1 text-[8px] font-semibold uppercase tracking-[0.1em] text-muted">
+          {labelForKind(entry.mediaType)}
+        </span>
+
+        {/* Bottom Progress Telemetry on Poster with Flush Ruled Track */}
+        <div className="pointer-events-none absolute inset-x-0 bottom-0 z-20">
+          <div className="flex items-center justify-between bg-gradient-to-t from-bg/95 via-bg/75 to-transparent px-2 pb-1.5 pt-3">
+            <span className="font-mono text-[10px] font-medium tabular-nums text-fg">
+              {entry.mediaType === "movie"
+                ? entry.watched
+                  ? "Watched"
+                  : "Not watched"
+                : `${watchedCount}${total ? `/${total}` : ""} eps`}
+            </span>
+            {entry.mediaType === "tv" && total > 0 ? (
+              <span className="font-mono text-[9px] tabular-nums text-faint">
+                {percent}%
+              </span>
+            ) : null}
+          </div>
+
+          <div className="h-[2px] w-full bg-border">
             <div
               className={cn(
-                "h-full rounded-full transition-all",
-                percent >= 100
-                  ? "bg-emerald-400"
-                  : "bg-accent-strong",
+                "h-full transition-all duration-300",
+                isCompleted ? "bg-success" : "bg-accent",
               )}
               style={{ width: `${percent}%` }}
             />
@@ -87,14 +97,9 @@ function ScreenLibraryCard({ item }: { item: TmdbLibraryItem }) {
         </div>
       </div>
 
-      <div className="mt-2.5 space-y-1">
-        <Link
-          href={`/screen/${entry.mediaType}/${entry.tmdbId}`}
-          className="line-clamp-1 font-display text-[13px] font-semibold text-fg transition-colors hover:text-accent-strong"
-        >
-          {entry.title}
-        </Link>
-        <div className="flex items-center justify-between gap-2 text-[11px] text-faint">
+      {/* Information Below Poster */}
+      <div className="mt-2 flex flex-1 flex-col">
+        <div className="flex items-center justify-between gap-1 text-[8px] font-medium uppercase tracking-[0.14em] text-faint">
           <span>
             {[
               entry.mediaType === "movie" ? "Film" : "Series",
@@ -103,15 +108,27 @@ function ScreenLibraryCard({ item }: { item: TmdbLibraryItem }) {
               .filter(Boolean)
               .join(" · ")}
           </span>
-          <span className="truncate text-right">
+          <span
+            className={cn(
+              "font-semibold uppercase tracking-[0.1em]",
+              isCompleted ? "text-success" : "text-muted",
+            )}
+          >
             {getWatchStatusLabel(entry.status)}
           </span>
         </div>
+
+        <h3 className="mt-0.5 line-clamp-1 font-display text-[13px] font-medium leading-snug text-fg transition-colors group-hover:text-accent-strong" title={entry.title}>
+          <Link href={`/screen/${entry.mediaType}/${entry.tmdbId}`}>
+            {entry.title}
+          </Link>
+        </h3>
+
         {entry.mediaType === "movie" && entry.watched ? (
-          <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-emerald-400 light:text-emerald-700">
+          <div className="mt-2 flex items-center gap-1 text-[9px] font-semibold uppercase tracking-[0.1em] text-success">
             <CheckIcon className="h-3 w-3" />
-            Watched
-          </span>
+            <span>Watched</span>
+          </div>
         ) : null}
       </div>
     </article>
@@ -141,22 +158,26 @@ export function ScreenLibrary({ items }: { items: TmdbLibraryItem[] }) {
   if (items.length === 0) return null;
 
   return (
-    <section aria-label="Films and TV library" className="space-y-4">
-      <div className="flex flex-wrap items-end justify-between gap-3">
+    <section aria-label="Films and TV library" className="border-t border-border pt-8 space-y-6">
+      <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
-          <h2 className="font-display text-lg font-semibold text-fg">
-            Films &amp; TV
+          <span className="text-[9px] font-semibold uppercase tracking-[0.22em] text-accent-strong">
+            TMDB Archive · Film &amp; TV
+          </span>
+          <h2 className="mt-1 font-display text-xl font-semibold tracking-tight text-fg sm:text-2xl">
+            Films &amp; Series
           </h2>
-          <p className="mt-1 text-xs text-muted">
-            Cinema and series tracked separately from anime and manga.
+          <p className="mt-1 text-[13px] text-muted">
+            Cinema and television tracked separately from anime and manga.
           </p>
         </div>
-        <div className="flex items-center gap-1 rounded-xl border border-border-subtle bg-surface-2 p-1">
+
+        <div className="inline-flex border border-border bg-surface/40 p-0.5">
           {(
             [
-              ["all", `All ${counts.all}`],
-              ["movie", `Films ${counts.movie}`],
-              ["tv", `TV ${counts.tv}`],
+              ["all", `All (${counts.all})`],
+              ["movie", `Films (${counts.movie})`],
+              ["tv", `TV (${counts.tv})`],
             ] as const
           ).map(([value, label]) => (
             <button
@@ -165,10 +186,10 @@ export function ScreenLibrary({ items }: { items: TmdbLibraryItem[] }) {
               aria-pressed={kind === value}
               onClick={() => setKind(value)}
               className={cn(
-                "rounded-lg px-3 py-1 text-[11px] font-semibold transition-colors",
+                "h-8 border-r border-border last:border-r-0 px-3 text-[10px] font-semibold uppercase tracking-[0.12em] transition-colors",
                 kind === value
                   ? "bg-accent text-accent-contrast"
-                  : "text-muted hover:bg-surface-3 hover:text-fg",
+                  : "text-muted hover:bg-surface-2 hover:text-fg",
               )}
             >
               {label}
