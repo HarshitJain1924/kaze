@@ -19,7 +19,7 @@ import type { DiscoverView } from "@/types/discover";
 import {
   isTmdbSortForKind,
   tmdbDiscoverCategoriesForKind,
-  tmdbGenresForKind,
+  tmdbGenreIdsForKind,
   type TmdbDiscoverCategory,
   type TmdbDiscoverFilters,
   type TmdbKind,
@@ -99,9 +99,21 @@ function readTmdbFilters(
 
   const filters: TmdbDiscoverFilters = {};
 
-  const genre = pick("genre");
-  if (genre && tmdbGenresForKind(kind).some((item) => item.value === genre)) {
-    filters.genre = genre;
+  const knownGenres = tmdbGenreIdsForKind(kind);
+  const genres = [
+    ...new Set(
+      (pick("genre") ?? "")
+        .split(/[|,]/)
+        .map((id) => id.trim())
+        .filter((id) => knownGenres.has(id)),
+    ),
+  ].slice(0, 5);
+  if (genres.length > 0) {
+    filters.genres = genres;
+  }
+
+  if (pick("adult") === "include") {
+    filters.includeAdult = true;
   }
 
   const year = Number(pick("year"));
@@ -170,7 +182,12 @@ export default async function DiscoverPage({
     try {
       initialTmdbPage =
         initialTmdbQuery.length >= 2
-          ? await searchTmdb(kind, initialTmdbQuery, 1)
+          ? await searchTmdb(
+              kind,
+              initialTmdbQuery,
+              1,
+              initialTmdbFilters.includeAdult === true,
+            )
           : await discoverTmdb(
               kind,
               initialTmdbCategory,

@@ -9,7 +9,6 @@ import {
   CalendarIcon,
   ChartIcon,
   CompassIcon,
-  FilmIcon,
   HomeIcon,
   LibraryIcon,
   MonitorIcon,

@@ -11,7 +11,8 @@ export async function GET(request: Request) {
     kind: url.searchParams.get("kind") ?? "movie",
     category: url.searchParams.get("category") ?? "trending",
     page: url.searchParams.get("page") ?? "1",
-    genre: read("genre"),
+    genres: read("genre"),
+    adult: read("adult"),
     year: read("year"),
     rating: read("rating"),
     sort: read("sort"),
@@ -33,13 +34,20 @@ export async function GET(request: Request) {
       parsed.data.category,
       parsed.data.page,
       {
-        genre: parsed.data.genre,
+        genres: parsed.data.genres,
         year: parsed.data.year,
         minRating: parsed.data.rating,
         sort: parsed.data.sort,
+        includeAdult: parsed.data.adult === "include",
       },
     );
-    return NextResponse.json(page);
+    // Catalogue pages are public metadata, so browsers and proxies may reuse
+    // them for a few minutes instead of re-hitting TMDB.
+    return NextResponse.json(page, {
+      headers: {
+        "cache-control": "public, s-maxage=300, stale-while-revalidate=3600",
+      },
+    });
   } catch (error) {
     return tmdbErrorResponse(error);
   }

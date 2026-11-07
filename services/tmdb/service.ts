@@ -23,13 +23,14 @@ export async function searchTmdb(
   kind: TmdbKind,
   query: string,
   page = 1,
+  includeAdult = false,
 ): Promise<TmdbSearchPage> {
   const path = kind === "movie" ? "/search/movie" : "/search/tv";
   const payload = await tmdbGet<unknown>(path, {
     query: {
       query,
       page,
-      include_adult: false,
+      include_adult: includeAdult,
       language: "en-US",
     },
     revalidateSeconds: 600,
@@ -52,10 +53,11 @@ function defaultSortForCategory(
 
 function hasDiscoverFilters(filters: TmdbDiscoverFilters): boolean {
   return Boolean(
-    filters.genre ||
+    filters.genres?.length ||
       filters.year ||
       filters.minRating !== undefined ||
-      filters.sort,
+      filters.sort ||
+      filters.includeAdult,
   );
 }
 
@@ -72,13 +74,17 @@ export async function discoverTmdb(
       filters.sort && isTmdbSortForKind(kind, filters.sort)
         ? filters.sort
         : defaultSortForCategory(kind, category);
-    const query: Record<string, string | number> = {
+    const query: Record<string, string | number | boolean> = {
       page,
       language: "en-US",
       sort_by: sort,
     };
 
-    if (filters.genre) query.with_genres = filters.genre;
+    if (filters.genres?.length) {
+      // A pipe keeps the selection additive: any of the chosen genres matches.
+      query.with_genres = filters.genres.join("|");
+    }
+    if (filters.includeAdult) query.include_adult = true;
     if (filters.year) {
       query[kind === "movie" ? "primary_release_year" : "first_air_date_year"] =
         filters.year;

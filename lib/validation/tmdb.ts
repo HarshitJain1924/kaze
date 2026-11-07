@@ -25,10 +25,13 @@ export const tmdbSearchQuerySchema = z
   .min(1, "Enter a title to search for")
   .max(100, "Search terms must be 100 characters or fewer");
 
+export const tmdbAdultFilterSchema = z.enum(["filtered", "include"]);
+
 export const tmdbSearchParamsSchema = z.object({
   kind: tmdbKindSchema.default("movie"),
   q: tmdbSearchQuerySchema,
   page: z.coerce.number().int().min(1).max(500).default(1),
+  adult: tmdbAdultFilterSchema.optional(),
 });
 
 export const tmdbDiscoverCategorySchema = z.enum([
@@ -38,6 +41,29 @@ export const tmdbDiscoverCategorySchema = z.enum([
   "upcoming",
   "on_the_air",
 ]);
+
+/** Comma- or pipe-separated genre ids, ORed by the TMDB discover query. */
+export const tmdbGenreListSchema = z
+  .string()
+  .trim()
+  .transform((value) =>
+    value
+      .split(/[|,]/)
+      .map((id) => id.trim())
+      .filter((id) => id.length > 0),
+  )
+  .pipe(
+    z
+      .array(
+        z.string().regex(/^\d{1,6}$/, "Choose a valid genre"),
+      )
+      .min(1, "Choose at least one genre")
+      .max(5, "Choose at most 5 genres")
+      .refine(
+        (ids) => new Set(ids).size === ids.length,
+        "Choose each genre only once",
+      ),
+  );
 
 export const tmdbDiscoverSortSchema = z.enum([
   "popularity.desc",
@@ -56,10 +82,8 @@ export const tmdbDiscoverParamsSchema = z
     kind: tmdbKindSchema.default("movie"),
     category: tmdbDiscoverCategorySchema.default("trending"),
     page: z.coerce.number().int().min(1).max(500).default(1),
-    genre: z
-      .string()
-      .regex(/^\d{1,6}$/, "Choose a valid genre")
-      .optional(),
+    genres: tmdbGenreListSchema.optional(),
+    adult: tmdbAdultFilterSchema.optional(),
     year: z.coerce
       .number()
       .int()

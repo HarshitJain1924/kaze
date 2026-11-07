@@ -19,23 +19,17 @@ import {
   CalendarIcon,
   CheckIcon,
   ChevronRightIcon,
-  CloseIcon,
   CrownIcon,
   EyeIcon,
   FilmIcon,
   FlameIcon,
-  GridIcon,
   HeartIcon,
   LeafIcon,
-  ListIcon,
-  LoaderIcon,
   LockIcon,
   PlayIcon,
   PlusIcon,
   RocketIcon,
-  SearchIcon,
   SettingsIcon,
-  SlidersIcon,
   SmileIcon,
   SparklesIcon,
   StarIcon,
@@ -50,6 +44,13 @@ import { ErrorState } from "@/components/error-state";
 import { PosterGridSkeleton } from "@/components/loading-skeleton";
 import { usePreferences } from "@/components/providers/preferences-provider";
 import { Button } from "@/components/ui/button";
+import {
+  DiscoverDeck,
+  DiscoverHero,
+  DiscoverPills,
+  DiscoverResultsBar,
+  DiscoverSortSelect,
+} from "@/features/discover/discover-chrome";
 import { useLibrary } from "@/features/library/library-provider";
 import { TmdbDiscoverBrowser } from "@/features/screen/tmdb-discover-browser";
 import {
@@ -62,7 +63,8 @@ import type {
   TmdbDiscoverFilters,
   TmdbSearchPage,
 } from "@/types/tmdb";
-import { ApiRequestError, apiFetch } from "@/lib/http";
+import { fetchCachedJson } from "@/lib/cache/request-cache";
+import { ApiRequestError } from "@/lib/http";
 import { seasonLabel } from "@/lib/season";
 import {
   cn,
@@ -416,7 +418,7 @@ export function DiscoverBrowser({
     setStatus(page === 1 ? "loading" : "loadingMore");
     setError(null);
 
-    apiFetch<AnimePage>(
+    fetchCachedJson<AnimePage>(
       `/api/media/search?${buildQuery(query, filters, page)}`,
       { signal: controller.signal },
     )
@@ -649,337 +651,98 @@ export function DiscoverBrowser({
       {discoverTypeTabs}
 
       {/* 1. Cinematic Discover Header & Ambient Showcase */}
-      <header className="group relative isolate overflow-hidden rounded-3xl border border-border-subtle bg-surface-2 shadow-2xl transition-all">
-        {topAnime && topArtwork && isHttpUrl(topArtwork) ? (
-          <div
-            aria-hidden="true"
-            className="pointer-events-none absolute inset-0 select-none overflow-hidden z-0"
-          >
-            <div className="absolute inset-0 scale-125 blur-3xl saturate-200 opacity-25">
-              <Image
-                src={topArtwork}
-                alt=""
-                fill
-                unoptimized
-                sizes="100vw"
-                className="object-cover"
-              />
-            </div>
-            {topAnime.bannerImage && isHttpUrl(topAnime.bannerImage) ? (
-              <div className="absolute inset-0">
-                <Image
-                  src={topAnime.bannerImage}
-                  alt=""
-                  fill
-                  unoptimized
-                  sizes="100vw"
-                  className="object-cover object-[center_25%] opacity-30"
-                />
-              </div>
-            ) : null}
-            <div className="absolute inset-0 bg-gradient-to-r from-surface via-surface/90 via-50% to-surface/40" />
-            <div className="absolute inset-0 bg-gradient-to-t from-surface via-transparent to-transparent" />
-          </div>
-        ) : null}
+      <DiscoverHero
+        eyebrow="AniList Global Catalogue"
+        headlineMeta="10,000+ Series & Films"
+        title={`Discover ${activeView === "manhwa" ? "Manhwa" : activeView === "manga" ? "Manga" : "Anime"}`}
+        description="Explore seasonal releases, highest rated classics, trending anime, and hidden gems. Filter by genre, format, airing status, source material, country, adult content, or search directly."
+        backdropUrl={topArtwork}
+        bannerUrl={topAnime?.bannerImage ?? null}
+        spotlight={
+          topAnime
+            ? {
+                href: `/media/${topAnime.id}`,
+                posterUrl: topCover,
+                score: topAnime.averageScore
+                  ? formatScore(topAnime.averageScore)
+                  : null,
+                title: getDisplayTitle(
+                  topAnime.title,
+                  preferences.titleLanguage === "english",
+                ),
+                meta: [
+                  isManga(topAnime)
+                    ? formatMediaKind(topAnime)
+                    : formatFormat(topAnime.format),
+                  topAnime.seasonYear,
+                ]
+                  .filter(Boolean)
+                  .join(" · "),
+                ctaLabel: `View ${
+                  isManga(topAnime) ? formatMediaKind(topAnime) : "Anime"
+                }`,
+              }
+            : null
+        }
+      />
 
-        <div className="relative z-10 flex flex-col justify-between gap-5 p-5 sm:p-7 lg:flex-row lg:items-center">
-          <div className="max-w-2xl">
-            <div className="flex flex-wrap items-center gap-2">
-              <span className="flex h-2 w-2 rounded-full bg-accent-strong radar-live-dot" />
-              <span className="text-[11px] font-bold uppercase tracking-wider text-accent-strong">
-                AniList Global Catalogue
-              </span>
-              <span className="text-faint">·</span>
-              <span className="text-xs font-medium text-muted">
-                10,000+ Series & Films
-              </span>
-            </div>
-
-            <h1 className="mt-2 font-display text-2xl font-bold tracking-tight text-fg sm:text-3xl lg:text-4xl">
-              Discover {activeView === "manhwa" ? "Manhwa" : activeView === "manga" ? "Manga" : "Anime"}
-            </h1>
-
-            <p className="mt-2 text-xs leading-relaxed text-muted sm:text-sm">
-              Explore seasonal releases, highest rated classics, trending anime, and hidden gems. Filter by genre, format, airing status, source material, country, adult content, or search directly.
-            </p>
-          </div>
-
-          {/* Featured Spotlight Card from Top Result */}
-          {topAnime ? (
-            <div className="flex items-center gap-3.5 rounded-2xl border border-border-subtle bg-surface/70 p-3 shadow-xl backdrop-blur-md lg:max-w-sm">
-              <Link
-                href={`/media/${topAnime.id}`}
-                className="group/spot relative aspect-[2/3] w-16 sm:w-20 shrink-0 overflow-hidden rounded-xl border border-white/20 shadow-md"
-              >
-                {topCover && isHttpUrl(topCover) ? (
-                  <Image
-                    src={topCover}
-                    alt=""
-                    fill
-                    unoptimized
-                    sizes="80px"
-                    className="object-cover transition-transform duration-300 group-hover/spot:scale-105"
-                  />
-                ) : (
-                  <div className="absolute inset-0 bg-surface-3" />
-                )}
-                {topAnime.averageScore ? (
-                  <span className="absolute top-1 left-1 inline-flex items-center gap-1 rounded-md border border-white/20 bg-black/80 px-1.5 py-0.5 text-[10px] font-bold text-amber-300 backdrop-blur-md">
-                    <StarIcon className="h-2.5 w-2.5 fill-amber-400 text-amber-400" />
-                    <span>{formatScore(topAnime.averageScore)}</span>
-                  </span>
-                ) : null}
-              </Link>
-
-              <div className="min-w-0 flex-1">
-                <span className="text-[10px] font-bold uppercase tracking-wider text-accent-strong">
-                  Top Result
-                </span>
-                <Link
-                  href={`/media/${topAnime.id}`}
-                  className="mt-0.5 line-clamp-1 block font-display text-sm font-bold text-fg transition-colors hover:text-accent-strong"
-                  title={getDisplayTitle(topAnime.title, preferences.titleLanguage === "english")}
-                >
-                  {getDisplayTitle(topAnime.title, preferences.titleLanguage === "english")}
-                </Link>
-                <p className="mt-0.5 text-[11px] text-muted">
-                  {isManga(topAnime) ? formatMediaKind(topAnime) : formatFormat(topAnime.format)} {topAnime.seasonYear ? `· ${topAnime.seasonYear}` : ""} {isManga(topAnime) ? (topAnime.chapters ? `· ${topAnime.chapters} ch` : "") : topAnime.episodes ? `· ${topAnime.episodes} eps` : ""}
-                </p>
-
-                <div className="mt-2 flex items-center gap-2">
-                  <Link
-                    href={`/media/${topAnime.id}`}
-                    className="inline-flex h-7 items-center gap-1 rounded-lg bg-accent px-2.5 text-[11px] font-bold text-accent-contrast shadow-sm hover:bg-accent-hover transition-colors"
-                  >
-                    <span>View {isManga(topAnime) ? formatMediaKind(topAnime) : "Anime"}</span>
-                    <ChevronRightIcon className="h-3 w-3" />
-                  </Link>
-                </div>
-              </div>
-            </div>
-          ) : null}
-        </div>
-      </header>
-
-      {/* 2. Quick Discovery Tag Pills (1-Tap Channels) */}
-      <div className="no-scrollbar -mx-4 flex gap-2 overflow-x-auto px-4 pb-1 sm:-mx-0 sm:flex-wrap sm:overflow-visible sm:px-0">
-        {DISCOVERY_CHANNELS.filter(
+      <DiscoverPills
+        pills={DISCOVERY_CHANNELS.filter(
           (channel) =>
             (adultAllowed || channel.id !== "adult") &&
             (activeView === "anime" || !channel.animeOnly),
-        ).map((channel) => {
-          const isActive = isChannelActive(channel);
-          const IconComponent = channel.icon;
-          const label =
+        ).map((channel) => ({
+          id: channel.id,
+          label:
             channel.id === "airing" && activeView !== "anime"
               ? "Publishing"
-              : channel.label;
-          return (
-            <button
-              key={channel.id}
-              type="button"
-              onClick={() => applyChannel(channel)}
-              className={cn(
-                "inline-flex shrink-0 items-center gap-1.5 rounded-xl border px-3 py-1.5 text-xs font-semibold transition-all active:scale-95 shadow-xs",
-                isActive
-                  ? "border-accent bg-accent text-accent-contrast shadow-md scale-102"
-                  : "border-border-subtle bg-surface-2 text-muted hover:border-border hover:bg-surface-3 hover:text-fg",
-              )}
-            >
-              <IconComponent
-                className={cn(
-                  "h-3.5 w-3.5 shrink-0 transition-colors",
-                  isActive ? "text-accent-contrast" : "text-accent-strong",
-                )}
-              />
-              <span>{label}</span>
-            </button>
-          );
-        })}
-      </div>
+              : channel.label,
+          icon: channel.icon,
+          active: isChannelActive(channel),
+          onSelect: () => applyChannel(channel),
+        }))}
+      />
 
       {/* 3. Search & Filter Command Deck */}
-      <div className="space-y-3.5 rounded-2xl border border-border-subtle bg-surface-2/80 p-3 sm:p-4 shadow-lg backdrop-blur-md">
-        <div className="flex flex-col gap-2.5 sm:flex-row sm:items-center">
-          <div className="relative flex-1">
-            <SearchIcon className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-faint" />
-            <input
-              type="search"
-              role="searchbox"
-              aria-label={`Search ${activeView} by title`}
-              value={queryInput}
-              onChange={(e) => setQueryInput(e.target.value)}
-              placeholder={`Search ${activeView === "manhwa" ? "manhwa" : activeView === "manga" ? "manga" : "anime"} by title in English or Romaji…`}
-              autoComplete="off"
-              spellCheck={false}
-              className="h-11 w-full rounded-xl border border-border bg-surface-3/50 pl-10 pr-20 text-sm text-fg placeholder:text-faint transition-colors focus:border-accent focus:bg-surface-3 focus:outline-none focus:ring-1 focus:ring-accent [&::-webkit-search-cancel-button]:appearance-none [&::-webkit-search-cancel-button]:hidden [&::-webkit-search-decoration]:appearance-none"
-            />
-            <div className="absolute right-2.5 top-1/2 flex -translate-y-1/2 items-center gap-1.5">
-              {isLoading || isTyping ? (
-                <LoaderIcon className="h-4 w-4 animate-spin text-accent-strong" />
-              ) : null}
-              {queryInput ? (
-                <button
-                  type="button"
-                  onClick={clearQuery}
-                  aria-label="Clear search"
-                  className="flex h-7 w-7 items-center justify-center rounded-lg text-faint transition-colors hover:bg-surface-3 hover:text-fg"
-                >
-                  <CloseIcon className="h-3.5 w-3.5" />
-                </button>
-              ) : (
-                <kbd className="hidden sm:inline-flex items-center rounded border border-border bg-surface-3/60 px-1.5 text-[10px] font-mono text-faint">
-                  Ctrl K
-                </kbd>
-              )}
-            </div>
-          </div>
-
-          {/* Filter Toggle Button */}
-          <div className="flex items-center gap-2">
-            <button
-              type="button"
-              onClick={() => setShowFilters((prev) => !prev)}
-              className={cn(
-                "inline-flex h-11 items-center gap-2 rounded-xl border px-4 text-xs font-semibold transition-all active:scale-95 shadow-sm",
-                showFilters || activeChips.length > 0
-                  ? "border-accent bg-accent/20 text-accent-strong"
-                  : "border-border-subtle bg-surface-2 text-muted hover:bg-surface-3 hover:text-fg",
-              )}
-            >
-              <SlidersIcon className="h-4 w-4" />
-              <span>Filters</span>
-              {activeChips.length > 0 ? (
-                <span className="flex h-5 w-5 items-center justify-center rounded-full bg-accent text-[10px] font-bold text-accent-contrast">
-                  {activeChips.length}
-                </span>
-              ) : null}
-            </button>
-
-            {queryInput || activeChips.length > 0 ? (
-              <button
-                type="button"
-                onClick={resetAll}
-                className="inline-flex h-11 items-center rounded-xl border border-border-subtle bg-surface-3/60 px-3 text-xs font-medium text-muted transition-colors hover:bg-surface-3 hover:text-fg"
-              >
-                Reset
-              </button>
-            ) : null}
-          </div>
-        </div>
-
-        {/* Collapsible Filter Dropdowns */}
-        {showFilters ? (
-          <div className="pt-2 border-t border-border-subtle">
-            <AnimeFilters
-              value={filters}
-              onChange={updateFilters}
-              onClear={resetAll}
-              adultAllowed={adultAllowed}
-            />
-          </div>
-        ) : null}
-
-        {/* Active Filter Chips */}
-        {activeChips.length > 0 ? (
-          <div className="flex flex-wrap items-center gap-1.5 pt-1">
-            <span className="text-[11px] font-semibold text-faint mr-1">
-              Active filters:
-            </span>
-            {activeChips.map((chip) => (
-              <button
-                key={chip.key}
-                type="button"
-                onClick={chip.clear}
-                className="inline-flex items-center gap-1.5 rounded-full border border-accent/40 bg-accent/15 py-1 pl-2.5 pr-1.5 text-[11px] font-semibold text-accent-strong transition-all hover:bg-accent/25 active:scale-95"
-              >
-                <span>{chip.label}</span>
-                <span className="flex h-3.5 w-3.5 items-center justify-center rounded-full bg-accent/40 text-accent-contrast">
-                  <CloseIcon className="h-2 w-2" />
-                </span>
-              </button>
-            ))}
-            <button
-              type="button"
-              onClick={resetAll}
-              className="ml-1 text-[11px] font-medium text-faint underline-offset-2 hover:text-fg hover:underline transition-colors"
-            >
-              Clear all
-            </button>
-          </div>
-        ) : null}
-      </div>
+      <DiscoverDeck
+        searchValue={queryInput}
+        onSearchChange={setQueryInput}
+        searchAriaLabel={`Search ${activeView} by title`}
+        placeholder={`Search ${activeView === "manhwa" ? "manhwa" : activeView === "manga" ? "manga" : "anime"} by title in English or Romaji…`}
+        busy={isLoading || isTyping}
+        onClearSearch={clearQuery}
+        filtersOpen={showFilters}
+        onToggleFilters={() => setShowFilters((prev) => !prev)}
+        filterCount={activeChips.length}
+        showReset={Boolean(queryInput) || activeChips.length > 0}
+        onReset={resetAll}
+        chips={activeChips}
+        onClearAll={resetAll}
+      >
+        <AnimeFilters
+          value={filters}
+          onChange={updateFilters}
+          onClear={resetAll}
+          adultAllowed={adultAllowed}
+        />
+      </DiscoverDeck>
 
       {/* 4. Results Bar & View Mode Switcher */}
-      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border-subtle pb-3">
-        <div className="flex items-center gap-2">
-          <p aria-live="polite" className="text-xs font-semibold text-muted">
-            {isLoading ? (
-              <span className="inline-flex items-center gap-1.5 text-accent-strong">
-                <span className="h-2 w-2 rounded-full bg-accent-strong radar-live-dot" />
-                Searching AniList…
-              </span>
-            ) : pageInfo?.total != null ? (
-              <span>
-                Showing <span className="font-bold text-fg">{items.length}</span> of{" "}
-                <span className="font-bold text-fg">{pageInfo.total.toLocaleString("en-US")}</span> results
-              </span>
-            ) : (
-              <span>{items.length} results</span>
-            )}
-          </p>
-        </div>
-
-        <div className="flex items-center gap-2.5">
-          {/* Quick Sort Selector */}
-          <div className="flex items-center gap-1.5 text-xs text-muted">
-            <span className="hidden sm:inline text-faint">Sort by:</span>
-            <select
-              value={filters.sort}
-              onChange={(e) => updateFilters({ sort: e.target.value as AnimeSort })}
-              className="h-8 rounded-lg border border-border bg-surface-2 px-2.5 text-xs font-semibold text-fg focus:border-accent focus:outline-none"
-            >
-              {SORT_OPTIONS.map((opt) => (
-                <option key={opt.value} value={opt.value}>
-                  {opt.label}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          {/* View Mode Toggle: Grid vs Detailed List */}
-          <div className="inline-flex items-center rounded-lg border border-border bg-surface-2 p-0.5">
-            <button
-              type="button"
-              onClick={() => setViewMode("grid")}
-              aria-label="Poster grid view"
-              title="Poster grid view"
-              className={cn(
-                "flex h-7 w-7 items-center justify-center rounded-md transition-all",
-                viewMode === "grid"
-                  ? "bg-accent text-accent-contrast shadow-xs font-bold"
-                  : "text-muted hover:text-fg",
-              )}
-            >
-              <GridIcon className="h-3.5 w-3.5" />
-            </button>
-            <button
-              type="button"
-              onClick={() => setViewMode("list")}
-              aria-label="Detailed list view"
-              title="Detailed list view"
-              className={cn(
-                "flex h-7 w-7 items-center justify-center rounded-md transition-all",
-                viewMode === "list"
-                  ? "bg-accent text-accent-contrast shadow-xs font-bold"
-                  : "text-muted hover:text-fg",
-              )}
-            >
-              <ListIcon className="h-3.5 w-3.5" />
-            </button>
-          </div>
-        </div>
-      </div>
+      <DiscoverResultsBar
+        loading={isLoading}
+        loadingLabel="Searching AniList…"
+        visibleCount={items.length}
+        totalCount={pageInfo?.total ?? null}
+        sort={
+          <DiscoverSortSelect
+            value={filters.sort}
+            onChange={(value) => updateFilters({ sort: value as AnimeSort })}
+            options={SORT_OPTIONS}
+          />
+        }
+        viewMode={viewMode}
+        onViewModeChange={setViewMode}
+      />
 
       {/* 5. Results Grid or Detailed List */}
       {isLoading ? (

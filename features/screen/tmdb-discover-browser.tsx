@@ -9,13 +9,8 @@ import { ErrorState } from "@/components/error-state";
 import {
   CalendarIcon,
   ChevronRightIcon,
-  CloseIcon,
   FlameIcon,
-  GridIcon,
-  ListIcon,
-  LoaderIcon,
   PlayIcon,
-  SearchIcon,
   SlidersIcon,
   SparklesIcon,
   StarIcon,
@@ -24,10 +19,22 @@ import {
 import { PosterGridSkeleton } from "@/components/loading-skeleton";
 import { TmdbAttribution } from "@/components/tmdb-attribution";
 import { Button } from "@/components/ui/button";
-import { kindLabel, ScreenPoster } from "@/features/screen/screen-poster";
-import { ApiRequestError, apiFetch } from "@/lib/http";
+import { Dialog } from "@/components/ui/dialog";
+import { Select } from "@/components/ui/field";
+import { fetchCachedJson } from "@/lib/cache/request-cache";
+import { ApiRequestError } from "@/lib/http";
 import { cn, isHttpUrl } from "@/lib/utils";
 import {
+  DiscoverDeck,
+  DiscoverHero,
+  DiscoverPills,
+  DiscoverResultsBar,
+  DiscoverSortSelect,
+  type DiscoverChip,
+} from "@/features/discover/discover-chrome";
+import { kindLabel, ScreenPoster } from "@/features/screen/screen-poster";
+import {
+  TMDB_ADULT_FILTERS,
   TMDB_RATING_FILTERS,
   tmdbDiscoverCategoriesForKind,
   tmdbGenresForKind,
@@ -80,6 +87,7 @@ function requestPath(
       q: query,
       page: String(page),
     });
+    if (filters.includeAdult) params.set("adult", "include");
     return `/api/tmdb/search?${params.toString()}`;
   }
   const params = new URLSearchParams({
@@ -87,13 +95,24 @@ function requestPath(
     category,
     page: String(page),
   });
-  if (filters.genre) params.set("genre", filters.genre);
+  if (filters.genres?.length) params.set("genre", filters.genres.join(","));
+  if (filters.includeAdult) params.set("adult", "include");
   if (filters.year) params.set("year", String(filters.year));
   if (filters.minRating !== undefined) {
     params.set("rating", String(filters.minRating));
   }
   if (filters.sort) params.set("sort", filters.sort);
   return `/api/tmdb/discover?${params.toString()}`;
+}
+
+function countTmdbFilters(filters: TmdbDiscoverFilters): number {
+  return [
+    filters.genres?.length ? true : undefined,
+    filters.year,
+    filters.minRating !== undefined ? true : undefined,
+    filters.sort,
+    filters.includeAdult ? true : undefined,
+  ].filter((value) => value !== undefined).length;
 }
 
 function TmdbDiscoverListCard({ item }: { item: TmdbSearchResult }) {
@@ -171,6 +190,263 @@ function TmdbDiscoverListCard({ item }: { item: TmdbSearchResult }) {
   );
 }
 
+function TmdbFilterFields({
+  kind,
+  filters,
+  onChange,
+  idPrefix,
+}: {
+  kind: TmdbKind;
+  filters: TmdbDiscoverFilters;
+  onChange: (patch: Partial<TmdbDiscoverFilters>) => void;
+  idPrefix: string;
+}) {
+  const genreOptions = tmdbGenresForKind(kind);
+  const sortOptions = tmdbSortsForKind(kind);
+  const selectedGenres = filters.genres ?? [];
+
+  const toggleGenre = (value: string) => {
+    const next = selectedGenres.includes(value)
+      ? selectedGenres.filter((genre) => genre !== value)
+      : [...selectedGenres, value];
+    onChange({ genres: next.length > 0 ? next : undefined });
+  };
+
+  return (
+    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="space-y-1.5 sm:col-span-2 lg:col-span-4">
+        <div className="flex items-center justify-between gap-2">
+          <span className="text-xs font-medium text-muted">
+            Genre
+            {selectedGenres.length > 0
+              ? ` · any of ${selectedGenres.length}`
+              : " · pick any number"}
+          </span>
+          {selectedGenres.length > 0 ? (
+            <button
+              type="button"
+              onClick={() => onChange({ genres: undefined })}
+              className="text-[11px] font-medium text-faint underline-offset-2 transition-colors hover:text-fg hover:underline"
+            >
+              Clear genres
+            </button>
+          ) : null}
+        </div>
+        <div className="flex flex-wrap gap-1.5">
+          {genreOptions.map((option) => {
+            const active = selectedGenres.includes(option.value);
+            return (
+              <button
+                key={option.value}
+                type="button"
+                onClick={() => toggleGenre(option.value)}
+                aria-pressed={active}
+                className={cn(
+                  "rounded-full border px-2.5 py-1 text-[11px] font-semibold transition-all active:scale-95",
+                  active
+                    ? "border-accent bg-accent text-accent-contrast shadow-sm"
+                    : "border-border-subtle bg-surface-2 text-muted hover:border-border hover:bg-surface-3 hover:text-fg",
+                )}
+              >
+                {option.label}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      <div className="space-y-1.5">
+        <label
+          htmlFor={`${idPrefix}-year`}
+          className="text-xs font-medium text-muted lg:sr-only"
+        >
+          Year
+        </label>
+        <Select
+          id={`${idPrefix}-year`}
+          aria-label="Filter by release year"
+          value={filters.year ? String(filters.year) : ""}
+          onChange={(event) =>
+            onChange({
+              year: event.target.value ? Number(event.target.value) : undefined,
+            })
+          }
+        >
+          <option value="">Any year</option>
+          {YEAR_OPTIONS.map((year) => (
+            <option key={year} value={year}>
+              {year}
+            </option>
+          ))}
+        </Select>
+      </div>
+
+      <div className="space-y-1.5">
+        <label
+          htmlFor={`${idPrefix}-rating`}
+          className="text-xs font-medium text-muted lg:sr-only"
+        >
+          Rating
+        </label>
+        <Select
+          id={`${idPrefix}-rating`}
+          aria-label="Filter by minimum rating"
+          value={
+            filters.minRating !== undefined ? String(filters.minRating) : ""
+          }
+          onChange={(event) =>
+            onChange({
+              minRating: event.target.value
+                ? Number(event.target.value)
+                : undefined,
+            })
+          }
+        >
+          {TMDB_RATING_FILTERS.map((option) => (
+            <option key={option.label} value={option.value}>
+              {option.label}
+            </option>
+          ))}
+        </Select>
+      </div>
+
+      <div className="space-y-1.5">
+        <label
+          htmlFor={`${idPrefix}-adult`}
+          className="text-xs font-medium text-muted lg:sr-only"
+        >
+          Adult content
+        </label>
+        <Select
+          id={`${idPrefix}-adult`}
+          aria-label="Filter by adult content"
+          value={filters.includeAdult ? "include" : ""}
+          onChange={(event) =>
+            onChange({
+              includeAdult:
+                event.target.value === "include" ? true : undefined,
+            })
+          }
+        >
+          {TMDB_ADULT_FILTERS.map((option) => (
+            <option key={option.label} value={option.value}>
+              {option.label}
+            </option>
+          ))}
+        </Select>
+      </div>
+
+      <div className="space-y-1.5">
+        <label
+          htmlFor={`${idPrefix}-sort`}
+          className="text-xs font-medium text-muted lg:sr-only"
+        >
+          Sort
+        </label>
+        <Select
+          id={`${idPrefix}-sort`}
+          aria-label="Sort results"
+          value={filters.sort ?? ""}
+          onChange={(event) =>
+            onChange({
+              sort: (event.target.value || undefined) as
+                | TmdbDiscoverSort
+                | undefined,
+            })
+          }
+        >
+          <option value="">Category default</option>
+          {sortOptions.map((option) => (
+            <option key={option.value} value={option.value}>
+              {option.label}
+            </option>
+          ))}
+        </Select>
+      </div>
+    </div>
+  );
+}
+
+function TmdbFilters({
+  kind,
+  filters,
+  onChange,
+  onClear,
+}: {
+  kind: TmdbKind;
+  filters: TmdbDiscoverFilters;
+  onChange: (patch: Partial<TmdbDiscoverFilters>) => void;
+  onClear: () => void;
+}) {
+  const [sheetOpen, setSheetOpen] = useState(false);
+  const activeCount = countTmdbFilters(filters);
+  const noun = kind === "movie" ? "movies" : "TV shows";
+
+  return (
+    <div className="space-y-3">
+      <div className="hidden lg:block">
+        <TmdbFilterFields
+          kind={kind}
+          filters={filters}
+          onChange={onChange}
+          idPrefix={`${kind}-desktop-filters`}
+        />
+      </div>
+
+      <div className="flex items-center gap-2 lg:hidden">
+        <Button
+          variant="secondary"
+          onClick={() => setSheetOpen(true)}
+          className="h-11 flex-1 justify-between"
+        >
+          <span className="inline-flex items-center gap-2">
+            <SlidersIcon className="h-4 w-4" />
+            Filters
+          </span>
+          {activeCount > 0 ? (
+            <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-accent px-1.5 text-[11px] font-semibold text-accent-contrast">
+              {activeCount}
+            </span>
+          ) : (
+            <span className="text-xs text-faint">None</span>
+          )}
+        </Button>
+      </div>
+
+      <Dialog
+        open={sheetOpen}
+        onClose={() => setSheetOpen(false)}
+        title={`Filter ${noun}`}
+        description="Refine by genre, release year, rating, adult content and sort order."
+        mobileSheet
+        footer={
+          <>
+            <Button
+              variant="ghost"
+              onClick={() => {
+                onClear();
+                setSheetOpen(false);
+              }}
+            >
+              Reset all
+            </Button>
+            <Button variant="primary" onClick={() => setSheetOpen(false)}>
+              Show results
+            </Button>
+          </>
+        }
+      >
+        <TmdbFilterFields
+          kind={kind}
+          filters={filters}
+          onChange={onChange}
+          idPrefix={`${kind}-sheet-filters`}
+        />
+      </Dialog>
+    </div>
+  );
+}
+
 export function TmdbDiscoverBrowser({
   kind,
   initialPage,
@@ -201,7 +477,9 @@ export function TmdbDiscoverBrowser({
   );
   const [error, setError] = useState<string | null>(initialError);
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
-  const [showFilters, setShowFilters] = useState(false);
+  const [showFilters, setShowFilters] = useState(
+    () => countTmdbFilters(initialFilters) > 0,
+  );
   const [retryNonce, setRetryNonce] = useState(0);
   const skipInitialFetch = useRef(
     initialPage !== null || initialError !== null,
@@ -210,9 +488,7 @@ export function TmdbDiscoverBrowser({
   const categoryOptions = tmdbDiscoverCategoriesForKind(kind);
   const genreOptions = tmdbGenresForKind(kind);
   const sortOptions = tmdbSortsForKind(kind);
-  const activeCategory = CATEGORY_META[category];
   const kindLabelPlural = kind === "movie" ? "movies" : "TV shows";
-  const singularKind = kind === "movie" ? "Movie" : "TV Show";
 
   useEffect(() => {
     const trimmed = queryInput.trim();
@@ -231,7 +507,8 @@ export function TmdbDiscoverBrowser({
     params.set("type", kind);
     if (category !== "trending") params.set("category", category);
     if (query) params.set("q", query);
-    if (filters.genre) params.set("genre", filters.genre);
+    if (filters.genres?.length) params.set("genre", filters.genres.join(","));
+    if (filters.includeAdult) params.set("adult", "include");
     if (filters.year) params.set("year", String(filters.year));
     if (filters.minRating !== undefined) {
       params.set("rating", String(filters.minRating));
@@ -250,9 +527,10 @@ export function TmdbDiscoverBrowser({
 
     const controller = new AbortController();
 
-    apiFetch<TmdbSearchPage>(requestPath(kind, category, query, page, filters), {
-      signal: controller.signal,
-    })
+    fetchCachedJson<TmdbSearchPage>(
+      requestPath(kind, category, query, page, filters),
+      { signal: controller.signal },
+    )
       .then((data) => {
         setItems((current) =>
           page === 1 ? data.results : mergeUnique(current, data.results),
@@ -283,13 +561,8 @@ export function TmdbDiscoverBrowser({
   const isTyping = queryInput.trim() !== query;
   const hasNextPage = pageInfo ? pageInfo.page < pageInfo.totalPages : false;
   const searchActive = query.length >= 2;
-  const activeFilterCount = [
-    filters.genre,
-    filters.year,
-    filters.minRating !== undefined ? true : undefined,
-    filters.sort,
-  ].filter((value) => value !== undefined).length;
-  const hasFilters = activeFilterCount > 0;
+  const activeFilterCount = countTmdbFilters(filters);
+  const selectedGenres = filters.genres ?? [];
 
   const resetAll = () => {
     setQueryInput("");
@@ -307,6 +580,15 @@ export function TmdbDiscoverBrowser({
     setQuery("");
     setPage(1);
     setStatus("loading");
+    setError(null);
+    setRetryNonce((value) => value + 1);
+  };
+
+  const submitSearch = () => {
+    const trimmed = queryInput.trim();
+    setQuery(trimmed);
+    setPage(1);
+    setStatus(trimmed.length === 1 ? "idle" : "loading");
     setError(null);
     setRetryNonce((value) => value + 1);
   };
@@ -335,34 +617,38 @@ export function TmdbDiscoverBrowser({
 
   const clearFilters = () =>
     applyFilter({
-      genre: undefined,
+      genres: undefined,
       year: undefined,
       minRating: undefined,
       sort: undefined,
+      includeAdult: undefined,
     });
 
-  const filterChips: Array<{
-    key: string;
-    label: string;
-    clear: () => void;
-  }> = [];
-  if (filters.genre) {
-    const genre = genreOptions.find((option) => option.value === filters.genre);
-    filterChips.push({
-      key: "genre",
-      label: `Genre: ${genre?.label ?? filters.genre}`,
-      clear: () => applyFilter({ genre: undefined }),
+  const toggleGenre = (value: string) => {
+    const next = selectedGenres.includes(value)
+      ? selectedGenres.filter((genre) => genre !== value)
+      : [...selectedGenres, value];
+    applyFilter({ genres: next.length > 0 ? next : undefined });
+  };
+
+  const chips: DiscoverChip[] = [];
+  for (const genreId of selectedGenres) {
+    const genre = genreOptions.find((option) => option.value === genreId);
+    chips.push({
+      key: `genre-${genreId}`,
+      label: `Genre: ${genre?.label ?? genreId}`,
+      clear: () => toggleGenre(genreId),
     });
   }
   if (filters.year) {
-    filterChips.push({
+    chips.push({
       key: "year",
       label: `Year: ${filters.year}`,
       clear: () => applyFilter({ year: undefined }),
     });
   }
   if (filters.minRating !== undefined) {
-    filterChips.push({
+    chips.push({
       key: "rating",
       label: `Rating: ${filters.minRating.toFixed(1)}+`,
       clear: () => applyFilter({ minRating: undefined }),
@@ -370,360 +656,124 @@ export function TmdbDiscoverBrowser({
   }
   if (filters.sort) {
     const sort = sortOptions.find((option) => option.value === filters.sort);
-    filterChips.push({
+    chips.push({
       key: "sort",
       label: `Sort: ${sort?.label ?? filters.sort}`,
       clear: () => applyFilter({ sort: undefined }),
     });
   }
+  if (filters.includeAdult) {
+    chips.push({
+      key: "adult",
+      label: "Adult: included",
+      clear: () => applyFilter({ includeAdult: undefined }),
+    });
+  }
 
-  const selectClass =
-    "h-9 w-full rounded-lg border border-border bg-surface-2 px-2.5 text-xs font-medium text-fg transition-colors focus:border-accent focus:outline-none";
+  const topItem = items[0] ?? null;
+  const pills = categoryOptions.map((option) => ({
+    id: option,
+    label: CATEGORY_META[option].label,
+    icon: CATEGORY_META[option].icon,
+    active: category === option && !searchActive,
+    onSelect: () => selectCategory(option),
+  }));
 
   return (
     <div className="space-y-6">
-      <header className="rounded-2xl border border-border-subtle bg-surface-2/80 p-4 shadow-sm sm:p-5">
-        <div className="flex flex-wrap items-center gap-2">
-          <span className="flex h-2 w-2 rounded-full bg-accent-strong radar-live-dot" />
-          <span className="text-[11px] font-bold uppercase tracking-wider text-accent-strong">
-            TMDB Catalogue
-          </span>
-          <span className="text-faint">·</span>
-          <span className="text-xs font-medium text-muted">
-            {searchActive
-              ? `${singularKind} search`
-              : `${activeCategory.label} ${kindLabelPlural}`}
-          </span>
-        </div>
-
-        <h1 className="mt-2 font-display text-xl font-bold tracking-tight text-fg sm:text-2xl">
-          Discover {kind === "movie" ? "Movies" : "TV Shows"}
-        </h1>
-
-        <p className="mt-1.5 max-w-2xl text-xs leading-relaxed text-muted sm:text-sm">
-          Browse {kind === "movie" ? "cinema releases" : "series"} by category
-          or search TMDB directly. Every title opens the same Kaze detail and
-          tracking experience.
-        </p>
-      </header>
-
-      <div className="no-scrollbar -mx-4 flex gap-2 overflow-x-auto px-4 pb-1 sm:-mx-0 sm:flex-wrap sm:overflow-visible sm:px-0">
-        {categoryOptions.map((option) => {
-          const meta = CATEGORY_META[option];
-          const Icon = meta.icon;
-          const active = category === option && !searchActive;
-          return (
-            <button
-              key={option}
-              type="button"
-              onClick={() => selectCategory(option)}
-              className={cn(
-                "inline-flex shrink-0 items-center gap-1.5 rounded-xl border px-3 py-1.5 text-xs font-semibold shadow-xs transition-all active:scale-95",
-                active
-                  ? "border-accent bg-accent text-accent-contrast shadow-md scale-102"
-                  : "border-border-subtle bg-surface-2 text-muted hover:border-border hover:bg-surface-3 hover:text-fg",
-              )}
-            >
-              <Icon
-                className={cn(
-                  "h-3.5 w-3.5 shrink-0 transition-colors",
-                  active ? "text-accent-contrast" : "text-accent-strong",
-                )}
-              />
-              <span>{meta.label}</span>
-            </button>
-          );
-        })}
-      </div>
-
-      <div className="space-y-3.5 rounded-2xl border border-border-subtle bg-surface-2/80 p-3 shadow-lg backdrop-blur-md sm:p-4">
-        <div className="flex flex-col gap-2.5 sm:flex-row sm:items-center">
-          <div className="relative flex-1">
-            <SearchIcon className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-faint" />
-            <input
-              type="search"
-              role="searchbox"
-              aria-label={`Search ${kindLabelPlural} by title`}
-              value={queryInput}
-              onChange={(event) => setQueryInput(event.target.value)}
-              onKeyDown={(event) => {
-                if (event.key === "Enter") {
-                  const trimmed = queryInput.trim();
-                  setQuery(trimmed);
-                  setPage(1);
-                  setStatus(trimmed.length === 1 ? "idle" : "loading");
-                  setError(null);
-                  setRetryNonce((value) => value + 1);
-                }
-              }}
-              placeholder={
-                kind === "movie"
-                  ? "Search films by title…"
-                  : "Search TV shows by title…"
+      <DiscoverHero
+        eyebrow="TMDB Catalogue"
+        headlineMeta={
+          kind === "movie" ? "Feature films worldwide" : "Series & specials"
+        }
+        title={`Discover ${kind === "movie" ? "Movies" : "TV Shows"}`}
+        description={`Explore ${
+          kind === "movie" ? "cinema releases" : "series"
+        } by category, refine with genres, release years, ratings and adult content, or search TMDB directly. Every title opens the same Kaze detail and tracking experience.`}
+        backdropUrl={topItem?.backdropUrl ?? topItem?.posterUrl ?? null}
+        spotlight={
+          topItem
+            ? {
+                href: `/screen/${topItem.kind}/${topItem.tmdbId}`,
+                posterUrl: topItem.posterUrl,
+                score:
+                  topItem.voteAverage && topItem.voteAverage > 0
+                    ? topItem.voteAverage.toFixed(1)
+                    : null,
+                title: topItem.title,
+                meta: [kindLabel(topItem.kind), topItem.year]
+                  .filter(Boolean)
+                  .join(" · "),
+                ctaLabel: `View ${kindLabel(topItem.kind)}`,
               }
-              autoComplete="off"
-              spellCheck={false}
-              className="h-11 w-full rounded-xl border border-border bg-surface-3/50 pl-10 pr-20 text-sm text-fg placeholder:text-faint transition-colors focus:border-accent focus:bg-surface-3 focus:outline-none focus:ring-1 focus:ring-accent [&::-webkit-search-cancel-button]:appearance-none [&::-webkit-search-cancel-button]:hidden [&::-webkit-search-decoration]:appearance-none"
-            />
-            <div className="absolute right-2.5 top-1/2 flex -translate-y-1/2 items-center gap-1.5">
-              {isLoading || isTyping ? (
-                <LoaderIcon className="h-4 w-4 animate-spin text-accent-strong" />
-              ) : null}
-              {queryInput ? (
-                <button
-                  type="button"
-                  onClick={clearSearch}
-                  aria-label="Clear search"
-                  className="flex h-7 w-7 items-center justify-center rounded-lg text-faint transition-colors hover:bg-surface-3 hover:text-fg"
-                >
-                  <CloseIcon className="h-3.5 w-3.5" />
-                </button>
-              ) : (
-                <kbd className="hidden items-center rounded border border-border bg-surface-3/60 px-1.5 font-mono text-[10px] text-faint sm:inline-flex">
-                  Ctrl K
-                </kbd>
-              )}
-            </div>
-          </div>
+            : null
+        }
+      />
 
-          <div className="flex items-center gap-2">
-            <button
-              type="button"
-              onClick={() => setShowFilters((current) => !current)}
-              aria-expanded={showFilters}
-              className={cn(
-                "inline-flex h-11 items-center gap-2 rounded-xl border px-4 text-xs font-semibold shadow-sm transition-all active:scale-95",
-                showFilters || activeFilterCount > 0
-                  ? "border-accent bg-accent/20 text-accent-strong"
-                  : "border-border-subtle bg-surface-2 text-muted hover:bg-surface-3 hover:text-fg",
-              )}
-            >
-              <SlidersIcon className="h-4 w-4" />
-              <span>Filters</span>
-              {activeFilterCount > 0 ? (
-                <span className="flex h-5 w-5 items-center justify-center rounded-full bg-accent text-[10px] font-bold text-accent-contrast">
-                  {activeFilterCount}
-                </span>
-              ) : null}
-            </button>
+      <DiscoverPills pills={pills} />
 
-            {queryInput || activeFilterCount > 0 || category !== "trending" ? (
-              <button
-                type="button"
-                onClick={resetAll}
-                className="inline-flex h-11 items-center rounded-xl border border-border-subtle bg-surface-3/60 px-3 text-xs font-medium text-muted transition-colors hover:bg-surface-3 hover:text-fg"
-              >
-                Reset
-              </button>
-            ) : null}
-          </div>
-        </div>
+      <DiscoverDeck
+        searchValue={queryInput}
+        onSearchChange={setQueryInput}
+        onSearchSubmit={submitSearch}
+        searchAriaLabel={`Search ${kindLabelPlural} by title`}
+        placeholder={
+          kind === "movie"
+            ? "Search films by title…"
+            : "Search TV shows by title…"
+        }
+        busy={isLoading || isTyping}
+        onClearSearch={clearSearch}
+        filtersOpen={showFilters}
+        onToggleFilters={() => setShowFilters((current) => !current)}
+        filterCount={activeFilterCount}
+        showReset={
+          Boolean(queryInput) ||
+          activeFilterCount > 0 ||
+          category !== "trending"
+        }
+        onReset={resetAll}
+        chips={chips}
+        onClearAll={resetAll}
+        hint={
+          searchTooShort ? (
+            <p className="text-xs text-faint">Type at least two characters.</p>
+          ) : null
+        }
+      >
+        <TmdbFilters
+          kind={kind}
+          filters={filters}
+          onChange={applyFilter}
+          onClear={clearFilters}
+        />
+      </DiscoverDeck>
 
-        {showFilters ? (
-          <div className="grid gap-3 border-t border-border-subtle pt-3 sm:grid-cols-2 lg:grid-cols-4">
-            <label className="flex flex-col gap-1 text-[10px] font-semibold uppercase tracking-wider text-faint">
-              Genre
-              <select
-                value={filters.genre ?? ""}
-                onChange={(event) =>
-                  applyFilter({ genre: event.target.value || undefined })
-                }
-                className={selectClass}
-              >
-                <option value="">All genres</option>
-                {genreOptions.map((option) => (
-                  <option key={option.value} value={option.value}>
-                    {option.label}
-                  </option>
-                ))}
-              </select>
-            </label>
-
-            <label className="flex flex-col gap-1 text-[10px] font-semibold uppercase tracking-wider text-faint">
-              Year
-              <select
-                value={filters.year ? String(filters.year) : ""}
-                onChange={(event) =>
-                  applyFilter({
-                    year: event.target.value
-                      ? Number(event.target.value)
-                      : undefined,
-                  })
-                }
-                className={selectClass}
-              >
-                <option value="">Any year</option>
-                {YEAR_OPTIONS.map((year) => (
-                  <option key={year} value={year}>
-                    {year}
-                  </option>
-                ))}
-              </select>
-            </label>
-
-            <label className="flex flex-col gap-1 text-[10px] font-semibold uppercase tracking-wider text-faint">
-              Minimum rating
-              <select
-                value={
-                  filters.minRating !== undefined
-                    ? String(filters.minRating)
-                    : ""
-                }
-                onChange={(event) =>
-                  applyFilter({
-                    minRating: event.target.value
-                      ? Number(event.target.value)
-                      : undefined,
-                  })
-                }
-                className={selectClass}
-              >
-                {TMDB_RATING_FILTERS.map((option) => (
-                  <option key={option.label} value={option.value}>
-                    {option.label}
-                  </option>
-                ))}
-              </select>
-            </label>
-
-            <label className="flex flex-col gap-1 text-[10px] font-semibold uppercase tracking-wider text-faint">
-              Sort by
-              <select
-                value={filters.sort ?? ""}
-                onChange={(event) =>
-                  applyFilter({
-                    sort: (event.target.value || undefined) as
-                      | TmdbDiscoverSort
-                      | undefined,
-                  })
-                }
-                className={selectClass}
-              >
-                <option value="">Category default</option>
-                {sortOptions.map((option) => (
-                  <option key={option.value} value={option.value}>
-                    {option.label}
-                  </option>
-                ))}
-              </select>
-            </label>
-          </div>
-        ) : null}
-
-        {filterChips.length > 0 ? (
-          <div className="flex flex-wrap items-center gap-1.5 pt-1">
-            <span className="mr-1 text-[11px] font-semibold text-faint">
-              Active filters:
-            </span>
-            {filterChips.map((chip) => (
-              <button
-                key={chip.key}
-                type="button"
-                onClick={chip.clear}
-                className="inline-flex items-center gap-1.5 rounded-full border border-accent/40 bg-accent/15 py-1 pl-2.5 pr-1.5 text-[11px] font-semibold text-accent-strong transition-all hover:bg-accent/25 active:scale-95"
-              >
-                <span>{chip.label}</span>
-                <span className="flex h-3.5 w-3.5 items-center justify-center rounded-full bg-accent/40 text-accent-contrast">
-                  <CloseIcon className="h-2 w-2" />
-                </span>
-              </button>
-            ))}
-            <button
-              type="button"
-              onClick={clearFilters}
-              className="ml-1 text-[11px] font-medium text-faint underline-offset-2 transition-colors hover:text-fg hover:underline"
-            >
-              Clear all
-            </button>
-          </div>
-        ) : null}
-
-        {query.length === 1 ? (
-          <p className="text-xs text-faint">Type at least two characters.</p>
-        ) : null}
-      </div>
-
-      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border-subtle pb-3">
-        <p aria-live="polite" className="text-xs font-semibold text-muted">
-          {searchTooShort ? (
-            <span className="text-faint">Type at least two characters.</span>
-          ) : isLoading ? (
-            <span className="inline-flex items-center gap-1.5 text-accent-strong">
-              <span className="h-2 w-2 rounded-full bg-accent-strong radar-live-dot" />
-              Searching TMDB…
-            </span>
-          ) : pageInfo?.totalResults != null ? (
-            <span>
-              Showing <span className="font-bold text-fg">{items.length}</span>{" "}
-              of{" "}
-              <span className="font-bold text-fg">
-                {pageInfo.totalResults.toLocaleString("en-US")}
-              </span>{" "}
-              results
-            </span>
-          ) : (
-            <span>{items.length} results</span>
-          )}
-        </p>
-
-        <div className="flex items-center gap-2.5">
-          {!searchActive ? (
-            <div className="flex items-center gap-1.5 text-xs text-muted">
-              <span className="hidden text-faint sm:inline">Sort by:</span>
-              <select
-                value={filters.sort ?? ""}
-                onChange={(event) =>
-                  applyFilter({
-                    sort: (event.target.value || undefined) as
-                      | TmdbDiscoverSort
-                      | undefined,
-                  })
-                }
-                aria-label="Sort results"
-                className="h-8 rounded-lg border border-border bg-surface-2 px-2.5 text-xs font-semibold text-fg focus:border-accent focus:outline-none"
-              >
-                <option value="">Category default</option>
-                {sortOptions.map((option) => (
-                  <option key={option.value} value={option.value}>
-                    {option.label}
-                  </option>
-                ))}
-              </select>
-            </div>
-          ) : null}
-
-          <div className="inline-flex items-center rounded-lg border border-border bg-surface-2 p-0.5">
-            <button
-              type="button"
-              onClick={() => setViewMode("grid")}
-              aria-label="Poster grid view"
-              title="Poster grid view"
-              className={cn(
-                "flex h-7 w-7 items-center justify-center rounded-md transition-all",
-                viewMode === "grid"
-                  ? "bg-accent font-bold text-accent-contrast shadow-xs"
-                  : "text-muted hover:text-fg",
-              )}
-            >
-              <GridIcon className="h-3.5 w-3.5" />
-            </button>
-            <button
-              type="button"
-              onClick={() => setViewMode("list")}
-              aria-label="Detailed list view"
-              title="Detailed list view"
-              className={cn(
-                "flex h-7 w-7 items-center justify-center rounded-md transition-all",
-                viewMode === "list"
-                  ? "bg-accent font-bold text-accent-contrast shadow-xs"
-                  : "text-muted hover:text-fg",
-              )}
-            >
-              <ListIcon className="h-3.5 w-3.5" />
-            </button>
-          </div>
-        </div>
-      </div>
+      <DiscoverResultsBar
+        loading={isLoading}
+        loadingLabel="Searching TMDB…"
+        visibleCount={items.length}
+        totalCount={pageInfo?.totalResults ?? null}
+        emptyLabel={
+          searchTooShort ? "Type at least two characters." : null
+        }
+        sort={
+          <DiscoverSortSelect
+            value={filters.sort ?? ""}
+            onChange={(value) =>
+              applyFilter({
+                sort: (value || undefined) as TmdbDiscoverSort | undefined,
+              })
+            }
+            options={[
+              { value: "", label: "Category default" },
+              ...sortOptions,
+            ]}
+          />
+        }
+        viewMode={viewMode}
+        onViewModeChange={setViewMode}
+      />
 
       {isLoading ? (
         <PosterGridSkeleton count={12} label="Loading films and TV" />
@@ -744,16 +794,12 @@ export function TmdbDiscoverBrowser({
             description={
               query
                 ? `Nothing matched “${query}”. Try a shorter title or clear the search.`
-                : hasFilters
+                : activeFilterCount > 0
                   ? "No titles matched these filters. Try another genre, year, or rating."
                   : "No titles matched this category. Try another category."
             }
             action={
-              <Button
-                variant="secondary"
-                size="sm"
-                onClick={hasFilters || query ? resetAll : resetAll}
-              >
+              <Button variant="secondary" size="sm" onClick={resetAll}>
                 Reset discovery
               </Button>
             }

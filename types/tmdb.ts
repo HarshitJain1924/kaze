@@ -137,13 +137,32 @@ export function isTmdbSortForKind(
   return tmdbSortsForKind(kind).some((option) => option.value === sort);
 }
 
+/** Keeps a genre selection to the ids that exist in the kind's catalogue. */
+export function tmdbGenreIdsForKind(kind: TmdbKind): Set<string> {
+  return new Set(tmdbGenresForKind(kind).map((option) => option.value));
+}
+
 /** Optional constraints layered on top of a discovery category. */
 export interface TmdbDiscoverFilters {
-  genre?: string;
+  /**
+   * TMDB genre ids. Several ids match titles carrying any of those genres,
+   * matching the pipe-separated `with_genres` OR query.
+   */
+  genres?: string[];
   year?: number;
   minRating?: number;
   sort?: TmdbDiscoverSort;
+  /** TMDB's adult flag; it is hidden unless this is explicitly enabled. */
+  includeAdult?: boolean;
 }
+
+export const TMDB_ADULT_FILTERS: Array<{
+  value: string;
+  label: string;
+}> = [
+  { value: "", label: "Hide adult" },
+  { value: "include", label: "Include adult" },
+];
 
 export interface TmdbSearchResult {
   tmdbId: number;

@@ -168,6 +168,64 @@ describe("TMDB discovery parameters", () => {
       page: 1,
     });
   });
+
+  it("coerces catalogue filter query strings", () => {
+    expect(
+      tmdbDiscoverParamsSchema.parse({
+        kind: "tv",
+        genres: "18",
+        year: "2019",
+        rating: "7.5",
+        sort: "vote_average.desc",
+        adult: "include",
+      }),
+    ).toMatchObject({
+      genres: ["18"],
+      year: 2019,
+      rating: 7.5,
+      sort: "vote_average.desc",
+      adult: "include",
+    });
+  });
+
+  it("splits several genres from comma or pipe separated ids", () => {
+    expect(tmdbDiscoverParamsSchema.parse({ genres: "28,35" }).genres).toEqual([
+      "28",
+      "35",
+    ]);
+    expect(tmdbDiscoverParamsSchema.parse({ genres: "28|35" }).genres).toEqual([
+      "28",
+      "35",
+    ]);
+  });
+
+  it("rejects unusable catalogue filters", () => {
+    expect(
+      tmdbDiscoverParamsSchema.safeParse({ genres: "drama" }).success,
+    ).toBe(false);
+    expect(tmdbDiscoverParamsSchema.safeParse({ genres: "" }).success).toBe(
+      false,
+    );
+    expect(
+      tmdbDiscoverParamsSchema.safeParse({ genres: "28,28" }).success,
+    ).toBe(false);
+    expect(
+      tmdbDiscoverParamsSchema.safeParse({ genres: "28,35,18,80,99,16" })
+        .success,
+    ).toBe(false);
+    expect(tmdbDiscoverParamsSchema.safeParse({ adult: "all" }).success).toBe(
+      false,
+    );
+    expect(tmdbDiscoverParamsSchema.safeParse({ year: "1850" }).success).toBe(
+      false,
+    );
+    expect(tmdbDiscoverParamsSchema.safeParse({ rating: "12" }).success).toBe(
+      false,
+    );
+    expect(
+      tmdbDiscoverParamsSchema.safeParse({ sort: "budget.asc" }).success,
+    ).toBe(false);
+  });
 });
 
 describe("library input schemas", () => {
