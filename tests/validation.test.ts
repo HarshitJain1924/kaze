@@ -177,14 +177,12 @@ describe("TMDB discovery parameters", () => {
         year: "2019",
         rating: "7.5",
         sort: "vote_average.desc",
-        adult: "include",
       }),
     ).toMatchObject({
       genres: ["18"],
       year: 2019,
       rating: 7.5,
       sort: "vote_average.desc",
-      adult: "include",
     });
   });
 
@@ -213,12 +211,6 @@ describe("TMDB discovery parameters", () => {
       tmdbDiscoverParamsSchema.safeParse({ genres: "28,35,18,80,99,16" })
         .success,
     ).toBe(false);
-    expect(tmdbDiscoverParamsSchema.safeParse({ adult: "only" }).success).toBe(
-      true,
-    );
-    expect(tmdbDiscoverParamsSchema.safeParse({ adult: "all" }).success).toBe(
-      false,
-    );
     expect(tmdbDiscoverParamsSchema.safeParse({ year: "1850" }).success).toBe(
       false,
     );

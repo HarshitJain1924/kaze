@@ -34,7 +34,6 @@ import {
 } from "@/features/discover/discover-chrome";
 import { kindLabel, ScreenPoster } from "@/features/screen/screen-poster";
 import {
-  TMDB_ADULT_FILTERS,
   TMDB_RATING_FILTERS,
   tmdbDiscoverCategoriesForKind,
   tmdbGenresForKind,
@@ -87,7 +86,6 @@ function requestPath(
       q: query,
       page: String(page),
     });
-    if (filters.adult) params.set("adult", filters.adult);
     return `/api/tmdb/search?${params.toString()}`;
   }
   const params = new URLSearchParams({
@@ -96,7 +94,6 @@ function requestPath(
     page: String(page),
   });
   if (filters.genres?.length) params.set("genre", filters.genres.join(","));
-  if (filters.adult) params.set("adult", filters.adult);
   if (filters.year) params.set("year", String(filters.year));
   if (filters.minRating !== undefined) {
     params.set("rating", String(filters.minRating));
@@ -111,7 +108,6 @@ function countTmdbFilters(filters: TmdbDiscoverFilters): number {
     filters.year,
     filters.minRating !== undefined ? true : undefined,
     filters.sort,
-    filters.adult ? true : undefined,
   ].filter((value) => value !== undefined).length;
 }
 
@@ -195,13 +191,11 @@ function TmdbFilterFields({
   filters,
   onChange,
   idPrefix,
-  adultAllowed = false,
 }: {
   kind: TmdbKind;
   filters: TmdbDiscoverFilters;
   onChange: (patch: Partial<TmdbDiscoverFilters>) => void;
   idPrefix: string;
-  adultAllowed?: boolean;
 }) {
   const genreOptions = tmdbGenresForKind(kind);
   const sortOptions = tmdbSortsForKind(kind);
@@ -314,40 +308,6 @@ function TmdbFilterFields({
 
       <div className="space-y-1.5">
         <label
-          htmlFor={`${idPrefix}-adult`}
-          className="text-xs font-medium text-muted lg:sr-only"
-        >
-          18+ content
-        </label>
-        <Select
-          id={`${idPrefix}-adult`}
-          aria-label="Filter by adult content"
-          value={filters.adult ?? ""}
-          disabled={!adultAllowed}
-          title={
-            adultAllowed
-              ? undefined
-              : "Enable adult titles in Settings to browse 18+ content"
-          }
-          onChange={(event) =>
-            onChange({
-              adult:
-                event.target.value === ""
-                  ? undefined
-                  : (event.target.value as TmdbDiscoverFilters["adult"]),
-            })
-          }
-        >
-          {TMDB_ADULT_FILTERS.map((option) => (
-            <option key={option.label} value={option.value}>
-              {option.label}
-            </option>
-          ))}
-        </Select>
-      </div>
-
-      <div className="space-y-1.5">
-        <label
           htmlFor={`${idPrefix}-sort`}
           className="text-xs font-medium text-muted lg:sr-only"
         >
@@ -382,13 +342,11 @@ function TmdbFilters({
   filters,
   onChange,
   onClear,
-  adultAllowed = false,
 }: {
   kind: TmdbKind;
   filters: TmdbDiscoverFilters;
   onChange: (patch: Partial<TmdbDiscoverFilters>) => void;
   onClear: () => void;
-  adultAllowed?: boolean;
 }) {
   const [sheetOpen, setSheetOpen] = useState(false);
   const activeCount = countTmdbFilters(filters);
@@ -401,7 +359,6 @@ function TmdbFilters({
           kind={kind}
           filters={filters}
           onChange={onChange}
-          adultAllowed={adultAllowed}
           idPrefix={`${kind}-desktop-filters`}
         />
       </div>
@@ -430,7 +387,7 @@ function TmdbFilters({
         open={sheetOpen}
         onClose={() => setSheetOpen(false)}
         title={`Filter ${noun}`}
-        description="Refine by genre, release year, rating, 18+ content and sort order."
+        description="Refine by genre, release year, rating and sort order."
         mobileSheet
         footer={
           <>
@@ -453,7 +410,6 @@ function TmdbFilters({
           kind={kind}
           filters={filters}
           onChange={onChange}
-          adultAllowed={adultAllowed}
           idPrefix={`${kind}-sheet-filters`}
         />
       </Dialog>
@@ -468,7 +424,6 @@ export function TmdbDiscoverBrowser({
   initialQuery,
   initialFilters,
   initialError,
-  adultAllowed = false,
 }: {
   kind: TmdbKind;
   initialPage: TmdbSearchPage | null;
@@ -476,7 +431,6 @@ export function TmdbDiscoverBrowser({
   initialQuery: string;
   initialFilters: TmdbDiscoverFilters;
   initialError: string | null;
-  adultAllowed?: boolean;
 }) {
   const [queryInput, setQueryInput] = useState(initialQuery);
   const [query, setQuery] = useState(initialQuery.trim());
@@ -524,7 +478,6 @@ export function TmdbDiscoverBrowser({
     if (category !== "trending") params.set("category", category);
     if (query) params.set("q", query);
     if (filters.genres?.length) params.set("genre", filters.genres.join(","));
-    if (filters.adult) params.set("adult", filters.adult);
     if (filters.year) params.set("year", String(filters.year));
     if (filters.minRating !== undefined) {
       params.set("rating", String(filters.minRating));
@@ -637,7 +590,6 @@ export function TmdbDiscoverBrowser({
       year: undefined,
       minRating: undefined,
       sort: undefined,
-      adult: undefined,
     });
 
   const toggleGenre = (value: string) => {
@@ -678,14 +630,6 @@ export function TmdbDiscoverBrowser({
       clear: () => applyFilter({ sort: undefined }),
     });
   }
-  if (filters.adult) {
-    chips.push({
-      key: "adult",
-      label: filters.adult === "only" ? "18+: only" : "18+: included",
-      clear: () => applyFilter({ adult: undefined }),
-    });
-  }
-
   const topItem = items[0] ?? null;
   const pills = categoryOptions.map((option) => ({
     id: option,
@@ -705,7 +649,7 @@ export function TmdbDiscoverBrowser({
         title={`Discover ${kind === "movie" ? "Movies" : "TV Shows"}`}
         description={`Explore ${
           kind === "movie" ? "cinema releases" : "series"
-        } by category, refine with genres, release years, ratings and adult content, or search TMDB directly. Every title opens the same Kaze detail and tracking experience.`}
+        } by category, refine with genres, release years and ratings, or search TMDB directly. Every title opens the same Kaze detail and tracking experience.`}
         backdropUrl={topItem?.backdropUrl ?? topItem?.posterUrl ?? null}
         spotlight={
           topItem
@@ -762,7 +706,6 @@ export function TmdbDiscoverBrowser({
           filters={filters}
           onChange={applyFilter}
           onClear={clearFilters}
-          adultAllowed={adultAllowed}
         />
       </DiscoverDeck>
 
@@ -770,9 +713,7 @@ export function TmdbDiscoverBrowser({
         loading={isLoading}
         loadingLabel="Searching TMDB…"
         visibleCount={items.length}
-        totalCount={
-          filters.adult === "only" ? null : (pageInfo?.totalResults ?? null)
-        }
+        totalCount={pageInfo?.totalResults ?? null}
         emptyLabel={
           searchTooShort ? "Type at least two characters." : null
         }

@@ -8,7 +8,6 @@ import {
   mapSearchPage,
   mapSeason,
 } from "@/services/tmdb/mappers";
-import { applyAdultMode } from "@/lib/tmdb/adult";
 import {
   buildTmdbUniverse,
   isListableUniverseEntry,
@@ -20,7 +19,6 @@ import {
   type TmdbDetails,
   type TmdbDiscoverCategory,
   type TmdbDiscoverFilters,
-  type TmdbAdultFilter,
   type TmdbDiscoverSort,
   type TmdbKind,
   type TmdbSearchPage,
@@ -33,19 +31,19 @@ export async function searchTmdb(
   kind: TmdbKind,
   query: string,
   page = 1,
-  adult: TmdbAdultFilter = "filtered",
 ): Promise<TmdbSearchPage> {
   const path = kind === "movie" ? "/search/movie" : "/search/tv";
   const payload = await tmdbGet<unknown>(path, {
     query: {
       query,
       page,
-      include_adult: adult !== "filtered",
+      // TMDB's API carries no 18+ titles, so adult results never come back.
+      include_adult: false,
       language: "en-US",
     },
     revalidateSeconds: 600,
   });
-  return applyAdultMode(mapSearchPage(kind, payload), adult);
+  return mapSearchPage(kind, payload);
 }
 
 function defaultSortForCategory(
@@ -66,8 +64,7 @@ function hasDiscoverFilters(filters: TmdbDiscoverFilters): boolean {
     filters.genres?.length ||
       filters.year ||
       filters.minRating !== undefined ||
-      filters.sort ||
-      filters.adult,
+      filters.sort,
   );
 }
 
@@ -94,9 +91,6 @@ export async function discoverTmdb(
       // A pipe keeps the selection additive: any of the chosen genres matches.
       query.with_genres = filters.genres.join("|");
     }
-    if (filters.adult && filters.adult !== "filtered") {
-      query.include_adult = true;
-    }
     if (filters.year) {
       query[kind === "movie" ? "primary_release_year" : "first_air_date_year"] =
         filters.year;
@@ -113,7 +107,7 @@ export async function discoverTmdb(
       query,
       revalidateSeconds: 900,
     });
-    return applyAdultMode(mapSearchPage(kind, filtered), filters.adult);
+    return mapSearchPage(kind, filtered);
   }
 
   const path =
@@ -131,7 +125,7 @@ export async function discoverTmdb(
     query: { page, language: "en-US" },
     revalidateSeconds: 900,
   });
-  return applyAdultMode(mapSearchPage(kind, payload), filters.adult);
+  return mapSearchPage(kind, payload);
 }
 
 const UNIVERSE_PAGE_SIZE = 20;

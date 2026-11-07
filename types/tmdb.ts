@@ -152,24 +152,7 @@ export interface TmdbDiscoverFilters {
   year?: number;
   minRating?: number;
   sort?: TmdbDiscoverSort;
-  /**
-   * `filtered` hides 18+ titles, `include` mixes them into normal results, and
-   * `only` shows 18+ titles on their own instead of mixed in.
-   */
-  adult?: TmdbAdultFilter;
 }
-
-/** TMDB only takes a boolean adult flag, so "only" is applied after mapping. */
-export type TmdbAdultFilter = "filtered" | "include" | "only";
-
-export const TMDB_ADULT_FILTERS: Array<{
-  value: string;
-  label: string;
-}> = [
-  { value: "", label: "Hide 18+" },
-  { value: "include", label: "Include 18+" },
-  { value: "only", label: "Only 18+" },
-];
 
 export interface TmdbSearchResult {
   tmdbId: number;
@@ -183,8 +166,6 @@ export interface TmdbSearchResult {
   year: number | null;
   voteAverage: number | null;
   voteCount: number | null;
-  /** TMDB's 18+ flag, used to build the adult-only view. */
-  adult?: boolean;
 }
 
 export interface TmdbSearchPage {

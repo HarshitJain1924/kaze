@@ -112,11 +112,6 @@ function readTmdbFilters(
     filters.genres = genres;
   }
 
-  const adult = pick("adult");
-  if (adult === "include" || adult === "only") {
-    filters.adult = adult;
-  }
-
   const year = Number(pick("year"));
   if (Number.isInteger(year) && year >= 1900 && year <= 2100) {
     filters.year = year;
@@ -180,10 +175,6 @@ export default async function DiscoverPage({
     initialTmdbCategory = readCategory(kind, params);
     initialTmdbQuery = query?.trim().slice(0, 100) ?? "";
     initialTmdbFilters = readTmdbFilters(kind, params);
-    if (viewer?.showAdult !== true) {
-      // 18+ catalogues are only served to viewers who enabled adult titles.
-      initialTmdbFilters = { ...initialTmdbFilters, adult: undefined };
-    }
     try {
       initialTmdbPage =
         initialTmdbQuery.length >= 2
@@ -191,7 +182,6 @@ export default async function DiscoverPage({
               kind,
               initialTmdbQuery,
               1,
-              initialTmdbFilters.adult ?? "filtered",
             )
           : await discoverTmdb(
               kind,

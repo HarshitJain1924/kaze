@@ -25,13 +25,10 @@ export const tmdbSearchQuerySchema = z
   .min(1, "Enter a title to search for")
   .max(100, "Search terms must be 100 characters or fewer");
 
-export const tmdbAdultFilterSchema = z.enum(["filtered", "include", "only"]);
-
 export const tmdbSearchParamsSchema = z.object({
   kind: tmdbKindSchema.default("movie"),
   q: tmdbSearchQuerySchema,
   page: z.coerce.number().int().min(1).max(500).default(1),
-  adult: tmdbAdultFilterSchema.optional(),
 });
 
 export const tmdbDiscoverCategorySchema = z.enum([
@@ -83,7 +80,6 @@ export const tmdbDiscoverParamsSchema = z
     category: tmdbDiscoverCategorySchema.default("trending"),
     page: z.coerce.number().int().min(1).max(500).default(1),
     genres: tmdbGenreListSchema.optional(),
-    adult: tmdbAdultFilterSchema.optional(),
     year: z.coerce
       .number()
       .int()
