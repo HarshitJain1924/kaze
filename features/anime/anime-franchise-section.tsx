@@ -350,6 +350,7 @@ export function AnimeFranchiseSection({
                     src={cover}
                     alt=""
                     fill
+                    unoptimized
                     sizes="56px"
                     className="object-cover"
                   />

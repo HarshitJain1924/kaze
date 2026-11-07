@@ -50,12 +50,32 @@ const nextConfig: NextConfig = {
       },
       {
         protocol: "https",
+        hostname: "**.kitsu.app",
+        pathname: "/**",
+      },
+      {
+        protocol: "https",
+        hostname: "**.kitsu.io",
+        pathname: "/**",
+      },
+      {
+        protocol: "https",
         hostname: "media.kitsu.app",
         pathname: "/**",
       },
       {
         protocol: "https",
         hostname: "media.kitsu.io",
+        pathname: "/**",
+      },
+      {
+        protocol: "https",
+        hostname: "**.backblazeb2.com",
+        pathname: "/**",
+      },
+      {
+        protocol: "https",
+        hostname: "**.amazonaws.com",
         pathname: "/**",
       },
       {
