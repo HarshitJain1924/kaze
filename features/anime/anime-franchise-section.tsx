@@ -197,7 +197,7 @@ export function AnimeFranchiseSection({
             >
               Franchise & Chronology
             </h2>
-            <span className="rounded-full bg-surface-3 px-2 py-0.5 text-xs font-semibold text-muted">
+            <span className="border border-border-subtle px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-muted">
               {allItems.length}
             </span>
           </div>
@@ -207,15 +207,15 @@ export function AnimeFranchiseSection({
         </div>
 
         {/* Filter Pills */}
-        <div className="flex items-center gap-1 self-start sm:self-auto rounded-lg border border-border-subtle bg-surface-2/80 p-0.5 text-xs">
+        <div className="optical-glass flex items-center gap-1 self-start p-1 text-xs sm:self-auto">
           <button
             type="button"
             onClick={() => setActiveFilter("all")}
             className={cn(
               "rounded-md px-2.5 py-1 text-xs font-medium transition-colors",
               activeFilter === "all"
-                ? "bg-accent text-accent-contrast shadow-xs font-semibold"
-                : "text-muted hover:text-fg",
+                ? "bg-white font-semibold text-slate-900"
+                : "text-white/60 hover:text-white",
             )}
           >
             All ({allItems.length})
@@ -226,8 +226,8 @@ export function AnimeFranchiseSection({
             className={cn(
               "rounded-md px-2.5 py-1 text-xs font-medium transition-colors",
               activeFilter === "main"
-                ? "bg-accent text-accent-contrast shadow-xs font-semibold"
-                : "text-muted hover:text-fg",
+                ? "bg-white font-semibold text-slate-900"
+                : "text-white/60 hover:text-white",
             )}
           >
             Storyline ({mainStoryline.length})
@@ -239,8 +239,8 @@ export function AnimeFranchiseSection({
               className={cn(
                 "rounded-md px-2.5 py-1 text-xs font-medium transition-colors",
                 activeFilter === "side"
-                  ? "bg-accent text-accent-contrast shadow-xs font-semibold"
-                  : "text-muted hover:text-fg",
+                  ? "bg-white font-semibold text-slate-900"
+                  : "text-white/60 hover:text-white",
               )}
             >
               Side & Movies ({sideStories.length})
@@ -250,17 +250,17 @@ export function AnimeFranchiseSection({
       </div>
 
       {/* Franchise Progress Overview Bar */}
-      <div className="flex flex-col gap-2.5 rounded-xl border border-border-subtle bg-surface/90 p-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4 shadow-xs">
+      <div className="optical-glass flex flex-col gap-2.5 p-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
         <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs">
-          <span className="font-medium text-fg">
+          <span className="font-medium text-white">
             Series Completion:{" "}
-            <strong className="text-accent-strong font-semibold">
+            <strong className="font-semibold text-white">
               {stats.completedCount} of {stats.totalEntries} entries
             </strong>{" "}
             completed
           </span>
-          <span className="text-faint hidden sm:inline">·</span>
-          <span className="text-muted tabular-nums">
+          <span className="hidden text-white/30 sm:inline">·</span>
+          <span className="tabular-nums text-white/55">
             {stats.episodesWatched}{" "}
             {stats.totalEpisodesKnown > 0
               ? `/ ${stats.totalEpisodesKnown}`
@@ -269,9 +269,9 @@ export function AnimeFranchiseSection({
           </span>
         </div>
 
-        <div className="h-1.5 w-full sm:w-48 overflow-hidden rounded-full bg-surface-3 shrink-0">
+        <div className="h-1.5 w-full shrink-0 overflow-hidden bg-white/15 sm:w-48">
           <div
-            className="h-full rounded-full bg-accent transition-all duration-300"
+            className="h-full bg-white transition-all duration-300"
             style={{ width: `${stats.percent}%` }}
           />
         </div>
@@ -283,9 +283,9 @@ export function AnimeFranchiseSection({
           {prequel ? (
             <Link
               href={`/media/${prequel.id}`}
-              className="inline-flex min-w-0 items-center gap-2 rounded-lg border border-border-subtle bg-surface/90 px-3 py-1.5 text-xs transition-colors hover:border-border hover:bg-surface text-fg"
+              className="optical-glass-pill inline-flex min-w-0 items-center gap-2 px-3 py-1.5 text-xs text-white/85 transition-colors hover:text-white"
             >
-              <span className="text-[10px] font-semibold text-muted uppercase tracking-wider">
+              <span className="text-[10px] font-semibold uppercase tracking-[0.14em] text-white/45">
                 &larr; Prequel
               </span>
               <span className="truncate max-w-[160px] sm:max-w-[220px] font-medium">
@@ -297,9 +297,9 @@ export function AnimeFranchiseSection({
           {sequel ? (
             <Link
               href={`/media/${sequel.id}`}
-              className="inline-flex min-w-0 items-center gap-2 rounded-lg border border-accent/40 bg-accent-soft/30 px-3 py-1.5 text-xs transition-colors hover:border-accent hover:bg-accent-soft/50 text-fg"
+              className="optical-glass-pill inline-flex min-w-0 items-center gap-2 px-3 py-1.5 text-xs text-white transition-colors hover:text-white"
             >
-              <span className="text-[10px] font-semibold text-accent-strong uppercase tracking-wider">
+              <span className="text-[10px] font-semibold uppercase tracking-[0.14em] text-white">
                 Sequel &rarr;
               </span>
               <span className="truncate max-w-[160px] sm:max-w-[220px] font-medium">
@@ -334,16 +334,16 @@ export function AnimeFranchiseSection({
             <div
               key={item.id}
               className={cn(
-                "group relative flex items-center gap-3.5 rounded-xl border p-3 transition-all duration-200 shadow-xs",
+                "group relative flex items-center gap-3.5 border p-3 transition-colors duration-200",
                 isCurrent
-                  ? "border-accent/60 bg-accent-soft/30 ring-1 ring-accent/25 shadow-sm"
-                  : "border-border-subtle bg-surface/90 hover:border-border hover:bg-surface",
+                  ? "border-white/30 bg-[rgba(14,17,24,0.55)]"
+                  : "border-white/10 bg-[rgba(14,17,24,0.35)] hover:border-white/20 hover:bg-[rgba(14,17,24,0.5)]",
               )}
             >
               {/* Cover Poster */}
               <Link
                 href={`/media/${item.id}`}
-                className="relative aspect-[2/3] w-14 shrink-0 overflow-hidden rounded-lg border border-border-subtle bg-surface-3 transition-transform duration-200 group-hover:scale-102"
+                className="relative aspect-[2/3] w-14 shrink-0 overflow-hidden border border-white/15 bg-white/5 transition-transform duration-200 group-hover:scale-102"
               >
                 {cover && isHttpUrl(cover) ? (
                   <Image
@@ -355,11 +355,11 @@ export function AnimeFranchiseSection({
                     className="object-cover"
                   />
                 ) : (
-                  <div className="absolute inset-0 bg-surface-3" />
+                  <div className="absolute inset-0 bg-white/5" />
                 )}
 
                 {isCurrent ? (
-                  <div className="absolute inset-x-0 bottom-0 bg-accent py-0.5 text-center text-[8px] font-bold text-accent-contrast uppercase tracking-wider">
+                  <div className="absolute inset-x-0 bottom-0 bg-white py-0.5 text-center text-[8px] font-bold uppercase tracking-[0.16em] text-slate-900">
                     Viewing
                   </div>
                 ) : null}
@@ -370,16 +370,16 @@ export function AnimeFranchiseSection({
                 <div className="flex items-center gap-1.5">
                   <span
                     className={cn(
-                      "rounded px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wider",
+                      "px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-[0.14em]",
                       isCurrent
-                        ? "bg-accent text-accent-contrast"
-                        : "bg-surface-2 text-muted border border-border-subtle",
+                        ? "bg-white text-slate-900"
+                        : "border border-white/15 bg-white/10 text-white/60",
                     )}
                   >
                     {relationLabel}
                   </span>
                   {item.seasonYear ? (
-                    <span className="text-[11px] text-faint">
+                    <span className="text-[11px] text-white/45">
                       {item.seasonYear}
                     </span>
                   ) : null}
@@ -387,16 +387,16 @@ export function AnimeFranchiseSection({
 
                 <Link
                   href={`/media/${item.id}`}
-                  className="mt-1 block line-clamp-1 text-xs sm:text-[13px] font-semibold text-fg transition-colors hover:text-accent-strong"
+                  className="mt-1 block line-clamp-1 text-xs font-semibold text-white transition-colors hover:text-white/80 sm:text-[13px]"
                   title={title}
                 >
                   {title}
                 </Link>
 
-                <div className="mt-0.5 flex items-center gap-2 text-[11px] text-muted">
+                <div className="mt-0.5 flex items-center gap-2 text-[11px] text-white/55">
                   {score ? (
-                    <span className="flex items-center gap-0.5 font-medium text-warning">
-                      <StarIcon className="h-3 w-3 fill-warning text-warning" />
+                    <span className="flex items-center gap-0.5 font-medium text-amber-300">
+                      <StarIcon className="h-3 w-3 fill-amber-300 text-amber-300" />
                       {score}
                     </span>
                   ) : null}
@@ -417,14 +417,14 @@ export function AnimeFranchiseSection({
                     <div className="flex items-center gap-1.5">
                       <StatusBadge status={entry.status} />
                       {entry.progress > 0 ? (
-                        <span className="text-[11px] text-faint tabular-nums">
+                        <span className="text-[11px] tabular-nums text-white/45">
                           {entry.progress}
                           {item.episodes ? `/${item.episodes}` : ""} eps
                         </span>
                       ) : null}
                     </div>
                   ) : isCurrent ? (
-                    <span className="text-[11px] font-medium text-accent-strong">
+                    <span className="text-[11px] font-medium text-white">
                       Viewing details &rarr;
                     </span>
                   ) : (
@@ -432,7 +432,7 @@ export function AnimeFranchiseSection({
                       type="button"
                       disabled={isAdding}
                       onClick={() => void handleAdd(item)}
-                      className="inline-flex items-center gap-1 rounded-md border border-border-subtle bg-surface-2 px-2.5 py-1 text-[11px] font-semibold text-fg transition-all hover:border-accent hover:bg-accent hover:text-accent-contrast disabled:opacity-60 active:scale-95 shadow-xs"
+                      className="inline-flex items-center gap-1 border border-white/15 bg-white/5 px-2.5 py-1 text-[11px] font-semibold text-white/80 transition-colors hover:border-white/40 hover:bg-white hover:text-slate-900 disabled:opacity-60"
                     >
                       {isAdding ? (
                         <LoaderIcon className="h-3 w-3 animate-spin" />

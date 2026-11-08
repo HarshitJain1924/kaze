@@ -1,4 +1,5 @@
 import Image from "next/image";
+
 import { ExternalIcon, FilmIcon } from "@/components/icons";
 import { isHttpUrl } from "@/lib/utils";
 import type { AnimeExternalLink } from "@/types/anime";
@@ -21,11 +22,16 @@ const STREAMING_SITES = new Set([
   "YouTube",
 ]);
 
+/**
+ * Sits inside the synopsis on the left of the detail page, so it takes the
+ * same liquid-glass treatment as the tracking workspace opposite it: dark
+ * tinted panel, hairline edge, light text that stays readable in both themes.
+ */
 export function AnimeStreamingLinks({ links = [] }: AnimeStreamingLinksProps) {
   const streamingLinks = links.filter(
-    (l) =>
-      (l.type === "STREAMING" || STREAMING_SITES.has(l.site)) &&
-      isHttpUrl(l.url),
+    (link) =>
+      (link.type === "STREAMING" || STREAMING_SITES.has(link.site)) &&
+      isHttpUrl(link.url),
   );
 
   if (streamingLinks.length === 0) {
@@ -33,55 +39,45 @@ export function AnimeStreamingLinks({ links = [] }: AnimeStreamingLinksProps) {
   }
 
   return (
-    <div className="space-y-2">
-      <div className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-faint">
-        <FilmIcon className="h-3.5 w-3.5 text-accent" />
+    <div className="optical-glass space-y-2.5 p-3.5">
+      <div className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-white/50">
+        <FilmIcon className="h-3.5 w-3.5 text-white/70" />
         <span>Where to Stream</span>
       </div>
 
-      <div className="flex flex-wrap items-center gap-2">
-        {streamingLinks.map((link) => {
-          const hasColor = Boolean(link.color);
-          return (
-            <a
-              key={link.id}
-              href={link.url}
-              target="_blank"
-              rel="noreferrer noopener"
-              className="group inline-flex items-center gap-2 rounded-xl border border-white/10 bg-surface-2/80 px-3 py-1.5 text-xs font-semibold text-fg transition-all hover:border-accent/40 hover:bg-surface-3 hover:scale-[1.02] active:scale-[0.98] shadow-xs backdrop-blur-md"
-              style={
-                hasColor
-                  ? ({
-                      "--stream-color": link.color,
-                    } as React.CSSProperties)
-                  : undefined
-              }
-            >
-              {link.icon && isHttpUrl(link.icon) ? (
-                <div className="relative h-4 w-4 shrink-0 overflow-hidden rounded">
-                  <Image
-                    src={link.icon}
-                    alt={link.site}
-                    fill
-                    unoptimized
-                    sizes="16px"
-                    className="object-contain"
-                  />
-                </div>
-              ) : (
-                <span
-                  className="h-2 w-2 rounded-full"
-                  style={{ backgroundColor: link.color ?? "var(--accent)" }}
+      <div className="flex flex-wrap items-center gap-1.5">
+        {streamingLinks.map((link) => (
+          <a
+            key={link.id}
+            href={link.url}
+            target="_blank"
+            rel="noreferrer noopener"
+            className="group inline-flex items-center gap-2 border border-white/15 px-2.5 py-1.5 text-xs font-medium text-white/90 transition-colors hover:border-white/40 hover:text-white active:translate-y-px"
+          >
+            {link.icon && isHttpUrl(link.icon) ? (
+              <span className="relative h-4 w-4 shrink-0 overflow-hidden">
+                <Image
+                  src={link.icon}
+                  alt=""
+                  fill
+                  unoptimized
+                  sizes="16px"
+                  className="object-contain"
                 />
-              )}
+              </span>
+            ) : (
+              <span
+                aria-hidden="true"
+                className="h-1.5 w-1.5 shrink-0"
+                style={{ backgroundColor: link.color ?? "currentColor" }}
+              />
+            )}
 
-              <span>{link.site}</span>
-              <ExternalIcon className="h-3 w-3 text-faint group-hover:text-fg transition-colors" />
-            </a>
-          );
-        })}
+            <span>{link.site}</span>
+            <ExternalIcon className="h-3 w-3 text-white/40 transition-colors group-hover:text-white/80" />
+          </a>
+        ))}
       </div>
     </div>
   );
 }
-

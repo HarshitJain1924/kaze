@@ -5,6 +5,7 @@ import {
   ChevronRightIcon,
   StarIcon,
 } from "@/components/icons";
+import { OpticalGlass } from "@/components/ui/optical-glass";
 import { AnimeTrailerModal } from "@/features/anime/anime-trailer-modal";
 import { cn } from "@/lib/utils";
 import type {
@@ -60,20 +61,23 @@ export function MediaDetailHero({ view }: { view: MediaDetailView }) {
         <p className="mt-2 text-sm italic text-muted">“{view.tagline}”</p>
       ) : null}
 
-      <div className="mt-5 flex flex-wrap items-center justify-between gap-4 border-t border-border-subtle pt-4">
+      <OpticalGlass
+        variant="card"
+        className="mt-5 flex flex-wrap items-center justify-between gap-4 px-3.5 py-3"
+      >
         <div className="flex flex-wrap items-center gap-x-6 gap-y-3">
           {view.metrics.map((metric) => (
             <div key={metric.label}>
-              <p className="text-[11px] font-medium uppercase tracking-wider text-faint">
+              <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-white/55">
                 {metric.label}
               </p>
-              <p className="mt-0.5 flex items-center gap-1.5 text-sm font-bold text-fg">
+              <p className="mt-0.5 flex items-center gap-1.5 text-sm font-semibold text-white">
                 {metric.star ? (
-                  <StarIcon className="h-4 w-4 fill-warning text-warning" />
+                  <StarIcon className="h-4 w-4 fill-amber-300 text-amber-300" />
                 ) : null}
                 <span>{metric.value}</span>
                 {metric.subvalue ? (
-                  <span className="text-xs font-normal text-faint">
+                  <span className="text-xs font-normal text-white/50">
                     {metric.subvalue}
                   </span>
                 ) : null}
@@ -94,37 +98,37 @@ export function MediaDetailHero({ view }: { view: MediaDetailView }) {
             />
           </div>
         ) : null}
-      </div>
+      </OpticalGlass>
 
       {links ? (
         <div className="mt-4 flex flex-wrap items-center gap-2 border-t border-border-subtle pt-3">
-          <span className="mr-1 text-[11px] font-semibold uppercase tracking-wider text-faint">
+          <span className="mr-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-white/45">
             {links.label}:
           </span>
           {links.previous ? (
             <Link
               href={links.previous.href}
-              className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-surface-2/60 px-2.5 py-1 text-xs font-medium text-fg transition-colors hover:border-accent hover:text-accent-strong"
+              className="optical-glass-pill inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium text-white/85 transition-colors hover:text-white"
             >
               <ChevronLeftIcon className="h-3.5 w-3.5 text-muted" />
-              <span className="text-muted">Prev:</span>
-              <span className="max-w-[140px] truncate font-semibold text-fg sm:max-w-[200px]">
+              <span className="text-white/50">Prev:</span>
+              <span className="max-w-[140px] truncate font-semibold text-white sm:max-w-[200px]">
                 {links.previous.title}
               </span>
             </Link>
           ) : null}
 
-          <span className="rounded-lg border border-accent/40 bg-accent-soft px-2.5 py-1 text-xs font-semibold text-accent-strong">
+          <span className="border border-white/25 px-2.5 py-1 text-xs font-semibold text-white">
             Current
           </span>
 
           {links.next ? (
             <Link
               href={links.next.href}
-              className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-surface-2/60 px-2.5 py-1 text-xs font-medium text-fg transition-colors hover:border-accent hover:text-accent-strong"
+              className="optical-glass-pill inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium text-white/85 transition-colors hover:text-white"
             >
-              <span className="text-muted">Next:</span>
-              <span className="max-w-[140px] truncate font-semibold text-fg sm:max-w-[200px]">
+              <span className="text-white/50">Next:</span>
+              <span className="max-w-[140px] truncate font-semibold text-white sm:max-w-[200px]">
                 {links.next.title}
               </span>
               <ChevronRightIcon className="h-3.5 w-3.5 text-muted" />

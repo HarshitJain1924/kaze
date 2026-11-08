@@ -62,7 +62,7 @@ export function MediaDetailTabs({
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between gap-4 border-b border-border">
+      <div className="optical-glass flex items-center justify-between gap-4 px-3 pt-1.5">
         <nav
           role="tablist"
           aria-label="Media detail sections"
@@ -93,8 +93,8 @@ export function MediaDetailTabs({
                 className={cn(
                   "relative inline-flex items-center gap-1.5 whitespace-nowrap pb-3 pt-1 text-sm transition-colors",
                   selected
-                    ? "font-semibold text-fg"
-                    : "font-medium text-muted hover:text-fg",
+                    ? "font-semibold text-white"
+                    : "font-medium text-white/55 hover:text-white/85",
                 )}
               >
                 <span>{tab.label}</span>
@@ -103,8 +103,8 @@ export function MediaDetailTabs({
                     className={cn(
                       "rounded px-1.5 py-0.2 text-[10px] font-semibold tabular-nums",
                       selected
-                        ? "bg-accent-soft text-accent-strong"
-                        : "bg-surface-2 text-faint",
+                        ? "bg-white/20 text-white"
+                        : "bg-white/10 text-white/60",
                     )}
                   >
                     {tab.count}
@@ -113,7 +113,7 @@ export function MediaDetailTabs({
                 {selected ? (
                   <span
                     aria-hidden="true"
-                    className="absolute inset-x-0 bottom-0 h-0.5 bg-accent"
+                    className="absolute inset-x-0 bottom-0 h-0.5 bg-white"
                   />
                 ) : null}
               </button>

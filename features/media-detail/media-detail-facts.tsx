@@ -14,11 +14,13 @@ export function MediaDetailFacts({
       <h2 id="details-heading" className="font-display text-lg font-semibold text-fg">
         {title}
       </h2>
-      <dl className="mt-3 grid grid-cols-2 gap-x-6 gap-y-4 rounded-xl border border-border-subtle bg-surface/90 p-5 shadow-xs sm:grid-cols-3">
+      <dl className="optical-glass mt-3 grid grid-cols-2 gap-x-6 gap-y-4 p-5 sm:grid-cols-3">
         {facts.map((fact) => (
           <div key={`${fact.label}:${fact.value}`}>
-            <dt className="text-xs text-faint">{fact.label}</dt>
-            <dd className="mt-1 text-sm text-fg">{fact.value}</dd>
+            <dt className="text-[10px] font-semibold uppercase tracking-[0.14em] text-white/50">
+              {fact.label}
+            </dt>
+            <dd className="mt-1 text-sm text-white/90">{fact.value}</dd>
           </div>
         ))}
       </dl>

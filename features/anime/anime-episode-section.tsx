@@ -26,8 +26,8 @@ export function AnimeEpisodeSection({ anime }: { anime: Anime }) {
       </div>
 
       {!canWrite ? (
-        <div className="rounded-2xl border border-border-subtle bg-surface p-5 text-center">
-          <p className="text-sm text-muted">
+        <div className="optical-glass p-5 text-center">
+          <p className="text-sm text-white/70">
             Sign in to track individual episodes and save your progress.
           </p>
           <LinkButton

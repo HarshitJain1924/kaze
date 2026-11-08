@@ -25,7 +25,7 @@ export function AnimeRecommendations({
         >
           {title}
         </h2>
-        <span className="rounded-full bg-surface-3 px-2 py-0.5 text-[11px] font-medium text-muted">
+        <span className="border border-border-subtle px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-muted">
           {recommendations.length}
         </span>
       </div>

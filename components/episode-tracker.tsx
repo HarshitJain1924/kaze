@@ -122,22 +122,22 @@ export function EpisodeTracker({
   return (
     <div
       className={cn(
-        "rounded-2xl border border-border-subtle bg-surface p-4 sm:p-5",
+        "optical-glass p-4 sm:p-5",
         className,
       )}
     >
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <div className="flex items-center gap-2.5">
-            <h3 className="font-display text-sm font-semibold text-fg">
+            <h3 className="font-display text-sm font-semibold text-white">
               Episode tracking
             </h3>
-            <span className="rounded-md bg-accent-soft px-2 py-0.5 text-xs font-semibold tabular-nums text-accent-strong">
+            <span className="bg-white/15 px-2 py-0.5 text-xs font-semibold tabular-nums text-white">
               {watchedCount}
               {total ? ` / ${total}` : ""} watched
             </span>
           </div>
-          <p className="mt-1 text-xs text-muted">
+          <p className="mt-1 text-xs text-white/55">
             {total && total > 0
               ? `${percent}% complete · Tap any episode to log or unmark`
               : "Tap an episode number to mark as watched"}
@@ -160,9 +160,9 @@ export function EpisodeTracker({
 
       {/* Progress Bar */}
       {total && total > 0 ? (
-        <div className="mt-3.5 h-2 overflow-hidden rounded-full bg-surface-3">
+        <div className="mt-3.5 h-1 overflow-hidden bg-white/15">
           <div
-            className="h-full rounded-full bg-accent transition-[width] duration-300"
+            className="h-full bg-white transition-[width] duration-300"
             style={{ width: `${percent}%` }}
           />
         </div>
@@ -202,11 +202,11 @@ export function EpisodeTracker({
                 aria-pressed={isWatched}
                 aria-label={`Episode ${epNum}: ${isWatched ? "Watched" : "Unwatched"}`}
                 className={cn(
-                  "relative flex min-h-[44px] min-w-[44px] flex-col items-center justify-center rounded-xl border text-xs font-semibold transition-colors active:scale-95 disabled:pointer-events-none disabled:opacity-60",
+                  "relative flex min-h-[44px] min-w-[44px] flex-col items-center justify-center border text-xs font-semibold transition-colors disabled:pointer-events-none disabled:opacity-60",
                   isWatched
-                    ? "border-accent bg-accent text-accent-contrast"
-                    : "border-border-subtle bg-surface-2 text-muted hover:border-border hover:bg-surface-3 hover:text-fg",
-                  isNext && !isWatched && "border-accent/60 bg-accent-soft text-fg ring-1 ring-accent",
+                    ? "border-white bg-white text-slate-900"
+                    : "border-white/15 bg-white/5 text-white/70 hover:border-white/35 hover:bg-white/10 hover:text-white",
+                  isNext && !isWatched && "border-white/60 bg-white/10 text-white ring-1 ring-white/40",
                 )}
               >
                 {isBusy ? (
@@ -241,7 +241,7 @@ export function EpisodeTracker({
 
       {/* Bulk actions */}
       {canWrite && entry ? (
-        <div className="mt-4 flex flex-wrap items-center justify-between gap-2 border-t border-border-subtle/80 pt-3">
+        <div className="mt-4 flex flex-wrap items-center justify-between gap-2 border-t border-white/10 pt-3">
           <div className="flex items-center gap-2">
             {total && total > 0 && watchedCount < total ? (
               <Button
@@ -249,7 +249,7 @@ export function EpisodeTracker({
                 size="sm"
                 onClick={() => void handleMarkAll()}
                 disabled={isPending}
-                className="text-xs text-muted hover:text-fg"
+                className="text-xs text-white/55 hover:text-white"
               >
                 Mark all {total} watched
               </Button>
@@ -260,14 +260,14 @@ export function EpisodeTracker({
                 size="sm"
                 onClick={() => void handleClearAll()}
                 disabled={isPending}
-                className="text-xs text-muted hover:text-danger"
+                className="text-xs text-white/55 hover:text-rose-300"
               >
                 Reset episodes
               </Button>
             ) : null}
           </div>
 
-          <span className="text-[11px] text-faint">
+          <span className="text-[11px] text-white/40">
             {hasRecorded
               ? "Saved episode by episode"
               : "Legacy progress (tap any episode to convert)"}
