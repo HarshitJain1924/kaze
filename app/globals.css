@@ -520,6 +520,82 @@
     animation: fade 0.2s ease both;
   }
 
+  /* Kaze Wrapped story transitions. Kept short enough to read as feedback and
+     removed entirely for readers who ask for reduced motion. */
+  .wrapped-slide {
+    animation: wrapped-slide-in 320ms var(--ease-out) both;
+  }
+
+  .wrapped-shift-left {
+    --wrapped-shift: -18px;
+  }
+
+  .wrapped-rise {
+    animation: wrapped-rise 420ms var(--ease-out) both;
+    animation-delay: var(--wrapped-delay, 0ms);
+  }
+
+  .wrapped-bar {
+    transform-origin: left center;
+    animation: wrapped-bar-grow 620ms var(--ease-out) both;
+    animation-delay: var(--wrapped-delay, 0ms);
+  }
+
+  .wrapped-panel {
+    animation: wrapped-panel-in 260ms var(--ease-out) both;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .wrapped-slide,
+    .wrapped-rise,
+    .wrapped-bar,
+    .wrapped-panel {
+      animation: none !important;
+    }
+  }
+
+  @keyframes wrapped-slide-in {
+    from {
+      opacity: 0;
+      transform: translate3d(var(--wrapped-shift, 18px), 0, 0);
+    }
+    to {
+      opacity: 1;
+      transform: translate3d(0, 0, 0);
+    }
+  }
+
+  @keyframes wrapped-rise {
+    from {
+      opacity: 0;
+      transform: translate3d(0, 10px, 0);
+    }
+    to {
+      opacity: 1;
+      transform: translate3d(0, 0, 0);
+    }
+  }
+
+  @keyframes wrapped-bar-grow {
+    from {
+      transform: scaleX(0);
+    }
+    to {
+      transform: scaleX(1);
+    }
+  }
+
+  @keyframes wrapped-panel-in {
+    from {
+      opacity: 0;
+      transform: translate3d(0, 12px, 0) scale(0.985);
+    }
+    to {
+      opacity: 1;
+      transform: translate3d(0, 0, 0) scale(1);
+    }
+  }
+
   /* -------------------------------------------------------------------------
      Kaze Optical Glass Material System
      Inspired by physical fluid glass optics, simplified and adapted to Kaze:

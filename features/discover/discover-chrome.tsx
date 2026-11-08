@@ -2,7 +2,13 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useEffect, useRef, type ComponentType, type ReactNode } from "react";
+import {
+  useEffect,
+  useRef,
+  useSyncExternalStore,
+  type ComponentType,
+  type ReactNode,
+} from "react";
 
 import {
   ChevronRightIcon,
@@ -16,6 +22,10 @@ import {
 } from "@/components/icons";
 import { OpticalGlass } from "@/components/ui/optical-glass";
 import { cn, isHttpUrl } from "@/lib/utils";
+
+const subscribeToPlatform = () => () => {};
+const readIsMac = () =>
+  /Mac|iPhone|iPad|iPod/i.test(navigator.platform || navigator.userAgent || "");
 
 export interface DiscoverSpotlight {
   href: string;
@@ -294,9 +304,13 @@ export function DiscoverDeck({
   children?: ReactNode;
 }) {
   const inputRef = useRef<HTMLInputElement>(null);
-  const isMac =
-    typeof navigator !== "undefined" &&
-    /Mac|iPhone|iPad|iPod/i.test(navigator.platform || navigator.userAgent);
+  // Platform-dependent text is read through useSyncExternalStore so the server
+  // render and the hydrated client agree instead of mismatching.
+  const isMac = useSyncExternalStore(
+    subscribeToPlatform,
+    readIsMac,
+    () => false,
+  );
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {

@@ -2,7 +2,6 @@
 
 import type { ScreenLibraryStats } from "@/features/stats/calculate-screen-stats";
 
-import Image from "next/image";
 import Link from "next/link";
 import { useMemo, useState } from "react";
 
@@ -25,13 +24,12 @@ import {
 } from "@/components/icons";
 import { RetryButton } from "@/components/retry-button";
 import { LinkButton } from "@/components/ui/link-button";
-import { OpticalGlass } from "@/components/ui/optical-glass";
 import { useLibrary } from "@/features/library/library-provider";
 import { calculateStats } from "@/features/stats/calculate-stats";
 import type { LibraryStats } from "@/features/stats/calculate-stats";
 import { KazeWrappedModal } from "@/features/stats/kaze-wrapped-modal";
 import { WATCH_STATUS_META, WATCH_STATUS_ORDER } from "@/lib/library-meta";
-import { cn, formatFormat, isHttpUrl } from "@/lib/utils";
+import { cn, formatFormat } from "@/lib/utils";
 import type { AnimeFormat } from "@/types/anime";
 import type { WatchStatus } from "@/types/library";
 
@@ -513,17 +511,6 @@ export function StatsView({
   const [hoveredGenre, setHoveredGenre] = useState<string | null>(null);
   const [isWrappedOpen, setIsWrappedOpen] = useState(false);
 
-  // Ambient backdrop from top rated series
-  const ambientBanner = useMemo(() => {
-    const withBanner = visibleItems
-      .filter((it) => it.anime?.bannerImage)
-      .sort(
-        (a, b) =>
-          (b.anime?.averageScore ?? 0) - (a.anime?.averageScore ?? 0),
-      );
-    return withBanner[0]?.anime?.bannerImage ?? null;
-  }, [visibleItems]);
-
   // Derived watch time
   const watchTime = useMemo(
     () => calculateWatchTime(stats.episodesWatched),
@@ -591,17 +578,17 @@ export function StatsView({
       {
         label: "2010s (Golden Era)",
         count: golden2010s,
-        color: "bg-cyan-500",
+        color: "bg-accent/70",
       },
       {
         label: "2000s (Digital Age)",
         count: digital2000s,
-        color: "bg-emerald-500",
+        color: "bg-accent/45",
       },
       {
         label: "Classic (Pre-2000)",
         count: classicPre2000,
-        color: "bg-amber-500",
+        color: "bg-accent/25",
       },
     ]
       .filter((e) => e.count > 0)
@@ -687,29 +674,8 @@ export function StatsView({
   return (
     <div className="space-y-6">
       {/* 1. Masthead: Editorial Header & Collector Rank Deck */}
-      <header className="relative border border-border bg-surface/40 p-5 sm:p-7">
-        {/* Ambient subtle backdrop banner */}
-        {ambientBanner && isHttpUrl(ambientBanner) ? (
-          <div
-            aria-hidden="true"
-            className="pointer-events-none absolute inset-0 z-0 select-none overflow-hidden"
-          >
-            <div className="absolute inset-0 scale-110 opacity-15 blur-2xl">
-              <Image
-                src={ambientBanner}
-                alt=""
-                fill
-                unoptimized
-                sizes="100vw"
-                className="object-cover"
-              />
-            </div>
-            <div className="absolute inset-0 bg-gradient-to-r from-surface via-surface/90 to-surface/60" />
-            <div className="absolute inset-0 bg-gradient-to-t from-surface via-transparent to-transparent" />
-          </div>
-        ) : null}
-
-        <div className="relative z-10">
+      <header className="border border-border bg-surface/40 p-5 sm:p-7">
+        <div>
           {/* Eyebrow Navigation Strip */}
           <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border pb-3">
             <div className="flex items-center gap-2">
@@ -723,7 +689,7 @@ export function StatsView({
               <button
                 type="button"
                 onClick={() => setIsWrappedOpen(true)}
-                className="inline-flex h-7 items-center gap-1.5 border border-accent/60 bg-accent/10 px-2.5 text-[10px] font-semibold uppercase tracking-[0.12em] text-accent-strong transition-colors hover:bg-accent hover:text-accent-contrast"
+                className="inline-flex h-7 items-center gap-1.5 border border-accent/60 bg-accent/10 px-2.5 text-[10px] font-semibold uppercase tracking-[0.12em] text-accent-strong transition-colors hover:bg-accent hover:text-accent-contrast active:translate-y-px"
               >
                 <SparklesIcon className="h-3 w-3" />
                 <span>Kaze Wrapped</span>
@@ -762,10 +728,7 @@ export function StatsView({
             </div>
 
             {/* Collector Tier Spotlight Card */}
-            <OpticalGlass
-              variant="card"
-              className="relative overflow-hidden border border-border bg-surface-2/60 p-4 sm:p-5"
-            >
+            <div className="border border-border bg-surface-2/60 p-4 sm:p-5">
               <div className="flex items-center justify-between border-b border-border/80 pb-2.5">
                 <div className="flex items-center gap-1.5">
                   <CrownIcon className="h-3.5 w-3.5 text-accent-strong" />
@@ -806,12 +769,99 @@ export function StatsView({
                   {tierProgress}%
                 </span>
               </div>
-            </OpticalGlass>
+            </div>
           </div>
         </div>
       </header>
 
-      {/* 2. Media Filter Segmented Control */}
+      {/* 2. Films & TV: a separate archive, given its own band above the filters */}
+      {screenStats && screenStats.total > 0 ? (
+        <section
+          aria-labelledby="screen-archive-heading"
+          className="border-y border-border"
+        >
+          <div className="flex flex-wrap items-end justify-between gap-4 py-3.5">
+            <div>
+              <p className="text-[9px] font-semibold uppercase tracking-[0.2em] text-accent-strong">
+                Screen archive
+              </p>
+              <h2
+                id="screen-archive-heading"
+                className="mt-1 font-display text-xl font-semibold tracking-[-0.03em] text-fg"
+              >
+                Films &amp; TV
+              </h2>
+              <p className="mt-0.5 text-[11px] text-muted">
+                Cinema and television sit outside the anime index and are
+                counted separately.
+              </p>
+            </div>
+
+            <div className="flex flex-wrap items-center gap-4">
+              <Link
+                href="/library?media=movie"
+                className="group inline-flex items-center gap-1 text-[9px] font-semibold uppercase tracking-[0.1em] text-muted transition-colors hover:text-accent-strong"
+              >
+                Film library
+                <ChevronRightIcon className="h-3 w-3 transition-transform group-hover:translate-x-0.5" />
+              </Link>
+              <Link
+                href="/library?media=tv"
+                className="group inline-flex items-center gap-1 text-[9px] font-semibold uppercase tracking-[0.1em] text-muted transition-colors hover:text-accent-strong"
+              >
+                Series library
+                <ChevronRightIcon className="h-3 w-3 transition-transform group-hover:translate-x-0.5" />
+              </Link>
+              <Link
+                href="/discover?type=movie"
+                className="group inline-flex items-center gap-1 text-[9px] font-semibold uppercase tracking-[0.1em] text-muted transition-colors hover:text-accent-strong"
+              >
+                Discover
+                <ChevronRightIcon className="h-3 w-3 transition-transform group-hover:translate-x-0.5" />
+              </Link>
+            </div>
+          </div>
+
+          <dl className="grid grid-cols-2 divide-x divide-border border-t border-border sm:grid-cols-5">
+            {[
+              {
+                label: "Films tracked",
+                value: screenStats.movieCount.toLocaleString("en-US"),
+              },
+              {
+                label: "Films watched",
+                value: screenStats.watchedFilms.toLocaleString("en-US"),
+              },
+              {
+                label: "Series tracked",
+                value: screenStats.tvCount.toLocaleString("en-US"),
+              },
+              {
+                label: "Episodes logged",
+                value: screenStats.episodesWatched.toLocaleString("en-US"),
+              },
+              {
+                label: "Mean rating",
+                value:
+                  screenStats.averageScore !== null
+                    ? screenStats.averageScore.toFixed(1)
+                    : "—",
+              },
+            ].map((metric) => (
+              <div key={metric.label} className="px-3 py-2.5">
+                <dt className="text-[9px] font-medium uppercase tracking-[0.14em] text-faint">
+                  {metric.label}
+                </dt>
+                <dd className="mt-0.5 font-display text-lg font-semibold tabular-nums text-fg">
+                  {metric.value}
+                </dd>
+              </div>
+            ))}
+          </dl>
+        </section>
+      ) : null}
+
+      {/* 3. Media Filter Segmented Control */}
       <div className="flex flex-wrap items-center justify-between gap-3 border-y border-border py-2.5">
         <div
           role="tablist"
@@ -861,7 +911,7 @@ export function StatsView({
               label="Watched Films"
               value={screenStats.watchedFilms}
               subtext={`${percent(screenStats.watchedFilms, screenStats.movieCount)}% watched`}
-              accentClass="text-emerald-400"
+              accentClass="text-success"
             />
             <StatKpiCard
               icon={StarIcon}
@@ -872,14 +922,14 @@ export function StatsView({
                   : "—"
               }
               subtext={`${screenStats.scoredCount} rated titles`}
-              accentClass="text-amber-400"
+              accentClass="text-accent-strong"
             />
             <StatKpiCard
               icon={BookmarkIcon}
               label="Plan to Watch"
               value={screenStats.statusCounts.planning}
               subtext="queued cinema"
-              accentClass="text-sky-400"
+              accentClass="text-fg"
             />
           </section>
 
@@ -977,14 +1027,14 @@ export function StatsView({
               label="In Progress"
               value={screenStats.statusCounts.watching}
               subtext="active broadcast series"
-              accentClass="text-purple-400"
+              accentClass="text-fg"
             />
             <StatKpiCard
               icon={ClockIcon}
               label="Episodes Logged"
               value={screenStats.episodesWatched}
               subtext="verified logged units"
-              accentClass="text-amber-400"
+              accentClass="text-accent-strong"
             />
             <StatKpiCard
               icon={StarIcon}
@@ -995,7 +1045,7 @@ export function StatsView({
                   : "—"
               }
               subtext={`${screenStats.scoredCount} rated series`}
-              accentClass="text-emerald-400"
+              accentClass="text-success"
             />
           </section>
 
@@ -1094,7 +1144,7 @@ export function StatsView({
               label="Total Watch Time"
               value={watchTime.formatted}
               subtext={`${watchTime.totalHours} hrs logged (~24m/ep)`}
-              accentClass="text-amber-400"
+              accentClass="text-accent-strong"
             />
             <StatKpiCard
               icon={PlayIcon}
@@ -1111,7 +1161,7 @@ export function StatsView({
                     ? `${stats.chaptersRead} manga chapters`
                     : "100% verified progress"
               }
-              accentClass="text-purple-400"
+              accentClass="text-fg"
             />
             <StatKpiCard
               icon={StarIcon}
@@ -1126,7 +1176,7 @@ export function StatsView({
                   ? `${stats.scoredCount} of ${stats.total} scored`
                   : "No scores yet"
               }
-              accentClass="text-emerald-400"
+              accentClass="text-success"
             />
           </section>
 
@@ -1239,7 +1289,7 @@ export function StatsView({
               <div>
                 <div className="flex items-center justify-between border-b border-border pb-3">
                   <div className="flex items-center gap-2">
-                    <StarIcon className="h-4 w-4 text-amber-400" />
+                    <StarIcon className="h-4 w-4 text-accent-strong" />
                     <h2
                       id="rating-distribution"
                       className="font-display text-base font-semibold text-fg"
@@ -1281,7 +1331,7 @@ export function StatsView({
                               className={cn(
                                 "w-full transition-all duration-300",
                                 isPeak
-                                  ? "bg-amber-400"
+                                  ? "bg-accent"
                                   : bucket.count > 0
                                     ? "bg-accent/80 hover:bg-accent"
                                     : "bg-surface-2",
@@ -1291,7 +1341,7 @@ export function StatsView({
                             <span
                               className={cn(
                                 "font-mono text-[11px] tabular-nums",
-                                isPeak ? "font-bold text-amber-400" : "text-faint",
+                                isPeak ? "font-bold text-accent-strong" : "text-faint",
                               )}
                             >
                               {bucket.score}
@@ -1310,7 +1360,7 @@ export function StatsView({
                   </div>
                 ) : (
                   <div className="mt-6 flex flex-col items-center justify-center border border-dashed border-border bg-surface-2/40 p-6 text-center">
-                    <div className="flex h-10 w-10 items-center justify-center border border-border bg-surface text-amber-400">
+                    <div className="flex h-10 w-10 items-center justify-center border border-border bg-surface text-accent-strong">
                       <StarIcon className="h-5 w-5" />
                     </div>
                     <h3 className="mt-3 font-display text-sm font-semibold text-fg">
@@ -1491,7 +1541,7 @@ export function StatsView({
             >
               <div className="flex items-center justify-between border-b border-border pb-3">
                 <div className="flex items-center gap-2">
-                  <SparklesIcon className="h-4 w-4 text-cyan-400" />
+                  <SparklesIcon className="h-4 w-4 text-accent-strong" />
                   <h3 className="font-display text-base font-semibold text-fg">
                     Release Eras
                   </h3>
@@ -1584,14 +1634,14 @@ export function StatsView({
                   label="TV Series"
                   value={screenStats.tvCount}
                   subtext={`${screenStats.statusCounts.watching} in progress`}
-                  accentClass="text-cyan-400"
+                  accentClass="text-fg"
                 />
                 <StatKpiCard
                   icon={ClockIcon}
                   label="Episodes Logged"
                   value={screenStats.episodesWatched}
                   subtext="verified logged units"
-                  accentClass="text-amber-400"
+                  accentClass="text-accent-strong"
                 />
                 <StatKpiCard
                   icon={StarIcon}
@@ -1606,7 +1656,7 @@ export function StatsView({
                       ? `${screenStats.scoredCount} rated titles`
                       : "No ratings"
                   }
-                  accentClass="text-emerald-400"
+                  accentClass="text-success"
                 />
               </div>
 

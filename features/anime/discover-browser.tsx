@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 import {
   AnimeFilters,
@@ -65,7 +65,7 @@ import type {
 } from "@/types/tmdb";
 import { fetchCachedJson } from "@/lib/cache/request-cache";
 import { ApiRequestError } from "@/lib/http";
-import { seasonLabel } from "@/lib/season";
+import { getCurrentSeason, seasonLabel } from "@/lib/season";
 import {
   cn,
   formatEpisodeCount,
@@ -95,7 +95,6 @@ const DISCOVERY_CHANNELS: DiscoveryChannel[] = [
   { id: "favourites", label: "Fan Favourites", icon: CrownIcon, filters: { sort: "FAVOURITES_DESC" } },
   { id: "airing", label: "Airing Now", icon: PlayIcon, filters: { status: "RELEASING" } },
   { id: "upcoming", label: "Upcoming", icon: CalendarIcon, filters: { status: "NOT_YET_RELEASED" } },
-  { id: "fall-2026", label: "Fall 2026", icon: LeafIcon, filters: { season: "FALL", year: 2026 }, animeOnly: true },
   { id: "movies", label: "Anime Movies", icon: FilmIcon, filters: { format: "MOVIE" }, animeOnly: true },
   { id: "ova", label: "OVAs & Specials", icon: ZapIcon, filters: { format: "OVA" }, animeOnly: true },
   { id: "light-novels", label: "Light Novels", icon: BookmarkIcon, filters: { source: "LIGHT_NOVEL" } },
@@ -110,6 +109,19 @@ const DISCOVERY_CHANNELS: DiscoveryChannel[] = [
   { id: "slice-of-life", label: "Slice of Life", icon: SunIcon, filters: { genre: "Slice of Life" } },
   { id: "adult", label: "18+", icon: LockIcon, filters: { adultContent: "only" } },
 ];
+
+/** Filter keys a channel can own. Media type and country describe the view
+ * itself (manhwa is always KR), so they never decide which pill is current. */
+const CHANNEL_FILTER_KEYS = [
+  "genre",
+  "format",
+  "status",
+  "season",
+  "year",
+  "source",
+  "adultContent",
+  "sort",
+] as const;
 
 function mergeUnique(
   current: AnimeSummary[],
@@ -351,7 +363,10 @@ export function DiscoverBrowser({
   const [restoreChecked, setRestoreChecked] = useState(false);
 
   const isTmdbView = isTmdbDiscoverView(activeView);
-  const skipInitialFetch = useRef(!isTmdbDiscoverView(initialView));
+  // Only a server-rendered page is worth skipping: when the server could not
+  // reach the catalogue the client tries once itself instead of stranding the
+  // page on an error the reader has to clear by hand.
+  const skipInitialFetch = useRef(initialPage !== null);
 
   // Returning from a detail page can restore the route from the client cache,
   // so keep a tab-local snapshot and reapply it when the URL has no newer
@@ -501,32 +516,6 @@ export function DiscoverBrowser({
     });
   };
 
-  const isChannelActive = (channel: DiscoveryChannel) => {
-    const {
-      genre,
-      format,
-      status,
-      season,
-      year,
-      source,
-      countryOfOrigin,
-      adultContent,
-      sort,
-    } = channel.filters;
-    if (genre && filters.genre !== genre) return false;
-    if (format && filters.format !== format) return false;
-    if (status && filters.status !== status) return false;
-    if (season && filters.season !== season) return false;
-    if (year && filters.year !== year) return false;
-    if (source && filters.source !== source) return false;
-    if (countryOfOrigin && filters.countryOfOrigin !== countryOfOrigin) {
-      return false;
-    }
-    if (adultContent && filters.adultContent !== adultContent) return false;
-    if (sort && filters.sort !== sort) return false;
-    return true;
-  };
-
   const activeChips: Array<{
     key: string;
     label: string;
@@ -600,6 +589,33 @@ export function DiscoverBrowser({
   const topAnime = items[0] ?? null;
   const topCover = topAnime ? topAnime.coverImage.extraLarge ?? topAnime.coverImage.large : null;
   const topArtwork = topAnime ? topAnime.bannerImage ?? topCover : null;
+
+  // The season pill is derived from the calendar so it never points at a
+  // season that ended months ago.
+  const currentSeason = useMemo(() => getCurrentSeason(), []);
+  const seasonalChannel: DiscoveryChannel = {
+    id: "current-season",
+    label: `${seasonLabel(currentSeason.season)} ${currentSeason.year}`,
+    icon: LeafIcon,
+    filters: { season: currentSeason.season, year: currentSeason.year },
+    animeOnly: true,
+  };
+
+  const channelList = [...DISCOVERY_CHANNELS, seasonalChannel];
+
+  // Exactly one pill is current: it has to account for every active filter, so
+  // a genre pill and a sort pill never both look selected. Ties fall to the
+  // first channel, which keeps the default order stable.
+  const activeChannelId =
+    channelList.find((channel) => {
+      const own = channel.filters as unknown as Record<string, unknown>;
+      const current = filters as unknown as Record<string, unknown>;
+      return CHANNEL_FILTER_KEYS.every((key) =>
+        own[key] === undefined
+          ? current[key] === undefined
+          : current[key] === own[key],
+      );
+    })?.id ?? null;
 
   const discoverTypeTabs = (
     <DiscoverTypeTabs
@@ -675,7 +691,7 @@ export function DiscoverBrowser({
       />
 
       <DiscoverPills
-        pills={DISCOVERY_CHANNELS.filter(
+        pills={channelList.filter(
           (channel) =>
             (adultAllowed || channel.id !== "adult") &&
             (activeView === "anime" || !channel.animeOnly),
@@ -686,7 +702,7 @@ export function DiscoverBrowser({
               ? "Publishing"
               : channel.label,
           icon: channel.icon,
-          active: isChannelActive(channel),
+          active: channel.id === activeChannelId,
           onSelect: () => applyChannel(channel),
         }))}
       />

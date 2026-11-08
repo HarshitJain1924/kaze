@@ -6,21 +6,23 @@ import { LandingFormatShowcase } from "@/features/landing/landing-format-showcas
 import { LandingHero } from "@/features/landing/landing-hero";
 import { LandingNavbar } from "@/features/landing/landing-navbar";
 import { LandingProductStory } from "@/features/landing/landing-product-story";
+import { LandingScreenIndex } from "@/features/landing/landing-screen-index";
 import { LandingSeasonalIndex } from "@/features/landing/landing-seasonal-index";
 import { splitMangaByOrigin } from "@/features/landing/landing-media";
 import { getViewer } from "@/lib/auth";
 import { getCurrentSeason, seasonLabel } from "@/lib/season";
 import { getCatalogService } from "@/services/catalog/catalog-service";
+import { discoverTmdb } from "@/services/tmdb/service";
 import type { AnimeSummary } from "@/types/anime";
 
 export const metadata: Metadata = {
-  title: "Kaze — A private index for anime, manga & manhwa",
+  title: "Kaze — A private index for anime, manga, manhwa, films & TV",
   description:
-    "Keep anime, manga and manhwa in one quiet, private library. Track episodes and chapters, follow the airing week, and understand your taste without ads or noise.",
+    "Keep anime, manga, manhwa, films and television in one quiet, private library. Track episodes, chapters and watches, follow the airing week, and understand your taste without ads or noise.",
   openGraph: {
-    title: "Kaze — A private index for anime, manga & manhwa",
+    title: "Kaze — A private index for anime, manga, manhwa, films & TV",
     description:
-      "One private library for anime, manga and manhwa. Episode and chapter tracking, a live airing calendar, and statistics built from your own history.",
+      "One private library for anime, manga, manhwa, films and TV. Episode and chapter tracking, a film and series shelf, a live airing calendar, and statistics built from your own history.",
     type: "website",
   },
 };
@@ -32,21 +34,23 @@ export default async function LandingPage() {
   const { season, year } = getCurrentSeason();
   const client = getCatalogService();
 
-  const [seasonalResult, mangaResult, manhwaResult] = await Promise.allSettled([
-    client.getSeasonalAnime(season, year, { perPage: 12 }),
-    client.searchMedia({
-      mediaType: "manga",
-      countryOfOrigin: "JP",
-      sort: "TRENDING_DESC",
-      perPage: 8,
-    }),
-    client.searchMedia({
-      mediaType: "manga",
-      countryOfOrigin: "KR",
-      sort: "TRENDING_DESC",
-      perPage: 8,
-    }),
-  ]);
+  const [seasonalResult, mangaResult, manhwaResult, screenResult] =
+    await Promise.allSettled([
+      client.getSeasonalAnime(season, year, { perPage: 12 }),
+      client.searchMedia({
+        mediaType: "manga",
+        countryOfOrigin: "JP",
+        sort: "TRENDING_DESC",
+        perPage: 8,
+      }),
+      client.searchMedia({
+        mediaType: "manga",
+        countryOfOrigin: "KR",
+        sort: "TRENDING_DESC",
+        perPage: 8,
+      }),
+      discoverTmdb("movie", "trending", 1),
+    ]);
 
   const seasonalItems =
     seasonalResult.status === "fulfilled"
@@ -88,6 +92,24 @@ export default async function LandingPage() {
   const { manga: mangaItems } = splitMangaByOrigin(japaneseManga);
   const { manhwa: manhwaItems } = splitMangaByOrigin(koreanManhwa);
 
+  // Films and TV are a separate catalogue; a TMDB outage must not take the
+  // page down, so the section simply renders without artwork.
+  const screenItems =
+    screenResult.status === "fulfilled"
+      ? screenResult.value.results
+          .filter((item) => item.posterUrl)
+          .slice(0, 4)
+      : [];
+
+  if (screenResult.status === "rejected") {
+    console.error(
+      "[landing] could not load film and TV preview:",
+      screenResult.reason instanceof Error
+        ? screenResult.reason.message
+        : "unknown error",
+    );
+  }
+
   // Keep the hero and seasonal index from repeating the same lead artwork.
   const formatAnime =
     seasonalItems[5] ?? seasonalItems[2] ?? seasonalItems[0] ?? null;
@@ -128,6 +150,8 @@ export default async function LandingPage() {
           manga={mangaItems}
           manhwa={manhwaItems}
         />
+
+        <LandingScreenIndex items={screenItems} />
 
         <LandingProductStory viewer={viewer} items={previewItems} />
 

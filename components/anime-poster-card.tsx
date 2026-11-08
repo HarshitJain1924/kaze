@@ -8,6 +8,7 @@ import { FilmIcon, PlusIcon, StarIcon } from "@/components/icons";
 import { usePreferences } from "@/components/providers/preferences-provider";
 import { StatusBadge } from "@/components/ui/badge";
 import { useLibrary } from "@/features/library/library-provider";
+import { getWatchStatusLabel } from "@/lib/library-meta";
 import {
   cn,
   formatFormat,
@@ -149,7 +150,7 @@ export function AnimePosterCard({
 
           {entry ? (
             <span className="pointer-events-none absolute bottom-0 left-0 z-20 bg-bg/90 px-1.5 py-1 text-[8px] font-semibold uppercase tracking-[0.1em] text-accent-strong">
-              {entry.status}
+              {getWatchStatusLabel(entry.status)}
             </span>
           ) : null}
         </div>

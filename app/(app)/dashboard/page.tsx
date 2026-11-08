@@ -1,4 +1,5 @@
 import { ReadingShelf } from "@/features/home/reading-shelf";
+import { ScreenShelf } from "@/features/home/screen-shelf";
 import { TrendingIndex } from "@/features/home/trending-index";
 import { HomeHero } from "@/features/home/home-hero";
 import { HomeSchedule } from "@/features/home/home-schedule";
@@ -7,6 +8,10 @@ import { HomeStatsStrip } from "@/features/home/home-stats-strip";
 import { SeasonalCarousel } from "@/features/home/seasonal-carousel";
 import { ContinueWatching } from "@/features/library/continue-watching";
 import { RecentlyUpdated } from "@/features/library/recently-updated";
+import {
+  calculateScreenStats,
+  type ScreenLibraryStats,
+} from "@/features/stats/calculate-screen-stats";
 import { getViewer } from "@/lib/auth";
 import {
   curateReadingTable,
@@ -16,10 +21,13 @@ import {
 } from "@/lib/discovery";
 import { getWeekRange, toIsoDateString } from "@/lib/schedule";
 import { getCurrentSeason, seasonLabel } from "@/lib/season";
+import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { createSupabaseTmdbStore } from "@/repositories/tmdb-library";
 import {
   getCatalogService,
   type CatalogResult,
 } from "@/services/catalog/catalog-service";
+import { discoverTmdb } from "@/services/tmdb/service";
 import type { AiringScheduleEntry, AnimePage, AnimeSummary } from "@/types/anime";
 
 async function safeLoad(
@@ -58,7 +66,28 @@ export default async function DashboardPage() {
   const now = new Date();
   const currentWeek = getWeekRange(now);
 
-  const [seasonal, popular, trending, mangaTrending, scheduleEntries] =
+  // Films and television come from TMDB, which can fail independently of the
+  // anime catalogue, so this one resolves to null instead of rejecting.
+  const screenTrendingPromise = discoverTmdb("movie", "trending", 1)
+    .then((page) =>
+      page.results.filter((item) => item.posterUrl).slice(0, 6),
+    )
+    .catch((error: unknown) => {
+      console.error(
+        "[dashboard] could not load films and TV:",
+        error instanceof Error ? error.message : "unknown error",
+      );
+      return null;
+    });
+
+  const [
+    seasonal,
+    popular,
+    trending,
+    mangaTrending,
+    scheduleEntries,
+    screenTrending,
+  ] =
     await Promise.all([
       safeLoad("seasonal anime", () =>
         client.getSeasonalAnime(season, year, { perPage: 18 }),
@@ -76,6 +105,7 @@ export default async function DashboardPage() {
           airingAtLesser: currentWeek.queryAiringAtLesser,
         }),
       ),
+      screenTrendingPromise,
     ]);
 
   const seasonQuery = `season=${season}&year=${year}`;
@@ -125,6 +155,28 @@ export default async function DashboardPage() {
   }).format(now);
 
   const seasonLabelText = `${seasonLabel(season)} ${year}`;
+
+  // The film and TV ledger only exists for a signed-in viewer; a database error
+  // hides the counters but leaves the discovery shelf intact.
+  let screenStats: ScreenLibraryStats | null = null;
+  if (viewer) {
+    const supabase = await createSupabaseServerClient();
+    if (supabase) {
+      try {
+        const store = createSupabaseTmdbStore(supabase);
+        const [screenEntries, screenEpisodes] = await Promise.all([
+          store.list(viewer.id),
+          store.listEpisodes(viewer.id),
+        ]);
+        screenStats = calculateScreenStats(screenEntries, screenEpisodes);
+      } catch (error) {
+        console.error(
+          "[dashboard] could not load the film and TV library:",
+          error instanceof Error ? error.message : "unknown error",
+        );
+      }
+    }
+  }
 
   return (
     <div className="space-y-8 sm:space-y-10">
@@ -206,6 +258,8 @@ export default async function DashboardPage() {
           <TrendingIndex items={curatedTrendingItems} />
           <ReadingShelf items={curatedReadingItems} />
         </div>
+
+        <ScreenShelf items={screenTrending} stats={screenStats} />
       </section>
     </div>
   );

@@ -66,8 +66,13 @@ function mergeUnique(
   current: TmdbSearchResult[],
   next: TmdbSearchResult[],
 ): TmdbSearchResult[] {
-  const seen = new Set(current.map((item) => item.tmdbId));
-  return [...current, ...next.filter((item) => !seen.has(item.tmdbId))];
+  // Film and TV ids come from separate TMDB namespaces, so the kind has to be
+  // part of the key or a movie and a series sharing an id hide each other.
+  const seen = new Set(current.map((item) => `${item.kind}-${item.tmdbId}`));
+  return [
+    ...current,
+    ...next.filter((item) => !seen.has(`${item.kind}-${item.tmdbId}`)),
+  ];
 }
 
 function requestPath(
@@ -393,9 +398,9 @@ export function TmdbDiscoverBrowser({
     () => countTmdbFilters(initialFilters) > 0,
   );
   const [retryNonce, setRetryNonce] = useState(0);
-  const skipInitialFetch = useRef(
-    initialPage !== null || initialError !== null,
-  );
+  // A server-rendered page is worth skipping; a server error is retried once
+  // here so a transient TMDB outage does not strand the reader.
+  const skipInitialFetch = useRef(initialPage !== null);
 
   const categoryOptions = tmdbDiscoverCategoriesForKind(kind);
   const genreOptions = tmdbGenresForKind(kind);
