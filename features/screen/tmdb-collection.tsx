@@ -36,7 +36,7 @@ export function TmdbCollectionSection({
           >
             Franchise Order
           </h2>
-          <span className="rounded-full bg-surface-3 px-2 py-0.5 text-xs font-semibold text-muted">
+          <span className="border border-border-subtle px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-muted">
             {parts.length}
           </span>
         </div>
@@ -63,16 +63,16 @@ export function TmdbCollectionSection({
             <div
               key={part.tmdbId}
               className={cn(
-                "group relative flex items-center gap-3.5 rounded-xl border p-3 shadow-xs transition-all duration-200",
+                "group relative flex items-center gap-3.5 border p-3 transition-colors duration-200",
                 current
-                  ? "border-accent/60 bg-accent-soft/30 ring-1 ring-accent/25 shadow-sm"
-                  : "border-border-subtle bg-surface/90 hover:border-border hover:bg-surface",
+                  ? "border-white/30 bg-[rgba(14,17,24,0.55)]"
+                  : "border-white/10 bg-[rgba(14,17,24,0.35)] hover:border-white/20 hover:bg-[rgba(14,17,24,0.5)]",
               )}
             >
               <Link
                 href={`/screen/movie/${part.tmdbId}`}
                 aria-current={current ? "page" : undefined}
-                className="relative aspect-[2/3] w-14 shrink-0 overflow-hidden rounded-lg border border-border-subtle bg-surface-3 transition-transform duration-200 group-hover:scale-102"
+                className="relative aspect-[2/3] w-14 shrink-0 overflow-hidden border border-white/15 bg-white/5 transition-transform duration-200 group-hover:scale-102"
               >
                 {poster ? (
                   <Image
@@ -85,12 +85,12 @@ export function TmdbCollectionSection({
                   />
                 ) : (
                   <span className="absolute inset-0 flex items-center justify-center">
-                    <FilmIcon className="h-5 w-5 text-faint/60" />
+                    <FilmIcon className="h-5 w-5 text-white/40" />
                   </span>
                 )}
 
                 {current ? (
-                  <div className="absolute inset-x-0 bottom-0 bg-accent py-0.5 text-center text-[8px] font-bold uppercase tracking-wider text-accent-contrast">
+                  <div className="absolute inset-x-0 bottom-0 bg-white py-0.5 text-center text-[8px] font-bold uppercase tracking-[0.16em] text-slate-900">
                     Viewing
                   </div>
                 ) : null}
@@ -100,16 +100,16 @@ export function TmdbCollectionSection({
                 <div className="flex items-center gap-1.5">
                   <span
                     className={cn(
-                      "rounded px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wider",
+                      "px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-[0.14em]",
                       current
-                        ? "bg-accent text-accent-contrast"
-                        : "border border-border-subtle bg-surface-2 text-muted",
+                        ? "bg-white text-slate-900"
+                        : "border border-white/15 bg-white/10 text-white/60",
                     )}
                   >
                     {current ? "Current Title" : "Film"}
                   </span>
                   {part.year ? (
-                    <span className="text-[11px] text-faint">
+                    <span className="text-[11px] text-white/45">
                       {part.year}
                     </span>
                   ) : null}
@@ -117,20 +117,20 @@ export function TmdbCollectionSection({
 
                 <Link
                   href={`/screen/movie/${part.tmdbId}`}
-                  className="mt-1 block line-clamp-1 text-xs font-semibold text-fg transition-colors hover:text-accent-strong sm:text-[13px]"
+                  className="mt-1 block line-clamp-1 text-xs font-semibold text-white transition-colors hover:text-white/80 sm:text-[13px]"
                   title={part.title}
                 >
                   {part.title}
                 </Link>
 
-                <div className="mt-0.5 flex items-center gap-2 text-[11px] text-muted">
+                <div className="mt-0.5 flex items-center gap-2 text-[11px] text-white/55">
                   {rating ? (
-                    <span className="flex items-center gap-0.5 font-medium text-warning">
-                      <StarIcon className="h-3 w-3 fill-warning text-warning" />
+                    <span className="flex items-center gap-0.5 font-medium text-amber-300">
+                      <StarIcon className="h-3 w-3 fill-amber-300 text-amber-300" />
                       {rating}
                     </span>
                   ) : (
-                    <span className="text-faint">
+                    <span className="text-white/45">
                       {part.releaseDate
                         ? part.releaseDate.slice(0, 4)
                         : "Release date unknown"}

@@ -360,7 +360,7 @@ export function ScreenDetail({
         error ? (
           <div
             role="alert"
-            className="rounded-2xl border border-danger/30 bg-danger-soft p-4 text-sm text-danger"
+            className="border border-danger/40 bg-danger-soft/70 p-4 text-sm text-danger"
           >
             {error}
           </div>

@@ -39,23 +39,23 @@ export function TmdbCreditsSection({
         >
           Cast &amp; Crew
         </h2>
-        <span className="rounded-full bg-surface-3 px-2 py-0.5 text-[11px] font-medium text-muted">
+        <span className="border border-border-subtle px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-muted">
           {cast.length + crew.length}
         </span>
       </div>
 
       {visibleCast.length > 0 ? (
         <div>
-          <h3 className="mb-2.5 text-xs font-semibold uppercase tracking-wider text-faint">
+          <h3 className="mb-2.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-faint">
             Cast
           </h3>
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
             {visibleCast.map((member) => (
               <div
                 key={`${member.id}:${member.character ?? "cast"}`}
-                className="flex min-w-0 items-center gap-2.5 rounded-xl border border-border-subtle bg-surface/90 p-2.5"
+                className="flex min-w-0 items-center gap-2.5 border border-white/10 bg-[rgba(14,17,24,0.35)] p-2.5 transition-colors hover:border-white/20"
               >
-                <div className="relative h-12 w-12 shrink-0 overflow-hidden rounded-full border border-border-subtle bg-surface-3">
+                <div className="relative h-12 w-12 shrink-0 overflow-hidden rounded-full border border-white/20 bg-white/5">
                   {member.profileUrl && isHttpUrl(member.profileUrl) ? (
                     <Image
                       src={member.profileUrl}
@@ -66,17 +66,17 @@ export function TmdbCreditsSection({
                       className="object-cover"
                     />
                   ) : (
-                    <div className="flex h-full w-full items-center justify-center text-xs font-bold text-faint">
+                    <div className="flex h-full w-full items-center justify-center text-xs font-bold text-white/45">
                       {member.name.charAt(0)}
                     </div>
                   )}
                 </div>
                 <div className="min-w-0">
-                  <p className="truncate text-xs font-semibold text-fg" title={member.name}>
+                  <p className="truncate text-xs font-semibold text-white" title={member.name}>
                     {member.name}
                   </p>
                   {member.character ? (
-                    <p className="mt-0.5 truncate text-[11px] text-faint" title={member.character}>
+                    <p className="mt-0.5 truncate text-[11px] text-white/45" title={member.character}>
                       {member.character}
                     </p>
                   ) : null}
@@ -89,19 +89,19 @@ export function TmdbCreditsSection({
 
       {visibleCrew.length > 0 ? (
         <div>
-          <h3 className="mb-2.5 text-xs font-semibold uppercase tracking-wider text-faint">
+          <h3 className="mb-2.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-faint">
             Crew
           </h3>
           <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
             {visibleCrew.map((member) => (
               <div
                 key={`${member.id}:${member.job}`}
-                className="flex items-center justify-between gap-3 rounded-lg border border-border-subtle bg-surface/80 px-3 py-2"
+                className="flex items-center justify-between gap-3 border border-white/10 bg-[rgba(14,17,24,0.35)] px-3 py-2"
               >
-                <span className="truncate text-xs font-medium text-fg">
+                <span className="truncate text-xs font-medium text-white/85">
                   {member.name}
                 </span>
-                <span className="shrink-0 text-[11px] text-faint">
+                <span className="shrink-0 text-[11px] text-white/45">
                   {member.job}
                 </span>
               </div>

@@ -21,7 +21,7 @@ export function TmdbRecommendations({
         >
           More Like This
         </h2>
-        <span className="rounded-full bg-surface-3 px-2 py-0.5 text-[11px] font-medium text-muted">
+        <span className="border border-border-subtle px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-muted">
           {recommendations.length}
         </span>
       </div>
@@ -31,9 +31,9 @@ export function TmdbRecommendations({
           <Link
             key={`${item.kind}:${item.tmdbId}`}
             href={`/screen/${item.kind}/${item.tmdbId}`}
-            className="group overflow-hidden rounded-2xl border border-white/[0.08] bg-surface-2 shadow-sm transition-all duration-200 hover:-translate-y-1 hover:border-accent/40 hover:shadow-xl"
+            className="group overflow-hidden border border-white/10 bg-[rgba(14,17,24,0.35)] transition-colors duration-200 hover:border-white/25 hover:bg-[rgba(14,17,24,0.5)]"
           >
-            <div className="relative aspect-[2/3] w-full overflow-hidden bg-surface-3">
+            <div className="relative aspect-[2/3] w-full overflow-hidden bg-white/5">
               {item.posterUrl && isHttpUrl(item.posterUrl) ? (
                 <Image
                   src={item.posterUrl}
@@ -45,21 +45,21 @@ export function TmdbRecommendations({
                 />
               ) : (
                 <div className="absolute inset-0 flex items-center justify-center">
-                  <StarIcon className="h-7 w-7 text-faint/50" />
+                  <StarIcon className="h-7 w-7 text-white/30" />
                 </div>
               )}
               {item.voteAverage && item.voteAverage > 0 ? (
-                <span className="absolute left-2 top-2 inline-flex items-center gap-1 rounded-md border border-white/15 bg-black/80 px-1.5 py-0.5 text-[11px] font-bold text-amber-300 backdrop-blur-md">
+                <span className="absolute left-2 top-2 inline-flex items-center gap-1 border border-white/20 bg-black/70 px-1.5 py-0.5 text-[11px] font-semibold tabular-nums text-amber-300 backdrop-blur-sm">
                   <StarIcon className="h-3 w-3 fill-current" />
                   {item.voteAverage.toFixed(1)}
                 </span>
               ) : null}
             </div>
             <div className="space-y-0.5 p-2.5">
-              <p className="line-clamp-2 text-xs font-semibold text-fg" title={item.title}>
+              <p className="line-clamp-2 text-xs font-semibold text-white" title={item.title}>
                 {item.title}
               </p>
-              <p className="text-[11px] text-faint">
+              <p className="text-[11px] text-white/45">
                 {[item.year ?? "Year unknown", item.kind === "tv" ? "TV" : "Film"].join(" · ")}
               </p>
             </div>
