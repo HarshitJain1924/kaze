@@ -1,4 +1,6 @@
 import Image from "next/image";
+
+import { OpticalGlass } from "@/components/ui/optical-glass";
 import { isHttpUrl } from "@/lib/utils";
 import type { AnimeCharacter } from "@/types/anime";
 
@@ -9,9 +11,9 @@ interface AnimeCharactersProps {
 export function AnimeCharacters({ characters = [] }: AnimeCharactersProps) {
   if (characters.length === 0) {
     return (
-      <div className="optical-glass p-6 text-center text-sm text-white/70">
+      <OpticalGlass variant="card" className="p-6 text-center text-sm text-white/70">
         No character or cast information is currently available for this title.
-      </div>
+      </OpticalGlass>
     );
   }
 
@@ -40,9 +42,10 @@ export function AnimeCharacters({ characters = [] }: AnimeCharactersProps) {
           const isMain = char.role === "MAIN";
 
           return (
-            <div
+            <OpticalGlass
               key={char.id}
-              className="group relative flex items-center justify-between gap-3 overflow-hidden border border-white/10 bg-[rgba(14,17,24,0.35)] p-3 transition-colors hover:border-white/20 hover:bg-[rgba(14,17,24,0.5)]"
+              variant="tint"
+              className="group relative flex items-center justify-between gap-3 overflow-hidden p-3"
             >
               {/* Character Side (Primary Visual Anchor & Typography) */}
               <div className="flex items-center gap-3 min-w-0 flex-1">
@@ -114,7 +117,7 @@ export function AnimeCharacters({ characters = [] }: AnimeCharactersProps) {
                   </div>
                 </div>
               ) : null}
-            </div>
+            </OpticalGlass>
           );
         })}
       </div>

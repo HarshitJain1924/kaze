@@ -7,6 +7,7 @@ import {
   MonitorIcon,
 } from "@/components/icons";
 import { Button } from "@/components/ui/button";
+import { OpticalGlass } from "@/components/ui/optical-glass";
 import { cn, isHttpUrl } from "@/lib/utils";
 import type {
   TmdbLibraryEntry,
@@ -88,9 +89,9 @@ export function TmdbSeasonsSection({
       </div>
 
       {visibleSeasons.length === 0 ? (
-        <p className="optical-glass p-4 text-sm text-white/70">
+        <OpticalGlass as="p" variant="card" className="p-4 text-sm text-white/70">
           TMDB has no season data for this series yet.
-        </p>
+        </OpticalGlass>
       ) : null}
 
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
@@ -128,13 +129,13 @@ export function TmdbSeasonsSection({
           const panelId = `season-panel-${season.seasonNumber}`;
 
           return (
-            <div
+            <OpticalGlass
               key={season.seasonNumber}
+              variant="tint"
               className={cn(
-                "group relative overflow-hidden border transition-colors duration-200",
-                open
-                  ? "border-white/30 bg-[rgba(14,17,24,0.55)] sm:col-span-2"
-                  : "border-white/10 bg-[rgba(14,17,24,0.35)] hover:border-white/20 hover:bg-[rgba(14,17,24,0.5)]",
+                "group relative overflow-hidden",
+                open &&
+                  "border-white/30 bg-[rgba(14,17,24,0.6)] sm:col-span-2",
               )}
             >
               <button
@@ -333,7 +334,7 @@ export function TmdbSeasonsSection({
                   )}
                 </div>
               ) : null}
-            </div>
+            </OpticalGlass>
           );
         })}
       </div>

@@ -4,40 +4,60 @@ import { useState } from "react";
 import { BookmarkIcon, CheckIcon, CloseIcon } from "@/components/icons";
 import { useCustomLists } from "@/features/lists/lists-provider";
 import type { Anime } from "@/types/anime";
+import {
+  customListItemKey,
+  type CustomListCandidate,
+} from "@/types/custom-list";
 import { getDisplayTitle } from "@/lib/utils";
 
 interface AddToListModalProps {
-  anime: Anime;
+  /** AniList title being curated. */
+  anime?: Anime;
+  /** Already-normalised film or TV candidate. */
+  candidate?: CustomListCandidate;
   isOpen: boolean;
   onClose: () => void;
 }
 
-export function AddToListModal({ anime, isOpen, onClose }: AddToListModalProps) {
-  const { lists, addItemToList, removeItemFromList, isAnimeInList } =
+export function AddToListModal({
+  anime,
+  candidate,
+  isOpen,
+  onClose,
+}: AddToListModalProps) {
+  const { lists, addItemToList, removeItemFromList, isItemInList } =
     useCustomLists();
   const [notes, setNotes] = useState("");
-  const displayTitle = getDisplayTitle(anime.title, true);
-  const cover = anime.coverImage.large ?? anime.coverImage.extraLarge;
 
-  if (!isOpen) return null;
+  const target: CustomListCandidate | null =
+    candidate ??
+    (anime
+      ? {
+          anilistId: anime.id,
+          title: getDisplayTitle(anime.title, true),
+          mediaType: anime.mediaType ?? "anime",
+          coverImage: anime.coverImage.large ?? anime.coverImage.extraLarge,
+          bannerImage: anime.bannerImage ?? null,
+          format: anime.format ?? null,
+          averageScore: anime.averageScore ?? null,
+        }
+      : null);
+
+  if (!isOpen || !target) return null;
+
+  const itemKey = customListItemKey(target);
+  const displayTitle = target.title;
 
   const handleToggle = (listId: string) => {
-    const inList = isAnimeInList(listId, anime.id);
-    if (inList) {
-      removeItemFromList(listId, anime.id);
-    } else {
-      addItemToList(listId, {
-        anilistId: anime.id,
-        title: displayTitle,
-        mediaType: anime.mediaType ?? "anime",
-        coverImage: cover ?? null,
-        bannerImage: anime.bannerImage ?? null,
-        format: anime.format ?? null,
-        averageScore: anime.averageScore ?? null,
-        notes: notes.trim() || undefined,
-      });
-      setNotes("");
+    if (isItemInList(listId, itemKey)) {
+      removeItemFromList(listId, itemKey);
+      return;
     }
+    addItemToList(listId, {
+      ...target,
+      notes: notes.trim() || undefined,
+    });
+    setNotes("");
   };
 
   return (
@@ -106,7 +126,7 @@ export function AddToListModal({ anime, isOpen, onClose }: AddToListModalProps) 
             </p>
           ) : (
             lists.map((list) => {
-              const inList = isAnimeInList(list.id, anime.id);
+              const inList = isItemInList(list.id, itemKey);
               return (
                 <button
                   key={list.id}

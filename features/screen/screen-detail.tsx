@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 
+import { AddToListModal } from "@/components/add-to-list-modal";
 import { TmdbAttribution } from "@/components/tmdb-attribution";
 import { ApiRequestError, apiFetch } from "@/lib/http";
 import { adaptTmdbDetailView } from "@/lib/media/detail-view";
@@ -56,6 +57,7 @@ export function ScreenDetail({
   const [addStatus, setAddStatus] = useState<WatchStatus>("planning");
   const [notes, setNotes] = useState(initialEntry?.notes ?? "");
   const [confirmRemove, setConfirmRemove] = useState(false);
+  const [listOpen, setListOpen] = useState(false);
   const [openSeason, setOpenSeason] = useState<number | null>(null);
   const [seasonData, setSeasonData] = useState<
     Record<number, TmdbSeasonDetails>
@@ -322,7 +324,8 @@ export function ScreenDetail({
   }
 
   return (
-    <MediaDetailShell
+    <>
+      <MediaDetailShell
       view={view}
       sections={sections}
       detailsContent={
@@ -349,6 +352,7 @@ export function ScreenDetail({
           onPatch={(patch) => void patchEntry(patch)}
           onRemove={() => void removeEntry()}
           onClearProgress={() => void clearProgress()}
+          onOpenList={() => setListOpen(true)}
         />
       }
       recommendations={
@@ -367,6 +371,24 @@ export function ScreenDetail({
         ) : undefined
       }
       footer={<TmdbAttribution className="mt-3 px-1" />}
-    />
+      />
+
+      <AddToListModal
+        isOpen={listOpen}
+        onClose={() => setListOpen(false)}
+        candidate={{
+          tmdbId: details.tmdbId,
+          tmdbKind: details.kind,
+          title: details.title,
+          coverImage: details.posterUrl,
+          bannerImage: details.backdropUrl,
+          format: details.kind === "tv" ? "TV" : "Film",
+          averageScore:
+            details.voteAverage === null
+              ? null
+              : Math.round(details.voteAverage * 10),
+        }}
+      />
+    </>
   );
 }

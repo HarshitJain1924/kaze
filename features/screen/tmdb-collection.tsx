@@ -2,6 +2,7 @@ import Image from "next/image";
 import Link from "next/link";
 
 import { FilmIcon, StarIcon } from "@/components/icons";
+import { OpticalGlass } from "@/components/ui/optical-glass";
 import { cn, isHttpUrl } from "@/lib/utils";
 import type { TmdbCollection } from "@/types/tmdb";
 
@@ -60,13 +61,12 @@ export function TmdbCollectionSection({
               : null;
 
           return (
-            <div
+            <OpticalGlass
               key={part.tmdbId}
+              variant="tint"
               className={cn(
-                "group relative flex items-center gap-3.5 border p-3 transition-colors duration-200",
-                current
-                  ? "border-white/30 bg-[rgba(14,17,24,0.55)]"
-                  : "border-white/10 bg-[rgba(14,17,24,0.35)] hover:border-white/20 hover:bg-[rgba(14,17,24,0.5)]",
+                "group relative flex items-center gap-3.5 p-3",
+                current && "border-white/30 bg-[rgba(14,17,24,0.6)]",
               )}
             >
               <Link
@@ -138,7 +138,7 @@ export function TmdbCollectionSection({
                   )}
                 </div>
               </div>
-            </div>
+            </OpticalGlass>
           );
         })}
       </div>

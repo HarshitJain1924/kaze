@@ -15,7 +15,13 @@ import {
 } from "@/components/icons";
 import { useCustomLists } from "@/features/lists/lists-provider";
 import { useLibrary } from "@/features/library/library-provider";
+import { useScreenLibraryItems } from "@/features/screen/use-screen-library";
 import { WATCH_STATUS_META } from "@/lib/library-meta";
+import {
+  customListItemHref,
+  customListItemKey,
+  customListItemLabel,
+} from "@/types/custom-list";
 
 function ListItemThumbnail({
   src,
@@ -61,9 +67,10 @@ export default function CustomListDetailPage({ params }: PageProps) {
     calculateProgress,
   } = useCustomLists();
   const { items: libraryItems } = useLibrary();
+  const screenItems = useScreenLibraryItems();
 
   const [copied, setCopied] = useState(false);
-  const [editingNoteId, setEditingNoteId] = useState<number | null>(null);
+  const [editingNoteId, setEditingNoteId] = useState<string | null>(null);
   const [noteText, setNoteText] = useState("");
 
   const list = getList(id);
@@ -88,7 +95,7 @@ export default function CustomListDetailPage({ params }: PageProps) {
     );
   }
 
-  const progress = calculateProgress(list, libraryItems);
+  const progress = calculateProgress(list, libraryItems, screenItems);
 
   const handleShare = () => {
     if (typeof window !== "undefined") {
@@ -105,8 +112,8 @@ export default function CustomListDetailPage({ params }: PageProps) {
     }
   };
 
-  const handleSaveNote = (anilistId: number) => {
-    updateItemNotes(list.id, anilistId, noteText);
+  const handleSaveNote = (itemKey: string) => {
+    updateItemNotes(list.id, itemKey, noteText);
     setEditingNoteId(null);
   };
 
@@ -228,7 +235,7 @@ export default function CustomListDetailPage({ params }: PageProps) {
               No titles in this list yet
             </h3>
             <p className="mt-1 text-xs text-muted">
-              Browse Discover and click &ldquo;Add to Curated List&rdquo; on any title to populate this collection.
+              Browse Discover or the film &amp; TV shelves and click &ldquo;Add to Curated List&rdquo; on any title to populate this collection.
             </p>
             <Link
               href="/discover"
@@ -240,16 +247,31 @@ export default function CustomListDetailPage({ params }: PageProps) {
         ) : (
           <div className="space-y-2">
             {list.items.map((item, idx) => {
-              const libraryMatch = libraryItems.find(
-                (lib) => lib.entry.anilistId === item.anilistId,
-              );
-              const userStatus = libraryMatch?.entry.status;
+              const itemKey = customListItemKey(item);
+              const libraryMatch =
+                item.anilistId === undefined
+                  ? undefined
+                  : libraryItems.find(
+                      (lib) => lib.entry.anilistId === item.anilistId,
+                    );
+              const screenMatch =
+                item.tmdbId === undefined
+                  ? undefined
+                  : screenItems.find(
+                      (lib) =>
+                        lib.entry.tmdbId === item.tmdbId &&
+                        lib.entry.mediaType === (item.tmdbKind ?? "movie"),
+                    );
+              const userStatus =
+                libraryMatch?.entry.status ?? screenMatch?.entry.status;
               const statusMeta = userStatus
                 ? WATCH_STATUS_META[userStatus]
                 : null;
               const isWatched =
                 userStatus === "completed" ||
-                (libraryMatch?.entry.progress ?? 0) > 0;
+                (libraryMatch?.entry.progress ?? 0) > 0 ||
+                screenMatch?.entry.watched === true ||
+                (screenMatch?.watchedCount ?? 0) > 0;
 
               return (
                 <div
@@ -277,14 +299,14 @@ export default function CustomListDetailPage({ params }: PageProps) {
                     <div className="min-w-0 flex-1">
                       <div className="flex flex-wrap items-center gap-2">
                         <Link
-                          href={`/media/${item.anilistId}`}
+                          href={customListItemHref(item)}
                           className="font-display text-sm font-semibold text-fg transition-colors hover:text-accent-strong line-clamp-1"
                         >
                           {item.title}
                         </Link>
-                        {item.format ? (
+                        {item.format || customListItemLabel(item) ? (
                           <span className="border border-border bg-surface px-1.5 py-0.5 font-mono text-[9px] font-bold uppercase text-muted">
-                            {item.format}
+                            {item.format ?? customListItemLabel(item)}
                           </span>
                         ) : null}
                         {item.averageScore ? (
@@ -296,7 +318,7 @@ export default function CustomListDetailPage({ params }: PageProps) {
                       </div>
 
                       {/* Personal Commentary Note */}
-                      {editingNoteId === item.anilistId ? (
+                      {editingNoteId === itemKey ? (
                         <div className="mt-2 flex items-center gap-2">
                           <input
                             type="text"
@@ -307,7 +329,7 @@ export default function CustomListDetailPage({ params }: PageProps) {
                           />
                           <button
                             type="button"
-                            onClick={() => handleSaveNote(item.anilistId)}
+                            onClick={() => handleSaveNote(itemKey)}
                             className="h-7 border border-accent bg-accent px-2 text-[10px] font-semibold uppercase tracking-wider text-accent-contrast hover:bg-accent-hover"
                           >
                             Save
@@ -330,7 +352,7 @@ export default function CustomListDetailPage({ params }: PageProps) {
                           <button
                             type="button"
                             onClick={() => {
-                              setEditingNoteId(item.anilistId);
+                              setEditingNoteId(itemKey);
                               setNoteText(item.notes ?? "");
                             }}
                             className="text-[10px] font-mono text-accent-strong hover:underline shrink-0"
@@ -367,7 +389,7 @@ export default function CustomListDetailPage({ params }: PageProps) {
                     <button
                       type="button"
                       onClick={() =>
-                        removeItemFromList(list.id, item.anilistId)
+                        removeItemFromList(list.id, itemKey)
                       }
                       className="flex h-7 w-7 items-center justify-center border border-transparent text-muted hover:border-danger/40 hover:bg-danger/10 hover:text-danger transition-colors"
                       title="Remove from list"

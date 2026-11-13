@@ -12,6 +12,7 @@ import {
 import { CreateListModal } from "@/components/create-list-modal";
 import { useCustomLists } from "@/features/lists/lists-provider";
 import { useLibrary } from "@/features/library/library-provider";
+import { useScreenLibraryItems } from "@/features/screen/use-screen-library";
 
 function ListPosterCard({
   src,
@@ -54,6 +55,7 @@ function ListPosterCard({
 export default function ListsPage() {
   const { lists, calculateProgress } = useCustomLists();
   const { items: libraryItems } = useLibrary();
+  const screenItems = useScreenLibraryItems();
   const [search, setSearch] = useState("");
   const [isCreateOpen, setIsCreateOpen] = useState(false);
 
@@ -148,7 +150,7 @@ export default function ListsPage() {
       ) : (
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
           {filteredLists.map((list) => {
-            const progress = calculateProgress(list, libraryItems);
+            const progress = calculateProgress(list, libraryItems, screenItems);
             const previewItems = list.items.slice(0, 4);
 
             return (

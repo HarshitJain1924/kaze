@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import type { KeyboardEvent, ReactNode } from "react";
 
+import { OpticalGlass } from "@/components/ui/optical-glass";
 import { cn } from "@/lib/utils";
 import type { MediaDetailSection } from "@/lib/media/detail-view";
 
@@ -62,7 +63,10 @@ export function MediaDetailTabs({
 
   return (
     <div className="space-y-6">
-      <div className="optical-glass flex items-center justify-between gap-4 px-3 pt-1.5">
+      <OpticalGlass
+        variant="card"
+        className="flex items-center justify-between gap-4 px-3 pt-1.5"
+      >
         <nav
           role="tablist"
           aria-label="Media detail sections"
@@ -120,7 +124,7 @@ export function MediaDetailTabs({
             );
           })}
         </nav>
-      </div>
+      </OpticalGlass>
 
       <div
         role="tabpanel"

@@ -1,6 +1,7 @@
 "use client";
 
 import {
+  BookmarkIcon,
   CheckIcon,
   LoaderIcon,
   PlusIcon,
@@ -36,6 +37,7 @@ interface TmdbTrackingPanelProps {
   onPatch: (patch: Record<string, unknown>) => void;
   onRemove: () => void;
   onClearProgress: () => void;
+  onOpenList: () => void;
 }
 
 export function TmdbTrackingPanel({
@@ -58,29 +60,30 @@ export function TmdbTrackingPanel({
   onPatch,
   onRemove,
   onClearProgress,
+  onOpenList,
 }: TmdbTrackingPanelProps) {
   return (
     <OpticalGlass
       as="section"
-      variant="workspace"
+      variant="card"
       aria-label="Personal tracking workspace"
-      className="space-y-4 rounded-2xl p-5"
+      className="space-y-5 p-5"
     >
-      <div className="flex items-center justify-between gap-3 border-b border-border-subtle pb-3.5">
+      <div className="flex items-center justify-between gap-3 border-b border-white/10 pb-3.5">
         <div>
-          <span className="text-[10px] font-semibold uppercase tracking-[0.18em] text-accent-strong">
+          <span className="text-[10px] font-semibold uppercase tracking-[0.18em] text-white/55">
             Tracking Workspace
           </span>
-          <h2 className="mt-0.5 font-display text-base font-semibold text-fg">
+          <h2 className="mt-0.5 font-display text-base font-semibold text-white">
             Your Library
           </h2>
         </div>
         {entry ? (
-          <span className="text-[11px] font-medium text-emerald-400 light:text-emerald-700">
+          <span className="text-[11px] font-medium text-emerald-300">
             Saved
           </span>
         ) : (
-          <span className="rounded-md border border-border-subtle bg-surface-2/60 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wider text-faint">
+          <span className="border border-white/20 bg-white/5 px-2 py-0.5 text-[10px] font-medium uppercase tracking-[0.14em] text-white/55">
             Not tracked
           </span>
         )}
@@ -88,12 +91,12 @@ export function TmdbTrackingPanel({
 
       {!entry ? (
         <>
-          <p className="text-xs leading-relaxed text-muted">
+          <p className="text-xs leading-relaxed text-white/55">
             Add this {isTv ? "series" : "film"} to keep its status, rating and
             notes with the rest of your archive.
           </p>
           <label className="block space-y-1.5">
-            <span className="block text-xs font-medium text-muted">Status</span>
+            <span className="block text-xs font-medium text-white/55">Status</span>
             <Select
               value={addStatus}
               onChange={(event) =>
@@ -130,11 +133,11 @@ export function TmdbTrackingPanel({
           />
 
           {!isTv ? (
-            <div className="rounded-xl border border-border-subtle bg-surface-2/60 p-3">
+            <div className="border border-white/10 bg-white/5 p-3">
               <div className="flex items-center justify-between gap-3">
                 <div>
-                  <p className="text-xs font-medium text-fg">Watched</p>
-                  <p className="mt-0.5 text-[11px] text-faint">
+                  <p className="text-xs font-medium text-white">Watched</p>
+                  <p className="mt-0.5 text-[11px] text-white/45">
                     {entry.watched ? "Marked as watched" : "Not watched yet"}
                   </p>
                 </div>
@@ -158,23 +161,23 @@ export function TmdbTrackingPanel({
           ) : (
             <div className="space-y-2">
               <div className="flex items-center justify-between text-xs">
-                <span className="text-muted">Episode progress</span>
-                <span className="tabular-nums text-fg">
+                <span className="text-white/55">Episode progress</span>
+                <span className="tabular-nums text-white">
                   {watchedCount}
                   {totalEpisodes ? ` / ${totalEpisodes}` : ""}
                 </span>
               </div>
-              <div className="h-2 w-full overflow-hidden rounded-full bg-surface-3">
+              <div className="h-1 w-full overflow-hidden bg-white/15">
                 <div
                   className={cn(
-                    "h-full rounded-full transition-all",
-                    percent >= 100 ? "bg-emerald-400" : "bg-accent-strong",
+                    "h-full transition-all",
+                    percent >= 100 ? "bg-emerald-400" : "bg-white",
                   )}
                   style={{ width: `${percent}%` }}
                 />
               </div>
               <div className="flex items-center justify-between">
-                <span className="text-[11px] text-faint">
+                <span className="text-[11px] text-white/40">
                   {percent}% complete
                 </span>
                 <Button
@@ -196,7 +199,7 @@ export function TmdbTrackingPanel({
           />
 
           <label className="block space-y-1.5">
-            <span className="block text-xs font-medium text-muted">
+            <span className="block text-xs font-medium text-white/55">
               Personal notes
             </span>
             <Textarea
@@ -217,8 +220,18 @@ export function TmdbTrackingPanel({
             Save notes
           </Button>
 
+          <Button
+            size="sm"
+            variant="secondary"
+            className="w-full"
+            onClick={onOpenList}
+          >
+            <BookmarkIcon className="h-3.5 w-3.5" />
+            Add to Curated List
+          </Button>
+
           {confirmRemove ? (
-            <div className="space-y-2 rounded-xl border border-danger/30 bg-danger-soft p-3">
+            <div className="space-y-2 border border-danger/40 bg-danger-soft/60 p-3">
               <p className="text-xs text-danger">
                 Remove this title and its episode history?
               </p>
@@ -257,11 +270,11 @@ export function TmdbTrackingPanel({
       )}
 
       {posterUrl && isHttpUrl(posterUrl) ? (
-        <p className="text-[11px] text-faint">
+        <p className="text-[11px] text-white/40">
           TMDB id {tmdbId} · metadata is cached; your progress never leaves Kaze.
         </p>
       ) : (
-        <p className="text-[11px] text-faint">
+        <p className="text-[11px] text-white/40">
           TMDB id {tmdbId} · your progress never leaves Kaze.
         </p>
       )}

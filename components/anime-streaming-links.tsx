@@ -1,6 +1,7 @@
 import Image from "next/image";
 
 import { ExternalIcon, FilmIcon } from "@/components/icons";
+import { OpticalGlass } from "@/components/ui/optical-glass";
 import { isHttpUrl } from "@/lib/utils";
 import type { AnimeExternalLink } from "@/types/anime";
 
@@ -39,7 +40,7 @@ export function AnimeStreamingLinks({ links = [] }: AnimeStreamingLinksProps) {
   }
 
   return (
-    <div className="optical-glass space-y-2.5 p-3.5">
+    <OpticalGlass variant="card" className="space-y-2.5 p-3.5">
       <div className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-white/50">
         <FilmIcon className="h-3.5 w-3.5 text-white/70" />
         <span>Where to Stream</span>
@@ -78,6 +79,6 @@ export function AnimeStreamingLinks({ links = [] }: AnimeStreamingLinksProps) {
           </a>
         ))}
       </div>
-    </div>
+    </OpticalGlass>
   );
 }

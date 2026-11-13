@@ -2,6 +2,7 @@
 
 import { EpisodeTracker } from "@/components/episode-tracker";
 import { LinkButton } from "@/components/ui/link-button";
+import { OpticalGlass } from "@/components/ui/optical-glass";
 import { useLibrary } from "@/features/library/library-provider";
 import type { Anime } from "@/types/anime";
 
@@ -26,7 +27,7 @@ export function AnimeEpisodeSection({ anime }: { anime: Anime }) {
       </div>
 
       {!canWrite ? (
-        <div className="optical-glass p-5 text-center">
+        <OpticalGlass variant="card" className="p-5 text-center">
           <p className="text-sm text-white/70">
             Sign in to track individual episodes and save your progress.
           </p>
@@ -38,7 +39,7 @@ export function AnimeEpisodeSection({ anime }: { anime: Anime }) {
           >
             Sign in to track
           </LinkButton>
-        </div>
+        </OpticalGlass>
       ) : (
         <EpisodeTracker anime={anime} entry={entry} />
       )}

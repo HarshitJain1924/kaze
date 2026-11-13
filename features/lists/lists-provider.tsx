@@ -8,8 +8,14 @@ import {
   useCallback,
   type ReactNode,
 } from "react";
-import type { CustomList, CustomListItem, ListProgress } from "@/types/custom-list";
+import {
+  customListItemKey,
+  type CustomList,
+  type CustomListItem,
+  type ListProgress,
+} from "@/types/custom-list";
 import type { LibraryItem } from "@/types/library";
+import type { TmdbLibraryItem } from "@/types/tmdb";
 
 const STORAGE_KEY = "kaze_custom_lists_v2";
 const LEGACY_STORAGE_KEY = "kaze_custom_lists_v1";
@@ -160,7 +166,7 @@ function healLists(lists: CustomList[]): CustomList[] {
     const updatedItems = list.items.map((item) => {
       const defaultItem = starter.items.find(
         (di) =>
-          di.anilistId === item.anilistId ||
+          (item.anilistId !== undefined && di.anilistId === item.anilistId) ||
           di.id === item.id ||
           di.title.toLowerCase() === item.title.toLowerCase(),
       );
@@ -187,32 +193,60 @@ interface CustomListsContextValue {
   createList: (title: string, description: string, isPublic?: boolean) => CustomList;
   deleteList: (id: string) => void;
   addItemToList: (listId: string, item: Omit<CustomListItem, "id" | "addedAt">) => void;
-  removeItemFromList: (listId: string, anilistId: number) => void;
-  updateItemNotes: (listId: string, anilistId: number, notes: string) => void;
+  removeItemFromList: (listId: string, itemKey: string) => void;
+  updateItemNotes: (listId: string, itemKey: string, notes: string) => void;
   getList: (id: string) => CustomList | undefined;
-  isAnimeInList: (listId: string, anilistId: number) => boolean;
-  calculateProgress: (list: CustomList, libraryItems: LibraryItem[]) => ListProgress;
+  isItemInList: (listId: string, itemKey: string) => boolean;
+  calculateProgress: (
+    list: CustomList,
+    libraryItems: LibraryItem[],
+    screenItems?: TmdbLibraryItem[],
+  ) => ListProgress;
 }
 
 const CustomListsContext = createContext<CustomListsContextValue | null>(null);
 
-export function useProgressCalculation(list: CustomList, libraryItems: LibraryItem[]): ListProgress {
-  const completedIds = new Set(
-    libraryItems
-      .filter((item) => item.entry.status === "completed" || item.entry.progress > 0)
-      .map((item) => item.entry.anilistId),
-  );
-
+/**
+ * A curated entry counts as watched when its matching library row says so:
+ * anime needs progress or a completed status, a film needs its watched flag,
+ * and a series needs at least one recorded episode.
+ */
+export function computeListProgress(
+  list: CustomList,
+  libraryItems: LibraryItem[],
+  screenItems: TmdbLibraryItem[] = [],
+): ListProgress {
   const totalCount = list.items.length;
   if (totalCount === 0) {
     return { watchedCount: 0, totalCount: 0, percentage: 0, isFullyWatched: false };
   }
 
+  const watchedAnime = new Set(
+    libraryItems
+      .filter(
+        (item) => item.entry.status === "completed" || item.entry.progress > 0,
+      )
+      .map((item) => item.entry.anilistId),
+  );
+
+  const watchedScreen = new Set(
+    screenItems
+      .filter(
+        (item) =>
+          item.entry.watched ||
+          item.entry.status === "completed" ||
+          item.watchedCount > 0,
+      )
+      .map((item) => `tmdb:${item.entry.mediaType}:${item.entry.tmdbId}`),
+  );
+
   let watchedCount = 0;
   for (const item of list.items) {
-    if (completedIds.has(item.anilistId)) {
-      watchedCount += 1;
-    }
+    const itemKey = customListItemKey(item);
+    const isWatched = itemKey.startsWith("tmdb:")
+      ? watchedScreen.has(itemKey)
+      : watchedAnime.has(item.anilistId ?? -1);
+    if (isWatched) watchedCount += 1;
   }
 
   const percentage = Math.round((watchedCount / totalCount) * 100);
@@ -222,6 +256,14 @@ export function useProgressCalculation(list: CustomList, libraryItems: LibraryIt
     percentage,
     isFullyWatched: watchedCount === totalCount,
   };
+}
+
+export function useProgressCalculation(
+  list: CustomList,
+  libraryItems: LibraryItem[],
+  screenItems: TmdbLibraryItem[] = [],
+): ListProgress {
+  return computeListProgress(list, libraryItems, screenItems);
 }
 
 export function CustomListsProvider({ children }: { children: ReactNode }) {
@@ -311,7 +353,8 @@ export function CustomListsProvider({ children }: { children: ReactNode }) {
         lists.map((list) => {
           if (list.id !== listId) return list;
           // Don't add duplicate
-          if (list.items.some((it) => it.anilistId === itemData.anilistId)) {
+          const itemKey = customListItemKey(itemData);
+          if (list.items.some((it) => customListItemKey(it) === itemKey)) {
             return list;
           }
 
@@ -334,14 +377,16 @@ export function CustomListsProvider({ children }: { children: ReactNode }) {
   );
 
   const removeItemFromList = useCallback(
-    (listId: string, anilistId: number) => {
+    (listId: string, itemKey: string) => {
       saveLists(
         lists.map((list) => {
           if (list.id !== listId) return list;
           return {
             ...list,
             updatedAt: new Date().toISOString(),
-            items: list.items.filter((it) => it.anilistId !== anilistId),
+            items: list.items.filter(
+              (it) => customListItemKey(it) !== itemKey,
+            ),
           };
         }),
       );
@@ -350,7 +395,7 @@ export function CustomListsProvider({ children }: { children: ReactNode }) {
   );
 
   const updateItemNotes = useCallback(
-    (listId: string, anilistId: number, notes: string) => {
+    (listId: string, itemKey: string, notes: string) => {
       saveLists(
         lists.map((list) => {
           if (list.id !== listId) return list;
@@ -358,7 +403,9 @@ export function CustomListsProvider({ children }: { children: ReactNode }) {
             ...list,
             updatedAt: new Date().toISOString(),
             items: list.items.map((it) =>
-              it.anilistId === anilistId ? { ...it, notes: notes.trim() } : it,
+              customListItemKey(it) === itemKey
+                ? { ...it, notes: notes.trim() }
+                : it,
             ),
           };
         }),
@@ -374,42 +421,22 @@ export function CustomListsProvider({ children }: { children: ReactNode }) {
     [lists],
   );
 
-  const isAnimeInList = useCallback(
-    (listId: string, anilistId: number) => {
+  const isItemInList = useCallback(
+    (listId: string, itemKey: string) => {
       const list = lists.find((l) => l.id === listId);
-      return Boolean(list?.items.some((it) => it.anilistId === anilistId));
+      return Boolean(
+        list?.items.some((it) => customListItemKey(it) === itemKey),
+      );
     },
     [lists],
   );
 
   const calculateProgress = useCallback(
-    (list: CustomList, libraryItems: LibraryItem[]): ListProgress => {
-      const completedIds = new Set(
-        libraryItems
-          .filter((item) => item.entry.status === "completed" || item.entry.progress > 0)
-          .map((item) => item.entry.anilistId),
-      );
-
-      const totalCount = list.items.length;
-      if (totalCount === 0) {
-        return { watchedCount: 0, totalCount: 0, percentage: 0, isFullyWatched: false };
-      }
-
-      let watchedCount = 0;
-      for (const item of list.items) {
-        if (completedIds.has(item.anilistId)) {
-          watchedCount += 1;
-        }
-      }
-
-      const percentage = Math.round((watchedCount / totalCount) * 100);
-      return {
-        watchedCount,
-        totalCount,
-        percentage,
-        isFullyWatched: watchedCount === totalCount,
-      };
-    },
+    (
+      list: CustomList,
+      libraryItems: LibraryItem[],
+      screenItems: TmdbLibraryItem[] = [],
+    ): ListProgress => computeListProgress(list, libraryItems, screenItems),
     [],
   );
 
@@ -424,7 +451,7 @@ export function CustomListsProvider({ children }: { children: ReactNode }) {
         removeItemFromList,
         updateItemNotes,
         getList,
-        isAnimeInList,
+        isItemInList,
         calculateProgress,
       }}
     >

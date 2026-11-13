@@ -2,7 +2,14 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  useSyncExternalStore,
+} from "react";
 
 import {
   BookmarkIcon,
@@ -21,6 +28,7 @@ import { EmptyState } from "@/components/empty-state";
 import { useToast } from "@/components/providers/toast-provider";
 import { useActiveTimeZone, usePreferences } from "@/components/providers/preferences-provider";
 import { useLibrary } from "@/features/library/library-provider";
+import { ScreenContinueShelf } from "@/features/screen/screen-continue-shelf";
 import { formatAiringTime, toIsoDateString } from "@/lib/schedule";
 import {
   cn,
@@ -33,6 +41,7 @@ import {
 import { seasonLabel } from "@/lib/season";
 import type { AiringScheduleEntry, AnimeSeason, AnimeSummary } from "@/types/anime";
 import type { LibraryItem } from "@/types/library";
+import type { TmdbLibraryItem } from "@/types/tmdb";
 
 export function getNextEpisodeNumber(
   progress: number,
@@ -57,12 +66,86 @@ export function getNextEpisodeNumber(
   return { nextEp, atEnd };
 }
 
+// One shared clock for the section. It stays null during the server render, so
+// hydration matches, then ticks so "3h ago" and "airs today" stay truthful on a
+// long-lived dashboard tab.
+let clockNow: number | null = null;
+let clockTimer: number | null = null;
+const clockListeners = new Set<() => void>();
+
+function subscribeClock(listener: () => void) {
+  clockListeners.add(listener);
+  if (clockTimer === null) {
+    clockNow = Date.now();
+    clockTimer = window.setInterval(() => {
+      clockNow = Date.now();
+      for (const notify of clockListeners) notify();
+    }, 30_000);
+  }
+
+  return () => {
+    clockListeners.delete(listener);
+    if (clockListeners.size === 0 && clockTimer !== null) {
+      window.clearInterval(clockTimer);
+      clockTimer = null;
+      clockNow = null;
+    }
+  };
+}
+
+function useNowMs(): number | null {
+  return useSyncExternalStore(
+    subscribeClock,
+    () => clockNow,
+    () => null,
+  );
+}
+
+function formatUpdatedRelative(
+  value: string,
+  nowMs: number | null,
+): string | null {
+  if (nowMs === null) return null;
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return null;
+
+  const minutes = Math.round((nowMs - date.getTime()) / 60_000);
+  if (minutes < 1) return "just now";
+  if (minutes < 60) return `${minutes}m ago`;
+  const hours = Math.round(minutes / 60);
+  if (hours < 24) return `${hours}h ago`;
+  const days = Math.round(hours / 24);
+  if (days === 1) return "yesterday";
+  if (days < 7) return `${days}d ago`;
+  return new Intl.DateTimeFormat("en-US", {
+    month: "short",
+    day: "numeric",
+  }).format(date);
+}
+
+// Whether marking this episode would finish the title, so the deck can hand the
+// spotlight to the next in-progress series instead of parking on "All caught up".
+function finishesItem(
+  item: LibraryItem & { anime: AnimeSummary },
+  targetEpisode?: number,
+): boolean {
+  const manga = isManga(item.anime);
+  const total = manga ? (item.anime.chapters ?? null) : item.anime.episodes;
+  if (total === null || total <= 0) return false;
+  const reached = Math.max(
+    item.entry.progress,
+    targetEpisode ?? item.entry.progress + 1,
+  );
+  return reached >= total;
+}
+
 export interface FeaturedAngularCardProps {
   item: LibraryItem & { anime: AnimeSummary };
   watchedEpisodes: number[];
   airingToday?: AiringScheduleEntry | null;
   isPending: boolean;
   titleLanguage: "english" | "romaji";
+  nowMs?: number | null;
   onIncrement: (id: number, targetEpisode?: number) => void;
   onPrevItem?: () => void;
   onNextItem?: () => void;
@@ -74,6 +157,7 @@ export function FeaturedAngularCard({
   airingToday,
   isPending,
   titleLanguage,
+  nowMs = null,
   onIncrement,
   onPrevItem,
   onNextItem,
@@ -122,6 +206,12 @@ export function FeaturedAngularCard({
         ? String(anime.seasonYear)
         : null;
   const genres = anime.genres ? anime.genres.slice(0, 3) : [];
+  const updatedRelative = formatUpdatedRelative(entry.updatedAt, nowMs);
+  const airedAlready =
+    airingToday !== null &&
+    airingToday !== undefined &&
+    nowMs !== null &&
+    airingToday.airingAt * 1000 <= nowMs;
 
   const handleToggleBookmark = () => {
     setIsBookmarked((prev) => {
@@ -291,12 +381,25 @@ export function FeaturedAngularCard({
                   {genre}
                 </span>
               ))}
+              {updatedRelative ? (
+                <span className="text-faint">
+                  <span className="mr-2 text-border">/</span>
+                  Updated {updatedRelative}
+                </span>
+              ) : null}
             </p>
 
             {!manga && airingToday ? (
-              <p className="mt-2 text-[10px] font-medium text-success">
-                Episode {airingToday.episode} airs today ·{" "}
+              <p
+                className={cn(
+                  "mt-2 text-[10px] font-medium",
+                  airedAlready ? "text-fg" : "text-success",
+                )}
+              >
+                Episode {airingToday.episode}{" "}
+                {airedAlready ? "aired" : "airs today"} ·{" "}
                 {formatAiringTime(airingToday.airingAt, activeTimeZone)}
+                {airedAlready ? " · ready to watch" : ""}
               </p>
             ) : null}
 
@@ -429,9 +532,15 @@ export function QueueCard({
     watchedEpisodes,
     total,
   );
+  // Count the furthest tracked episode too, so the shelf never reports less
+  // progress than the featured deck does for the same title.
+  const watchedCount = Math.max(
+    entry.progress,
+    watchedEpisodes.length > 0 ? Math.max(...watchedEpisodes) : 0,
+  );
   const percent =
     total && total > 0
-      ? Math.min(100, Math.round((entry.progress / total) * 100))
+      ? Math.min(100, Math.round((watchedCount / total) * 100))
       : null;
 
   return (
@@ -473,8 +582,8 @@ export function QueueCard({
         </span>
         <span className="mt-1 block truncate text-[10px] text-muted">
           {total
-            ? `${entry.progress}/${total} ${manga ? "ch" : "eps"}`
-            : `${entry.progress} ${manga ? "read" : "watched"}`}
+            ? `${watchedCount}/${total} ${manga ? "ch" : "eps"}`
+            : `${watchedCount} ${manga ? "read" : "watched"}`}
           {percent !== null ? ` · ${percent}%` : ""}
           {airingToday ? " · airs today" : ""}
         </span>
@@ -514,15 +623,24 @@ export function QueueCard({
   );
 }
 
+type ContinueFilter = "all" | "anime" | "manga" | "manhwa" | "series" | "films";
+
 interface ContinueWatchingProps {
   todayEntries?: AiringScheduleEntry[] | null;
+  /** Film and TV library rows, resolved on the server dashboard. */
+  screenItems?: TmdbLibraryItem[] | null;
 }
 
-export function ContinueWatching({ todayEntries }: ContinueWatchingProps = {}) {
+export function ContinueWatching({
+  todayEntries,
+  screenItems,
+}: ContinueWatchingProps = {}) {
   const { items, incrementProgress, pendingIds, watchedEpisodesFor } =
     useLibrary();
   const { preferences } = usePreferences();
   const { activeTimeZone } = useActiveTimeZone();
+  const nowMs = useNowMs();
+  const [mediaFilter, setMediaFilter] = useState<ContinueFilter>("all");
 
   // Map of anime IDs releasing today in the active timezone
   const todayAiringMap = useMemo(() => {
@@ -552,7 +670,7 @@ export function ContinueWatching({ todayEntries }: ContinueWatchingProps = {}) {
         item.entry.status === "watching" && item.anime !== null,
     );
 
-    return list.sort((a, b) => {
+    const sorted = list.sort((a, b) => {
       const aAiring = todayAiringMap.get(a.anime.id);
       const bAiring = todayAiringMap.get(b.anime.id);
 
@@ -581,7 +699,76 @@ export function ContinueWatching({ todayEntries }: ContinueWatchingProps = {}) {
         new Date(a.entry.updatedAt).getTime()
       );
     });
-  }, [items, todayAiringMap]);
+
+    // Films and series render through their own shelf, so the anime deck empties
+    // when one of those categories is selected.
+    if (mediaFilter === "series" || mediaFilter === "films") return [];
+    if (mediaFilter === "anime") {
+      return sorted.filter((item) => !isManga(item.anime));
+    }
+    if (mediaFilter === "manga") {
+      return sorted.filter(
+        (item) => isManga(item.anime) && item.anime.countryOfOrigin !== "KR",
+      );
+    }
+    if (mediaFilter === "manhwa") {
+      return sorted.filter(
+        (item) => isManga(item.anime) && item.anime.countryOfOrigin === "KR",
+      );
+    }
+    return sorted;
+  }, [items, todayAiringMap, mediaFilter]);
+
+  // Counts come from the raw library so every chip can advertise its size even
+  // while a single category is selected.
+  const categoryCounts = useMemo(() => {
+    let anime = 0;
+    let manga = 0;
+    let manhwa = 0;
+    for (const item of items) {
+      if (item.entry.status !== "watching" || item.anime === null) continue;
+      if (!isManga(item.anime)) anime += 1;
+      else if (item.anime.countryOfOrigin === "KR") manhwa += 1;
+      else manga += 1;
+    }
+    return { anime, manga, manhwa };
+  }, [items]);
+
+  const seriesInProgress = useMemo(() => {
+    return (screenItems ?? [])
+      .filter((item) => {
+        if (item.entry.mediaType !== "tv") return false;
+        if (
+          item.entry.status === "completed" ||
+          item.entry.status === "dropped"
+        ) {
+          return false;
+        }
+        const total = item.entry.totalEpisodes ?? 0;
+        if (total > 0 && item.watchedCount >= total) return false;
+        return item.watchedCount > 0 || item.entry.status === "watching";
+      })
+      .sort(
+        (a, b) =>
+          new Date(b.entry.updatedAt).getTime() -
+          new Date(a.entry.updatedAt).getTime(),
+      );
+  }, [screenItems]);
+
+  const filmsQueued = useMemo(() => {
+    return (screenItems ?? [])
+      .filter(
+        (item) =>
+          item.entry.mediaType === "movie" &&
+          !item.entry.watched &&
+          item.entry.status !== "dropped",
+      )
+      .sort(
+        (a, b) =>
+          new Date(b.entry.updatedAt).getTime() -
+          new Date(a.entry.updatedAt).getTime(),
+      );
+  }, [screenItems]);
 
   const [selectedId, setSelectedId] = useState<number | null>(null);
   const [viewMode, setViewMode] = useState<"shelf" | "grid">("shelf");
@@ -606,6 +793,27 @@ export function ContinueWatching({ todayEntries }: ContinueWatchingProps = {}) {
     (selectedId !== null ? watching.find((it) => it.anime.id === selectedId) : null) ??
     watching[0] ??
     null;
+
+  // Cycling the deck should also bring the active card into view on the shelf.
+  // Skips the first render so a deep link does not hijack the page scroll.
+  const featuredAnimeId = featuredItem?.anime.id ?? null;
+  const didAutoScroll = useRef(false);
+
+  useEffect(() => {
+    if (featuredAnimeId === null || !didAutoScroll.current) {
+      didAutoScroll.current = featuredAnimeId !== null;
+      return;
+    }
+    const container = shelfScrollRef.current;
+    const active = container?.querySelector<HTMLElement>('[data-featured="true"]');
+    if (!container || !active) return;
+    const offset =
+      active.getBoundingClientRect().left -
+      container.getBoundingClientRect().left +
+      container.scrollLeft -
+      16;
+    container.scrollTo({ left: Math.max(0, offset), behavior: "smooth" });
+  }, [featuredAnimeId]);
 
   const handleShelfScroll = (direction: "left" | "right") => {
     if (!shelfScrollRef.current) return;
@@ -634,16 +842,83 @@ export function ContinueWatching({ todayEntries }: ContinueWatchingProps = {}) {
     return watching.filter((it) => todayAiringMap.has(it.anime.id)).length;
   }, [watching, todayAiringMap]);
 
+  // Once a title is finished, hand the spotlight to the next thing in progress
+  // rather than leaving the deck parked on a completed series.
+  const advancePast = useCallback(
+    (id: number) => {
+      setSelectedId((current) => {
+        const index = watching.findIndex((it) => it.anime.id === id);
+        if (index === -1) return current;
+        for (let step = 1; step < watching.length; step += 1) {
+          const candidate = watching[(index + step) % watching.length];
+          if (candidate && candidate.anime.id !== id) return candidate.anime.id;
+        }
+        return current;
+      });
+    },
+    [watching],
+  );
+
   const gridItems = showAllGrid ? watching : watching.slice(0, 6);
+
+  const planningCount = items.filter(
+    (item) => item.entry.status === "planning" && item.anime !== null,
+  ).length;
 
   const hasAnime = watching.some((it) => !isManga(it.anime));
   const hasManga = watching.some((it) => isManga(it.anime));
   const sectionTitle =
-    hasAnime && hasManga
-      ? "Continue watching & reading"
-      : hasManga
-        ? "Continue reading"
-        : "Continue watching";
+    mediaFilter === "series"
+      ? "Continue watching series"
+      : mediaFilter === "films"
+        ? "Films up next"
+        : mediaFilter === "manhwa"
+          ? "Continue reading manhwa"
+          : mediaFilter === "manga"
+            ? "Continue reading manga"
+            : mediaFilter === "anime"
+              ? "Continue watching anime"
+              : hasAnime && hasManga
+                ? "Continue watching & reading"
+                : hasManga
+                  ? "Continue reading"
+                  : "Continue watching";
+
+  const filters: Array<{ id: ContinueFilter; label: string; count: number }> = [
+    {
+      id: "all",
+      label: "All",
+      count:
+        categoryCounts.anime +
+        categoryCounts.manga +
+        categoryCounts.manhwa +
+        seriesInProgress.length +
+        filmsQueued.length,
+    },
+  ];
+  if (categoryCounts.anime > 0) {
+    filters.push({ id: "anime", label: "Anime", count: categoryCounts.anime });
+  }
+  if (categoryCounts.manga > 0) {
+    filters.push({ id: "manga", label: "Manga", count: categoryCounts.manga });
+  }
+  if (categoryCounts.manhwa > 0) {
+    filters.push({
+      id: "manhwa",
+      label: "Manhwa",
+      count: categoryCounts.manhwa,
+    });
+  }
+  if (seriesInProgress.length > 0) {
+    filters.push({
+      id: "series",
+      label: "Series",
+      count: seriesInProgress.length,
+    });
+  }
+  if (filmsQueued.length > 0) {
+    filters.push({ id: "films", label: "Films", count: filmsQueued.length });
+  }
 
   return (
     <section aria-label={sectionTitle} className="space-y-4 sm:space-y-5 border-t border-border pt-4 sm:pt-5">
@@ -660,16 +935,21 @@ export function ContinueWatching({ todayEntries }: ContinueWatchingProps = {}) {
             <span>{sectionTitle}</span>
             <ChevronRightIcon className="h-4 w-4 text-muted transition-transform group-hover:translate-x-0.5" />
           </Link>
-          {watching.length > 0 ? (
-            <span className="inline-flex items-center text-[10px] font-semibold uppercase tracking-[0.12em] text-accent-strong tabular-nums">
-              {watching.length} active
-            </span>
-          ) : null}
-          {todayAiringCount > 0 ? (
-            <span className="inline-flex items-center gap-1 text-[10px] font-semibold uppercase tracking-[0.1em] text-success">
-              <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 radar-live-dot" />
-              {todayAiringCount} airing today
-            </span>
+          {watching.length > 0 || todayAiringCount > 0 ? (
+            <div className="mt-2 flex flex-wrap items-center gap-x-3.5 gap-y-1.5 text-[10px] font-semibold uppercase tracking-[0.12em]">
+              {watching.length > 0 ? (
+                <span className="inline-flex items-center gap-1.5 text-accent-strong tabular-nums">
+                  <span className="h-1 w-1 rounded-full bg-accent-strong" />
+                  {watching.length} active
+                </span>
+              ) : null}
+              {todayAiringCount > 0 ? (
+                <span className="inline-flex items-center gap-1.5 text-success tabular-nums">
+                  <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 radar-live-dot" />
+                  {todayAiringCount} airing today
+                </span>
+              ) : null}
+            </div>
           ) : null}
         </div>
 
@@ -696,7 +976,7 @@ export function ContinueWatching({ todayEntries }: ContinueWatchingProps = {}) {
                 onClick={() => setViewMode("grid")}
                 aria-label="Grid view"
                 className={cn(
-                  "flex h-7 items-center gap-1.5 rounded-lg px-2.5 font-medium transition-all",
+                  "flex h-8 items-center gap-1.5 border-b-2 px-2.5 font-medium transition-colors",
                   viewMode === "grid"
                     ? "border-accent text-accent-strong font-semibold"
                     : "border-transparent text-muted hover:text-fg",
@@ -740,20 +1020,76 @@ export function ContinueWatching({ todayEntries }: ContinueWatchingProps = {}) {
         </div>
       </div>
 
+      {/* Category filter: anime, reading and screen titles share one deck. */}
+      {filters.length > 2 ? (
+        <div className="-mx-4 flex items-center gap-1.5 overflow-x-auto px-4 pb-1 no-scrollbar sm:mx-0 sm:flex-wrap sm:overflow-visible sm:px-0">
+          {filters.map((filter) => (
+            <button
+              key={filter.id}
+              type="button"
+              onClick={() => setMediaFilter(filter.id)}
+              aria-pressed={mediaFilter === filter.id}
+              className={cn(
+                "inline-flex h-8 shrink-0 items-center gap-1.5 border px-3 text-[10px] font-semibold uppercase tracking-[0.12em] transition-colors",
+                mediaFilter === filter.id
+                  ? "border-accent bg-accent text-accent-contrast"
+                  : "border-border text-muted hover:bg-surface-2 hover:text-fg",
+              )}
+            >
+              {filter.label}
+              <span className="font-mono text-[10px] tabular-nums opacity-70">
+                {filter.count}
+              </span>
+            </button>
+          ))}
+        </div>
+      ) : null}
+
       {/* Main Content */}
-      {!featuredItem ? (
+      {mediaFilter === "series" || mediaFilter === "films" ? (
+        <ScreenContinueShelf
+          heading={
+            mediaFilter === "series" ? "Series in progress" : "Films up next"
+          }
+          description={
+            mediaFilter === "series"
+              ? "Episodes you have started, newest activity first."
+              : "Films in your library waiting for a night in."
+          }
+          items={mediaFilter === "series" ? seriesInProgress : filmsQueued}
+          emptyTitle={
+            mediaFilter === "series" ? "No series in progress" : "No films queued"
+          }
+          emptyDescription={
+            mediaFilter === "series"
+              ? "Start a series from the film and TV catalogue and its next episode lands here."
+              : "Add a film from the film and TV catalogue and it will wait here until you watch it."
+          }
+        />
+      ) : !featuredItem ? (
         <EmptyState
           compact
           icon={<PlayIcon className="h-5 w-5" />}
           title="Nothing in progress"
           description="Mark an anime as Watching or a manga as Reading and it will appear here with one-tap updates."
           action={
-            <Link
-              href="/discover"
-              className="inline-flex h-8 items-center rounded-lg border border-border bg-surface-2 px-3 text-[13px] font-medium text-fg transition-colors hover:border-accent/50 hover:bg-surface-3"
-            >
-              Browse catalog
-            </Link>
+            <div className="flex flex-wrap items-center justify-center gap-2">
+              <Link
+                href="/discover"
+                className="inline-flex h-8 items-center border border-border bg-surface-2 px-3 text-[13px] font-medium text-fg transition-colors hover:border-accent/50 hover:bg-surface-3"
+              >
+                Browse catalog
+              </Link>
+              {planningCount > 0 ? (
+                <Link
+                  href="/library?status=planning"
+                  className="inline-flex h-8 items-center gap-1.5 border border-border px-3 text-[13px] font-medium text-muted transition-colors hover:border-accent/50 hover:text-fg"
+                >
+                  {planningCount} planned
+                  <ChevronRightIcon className="h-3 w-3" />
+                </Link>
+              ) : null}
+            </div>
           }
         />
       ) : (
@@ -765,7 +1101,14 @@ export function ContinueWatching({ todayEntries }: ContinueWatchingProps = {}) {
             airingToday={todayAiringMap.get(featuredItem.anime.id) ?? null}
             isPending={pendingIds.has(featuredItem.anime.id)}
             titleLanguage={preferences.titleLanguage}
-            onIncrement={(id, ep) => void incrementProgress(id, ep)}
+            nowMs={nowMs}
+            onIncrement={(id, ep) => {
+              const target = watching.find((it) => it.anime.id === id);
+              const willFinish = target ? finishesItem(target, ep) : false;
+              void incrementProgress(id, ep).then((ok) => {
+                if (ok && willFinish) advancePast(id);
+              });
+            }}
             onPrevItem={watching.length > 1 ? () => handleCycleFocus("prev") : undefined}
             onNextItem={watching.length > 1 ? () => handleCycleFocus("next") : undefined}
           />
@@ -837,6 +1180,11 @@ export function ContinueWatching({ todayEntries }: ContinueWatchingProps = {}) {
                       return (
                         <div
                           key={item.entry.id}
+                          data-featured={
+                            item.anime.id === featuredItem.anime.id
+                              ? "true"
+                              : undefined
+                          }
                           className="w-60 shrink-0 snap-start"
                         >
                           <QueueCard
@@ -909,6 +1257,26 @@ export function ContinueWatching({ todayEntries }: ContinueWatchingProps = {}) {
           ) : null}
         </div>
       )}
+
+      {mediaFilter === "all" && seriesInProgress.length > 0 ? (
+        <ScreenContinueShelf
+          heading="Series in progress"
+          description="Episodes you have started, newest activity first."
+          items={seriesInProgress.slice(0, 6)}
+          emptyTitle="No series in progress"
+          emptyDescription="Start a series from the film and TV catalogue and its next episode lands here."
+        />
+      ) : null}
+
+      {mediaFilter === "all" && filmsQueued.length > 0 ? (
+        <ScreenContinueShelf
+          heading="Films up next"
+          description="Films in your library waiting for a night in."
+          items={filmsQueued.slice(0, 6)}
+          emptyTitle="No films queued"
+          emptyDescription="Add a film from the film and TV catalogue and it will wait here until you watch it."
+        />
+      ) : null}
     </section>
   );
 }

@@ -2,6 +2,7 @@ import Image from "next/image";
 import Link from "next/link";
 
 import { StarIcon } from "@/components/icons";
+import { OpticalGlass } from "@/components/ui/optical-glass";
 import { isHttpUrl } from "@/lib/utils";
 import type { TmdbRecommendation } from "@/types/tmdb";
 
@@ -28,10 +29,12 @@ export function TmdbRecommendations({
 
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 md:grid-cols-4 lg:grid-cols-4 xl:grid-cols-6">
         {recommendations.slice(0, 12).map((item) => (
-          <Link
+          <OpticalGlass
+            as={Link}
             key={`${item.kind}:${item.tmdbId}`}
+            variant="tint"
             href={`/screen/${item.kind}/${item.tmdbId}`}
-            className="group overflow-hidden border border-white/10 bg-[rgba(14,17,24,0.35)] transition-colors duration-200 hover:border-white/25 hover:bg-[rgba(14,17,24,0.5)]"
+            className="group overflow-hidden"
           >
             <div className="relative aspect-[2/3] w-full overflow-hidden bg-white/5">
               {item.posterUrl && isHttpUrl(item.posterUrl) ? (
@@ -63,7 +66,7 @@ export function TmdbRecommendations({
                 {[item.year ?? "Year unknown", item.kind === "tv" ? "TV" : "Film"].join(" · ")}
               </p>
             </div>
-          </Link>
+          </OpticalGlass>
         ))}
       </div>
     </section>

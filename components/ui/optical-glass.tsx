@@ -5,7 +5,7 @@ import { cn } from "@/lib/utils";
 
 export type OpticalGlassProps<T extends React.ElementType = "div"> = {
   as?: T;
-  variant?: "workspace" | "card" | "pill" | "interactive" | "nav";
+  variant?: "workspace" | "card" | "pill" | "interactive" | "nav" | "tint";
   interactive?: boolean;
 } & React.ComponentPropsWithoutRef<T>;
 
@@ -69,6 +69,7 @@ export function OpticalGlass<T extends React.ElementType = "div">({
     pill: "optical-glass-pill",
     interactive: "optical-glass-interactive",
     nav: "optical-glass-nav",
+    tint: "optical-glass-tint",
   }[variant];
 
   return (

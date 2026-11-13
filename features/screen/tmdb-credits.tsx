@@ -1,5 +1,6 @@
 import Image from "next/image";
 
+import { OpticalGlass } from "@/components/ui/optical-glass";
 import { isHttpUrl } from "@/lib/utils";
 import type { TmdbCastMember, TmdbCrewMember } from "@/types/tmdb";
 
@@ -51,9 +52,10 @@ export function TmdbCreditsSection({
           </h3>
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
             {visibleCast.map((member) => (
-              <div
+              <OpticalGlass
                 key={`${member.id}:${member.character ?? "cast"}`}
-                className="flex min-w-0 items-center gap-2.5 border border-white/10 bg-[rgba(14,17,24,0.35)] p-2.5 transition-colors hover:border-white/20"
+                variant="tint"
+                className="flex min-w-0 items-center gap-2.5 p-2.5"
               >
                 <div className="relative h-12 w-12 shrink-0 overflow-hidden rounded-full border border-white/20 bg-white/5">
                   {member.profileUrl && isHttpUrl(member.profileUrl) ? (
@@ -81,7 +83,7 @@ export function TmdbCreditsSection({
                     </p>
                   ) : null}
                 </div>
-              </div>
+              </OpticalGlass>
             ))}
           </div>
         </div>
@@ -94,9 +96,10 @@ export function TmdbCreditsSection({
           </h3>
           <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
             {visibleCrew.map((member) => (
-              <div
+              <OpticalGlass
                 key={`${member.id}:${member.job}`}
-                className="flex items-center justify-between gap-3 border border-white/10 bg-[rgba(14,17,24,0.35)] px-3 py-2"
+                variant="tint"
+                className="flex items-center justify-between gap-3 px-3 py-2"
               >
                 <span className="truncate text-xs font-medium text-white/85">
                   {member.name}
@@ -104,7 +107,7 @@ export function TmdbCreditsSection({
                 <span className="shrink-0 text-[11px] text-white/45">
                   {member.job}
                 </span>
-              </div>
+              </OpticalGlass>
             ))}
           </div>
         </div>

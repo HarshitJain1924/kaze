@@ -71,24 +71,24 @@ export function AnimeLibraryPanel({ anime }: { anime: Anime }) {
   return (
     <OpticalGlass
       as="section"
-      variant="workspace"
+      variant="card"
       aria-label="Personal tracking workspace"
-      className="rounded-2xl p-5 sm:p-6 space-y-5"
+      className="space-y-5 p-5 sm:p-6"
     >
       {/* 1. Workspace Header & Library Status */}
-      <div className="flex items-center justify-between gap-3 border-b border-border-subtle pb-3.5">
+      <div className="flex items-center justify-between gap-3 border-b border-white/10 pb-3.5">
         <div>
-          <span className="text-[10px] font-semibold uppercase tracking-[0.18em] text-accent-strong">
+          <span className="text-[10px] font-semibold uppercase tracking-[0.18em] text-white/55">
             Tracking Workspace
           </span>
-          <h2 className="mt-0.5 font-display text-base font-semibold text-fg">
+          <h2 className="mt-0.5 font-display text-base font-semibold text-white">
             Your Library
           </h2>
         </div>
         {entry ? (
           <StatusBadge status={entry.status} mediaType={anime.mediaType} />
         ) : (
-          <span className="rounded-md border border-border-subtle bg-surface-2/60 px-2 py-0.5 text-[10px] font-medium text-faint uppercase tracking-wider">
+          <span className="border border-white/20 bg-white/5 px-2 py-0.5 text-[10px] font-medium uppercase tracking-[0.14em] text-white/55">
             Not tracked
           </span>
         )}
@@ -96,7 +96,7 @@ export function AnimeLibraryPanel({ anime }: { anime: Anime }) {
 
       {!canWrite ? (
         <div className="space-y-3">
-          <p className="text-xs leading-relaxed text-muted">
+          <p className="text-xs leading-relaxed text-white/55">
             Sign in to track progress, rate this title, and keep personal notes.
             Your library syncs across your devices.
           </p>
@@ -109,7 +109,7 @@ export function AnimeLibraryPanel({ anime }: { anime: Anime }) {
           </LinkButton>
           <Link
             href="/discover"
-            className="block text-center text-xs text-faint transition-colors hover:text-fg"
+            className="block text-center text-xs text-white/45 transition-colors hover:text-white"
           >
             Keep browsing instead
           </Link>
@@ -117,7 +117,7 @@ export function AnimeLibraryPanel({ anime }: { anime: Anime }) {
       ) : !entry ? (
         /* Not yet in library: prominent add workflow */
         <div className="space-y-4">
-          <p className="text-xs leading-relaxed text-muted">
+          <p className="text-xs leading-relaxed text-white/55">
             Add this title to your library to log progress, save personal ratings, and write archive notes.
           </p>
           <WatchStatusSelector
@@ -136,7 +136,7 @@ export function AnimeLibraryPanel({ anime }: { anime: Anime }) {
             <PlusIcon className="h-4 w-4" />
             <span>{adding ? "Adding…" : "Add to library"}</span>
           </Button>
-          <p className="text-[11px] leading-relaxed text-faint">
+          <p className="text-[11px] leading-relaxed text-white/45">
             You can modify the status, progress, and private rating at any time.
           </p>
         </div>
@@ -154,8 +154,8 @@ export function AnimeLibraryPanel({ anime }: { anime: Anime }) {
 
           {/* 2. Primary Progress Action */}
           {isCompleted ? (
-            <div className="flex items-center gap-2 rounded border border-emerald-500/30 bg-emerald-500/10 p-3 text-xs text-emerald-400 font-medium">
-              <CheckIcon className="h-4 w-4 shrink-0 text-emerald-400" />
+            <div className="flex items-center gap-2 border border-emerald-500/30 bg-emerald-500/10 p-3 text-xs font-medium text-emerald-300">
+              <CheckIcon className="h-4 w-4 shrink-0 text-emerald-300" />
               <span>
                 All {totalUnits} {manga ? "chapters read" : "episodes completed"}
               </span>
@@ -181,23 +181,23 @@ export function AnimeLibraryPanel({ anime }: { anime: Anime }) {
           )}
 
           {/* 3. Progress Bar & Stepper Controls */}
-          <div className="space-y-3 border-t border-border/50 pt-4">
+          <div className="space-y-3 border-t border-white/10 pt-4">
             {totalUnits && totalUnits > 0 ? (
               <div className="space-y-1.5">
                 <div className="flex items-center justify-between text-xs">
-                  <span className="font-medium text-fg">
+                  <span className="font-medium text-white">
                     {manga ? "Reading completion" : "Watch completion"}
                   </span>
-                  <span className="font-semibold tabular-nums text-accent-strong">
+                  <span className="font-semibold tabular-nums text-white">
                     {Math.round((entry.progress / totalUnits) * 100)}%
-                    <span className="ml-1 font-normal text-muted">
+                    <span className="ml-1 font-normal text-white/50">
                       ({entry.progress}/{totalUnits})
                     </span>
                   </span>
                 </div>
-                <div className="h-1.5 w-full overflow-hidden rounded-full bg-surface-3 light:bg-black/10">
+                <div className="h-1 w-full overflow-hidden bg-white/15">
                   <div
-                    className="h-full rounded-full bg-accent transition-all duration-300"
+                    className="h-full bg-white transition-all duration-300"
                     style={{
                       width: `${Math.min(
                         100,
@@ -233,7 +233,7 @@ export function AnimeLibraryPanel({ anime }: { anime: Anime }) {
           </div>
 
           {/* 4. Personal Rating */}
-          <div className="border-t border-border/50 pt-4">
+          <div className="border-t border-white/10 pt-4">
             <RatingControl
               score={entry.score}
               disabled={pending}
@@ -242,15 +242,15 @@ export function AnimeLibraryPanel({ anime }: { anime: Anime }) {
           </div>
 
           {/* 5. Personal Notes */}
-          <div className="space-y-2 border-t border-border/50 pt-4">
+          <div className="space-y-2 border-t border-white/10 pt-4">
             <div className="flex items-center justify-between gap-3">
               <label
                 htmlFor="entry-notes"
-                className="text-xs font-medium text-muted"
+                className="text-xs font-medium text-white/55"
               >
                 Personal notes
               </label>
-              <span className="text-[11px] tabular-nums text-faint">
+              <span className="text-[11px] tabular-nums text-white/40">
                 {notes.length} / {MAX_NOTES_LENGTH}
               </span>
             </div>
@@ -264,7 +264,7 @@ export function AnimeLibraryPanel({ anime }: { anime: Anime }) {
               placeholder="Private notes, thoughts, favourite scenes…"
             />
             <div className="flex items-center justify-between gap-3">
-              <p className="text-[11px] text-faint">
+              <p className="text-[11px] text-white/40">
                 {formatIsoDate(entry.updatedAt)
                   ? `Saved ${formatIsoDate(entry.updatedAt)}`
                   : "Not saved yet"}
@@ -281,13 +281,13 @@ export function AnimeLibraryPanel({ anime }: { anime: Anime }) {
           </div>
 
           {/* 6. Secondary Actions & Curated List */}
-          <div className="space-y-3 border-t border-border pt-3">
+          <div className="space-y-3 border-t border-white/10 pt-3">
             <button
               type="button"
               onClick={() => setIsListModalOpen(true)}
-              className="w-full inline-flex items-center justify-center gap-2 rounded-lg border border-border-subtle bg-surface-2/70 px-3 py-2 text-xs font-semibold text-fg transition-colors hover:bg-surface-3 hover:border-border active:scale-98"
+              className="w-full inline-flex items-center justify-center gap-2 border border-white/15 bg-white/5 px-3 py-2 text-xs font-semibold text-white/85 transition-colors hover:border-white/35 hover:bg-white/10 hover:text-white"
             >
-              <BookmarkIcon className="h-3.5 w-3.5 text-accent" />
+              <BookmarkIcon className="h-3.5 w-3.5 text-white/70" />
               <span>Add to Curated List</span>
             </button>
 
@@ -296,7 +296,7 @@ export function AnimeLibraryPanel({ anime }: { anime: Anime }) {
                 href={`https://anilist.co/${manga ? "manga" : "anime"}/${anime.id}`}
                 target="_blank"
                 rel="noreferrer noopener"
-                className="inline-flex items-center gap-1.5 text-xs text-faint transition-colors hover:text-fg"
+                className="inline-flex items-center gap-1.5 text-xs text-white/45 transition-colors hover:text-white"
               >
                 AniList
                 <ExternalIcon className="h-3 w-3" />

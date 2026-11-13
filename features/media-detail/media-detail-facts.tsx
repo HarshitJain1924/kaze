@@ -1,3 +1,4 @@
+import { OpticalGlass } from "@/components/ui/optical-glass";
 import type { MediaDetailFact } from "@/lib/media/detail-view";
 
 export function MediaDetailFacts({
@@ -14,7 +15,11 @@ export function MediaDetailFacts({
       <h2 id="details-heading" className="font-display text-lg font-semibold text-fg">
         {title}
       </h2>
-      <dl className="optical-glass mt-3 grid grid-cols-2 gap-x-6 gap-y-4 p-5 sm:grid-cols-3">
+      <OpticalGlass
+        as="dl"
+        variant="card"
+        className="mt-3 grid grid-cols-2 gap-x-6 gap-y-4 p-5 sm:grid-cols-3"
+      >
         {facts.map((fact) => (
           <div key={`${fact.label}:${fact.value}`}>
             <dt className="text-[10px] font-semibold uppercase tracking-[0.14em] text-white/50">
@@ -23,7 +28,7 @@ export function MediaDetailFacts({
             <dd className="mt-1 text-sm text-white/90">{fact.value}</dd>
           </div>
         ))}
-      </dl>
+      </OpticalGlass>
     </section>
   );
 }

@@ -12,6 +12,7 @@ import {
 import { usePreferences } from "@/components/providers/preferences-provider";
 import { useToast } from "@/components/providers/toast-provider";
 import { StatusBadge } from "@/components/ui/badge";
+import { OpticalGlass } from "@/components/ui/optical-glass";
 import { useLibrary } from "@/features/library/library-provider";
 import {
   cn,
@@ -207,7 +208,10 @@ export function AnimeFranchiseSection({
         </div>
 
         {/* Filter Pills */}
-        <div className="optical-glass flex items-center gap-1 self-start p-1 text-xs sm:self-auto">
+        <OpticalGlass
+          variant="card"
+          className="flex items-center gap-1 self-start p-1 text-xs sm:self-auto"
+        >
           <button
             type="button"
             onClick={() => setActiveFilter("all")}
@@ -246,11 +250,14 @@ export function AnimeFranchiseSection({
               Side & Movies ({sideStories.length})
             </button>
           ) : null}
-        </div>
+        </OpticalGlass>
       </div>
 
       {/* Franchise Progress Overview Bar */}
-      <div className="optical-glass flex flex-col gap-2.5 p-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
+      <OpticalGlass
+        variant="card"
+        className="flex flex-col gap-2.5 p-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4"
+      >
         <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs">
           <span className="font-medium text-white">
             Series Completion:{" "}
@@ -275,7 +282,7 @@ export function AnimeFranchiseSection({
             style={{ width: `${stats.percent}%` }}
           />
         </div>
-      </div>
+      </OpticalGlass>
 
       {/* Quick Prequel / Sequel Bar */}
       {prequel || sequel ? (
@@ -331,13 +338,12 @@ export function AnimeFranchiseSection({
             : formatRelationType(item.relationType) ?? "Related";
 
           return (
-            <div
+            <OpticalGlass
               key={item.id}
+              variant="tint"
               className={cn(
-                "group relative flex items-center gap-3.5 border p-3 transition-colors duration-200",
-                isCurrent
-                  ? "border-white/30 bg-[rgba(14,17,24,0.55)]"
-                  : "border-white/10 bg-[rgba(14,17,24,0.35)] hover:border-white/20 hover:bg-[rgba(14,17,24,0.5)]",
+                "group relative flex items-center gap-3.5 p-3",
+                isCurrent && "border-white/30 bg-[rgba(14,17,24,0.6)]",
               )}
             >
               {/* Cover Poster */}
@@ -444,7 +450,7 @@ export function AnimeFranchiseSection({
                   )}
                 </div>
               </div>
-            </div>
+            </OpticalGlass>
           );
         })}
       </div>

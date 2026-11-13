@@ -2,6 +2,7 @@ import Image from "next/image";
 import Link from "next/link";
 
 import { FilmIcon, StarIcon } from "@/components/icons";
+import { OpticalGlass } from "@/components/ui/optical-glass";
 import { universePositionLabel, universeUnitLabel } from "@/lib/tmdb/universes";
 import { cn, isHttpUrl } from "@/lib/utils";
 import type { TmdbKind, TmdbUniverse } from "@/types/tmdb";
@@ -65,13 +66,13 @@ export function TmdbUniverseSection({
               : null;
 
           return (
-            <li
+            <OpticalGlass
+              as="li"
               key={entry.tmdbId}
+              variant="tint"
               className={cn(
-                "group relative flex items-center gap-3 border px-3 py-2.5 transition-colors duration-200",
-                current
-                  ? "border-white/30 bg-[rgba(14,17,24,0.55)]"
-                  : "border-white/10 bg-[rgba(14,17,24,0.35)] hover:border-white/20 hover:bg-[rgba(14,17,24,0.5)]",
+                "group relative flex items-center gap-3 px-3 py-2.5",
+                current && "border-white/30 bg-[rgba(14,17,24,0.6)]",
               )}
             >
               <span
@@ -136,7 +137,7 @@ export function TmdbUniverseSection({
                   Viewing
                 </span>
               ) : null}
-            </li>
+            </OpticalGlass>
           );
         })}
       </ol>

@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 
 import { CheckIcon, PlayIcon, SparkIcon } from "@/components/icons";
 import { Button } from "@/components/ui/button";
+import { OpticalGlass } from "@/components/ui/optical-glass";
 import { useLibrary } from "@/features/library/library-provider";
 import { cn } from "@/lib/utils";
 import type { AnimeSummary } from "@/types/anime";
@@ -120,12 +121,7 @@ export function EpisodeTracker({
   };
 
   return (
-    <div
-      className={cn(
-        "optical-glass p-4 sm:p-5",
-        className,
-      )}
-    >
+    <OpticalGlass variant="card" className={cn("p-4 sm:p-5", className)}>
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <div className="flex items-center gap-2.5">
@@ -274,6 +270,6 @@ export function EpisodeTracker({
           </span>
         </div>
       ) : null}
-    </div>
+    </OpticalGlass>
   );
 }

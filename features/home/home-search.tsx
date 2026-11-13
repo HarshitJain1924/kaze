@@ -28,6 +28,7 @@ import { usePreferences } from "@/components/providers/preferences-provider";
 import { useToast } from "@/components/providers/toast-provider";
 import { StatusBadge } from "@/components/ui/badge";
 import { useLibrary } from "@/features/library/library-provider";
+import { apiFetch } from "@/lib/http";
 import {
   cn,
   formatFormat,
@@ -38,6 +39,7 @@ import {
   isManga,
 } from "@/lib/utils";
 import type { AnimeSummary } from "@/types/anime";
+import type { TmdbSearchPage, TmdbSearchResult } from "@/types/tmdb";
 
 interface HomeSearchProps {
   popularAnime: AnimeSummary[];
@@ -45,6 +47,22 @@ interface HomeSearchProps {
 }
 
 const PAGE_SIZE = 4;
+
+// One selector for everything the archive can track. Films and TV resolve through
+// TMDB; anime and reading stay on the AniList catalogue.
+const SEARCH_TYPES = [
+  { value: "anime", label: "Anime" },
+  { value: "manga", label: "Manga" },
+  { value: "manhwa", label: "Manhwa" },
+  { value: "movie", label: "Films" },
+  { value: "tv", label: "TV" },
+] as const;
+
+type SearchType = (typeof SEARCH_TYPES)[number]["value"];
+
+function isScreenType(type: SearchType): type is "movie" | "tv" {
+  return type === "movie" || type === "tv";
+}
 
 interface QuickDiscoveryTag {
   label: string;
@@ -71,13 +89,23 @@ export function HomeSearch({ popularAnime, popularManga }: HomeSearchProps) {
 
   const [query, setQuery] = useState("");
   const [debouncedQuery, setDebouncedQuery] = useState("");
-  const [mediaType, setMediaType] = useState<"anime" | "manga" | "manhwa">("anime");
+  const [mediaType, setMediaType] = useState<SearchType>("anime");
   const [results, setResults] = useState<AnimeSummary[]>([]);
   const [loading, setLoading] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [activeIndex, setActiveIndex] = useState(-1);
   const [addingId, setAddingId] = useState<number | null>(null);
+
+  // Film and TV results live beside the AniList results so switching tabs never
+  // renders the wrong shape.
+  const [screenResults, setScreenResults] = useState<TmdbSearchResult[]>([]);
+  const [screenLoading, setScreenLoading] = useState(false);
+  const [screenError, setScreenError] = useState<string | null>(null);
+  const [trackedScreen, setTrackedScreen] = useState<Record<string, boolean>>(
+    {},
+  );
+  const [screenAddingId, setScreenAddingId] = useState<string | null>(null);
 
   // Suggestions state: explicitly opt-in, collapsed by default
   const [showSuggestions, setShowSuggestions] = useState(false);
@@ -136,6 +164,7 @@ export function HomeSearch({ popularAnime, popularManga }: HomeSearchProps) {
       setDebouncedQuery(trimmed);
       if (!trimmed) {
         setResults([]);
+        setScreenResults([]);
       }
     }, 280);
 
@@ -149,6 +178,34 @@ export function HomeSearch({ popularAnime, popularManga }: HomeSearchProps) {
     }
 
     const controller = new AbortController();
+
+    if (isScreenType(mediaType)) {
+      const kind = mediaType;
+      const runScreenFetch = async () => {
+        setScreenLoading(true);
+        setScreenError(null);
+        try {
+          const page = await apiFetch<TmdbSearchPage>(
+            `/api/tmdb/search?kind=${kind}&q=${encodeURIComponent(debouncedQuery)}`,
+            { signal: controller.signal },
+          );
+          setScreenResults(page.results);
+        } catch (cause: unknown) {
+          if ((cause as Error)?.name === "AbortError") return;
+          setScreenResults([]);
+          setScreenError(
+            kind === "movie"
+              ? "Film search is unavailable right now."
+              : "TV search is unavailable right now.",
+          );
+        } finally {
+          setScreenLoading(false);
+        }
+      };
+
+      void runScreenFetch();
+      return () => controller.abort();
+    }
 
     const runFetch = async () => {
       setLoading(true);
@@ -212,6 +269,41 @@ export function HomeSearch({ popularAnime, popularManga }: HomeSearchProps) {
     [addToLibrary, addingId, preferences.titleLanguage, toast],
   );
 
+  const handleTrackScreen = useCallback(
+    async (item: TmdbSearchResult) => {
+      const key = `${item.kind}-${item.tmdbId}`;
+      if (screenAddingId !== null) return;
+      setScreenAddingId(key);
+      try {
+        await apiFetch<{ entry: unknown }>("/api/tmdb/library", {
+          method: "POST",
+          body: JSON.stringify({
+            kind: item.kind,
+            tmdbId: item.tmdbId,
+            status: "planning",
+          }),
+        });
+        setTrackedScreen((prev) => ({ ...prev, [key]: true }));
+        toast({
+          title: "Added to library",
+          description: `“${item.title}” is in your Planning list.`,
+          tone: "success",
+        });
+      } catch (cause) {
+        toast({
+          title: "Could not add that title",
+          description:
+            cause instanceof Error
+              ? cause.message
+              : "Film and TV tracking is unavailable right now.",
+        });
+      } finally {
+        setScreenAddingId(null);
+      }
+    },
+    [screenAddingId, toast],
+  );
+
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === "Escape") {
       setIsOpen(false);
@@ -238,6 +330,7 @@ export function HomeSearch({ popularAnime, popularManga }: HomeSearchProps) {
 
   // Recommendations pool resolved by selected media type without duplicate network requests
   const sourcePool = useMemo(() => {
+    if (isScreenType(mediaType)) return [];
     if (mediaType === "manhwa") {
       const mangaPool = popularManga && popularManga.length > 0 ? popularManga : popularAnime;
       const manhwa = mangaPool.filter((item) => item.countryOfOrigin === "KR");
@@ -281,6 +374,15 @@ export function HomeSearch({ popularAnime, popularManga }: HomeSearchProps) {
 
   const allTracked = sourcePool.length > 0 && untrackedItems.length === 0;
 
+  const exploreAllHref =
+    mediaType === "movie" || mediaType === "tv"
+      ? "/screen"
+      : mediaType === "manhwa"
+        ? "/discover?type=manga&country=KR"
+        : mediaType === "manga"
+          ? "/discover?type=manga"
+          : "/discover";
+
   return (
     <div
       ref={containerRef}
@@ -303,28 +405,30 @@ export function HomeSearch({ popularAnime, popularManga }: HomeSearchProps) {
           <div
             role="tablist"
             aria-label="Catalogue type"
-            className="inline-flex items-center border border-border/80 bg-surface/50 p-0.5 text-[11px]"
+            className="no-scrollbar inline-flex max-w-full items-center gap-0.5 overflow-x-auto border border-border/80 bg-surface/50 p-0.5 text-[11px]"
           >
-            {(["anime", "manga", "manhwa"] as const).map((type) => (
+            {SEARCH_TYPES.map((entry) => (
               <button
-                key={type}
+                key={entry.value}
                 type="button"
                 role="tab"
-                aria-selected={mediaType === type}
+                aria-selected={mediaType === entry.value}
                 onClick={() => {
-                  setMediaType(type);
+                  setMediaType(entry.value);
+                  setResults([]);
+                  setScreenResults([]);
                   if (query.trim()) {
                     setIsOpen(true);
                   }
                 }}
                 className={cn(
-                  "px-2 py-0.5 text-[11px] font-medium capitalize transition-colors",
-                  mediaType === type
+                  "shrink-0 px-2 py-0.5 text-[11px] font-medium transition-colors",
+                  mediaType === entry.value
                     ? "bg-surface-3 text-accent-strong font-semibold shadow-xs"
                     : "text-muted hover:text-fg hover:bg-surface-2/60",
                 )}
               >
-                {type}
+                {entry.label}
               </button>
             ))}
           </div>
@@ -403,7 +507,7 @@ export function HomeSearch({ popularAnime, popularManga }: HomeSearchProps) {
                 </div>
                 <div className="mt-1 border-t border-border-subtle pt-1.5 px-2">
                   <Link
-                    href={`/discover${mediaType === "manhwa" ? "?type=manga&country=KR" : mediaType === "manga" ? "?type=manga" : ""}`}
+                    href={exploreAllHref}
                     onClick={() => setShowBrowse(false)}
                     className="flex items-center justify-between text-[11px] font-medium text-accent-strong hover:underline"
                   >
@@ -420,8 +524,14 @@ export function HomeSearch({ popularAnime, popularManga }: HomeSearchProps) {
             type="button"
             onClick={() => setShowSuggestions((prev) => !prev)}
             aria-expanded={showSuggestions}
+            disabled={isScreenType(mediaType)}
+            title={
+              isScreenType(mediaType)
+                ? "Suggestions cover anime, manga and manhwa"
+                : undefined
+            }
             className={cn(
-              "inline-flex items-center gap-1.5 border px-2.5 py-1 text-[11px] font-medium transition-colors",
+              "inline-flex items-center gap-1.5 border px-2.5 py-1 text-[11px] font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-40",
               showSuggestions
                 ? "border-accent bg-accent-soft text-accent-strong font-semibold"
                 : "border-border/80 bg-surface/40 text-muted hover:border-border hover:text-fg",
@@ -461,11 +571,15 @@ export function HomeSearch({ popularAnime, popularManga }: HomeSearchProps) {
             }}
             onKeyDown={handleKeyDown}
             placeholder={
-              mediaType === "manhwa"
-                ? "Search manhwa to track (e.g. Solo Leveling, Omniscient Reader, Tower of God)..."
-                : mediaType === "manga"
-                  ? "Search manga to track (e.g. Berserk, One Piece, Chainsaw Man, Vagabond)..."
-                  : "Search anime to track (e.g. Frieren, Solo Leveling, Bleach, Jujutsu Kaisen)..."
+              mediaType === "movie"
+                ? "Search films to track (e.g. Dune, Past Lives, Oppenheimer)..."
+                : mediaType === "tv"
+                  ? "Search TV series to track (e.g. Severance, The Bear, Shogun)..."
+                  : mediaType === "manhwa"
+                    ? "Search manhwa to track (e.g. Solo Leveling, Omniscient Reader, Tower of God)..."
+                    : mediaType === "manga"
+                      ? "Search manga to track (e.g. Berserk, One Piece, Chainsaw Man, Vagabond)..."
+                      : "Search anime to track (e.g. Frieren, Solo Leveling, Bleach, Jujutsu Kaisen)..."
             }
             autoComplete="off"
             spellCheck={false}
@@ -500,7 +614,106 @@ export function HomeSearch({ popularAnime, popularManga }: HomeSearchProps) {
         {/* Search Results Popover (Strict Priority over suggestions) */}
         {isOpen && debouncedQuery ? (
           <div className="absolute left-0 right-0 top-full z-50 mt-1 max-h-[380px] overflow-y-auto border border-border bg-bg p-1 shadow-2xl">
-            {loading && results.length === 0 ? (
+            {isScreenType(mediaType) ? (
+              screenLoading && screenResults.length === 0 ? (
+                <div className="flex items-center justify-center gap-2 py-8 text-xs text-muted">
+                  <LoaderIcon className="h-4 w-4 animate-spin text-accent-strong" />
+                  <span>
+                    Searching TMDB {mediaType === "movie" ? "films" : "TV"}…
+                  </span>
+                </div>
+              ) : screenError ? (
+                <div className="py-6 text-center text-xs text-danger">
+                  {screenError}
+                </div>
+              ) : screenResults.length === 0 ? (
+                <div className="py-6 text-center text-xs text-muted">
+                  No {mediaType === "movie" ? "films" : "TV shows"} matching
+                  &quot;{debouncedQuery}&quot;.
+                </div>
+              ) : (
+                <div className="space-y-1">
+                  {screenResults.map((item) => {
+                    const key = `${item.kind}-${item.tmdbId}`;
+                    const inLibrary = trackedScreen[key] === true;
+                    const isAdding = screenAddingId === key;
+                    return (
+                      <div
+                        key={key}
+                        className="flex items-center justify-between gap-3 border-b border-border-subtle p-2.5 transition-colors last:border-b-0 hover:bg-surface-2"
+                      >
+                        <div className="flex min-w-0 items-center gap-3">
+                          <Link
+                            href={`/screen/${item.kind}/${item.tmdbId}`}
+                            onClick={() => setIsOpen(false)}
+                            className="relative aspect-[2/3] w-10 shrink-0 overflow-hidden border border-border bg-surface-3"
+                          >
+                            {item.posterUrl && isHttpUrl(item.posterUrl) ? (
+                              <Image
+                                src={item.posterUrl}
+                                alt=""
+                                fill
+                                unoptimized
+                                sizes="40px"
+                                className="object-cover"
+                              />
+                            ) : null}
+                          </Link>
+                          <div className="min-w-0 flex-1">
+                            <Link
+                              href={`/screen/${item.kind}/${item.tmdbId}`}
+                              onClick={() => setIsOpen(false)}
+                              className="line-clamp-1 text-[13px] font-semibold text-fg transition-colors hover:text-accent-strong"
+                              title={item.title}
+                            >
+                              {item.title}
+                            </Link>
+                            <p className="mt-0.5 flex flex-wrap items-center gap-1.5 text-[11px] text-muted">
+                              {item.voteAverage ? (
+                                <span className="flex items-center gap-0.5 font-medium text-warning">
+                                  <StarIcon className="h-3 w-3 fill-warning text-warning" />
+                                  {item.voteAverage.toFixed(1)}
+                                </span>
+                              ) : null}
+                              {item.year ? (
+                                <>
+                                  <span>·</span>
+                                  <span>{item.year}</span>
+                                </>
+                              ) : null}
+                              <span>·</span>
+                              <span>
+                                {item.kind === "movie" ? "Film" : "TV"}
+                              </span>
+                            </p>
+                          </div>
+                        </div>
+                        {inLibrary ? (
+                          <span className="inline-flex shrink-0 items-center gap-1 text-[9px] font-semibold uppercase tracking-[0.08em] text-accent-strong">
+                            <CheckIcon className="h-2.5 w-2.5" />
+                            Tracked
+                          </span>
+                        ) : (
+                          <button
+                            type="button"
+                            disabled={isAdding}
+                            onClick={() => void handleTrackScreen(item)}
+                            className="inline-flex h-8 shrink-0 items-center gap-1.5 bg-accent px-2.5 text-[10px] font-semibold uppercase tracking-[0.08em] text-accent-contrast transition-colors hover:bg-accent-hover disabled:opacity-60"
+                          >
+                            {isAdding ? (
+                              <LoaderIcon className="h-3 w-3 animate-spin" />
+                            ) : (
+                              <PlusIcon className="h-3 w-3" />
+                            )}
+                            <span>{isAdding ? "Adding…" : "+ Track"}</span>
+                          </button>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              )
+            ) : loading && results.length === 0 ? (
               <div className="flex items-center justify-center gap-2 py-8 text-xs text-muted">
                 <LoaderIcon className="h-4 w-4 animate-spin text-accent-strong" />
                 <span>Searching AniList catalog...</span>
@@ -641,7 +854,7 @@ export function HomeSearch({ popularAnime, popularManga }: HomeSearchProps) {
       </div>
 
       {/* Expandable Suggestions Drawer (Opt-in; yields when search results are active) */}
-      {showSuggestions && !(isOpen && debouncedQuery) ? (
+      {showSuggestions && !isScreenType(mediaType) && !(isOpen && debouncedQuery) ? (
         <div className="mt-2.5 border border-border/80 bg-surface/30 p-2.5 sm:p-3">
           <div className="mb-2 flex items-center justify-between gap-2 border-b border-border-subtle/80 pb-2">
             <div className="flex items-center gap-2">
@@ -689,7 +902,7 @@ export function HomeSearch({ popularAnime, popularManga }: HomeSearchProps) {
                 </span>
               </div>
               <Link
-                href={`/discover${mediaType === "manhwa" ? "?type=manga&country=KR" : mediaType === "manga" ? "?type=manga" : ""}`}
+                href={exploreAllHref}
                 className="text-accent-strong hover:underline text-xs font-medium shrink-0 ml-2"
               >
                 Browse catalog &rarr;

@@ -1,10 +1,22 @@
 import { NextResponse } from "next/server";
 
 import { getApiContext, readJsonBody } from "@/lib/api/helpers";
-import { tmdbErrorResponse } from "@/lib/api/tmdb";
+import { loadScreenLibrary, tmdbErrorResponse } from "@/lib/api/tmdb";
 import { addTmdbEntrySchema } from "@/lib/validation/tmdb";
 import { createTmdbLibraryRepository } from "@/repositories/tmdb-library";
 import { getTmdbDetails } from "@/services/tmdb/service";
+
+export async function GET() {
+  const auth = await getApiContext();
+  if (!auth.ok) return auth.response;
+
+  try {
+    const items = await loadScreenLibrary(auth.context.viewer.id);
+    return NextResponse.json({ items });
+  } catch (error) {
+    return tmdbErrorResponse(error);
+  }
+}
 
 export async function POST(request: Request) {
   const auth = await getApiContext();

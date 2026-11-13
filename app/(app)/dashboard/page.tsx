@@ -29,6 +29,7 @@ import {
 } from "@/services/catalog/catalog-service";
 import { discoverTmdb } from "@/services/tmdb/service";
 import type { AiringScheduleEntry, AnimePage, AnimeSummary } from "@/types/anime";
+import type { TmdbLibraryItem, TmdbWatchedEpisode } from "@/types/tmdb";
 
 async function safeLoad(
   label: string,
@@ -159,6 +160,9 @@ export default async function DashboardPage() {
   // The film and TV ledger only exists for a signed-in viewer; a database error
   // hides the counters but leaves the discovery shelf intact.
   let screenStats: ScreenLibraryStats | null = null;
+  // Row-level film and TV progress for the continuation shelf. The same queries
+  // that feed the counters also build the shelf, so nothing is fetched twice.
+  let screenItems: TmdbLibraryItem[] = [];
   if (viewer) {
     const supabase = await createSupabaseServerClient();
     if (supabase) {
@@ -169,6 +173,21 @@ export default async function DashboardPage() {
           store.listEpisodes(viewer.id),
         ]);
         screenStats = calculateScreenStats(screenEntries, screenEpisodes);
+
+        const episodesByEntry = new Map<string, TmdbWatchedEpisode[]>();
+        for (const episode of screenEpisodes) {
+          const list = episodesByEntry.get(episode.entryId);
+          if (list) list.push(episode);
+          else episodesByEntry.set(episode.entryId, [episode]);
+        }
+        screenItems = screenEntries.map((entry) => {
+          const watchedEpisodes = episodesByEntry.get(entry.id) ?? [];
+          return {
+            entry,
+            watchedEpisodes,
+            watchedCount: watchedEpisodes.length,
+          };
+        });
       } catch (error) {
         console.error(
           "[dashboard] could not load the film and TV library:",
@@ -197,7 +216,12 @@ export default async function DashboardPage() {
       </div>
 
       {/* C. The visual anchor: personal in-progress activity */}
-      {viewer ? <ContinueWatching todayEntries={scheduleEntries} /> : null}
+      {viewer ? (
+        <ContinueWatching
+          todayEntries={scheduleEntries}
+          screenItems={screenItems}
+        />
+      ) : null}
 
       {/* D. Personal activity paired with the broadcast week */}
       <div
