@@ -71,6 +71,32 @@ export function customListItemLabel(item: ListItemIdentity): string | null {
   return item.tmdbKind === "tv" ? "TV" : "Film";
 }
 
+/**
+ * Moves one entry to a new position and renumbers the stored ranks. Returns
+ * `null` when the key is unknown or the move would not change the order, so
+ * callers can skip a write that would only churn `updatedAt`.
+ */
+export function moveCustomListItem(
+  items: CustomListItem[],
+  itemKey: string,
+  toIndex: number,
+): CustomListItem[] | null {
+  const fromIndex = items.findIndex(
+    (item) => customListItemKey(item) === itemKey,
+  );
+  if (fromIndex === -1) return null;
+
+  const target = Math.max(0, Math.min(items.length - 1, toIndex));
+  if (target === fromIndex) return null;
+
+  const next = [...items];
+  const [moved] = next.splice(fromIndex, 1);
+  if (!moved) return null;
+  next.splice(target, 0, moved);
+
+  return next.map((item, index) => ({ ...item, rank: index + 1 }));
+}
+
 /** What the add-to-list modal collects before it becomes a stored item. */
 export interface CustomListCandidate {
   anilistId?: number;

@@ -10,6 +10,7 @@ import {
 } from "react";
 import {
   customListItemKey,
+  moveCustomListItem,
   type CustomList,
   type CustomListItem,
   type ListProgress,
@@ -197,6 +198,7 @@ interface CustomListsContextValue {
   updateItemNotes: (listId: string, itemKey: string, notes: string) => void;
   getList: (id: string) => CustomList | undefined;
   isItemInList: (listId: string, itemKey: string) => boolean;
+  moveItemInList: (listId: string, itemKey: string, toIndex: number) => void;
   calculateProgress: (
     list: CustomList,
     libraryItems: LibraryItem[],
@@ -421,6 +423,24 @@ export function CustomListsProvider({ children }: { children: ReactNode }) {
     [lists],
   );
 
+  const moveItemInList = useCallback(
+    (listId: string, itemKey: string, toIndex: number) => {
+      saveLists(
+        lists.map((list) => {
+          if (list.id !== listId) return list;
+          const items = moveCustomListItem(list.items, itemKey, toIndex);
+          if (!items) return list;
+          return {
+            ...list,
+            updatedAt: new Date().toISOString(),
+            items,
+          };
+        }),
+      );
+    },
+    [lists, saveLists],
+  );
+
   const isItemInList = useCallback(
     (listId: string, itemKey: string) => {
       const list = lists.find((l) => l.id === listId);
@@ -452,6 +472,7 @@ export function CustomListsProvider({ children }: { children: ReactNode }) {
         updateItemNotes,
         getList,
         isItemInList,
+        moveItemInList,
         calculateProgress,
       }}
     >

@@ -163,6 +163,25 @@ export function formatAnimeDate(date: AnimeDate | null): string | null {
   }).format(value);
 }
 
+/**
+ * A bare "YYYY-MM-DD" is a calendar date with no time or zone, and `new Date`
+ * reads it as UTC midnight. Formatting that instant in the device zone shows the
+ * previous day anywhere west of UTC, so date-only values are formatted in UTC
+ * while real timestamps keep the viewer's local time.
+ */
+const DATE_ONLY_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
+
+function formatCalendarDate(
+  parsed: Date,
+  iso: string,
+  options: Intl.DateTimeFormatOptions,
+): string {
+  return new Intl.DateTimeFormat("en-US", {
+    ...options,
+    ...(DATE_ONLY_PATTERN.test(iso.trim()) ? { timeZone: "UTC" } : null),
+  }).format(parsed);
+}
+
 export function formatIsoDate(iso: string | null): string | null {
   if (!iso) {
     return null;
@@ -171,11 +190,11 @@ export function formatIsoDate(iso: string | null): string | null {
   if (Number.isNaN(parsed.getTime())) {
     return null;
   }
-  return new Intl.DateTimeFormat("en-US", {
+  return formatCalendarDate(parsed, iso, {
     month: "short",
     day: "numeric",
     year: "numeric",
-  }).format(parsed);
+  });
 }
 
 export function formatShortIsoDate(iso: string | null): string | null {
@@ -186,10 +205,10 @@ export function formatShortIsoDate(iso: string | null): string | null {
   if (Number.isNaN(parsed.getTime())) {
     return null;
   }
-  return new Intl.DateTimeFormat("en-US", {
+  return formatCalendarDate(parsed, iso, {
     month: "short",
     day: "numeric",
-  }).format(parsed);
+  });
 }
 
 const HTML_ENTITIES: Record<string, string> = {

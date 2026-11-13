@@ -5,11 +5,14 @@ import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
+  ArrowDownIcon,
   ArrowLeftIcon,
+  ArrowUpIcon,
   CheckIcon,
   CloseIcon,
   ExternalIcon,
   FilmIcon,
+  GripIcon,
   StarIcon,
   TrashIcon,
 } from "@/components/icons";
@@ -17,6 +20,7 @@ import { useCustomLists } from "@/features/lists/lists-provider";
 import { useLibrary } from "@/features/library/library-provider";
 import { useScreenLibraryItems } from "@/features/screen/use-screen-library";
 import { WATCH_STATUS_META } from "@/lib/library-meta";
+import { cn } from "@/lib/utils";
 import {
   customListItemHref,
   customListItemKey,
@@ -64,6 +68,7 @@ export default function CustomListDetailPage({ params }: PageProps) {
     deleteList,
     removeItemFromList,
     updateItemNotes,
+    moveItemInList,
     calculateProgress,
   } = useCustomLists();
   const { items: libraryItems } = useLibrary();
@@ -72,6 +77,8 @@ export default function CustomListDetailPage({ params }: PageProps) {
   const [copied, setCopied] = useState(false);
   const [editingNoteId, setEditingNoteId] = useState<string | null>(null);
   const [noteText, setNoteText] = useState("");
+  const [draggingKey, setDraggingKey] = useState<string | null>(null);
+  const [dropTargetKey, setDropTargetKey] = useState<string | null>(null);
 
   const list = getList(id);
 
@@ -115,6 +122,13 @@ export default function CustomListDetailPage({ params }: PageProps) {
   const handleSaveNote = (itemKey: string) => {
     updateItemNotes(list.id, itemKey, noteText);
     setEditingNoteId(null);
+  };
+
+  const handleDrop = (targetIndex: number) => {
+    if (!draggingKey) return;
+    moveItemInList(list.id, draggingKey, targetIndex);
+    setDraggingKey(null);
+    setDropTargetKey(null);
   };
 
   return (
@@ -220,11 +234,16 @@ export default function CustomListDetailPage({ params }: PageProps) {
 
       {/* 3. Ranked Entries Ledger */}
       <section aria-label="Ranked Entries" className="space-y-3">
-        <div className="flex items-center justify-between border-b border-border pb-2.5">
-          <h2 className="font-display text-base font-semibold text-fg">
-            Ranked Entries
-          </h2>
-          <span className="font-mono text-xs text-faint">
+        <div className="flex items-end justify-between gap-3 border-b border-border pb-2.5">
+          <div>
+            <h2 className="font-display text-base font-semibold text-fg">
+              Ranked Entries
+            </h2>
+            <p className="mt-0.5 text-[10px] text-faint">
+              Drag a row — or use the arrows — to re-rank this collection.
+            </p>
+          </div>
+          <span className="shrink-0 font-mono text-xs text-faint">
             {list.items.length} {list.items.length === 1 ? "entry" : "entries"}
           </span>
         </div>
@@ -276,14 +295,52 @@ export default function CustomListDetailPage({ params }: PageProps) {
               return (
                 <div
                   key={item.id}
-                  className={`group relative flex flex-col sm:flex-row sm:items-center justify-between gap-3 border p-3 transition-colors ${
+                  draggable
+                  onDragStart={(event) => {
+                    setDraggingKey(itemKey);
+                    event.dataTransfer.effectAllowed = "move";
+                    event.dataTransfer.setData("text/plain", itemKey);
+                  }}
+                  onDragEnd={() => {
+                    setDraggingKey(null);
+                    setDropTargetKey(null);
+                  }}
+                  onDragOver={(event) => {
+                    if (!draggingKey) return;
+                    event.preventDefault();
+                    event.dataTransfer.dropEffect = "move";
+                    if (dropTargetKey !== itemKey) setDropTargetKey(itemKey);
+                  }}
+                  onDragLeave={() =>
+                    setDropTargetKey((current) =>
+                      current === itemKey ? null : current,
+                    )
+                  }
+                  onDrop={(event) => {
+                    event.preventDefault();
+                    handleDrop(idx);
+                  }}
+                  className={cn(
+                    "group relative flex flex-col sm:flex-row sm:items-center justify-between gap-3 border p-3 transition-colors",
                     isWatched
                       ? "border-border bg-surface/60 hover:bg-surface"
-                      : "border-border bg-surface/30 hover:border-accent/40 hover:bg-surface/60"
-                  }`}
+                      : "border-border bg-surface/30 hover:border-accent/40 hover:bg-surface/60",
+                    draggingKey === itemKey && "opacity-40",
+                    dropTargetKey === itemKey &&
+                      draggingKey !== itemKey &&
+                      "border-accent ring-1 ring-accent/40",
+                  )}
                 >
-                  {/* Left: Rank + Thumbnail + Details */}
+                  {/* Left: Drag Handle + Rank + Thumbnail + Details */}
                   <div className="flex items-start sm:items-center gap-3 min-w-0 flex-1">
+                    {/* Drag Handle */}
+                    <span
+                      aria-hidden="true"
+                      className="hidden h-7 w-4 shrink-0 cursor-grab items-center justify-center text-faint/70 transition-colors group-hover:text-muted active:cursor-grabbing sm:flex"
+                    >
+                      <GripIcon className="h-4 w-4" />
+                    </span>
+
                     {/* Rank Badge */}
                     <span className="flex h-7 w-7 shrink-0 items-center justify-center border border-border bg-surface font-mono text-xs font-bold text-accent-strong">
                       #{String(idx + 1).padStart(2, "0")}
@@ -385,6 +442,33 @@ export default function CustomListDetailPage({ params }: PageProps) {
                         Not in library
                       </span>
                     )}
+
+                    <div className="flex items-center gap-0.5">
+                      <button
+                        type="button"
+                        disabled={idx === 0}
+                        onClick={() =>
+                          moveItemInList(list.id, itemKey, idx - 1)
+                        }
+                        aria-label={`Move ${item.title} up`}
+                        title="Move up"
+                        className="flex h-7 w-7 items-center justify-center border border-transparent text-muted transition-colors hover:border-border hover:bg-surface hover:text-fg disabled:pointer-events-none disabled:opacity-30"
+                      >
+                        <ArrowUpIcon className="h-3 w-3" />
+                      </button>
+                      <button
+                        type="button"
+                        disabled={idx === list.items.length - 1}
+                        onClick={() =>
+                          moveItemInList(list.id, itemKey, idx + 1)
+                        }
+                        aria-label={`Move ${item.title} down`}
+                        title="Move down"
+                        className="flex h-7 w-7 items-center justify-center border border-transparent text-muted transition-colors hover:border-border hover:bg-surface hover:text-fg disabled:pointer-events-none disabled:opacity-30"
+                      >
+                        <ArrowDownIcon className="h-3 w-3" />
+                      </button>
+                    </div>
 
                     <button
                       type="button"

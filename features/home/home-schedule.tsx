@@ -89,12 +89,18 @@ export function HomeSchedule({
     return groupScheduleByDay(initialEntries, week.days, activeTimeZone);
   }, [initialEntries, week.days, activeTimeZone]);
 
+  // "Today" follows the viewer's active timezone rather than the server's
+  // calendar day baked into `week.days`.
+  const todayIso = useMemo(
+    () => toIsoDateString(new Date(nowMs), activeTimeZone),
+    [activeTimeZone, nowMs],
+  );
+
   // Default active day is today in active timezone if within this week, otherwise first day
   const initialDate = useMemo(() => {
-    const localTodayIso = toIsoDateString(new Date(nowMs), activeTimeZone);
-    const match = days.find((d) => d.date === localTodayIso);
+    const match = days.find((d) => d.date === todayIso);
     return match ? match.date : (days[0]?.date ?? "");
-  }, [days, activeTimeZone, nowMs]);
+  }, [days, todayIso]);
 
   const [selectedDate, setSelectedDate] = useState<string>(initialDate);
   const [filterMode, setFilterMode] = useState<"all" | "watching">("all");
@@ -194,6 +200,7 @@ export function HomeSchedule({
       >
         {days.map((day) => {
           const isSelected = day.date === selectedDate;
+          const isToday = day.date === todayIso;
           const dayWatchingCount = day.entries.filter((e) =>
             watchingSet.has(e.mediaId),
           ).length;
@@ -206,7 +213,7 @@ export function HomeSchedule({
               onClick={() => setSelectedDate(day.date)}
               className={cn(
                 "group flex min-w-[70px] shrink-0 flex-col items-center justify-center border p-2.5 text-center transition-colors sm:min-w-0 sm:shrink",
-                day.isToday
+                isToday
                   ? isSelected
                     ? "border-accent bg-accent-soft text-fg"
                     : "border-accent/60 bg-accent/10 text-fg hover:border-accent"
@@ -220,16 +227,16 @@ export function HomeSchedule({
                 <span
                   className={cn(
                     "text-xs font-semibold tracking-wide",
-                    day.isToday
+                    isToday
                       ? "text-accent-strong"
                       : isSelected
                         ? "text-fg"
                         : "text-faint group-hover:text-muted",
                   )}
                 >
-                  {day.isToday ? "Today" : day.dayShort}
+                  {isToday ? "Today" : day.dayShort}
                 </span>
-                {day.isToday ? (
+                {isToday ? (
                   <span className="h-1.5 w-1.5 rounded-full bg-accent-strong radar-live-dot" />
                 ) : null}
               </div>

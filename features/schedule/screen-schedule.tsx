@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 
 import { EmptyState } from "@/components/empty-state";
 import {
@@ -12,7 +12,9 @@ import {
   FilmIcon,
   StarIcon,
 } from "@/components/icons";
-import type { ScreenScheduleDay, WeekRange } from "@/lib/schedule";
+import { useActiveTimeZone } from "@/components/providers/preferences-provider";
+import { toIsoDateString, type ScreenScheduleDay, type WeekRange } from "@/lib/schedule";
+import { useMinuteClock } from "@/lib/use-now";
 import { cn, isHttpUrl } from "@/lib/utils";
 import type { TmdbKind } from "@/types/tmdb";
 
@@ -40,13 +42,27 @@ export function ScreenScheduleBrowser({
   days: ScreenScheduleDay[];
   initialDate?: string;
 }) {
-  const fallbackDate =
-    days.find((day) => day.isToday)?.date ?? days[0]?.date ?? "";
-  const [selectedDate, setSelectedDate] = useState(() =>
+  const { activeTimeZone } = useActiveTimeZone();
+  const clockMs = useMinuteClock();
+
+  // TMDB rows are already dated, but "today" still belongs to the viewer's own
+  // calendar day, so the marker settles on their timezone after hydration.
+  const todayIso = useMemo(() => {
+    if (clockMs === null) {
+      return days.find((day) => day.isToday)?.date ?? days[0]?.date ?? "";
+    }
+    return toIsoDateString(new Date(clockMs), activeTimeZone);
+  }, [activeTimeZone, clockMs, days]);
+
+  const initialSelection =
     initialDate && days.some((day) => day.date === initialDate)
       ? initialDate
-      : fallbackDate,
+      : null;
+  const [pickedDate, setPickedDate] = useState<string | null>(
+    initialSelection,
   );
+  const selectedDate =
+    pickedDate ?? (todayIso || (days[0]?.date ?? ""));
 
   const activeDay =
     days.find((day) => day.date === selectedDate) ?? days[0] ?? null;
@@ -69,10 +85,7 @@ export function ScreenScheduleBrowser({
 
   const base = `/schedule?type=${kind}`;
   const thisWeekDate =
-    days.find((day) => day.isToday)?.date ??
-    days[0]?.date ??
-    week.days[0]?.date ??
-    "";
+    todayIso || (days[0]?.date ?? week.days[0]?.date ?? "");
 
   const totalEntries = days.reduce(
     (acc, day) => acc + (day.entries?.length ?? 0),
@@ -148,7 +161,7 @@ export function ScreenScheduleBrowser({
               type="button"
               aria-pressed={isSelected}
               aria-label={`${day.dayName} ${day.dayNumber}, ${day.entries.length} ${labels.plural}`}
-              onClick={() => setSelectedDate(day.date)}
+              onClick={() => setPickedDate(day.date)}
               className={cn(
                 "group relative flex min-w-[76px] shrink-0 flex-col items-center justify-center border p-2 text-center transition-colors select-none sm:min-w-0 sm:shrink",
                 isSelected
@@ -156,7 +169,7 @@ export function ScreenScheduleBrowser({
                   : "border-border bg-surface/40 hover:border-accent/40 hover:bg-surface",
               )}
             >
-              {day.isToday ? (
+              {day.date === todayIso ? (
                 <span className="border border-accent/40 bg-accent/20 px-1 py-0.5 text-[8px] font-bold uppercase tracking-[0.12em] text-accent-strong">
                   Today
                 </span>

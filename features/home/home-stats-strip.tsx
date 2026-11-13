@@ -11,6 +11,7 @@ import {
 import { useLibrary } from "@/features/library/library-provider";
 import { calculateStats } from "@/features/stats/calculate-stats";
 import { toIsoDateString } from "@/lib/schedule";
+import { useMinuteClock } from "@/lib/use-now";
 import { getDisplayTitle } from "@/lib/utils";
 import type { AiringScheduleEntry } from "@/types/anime";
 
@@ -26,7 +27,20 @@ export function HomeStatsStrip({
   const { items, canWrite } = useLibrary();
   const { preferences } = usePreferences();
   const { activeTimeZone } = useActiveTimeZone();
+  const clockMs = useMinuteClock();
   const stats = calculateStats(items);
+
+  // The server renders its own calendar day; once the client takes over, the
+  // header date follows the viewer's active timezone instead.
+  const headerLabel = useMemo(() => {
+    if (clockMs === null) return todayLabel;
+    return new Intl.DateTimeFormat("en-US", {
+      weekday: "long",
+      month: "long",
+      day: "numeric",
+      timeZone: activeTimeZone,
+    }).format(new Date(clockMs));
+  }, [activeTimeZone, clockMs, todayLabel]);
 
   const librarySet = useMemo(
     () => new Set(items.map((item) => item.entry.anilistId)),
@@ -54,7 +68,7 @@ export function HomeStatsStrip({
       <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
         <div className="max-w-2xl">
           <p className="text-[9px] font-semibold uppercase tracking-[0.22em] text-accent-strong">
-            Personal archive · {todayLabel}
+            Personal archive · {headerLabel}
           </p>
           <h1 className="mt-2 text-balance font-display text-[32px] font-semibold leading-[1.02] tracking-[-0.045em] text-fg sm:text-[42px]">
             {canWrite ? (

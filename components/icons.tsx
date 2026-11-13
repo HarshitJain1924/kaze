@@ -156,6 +156,37 @@ export function ArrowLeftIcon(props: IconProps) {
   );
 }
 
+export function ArrowUpIcon(props: IconProps) {
+  return (
+    <Icon {...props}>
+      <path d="M12 19V5" />
+      <path d="m5 12 7-7 7 7" />
+    </Icon>
+  );
+}
+
+export function ArrowDownIcon(props: IconProps) {
+  return (
+    <Icon {...props}>
+      <path d="M12 5v14" />
+      <path d="m19 12-7 7-7-7" />
+    </Icon>
+  );
+}
+
+export function GripIcon(props: IconProps) {
+  return (
+    <Icon {...props}>
+      <circle cx="9" cy="6" r="1.3" fill="currentColor" stroke="none" />
+      <circle cx="15" cy="6" r="1.3" fill="currentColor" stroke="none" />
+      <circle cx="9" cy="12" r="1.3" fill="currentColor" stroke="none" />
+      <circle cx="15" cy="12" r="1.3" fill="currentColor" stroke="none" />
+      <circle cx="9" cy="18" r="1.3" fill="currentColor" stroke="none" />
+      <circle cx="15" cy="18" r="1.3" fill="currentColor" stroke="none" />
+    </Icon>
+  );
+}
+
 export function StarIcon(props: IconProps) {
   return (
     <Icon {...props}>

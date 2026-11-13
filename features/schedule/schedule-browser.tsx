@@ -401,7 +401,7 @@ export function ScheduleBrowser({
               Today&apos;s Airings
             </span>
             <span className="mt-1 font-mono text-xl font-bold tabular-nums text-fg">
-              {localDays.find((d) => d.isToday)?.entries.length ?? 0}
+              {localDays.find((d) => d.date === todayIso)?.entries.length ?? 0}
             </span>
             <span className="text-[10px] uppercase tracking-[0.08em] text-faint">
               episodes today
@@ -446,6 +446,7 @@ export function ScheduleBrowser({
       >
         {localDays.map((day) => {
           const isSelected = day.date === selectedDate;
+          const isToday = day.date === todayIso;
           const dayWatchingCount = day.entries.filter((e) =>
             watchingSet.has(e.mediaId),
           ).length;
@@ -465,7 +466,7 @@ export function ScheduleBrowser({
               )}
             >
               {/* Day Name or Today Badge */}
-              {day.isToday ? (
+              {isToday ? (
                 <span className="border border-accent/40 bg-accent/20 px-1 py-0.5 text-[8px] font-bold uppercase tracking-[0.12em] text-accent-strong">
                   Today
                 </span>
