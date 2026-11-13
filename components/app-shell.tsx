@@ -2,6 +2,7 @@
 
 import type { ReactNode } from "react";
 
+import { CommandPalette } from "@/components/command-palette";
 import { DesktopSidebar } from "@/components/desktop-sidebar";
 import {
   MobileBottomNavigation,
@@ -37,6 +38,7 @@ export function AppShell({
         </main>
       </div>
       <MobileBottomNavigation />
+      <CommandPalette />
     </div>
   );
 }

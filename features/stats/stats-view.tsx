@@ -28,6 +28,8 @@ import { useLibrary } from "@/features/library/library-provider";
 import { calculateStats } from "@/features/stats/calculate-stats";
 import type { LibraryStats } from "@/features/stats/calculate-stats";
 import { KazeWrappedModal } from "@/features/stats/kaze-wrapped-modal";
+import { ScreenInsights } from "@/features/stats/screen-insights";
+import { useScreenLibraryItems } from "@/features/screen/use-screen-library";
 import { WATCH_STATUS_META, WATCH_STATUS_ORDER } from "@/lib/library-meta";
 import { cn, formatFormat } from "@/lib/utils";
 import type { AnimeFormat } from "@/types/anime";
@@ -510,6 +512,8 @@ export function StatsView({
   const [hoveredStatus, setHoveredStatus] = useState<WatchStatus | null>(null);
   const [hoveredGenre, setHoveredGenre] = useState<string | null>(null);
   const [isWrappedOpen, setIsWrappedOpen] = useState(false);
+  // Wrapped covers films and TV too, so it needs the TMDB side of the library.
+  const screenItems = useScreenLibraryItems();
 
   // Derived watch time
   const watchTime = useMemo(
@@ -1005,6 +1009,8 @@ export function StatsView({
               })}
             </div>
           </section>
+
+          <ScreenInsights items={screenItems} kind="movie" />
         </div>
       ) : null}
 
@@ -1121,6 +1127,8 @@ export function StatsView({
               })}
             </div>
           </section>
+
+          <ScreenInsights items={screenItems} kind="tv" />
         </div>
       ) : null}
 
@@ -1698,6 +1706,7 @@ export function StatsView({
       <KazeWrappedModal
         stats={stats}
         items={visibleItems}
+        screenItems={screenItems}
         isOpen={isWrappedOpen}
         onClose={() => setIsWrappedOpen(false)}
       />

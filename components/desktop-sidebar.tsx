@@ -16,6 +16,7 @@ import {
   MoonIcon,
   PanelLeftCloseIcon,
   PanelLeftOpenIcon,
+  SearchIcon,
   SettingsIcon,
   SunIcon,
   UserIcon,
@@ -28,17 +29,18 @@ import {
   type DesignDirection,
 } from "@/components/providers/theme-provider";
 import { UserAvatar } from "@/components/user-avatar";
+import { COMMAND_PALETTE_EVENT } from "@/lib/events";
 import { cn } from "@/lib/utils";
 import type { Viewer } from "@/types/viewer";
 
-interface NavItem {
+export interface NavItem {
   href: string;
   label: string;
   icon: ComponentType<SVGProps<SVGSVGElement>>;
   exact?: boolean;
 }
 
-const NAV_ITEMS: NavItem[] = [
+export const NAV_ITEMS: NavItem[] = [
   { href: "/dashboard", label: "Dashboard", icon: HomeIcon },
   { href: "/discover", label: "Discover", icon: CompassIcon },
   { href: "/schedule", label: "Schedule", icon: CalendarIcon },
@@ -143,6 +145,29 @@ export function DesktopSidebar({ viewer }: { viewer: Viewer | null }) {
           <Tooltip>Expand sidebar</Tooltip>
         </button>
       ) : null}
+
+      {/* Command palette trigger */}
+      <button
+        type="button"
+        onClick={() => window.dispatchEvent(new Event(COMMAND_PALETTE_EVENT))}
+        aria-label="Open command palette"
+        title="Jump to… (⌘K)"
+        className={cn(
+          "mt-3 flex items-center border border-border bg-surface/40 text-muted transition-colors hover:border-accent hover:text-fg",
+          isCollapsed
+            ? "h-8 w-8 justify-center"
+            : "h-8 w-full gap-2 px-2.5 text-[11px]",
+        )}
+      >
+        <SearchIcon className="h-3.5 w-3.5 shrink-0" />
+        {!isCollapsed ? (
+          <>
+            <span className="flex-1 text-left">Jump to…</span>
+            <kbd className="font-mono text-[9px] text-faint">⌘K</kbd>
+          </>
+        ) : null}
+        {isCollapsed ? <Tooltip>Jump to… (⌘K)</Tooltip> : null}
+      </button>
 
       {/* Primary Navigation */}
       <nav aria-label="Primary" className="mt-5 w-full">

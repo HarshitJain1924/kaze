@@ -18,6 +18,8 @@ export interface DisplayPreferences {
   titleLanguage: TitleLanguage;
   libraryView: LibraryView;
   timeZone: string; // "auto" or IANA timezone identifier e.g. "Asia/Kolkata", "Asia/Tokyo"
+  /** Liquid-glass pointer trail on desktop pointers. */
+  cursorEffect: boolean;
 }
 
 const DEFAULT_PREFERENCES: DisplayPreferences = {
@@ -25,6 +27,7 @@ const DEFAULT_PREFERENCES: DisplayPreferences = {
   titleLanguage: "english",
   libraryView: "grid",
   timeZone: "auto",
+  cursorEffect: true,
 };
 
 export const PREFERENCES_STORAGE_KEY = "kaze-preferences";
@@ -60,6 +63,7 @@ function parsePreferences(raw: string | null | undefined): DisplayPreferences {
         typeof parsed.timeZone === "string" && parsed.timeZone.trim()
           ? parsed.timeZone.trim()
           : "auto",
+      cursorEffect: parsed.cursorEffect !== false,
     };
   } catch {
     return DEFAULT_PREFERENCES;

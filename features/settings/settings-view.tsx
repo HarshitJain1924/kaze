@@ -558,6 +558,50 @@ export function SettingsView({ viewer }: { viewer: Viewer }) {
               })}
             </div>
           </div>
+
+          {/* C. Pointer treatment */}
+          <div className="flex flex-wrap items-center justify-between gap-4 border-t border-border-subtle pt-5">
+            <div className="max-w-lg">
+              <span className="font-display text-sm font-semibold text-fg">
+                Liquid glass cursor
+              </span>
+              <p className="mt-0.5 text-xs leading-relaxed text-muted">
+                A clear glass lens with a short droplet trail follows the
+                pointer. It adapts to links and buttons, stays off for touch
+                screens, and is skipped entirely when reduced motion is on.
+              </p>
+            </div>
+
+            <button
+              type="button"
+              role="switch"
+              aria-checked={preferences.cursorEffect !== false}
+              aria-label="Liquid glass cursor"
+              onClick={() => {
+                setPreference(
+                  "cursorEffect",
+                  preferences.cursorEffect === false,
+                );
+                markSaved();
+              }}
+              className={cn(
+                "relative h-6 w-11 shrink-0 rounded-full border transition-colors",
+                preferences.cursorEffect !== false
+                  ? "border-accent bg-accent"
+                  : "border-border bg-surface-3",
+              )}
+            >
+              <span
+                aria-hidden="true"
+                className={cn(
+                  "absolute top-0.5 h-4 w-4 rounded-full bg-bg transition-transform",
+                  preferences.cursorEffect !== false
+                    ? "translate-x-6"
+                    : "translate-x-0.5",
+                )}
+              />
+            </button>
+          </div>
         </div>
       </SettingsSection>
 

@@ -7,6 +7,7 @@ import { HomeSearch } from "@/features/home/home-search";
 import { HomeStatsStrip } from "@/features/home/home-stats-strip";
 import { SeasonalCarousel } from "@/features/home/seasonal-carousel";
 import { ContinueWatching } from "@/features/library/continue-watching";
+import { TonightPicker } from "@/features/library/tonight-picker";
 import { RecentlyUpdated } from "@/features/library/recently-updated";
 import {
   calculateScreenStats,
@@ -222,6 +223,8 @@ export default async function DashboardPage() {
           screenItems={screenItems}
         />
       ) : null}
+
+      {viewer ? <TonightPicker /> : null}
 
       {/* D. Personal activity paired with the broadcast week */}
       <div

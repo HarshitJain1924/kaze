@@ -545,12 +545,35 @@
     animation: wrapped-panel-in 260ms var(--ease-out) both;
   }
 
+  /* Autoplay indicator: the current story segment fills over the slide's
+     dwell time. Duration is set inline so the timer and the fill agree. */
+  .wrapped-progress {
+    width: 0;
+    animation-name: wrapped-progress;
+    animation-timing-function: linear;
+    animation-fill-mode: forwards;
+  }
+
   @media (prefers-reduced-motion: reduce) {
     .wrapped-slide,
     .wrapped-rise,
     .wrapped-bar,
     .wrapped-panel {
       animation: none !important;
+    }
+
+    .wrapped-progress {
+      width: 100%;
+      animation: none !important;
+    }
+  }
+
+  @keyframes wrapped-progress {
+    from {
+      width: 0;
+    }
+    to {
+      width: 100%;
     }
   }
 
