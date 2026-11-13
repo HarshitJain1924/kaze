@@ -3,6 +3,7 @@
 import { useState, useMemo } from "react";
 import Image from "next/image";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import {
   BookmarkIcon,
   FilmIcon,
@@ -13,6 +14,11 @@ import { CreateListModal } from "@/components/create-list-modal";
 import { useCustomLists } from "@/features/lists/lists-provider";
 import { useLibrary } from "@/features/library/library-provider";
 import { useScreenLibraryItems } from "@/features/screen/use-screen-library";
+import {
+  SMART_LIST_PRESETS,
+  listItemsFor,
+  smartRuleLabel,
+} from "@/lib/smart-lists";
 
 function ListPosterCard({
   src,
@@ -53,7 +59,8 @@ function ListPosterCard({
 }
 
 export default function ListsPage() {
-  const { lists, calculateProgress } = useCustomLists();
+  const router = useRouter();
+  const { lists, calculateProgress, createSmartList } = useCustomLists();
   const { items: libraryItems } = useLibrary();
   const screenItems = useScreenLibraryItems();
   const [search, setSearch] = useState("");
@@ -123,6 +130,32 @@ export default function ListsPage() {
         </span>
       </div>
 
+      {/* 2b. Smart collection presets */}
+      <div className="flex flex-wrap items-center gap-2">
+        <span className="font-mono text-[9px] uppercase tracking-[0.14em] text-faint">
+          Smart collections
+        </span>
+        {SMART_LIST_PRESETS.map((preset) => (
+          <button
+            key={preset.key}
+            type="button"
+            title={preset.description}
+            onClick={() => {
+              const created = createSmartList(
+                preset.title,
+                preset.description,
+                preset.rule,
+              );
+              router.push(`/lists/${created.id}`);
+            }}
+            className="inline-flex items-center gap-1 border border-border bg-surface px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.1em] text-muted transition-colors hover:border-accent hover:text-fg"
+          >
+            <PlusIcon className="h-3 w-3" />
+            <span>{preset.title}</span>
+          </button>
+        ))}
+      </div>
+
       {/* 3. Lists Grid */}
       {filteredLists.length === 0 ? (
         <div className="border border-border bg-surface/40 p-12 text-center">
@@ -150,8 +183,13 @@ export default function ListsPage() {
       ) : (
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
           {filteredLists.map((list) => {
-            const progress = calculateProgress(list, libraryItems, screenItems);
-            const previewItems = list.items.slice(0, 4);
+            const resolvedItems = listItemsFor(list, libraryItems, screenItems);
+            const progress = calculateProgress(
+              { ...list, items: resolvedItems },
+              libraryItems,
+              screenItems,
+            );
+            const previewItems = resolvedItems.slice(0, 4);
 
             return (
               <Link
@@ -191,7 +229,7 @@ export default function ListsPage() {
 
                     {/* Item count tag */}
                     <span className="absolute bottom-2 right-2 z-20 border border-border bg-surface px-1.5 py-0.5 font-mono text-[9px] font-bold text-fg">
-                      {list.items.length} titles
+                      {resolvedItems.length} titles
                     </span>
                   </div>
 
@@ -202,6 +240,11 @@ export default function ListsPage() {
                   <p className="mt-1 text-xs text-muted line-clamp-2">
                     {list.description || "No description provided."}
                   </p>
+                  {list.rule ? (
+                    <span className="mt-2 inline-flex items-center border border-accent/40 bg-accent-soft px-1.5 py-0.5 font-mono text-[9px] font-bold uppercase tracking-[0.1em] text-accent-strong">
+                      Smart · {smartRuleLabel(list.rule)}
+                    </span>
+                  ) : null}
                 </div>
 
                 {/* Progress Footer (Letterboxd Watched Indicator) */}

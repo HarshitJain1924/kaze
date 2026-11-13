@@ -7,6 +7,7 @@ import { HomeSearch } from "@/features/home/home-search";
 import { HomeStatsStrip } from "@/features/home/home-stats-strip";
 import { SeasonalCarousel } from "@/features/home/seasonal-carousel";
 import { ContinueWatching } from "@/features/library/continue-watching";
+import { StalePrompts } from "@/features/library/stale-prompts";
 import { TonightPicker } from "@/features/library/tonight-picker";
 import { RecentlyUpdated } from "@/features/library/recently-updated";
 import {
@@ -225,6 +226,8 @@ export default async function DashboardPage() {
       ) : null}
 
       {viewer ? <TonightPicker /> : null}
+
+      {viewer ? <StalePrompts /> : null}
 
       {/* D. Personal activity paired with the broadcast week */}
       <div

@@ -1,4 +1,5 @@
 import type { MediaType } from "@/types/anime";
+import type { WatchStatus } from "@/types/library";
 import type { TmdbKind } from "@/types/tmdb";
 
 /**
@@ -24,6 +25,17 @@ export interface CustomListItem {
   addedAt: string;
 }
 
+/**
+ * A rule that fills a collection from the library instead of stored items.
+ * Smart lists are resolved on every render, so they never go stale and never
+ * need a write when the library changes.
+ */
+export type SmartListRule =
+  | { type: "score_min"; min: number; scope: "anime" | "screen" }
+  | { type: "unrated"; scope: "anime" | "screen" }
+  | { type: "status"; status: WatchStatus }
+  | { type: "unfinished" };
+
 export interface CustomList {
   id: string;
   title: string;
@@ -32,6 +44,8 @@ export interface CustomList {
   createdAt: string;
   updatedAt: string;
   items: CustomListItem[];
+  /** Present on a smart collection; `items` then stays empty. */
+  rule?: SmartListRule | null;
 }
 
 export interface ListProgress {

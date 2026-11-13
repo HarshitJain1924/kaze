@@ -14,6 +14,7 @@ import {
   type CustomList,
   type CustomListItem,
   type ListProgress,
+  type SmartListRule,
 } from "@/types/custom-list";
 import type { LibraryItem } from "@/types/library";
 import type { TmdbLibraryItem } from "@/types/tmdb";
@@ -192,6 +193,12 @@ interface CustomListsContextValue {
   lists: CustomList[];
   isLoaded: boolean;
   createList: (title: string, description: string, isPublic?: boolean) => CustomList;
+  /** A collection filled by a rule instead of stored items. */
+  createSmartList: (
+    title: string,
+    description: string,
+    rule: SmartListRule,
+  ) => CustomList;
   deleteList: (id: string) => void;
   addItemToList: (listId: string, item: Omit<CustomListItem, "id" | "addedAt">) => void;
   removeItemFromList: (listId: string, itemKey: string) => void;
@@ -342,6 +349,32 @@ export function CustomListsProvider({ children }: { children: ReactNode }) {
     [lists, saveLists],
   );
 
+  const createSmartList = useCallback(
+    (
+      title: string,
+      description: string,
+      rule: SmartListRule,
+    ): CustomList => {
+      const slug = title
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, "-")
+        .replace(/(^-|-$)/g, "");
+      const newList: CustomList = {
+        id: `${slug || "smart"}-${Date.now().toString(36)}`,
+        title: title.trim(),
+        description: description.trim(),
+        isPublic: true,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        items: [],
+        rule,
+      };
+      saveLists([newList, ...lists]);
+      return newList;
+    },
+    [lists, saveLists],
+  );
+
   const deleteList = useCallback(
     (id: string) => {
       saveLists(lists.filter((l) => l.id !== id));
@@ -466,6 +499,7 @@ export function CustomListsProvider({ children }: { children: ReactNode }) {
         lists,
         isLoaded,
         createList,
+        createSmartList,
         deleteList,
         addItemToList,
         removeItemFromList,

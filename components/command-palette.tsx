@@ -16,6 +16,8 @@ interface Command {
   label: string;
   hint: string;
   href: string;
+  /** Notes and other text that matches without appearing in the label. */
+  keywords?: string;
 }
 
 const MAX_RESULTS = 8;
@@ -44,6 +46,7 @@ export function CommandPalette() {
           : "Untitled",
         hint: item.entry.mediaType === "manga" ? "Manga" : "Anime",
         href: `/media/${item.entry.anilistId}`,
+        keywords: item.entry.notes ?? undefined,
       }));
 
     const screen = screenItems.map((item) => ({
@@ -51,6 +54,7 @@ export function CommandPalette() {
       label: item.entry.title,
       hint: item.entry.mediaType === "tv" ? "TV" : "Film",
       href: `/screen/${item.entry.mediaType}/${item.entry.tmdbId}`,
+      keywords: item.entry.notes ?? undefined,
     }));
 
     return [...pages, ...anime, ...screen];
@@ -60,7 +64,13 @@ export function CommandPalette() {
   const filtered = useMemo(() => {
     if (!query) return commands.slice(0, MAX_RESULTS);
     return commands
-      .filter((command) => command.label.toLowerCase().includes(query))
+      .flatMap((command) => {
+        const inTitle = command.label.toLowerCase().includes(query);
+        const inNotes = (command.keywords ?? "").toLowerCase().includes(query);
+        if (!inTitle && !inNotes) return [];
+        // A hit that only exists in the notes is labelled as such.
+        return [inTitle ? command : { ...command, hint: "Notes" }];
+      })
       .slice(0, MAX_RESULTS);
   }, [commands, query]);
 

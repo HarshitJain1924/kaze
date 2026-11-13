@@ -8,6 +8,7 @@ import {
   BookmarkIcon,
   CalendarIcon,
   ChartIcon,
+  ClockIcon,
   ChevronRightIcon,
   CompassIcon,
   HomeIcon,
@@ -45,6 +46,7 @@ export const NAV_ITEMS: NavItem[] = [
   { href: "/discover", label: "Discover", icon: CompassIcon },
   { href: "/schedule", label: "Schedule", icon: CalendarIcon },
   { href: "/library", label: "My Library", icon: LibraryIcon },
+  { href: "/activity", label: "Watch Log", icon: ClockIcon },
   { href: "/lists", label: "Custom Lists", icon: BookmarkIcon },
   { href: "/stats", label: "Statistics", icon: ChartIcon },
 ];

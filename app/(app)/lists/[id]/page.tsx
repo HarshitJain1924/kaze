@@ -20,6 +20,7 @@ import { useCustomLists } from "@/features/lists/lists-provider";
 import { useLibrary } from "@/features/library/library-provider";
 import { useScreenLibraryItems } from "@/features/screen/use-screen-library";
 import { WATCH_STATUS_META } from "@/lib/library-meta";
+import { listItemsFor, smartRuleLabel } from "@/lib/smart-lists";
 import { cn } from "@/lib/utils";
 import {
   customListItemHref,
@@ -102,7 +103,12 @@ export default function CustomListDetailPage({ params }: PageProps) {
     );
   }
 
-  const progress = calculateProgress(list, libraryItems, screenItems);
+  const items = listItemsFor(list, libraryItems, screenItems);
+  const progress = calculateProgress(
+    { ...list, items },
+    libraryItems,
+    screenItems,
+  );
 
   const handleShare = () => {
     if (typeof window !== "undefined") {
@@ -150,7 +156,7 @@ export default function CustomListDetailPage({ params }: PageProps) {
           <div className="flex items-center gap-2">
             <span className="h-1.5 w-1.5 bg-accent" />
             <span className="text-[9px] font-semibold uppercase tracking-[0.22em] text-accent-strong">
-              Themed Anthology // {list.items.length} Titles
+              Themed Anthology // {items.length} Titles
             </span>
           </div>
 
@@ -193,6 +199,11 @@ export default function CustomListDetailPage({ params }: PageProps) {
           <p className="mt-2 text-xs leading-relaxed text-muted sm:text-sm">
             {list.description || "No description provided."}
           </p>
+          {list.rule ? (
+            <span className="mt-3 inline-flex items-center border border-accent/40 bg-accent-soft px-2 py-0.5 font-mono text-[10px] font-bold uppercase tracking-[0.1em] text-accent-strong">
+              Smart collection · {smartRuleLabel(list.rule)} · fills itself
+            </span>
+          ) : null}
         </div>
 
         {/* Completion Status Ledger */}
@@ -240,15 +251,17 @@ export default function CustomListDetailPage({ params }: PageProps) {
               Ranked Entries
             </h2>
             <p className="mt-0.5 text-[10px] text-faint">
-              Drag a row — or use the arrows — to re-rank this collection.
+              {list.rule
+                ? "Filled automatically from your library. Remove the rule by deleting this collection."
+                : "Drag a row — or use the arrows — to re-rank this collection."}
             </p>
           </div>
           <span className="shrink-0 font-mono text-xs text-faint">
-            {list.items.length} {list.items.length === 1 ? "entry" : "entries"}
+            {items.length} {items.length === 1 ? "entry" : "entries"}
           </span>
         </div>
 
-        {list.items.length === 0 ? (
+        {items.length === 0 ? (
           <div className="border border-border bg-surface/40 p-10 text-center">
             <h3 className="text-sm font-semibold text-fg">
               No titles in this list yet
@@ -265,7 +278,7 @@ export default function CustomListDetailPage({ params }: PageProps) {
           </div>
         ) : (
           <div className="space-y-2">
-            {list.items.map((item, idx) => {
+            {items.map((item, idx) => {
               const itemKey = customListItemKey(item);
               const libraryMatch =
                 item.anilistId === undefined
@@ -295,7 +308,7 @@ export default function CustomListDetailPage({ params }: PageProps) {
               return (
                 <div
                   key={item.id}
-                  draggable
+                  draggable={list.rule ? false : true}
                   onDragStart={(event) => {
                     setDraggingKey(itemKey);
                     event.dataTransfer.effectAllowed = "move";
@@ -334,12 +347,14 @@ export default function CustomListDetailPage({ params }: PageProps) {
                   {/* Left: Drag Handle + Rank + Thumbnail + Details */}
                   <div className="flex items-start sm:items-center gap-3 min-w-0 flex-1">
                     {/* Drag Handle */}
-                    <span
-                      aria-hidden="true"
-                      className="hidden h-7 w-4 shrink-0 cursor-grab items-center justify-center text-faint/70 transition-colors group-hover:text-muted active:cursor-grabbing sm:flex"
-                    >
-                      <GripIcon className="h-4 w-4" />
-                    </span>
+                    {list.rule ? null : (
+                      <span
+                        aria-hidden="true"
+                        className="hidden h-7 w-4 shrink-0 cursor-grab items-center justify-center text-faint/70 transition-colors group-hover:text-muted active:cursor-grabbing sm:flex"
+                      >
+                        <GripIcon className="h-4 w-4" />
+                      </span>
+                    )}
 
                     {/* Rank Badge */}
                     <span className="flex h-7 w-7 shrink-0 items-center justify-center border border-border bg-surface font-mono text-xs font-bold text-accent-strong">
@@ -406,16 +421,18 @@ export default function CustomListDetailPage({ params }: PageProps) {
                               ? `“${item.notes}”`
                               : "No ranking commentary added."}
                           </p>
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setEditingNoteId(itemKey);
-                              setNoteText(item.notes ?? "");
-                            }}
-                            className="text-[10px] font-mono text-accent-strong hover:underline shrink-0"
-                          >
-                            [Edit note]
-                          </button>
+                          {list.rule ? null : (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setEditingNoteId(itemKey);
+                                setNoteText(item.notes ?? "");
+                              }}
+                              className="text-[10px] font-mono text-accent-strong hover:underline shrink-0"
+                            >
+                              [Edit note]
+                            </button>
+                          )}
                         </div>
                       )}
                     </div>
@@ -444,6 +461,7 @@ export default function CustomListDetailPage({ params }: PageProps) {
                     )}
 
                     <div className="flex items-center gap-0.5">
+                      {list.rule ? null : (
                       <button
                         type="button"
                         disabled={idx === 0}
@@ -456,9 +474,11 @@ export default function CustomListDetailPage({ params }: PageProps) {
                       >
                         <ArrowUpIcon className="h-3 w-3" />
                       </button>
+                      )}
+                      {list.rule ? null : (
                       <button
                         type="button"
-                        disabled={idx === list.items.length - 1}
+                        disabled={idx === items.length - 1}
                         onClick={() =>
                           moveItemInList(list.id, itemKey, idx + 1)
                         }
@@ -468,6 +488,7 @@ export default function CustomListDetailPage({ params }: PageProps) {
                       >
                         <ArrowDownIcon className="h-3 w-3" />
                       </button>
+                      )}
                     </div>
 
                     <button
@@ -475,6 +496,7 @@ export default function CustomListDetailPage({ params }: PageProps) {
                       onClick={() =>
                         removeItemFromList(list.id, itemKey)
                       }
+                      hidden={Boolean(list.rule)}
                       className="flex h-7 w-7 items-center justify-center border border-transparent text-muted hover:border-danger/40 hover:bg-danger/10 hover:text-danger transition-colors"
                       title="Remove from list"
                     >

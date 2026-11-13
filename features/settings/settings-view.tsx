@@ -25,6 +25,7 @@ import { useToast } from "@/components/providers/toast-provider";
 import { Button } from "@/components/ui/button";
 import { TimezoneSelector } from "@/components/timezone-selector";
 import { useLibrary } from "@/features/library/library-provider";
+import { DataHealthPanel } from "@/features/settings/data-health";
 import { getSupabaseBrowserClient } from "@/lib/supabase/client";
 import { cn, formatIsoDate, getDisplayTitle } from "@/lib/utils";
 import type { Viewer } from "@/types/viewer";
@@ -563,12 +564,12 @@ export function SettingsView({ viewer }: { viewer: Viewer }) {
           <div className="flex flex-wrap items-center justify-between gap-4 border-t border-border-subtle pt-5">
             <div className="max-w-lg">
               <span className="font-display text-sm font-semibold text-fg">
-                Liquid glass cursor
+                Wind cursor trail
               </span>
               <p className="mt-0.5 text-xs leading-relaxed text-muted">
-                A clear glass lens with a short droplet trail follows the
-                pointer. It adapts to links and buttons, stays off for touch
-                screens, and is skipped entirely when reduced motion is on.
+                A short comet of accent streaks trails the pointer, stretching
+                with speed and settling when you stop. It stays off for touch
+                screens, and reduced motion shows a shorter trail.
               </p>
             </div>
 
@@ -576,7 +577,7 @@ export function SettingsView({ viewer }: { viewer: Viewer }) {
               type="button"
               role="switch"
               aria-checked={preferences.cursorEffect !== false}
-              aria-label="Liquid glass cursor"
+              aria-label="Wind cursor trail"
               onClick={() => {
                 setPreference(
                   "cursorEffect",
@@ -827,7 +828,15 @@ export function SettingsView({ viewer }: { viewer: Viewer }) {
         </div>
       </SettingsSection>
 
-      {/* 5. Data Vault (Export & Backup) */}
+      {/* 5. Library Health Audit */}
+      <SettingsSection
+        title="Library Health Audit"
+        subtitle="A read-only check for progress beyond a known total, missing episode counts, unloaded metadata and duplicate catalogue ids."
+      >
+        <DataHealthPanel />
+      </SettingsSection>
+
+      {/* 6. Data Vault (Export & Backup) */}
       <SettingsSection
         title="Personal Data Vault"
         subtitle="Download a complete snapshot of your library. Export formats are compatible with standard spreadsheet and database viewers."

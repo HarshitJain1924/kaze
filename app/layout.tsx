@@ -8,7 +8,7 @@ import {
   Space_Grotesk,
 } from "next/font/google";
 
-import { CursorGlass } from "@/components/cursor-glass";
+import { CursorTrail } from "@/components/cursor-trail";
 import { PreferencesProvider } from "@/components/providers/preferences-provider";
 import { SidebarProvider } from "@/components/providers/sidebar-provider";
 import { ThemeProvider } from "@/components/providers/theme-provider";
@@ -120,7 +120,7 @@ export default function RootLayout({
             <SidebarProvider>
               <ToastProvider>
                 {children}
-                <CursorGlass />
+                <CursorTrail />
               </ToastProvider>
             </SidebarProvider>
           </PreferencesProvider>
