@@ -329,6 +329,7 @@ export function DiscoverBrowser({
   initialTmdbFilters,
   initialTmdbError,
   adultAllowed,
+  canWrite = false,
 }: {
   initialPage: AnimePage | null;
   initialQuery: string;
@@ -340,6 +341,8 @@ export function DiscoverBrowser({
   initialTmdbFilters: TmdbDiscoverFilters;
   initialTmdbError: string | null;
   adultAllowed: boolean;
+  /** Signed-in viewers can quick edit film and TV results in place. */
+  canWrite?: boolean;
 }) {
   const { preferences } = usePreferences();
   const [activeView, setActiveView] = useState<DiscoverView>(initialView);
@@ -645,6 +648,7 @@ export function DiscoverBrowser({
           initialQuery={useServerPage ? initialTmdbQuery : ""}
           initialFilters={useServerPage ? initialTmdbFilters : {}}
           initialError={useServerPage ? initialTmdbError : null}
+          canWrite={canWrite}
         />
       </div>
     );

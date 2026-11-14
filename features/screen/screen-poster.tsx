@@ -4,7 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useState } from "react";
 
-import { FilmIcon, StarIcon } from "@/components/icons";
+import { EditIcon, FilmIcon, StarIcon } from "@/components/icons";
 import { cn, isHttpUrl } from "@/lib/utils";
 import type { TmdbSearchResult } from "@/types/tmdb";
 
@@ -16,10 +16,13 @@ export function ScreenPoster({
   item,
   priority = false,
   className,
+  onQuickEdit,
 }: {
   item: TmdbSearchResult;
   priority?: boolean;
   className?: string;
+  /** When provided, an inline quick-edit trigger appears over the poster. */
+  onQuickEdit?: (item: TmdbSearchResult) => void;
 }) {
   const [failed, setFailed] = useState(false);
   const showImage = item.posterUrl && isHttpUrl(item.posterUrl) && !failed;
@@ -64,6 +67,22 @@ export function ScreenPoster({
         <span className="pointer-events-none absolute bottom-0 right-0 z-20 bg-bg/90 px-1.5 py-1 text-[8px] font-semibold uppercase tracking-[0.1em] text-muted">
           {kind}
         </span>
+
+        {onQuickEdit ? (
+          <button
+            type="button"
+            aria-label={`Quick edit ${item.title}`}
+            title="Quick edit status and rating"
+            onClick={(event) => {
+              event.preventDefault();
+              event.stopPropagation();
+              onQuickEdit(item);
+            }}
+            className="absolute right-1.5 top-1.5 z-30 flex h-7 w-7 items-center justify-center border border-border bg-bg/90 text-muted transition-all hover:border-accent hover:text-accent-strong sm:opacity-0 sm:group-hover:opacity-100 sm:focus-visible:opacity-100"
+          >
+            <EditIcon className="h-3.5 w-3.5" />
+          </button>
+        ) : null}
       </div>
 
       <div className="mt-2">

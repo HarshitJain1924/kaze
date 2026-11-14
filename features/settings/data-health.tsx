@@ -34,8 +34,8 @@ function FindingList({
       </div>
       <p className="mt-0.5 text-[11px] leading-relaxed text-muted">{hint}</p>
       <ul className="mt-1.5 space-y-1">
-        {findings.slice(0, 5).map((finding) => (
-          <li key={finding.id} className="text-[11px] leading-relaxed">
+        {findings.slice(0, 5).map((finding, index) => (
+          <li key={`${finding.id}-${index}`} className="text-[11px] leading-relaxed">
             <Link
               href={finding.href}
               className="font-medium text-fg transition-colors hover:text-accent-strong"

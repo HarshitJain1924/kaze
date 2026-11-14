@@ -9,6 +9,7 @@ import { ErrorState } from "@/components/error-state";
 import {
   CalendarIcon,
   ChevronRightIcon,
+  EditIcon,
   FlameIcon,
   PlayIcon,
   SparklesIcon,
@@ -30,6 +31,8 @@ import {
   type DiscoverChip,
 } from "@/features/discover/discover-chrome";
 import { kindLabel, ScreenPoster } from "@/features/screen/screen-poster";
+import { ScreenQuickEdit } from "@/features/screen/screen-quick-edit";
+import { useScreenLibraryItems } from "@/features/screen/use-screen-library";
 import {
   TMDB_RATING_FILTERS,
   tmdbDiscoverCategoriesForKind,
@@ -113,7 +116,13 @@ function countTmdbFilters(filters: TmdbDiscoverFilters): number {
   ].filter((value) => value !== undefined).length;
 }
 
-function TmdbDiscoverListCard({ item }: { item: TmdbSearchResult }) {
+function TmdbDiscoverListCard({
+  item,
+  onQuickEdit,
+}: {
+  item: TmdbSearchResult;
+  onQuickEdit: () => void;
+}) {
   const poster =
     item.posterUrl && isHttpUrl(item.posterUrl) ? item.posterUrl : null;
 
@@ -170,13 +179,23 @@ function TmdbDiscoverListCard({ item }: { item: TmdbSearchResult }) {
         </div>
 
         <div className="flex items-center justify-between gap-2 border-t border-border pt-2.5">
-          <Link
-            href={`/screen/${item.kind}/${item.tmdbId}`}
-            className="inline-flex items-center gap-1 text-[10px] font-semibold uppercase tracking-[0.12em] text-accent-strong transition-colors hover:text-fg"
-          >
-            <span>Open details</span>
-            <ChevronRightIcon className="h-3 w-3" />
-          </Link>
+          <div className="flex items-center gap-3">
+            <Link
+              href={`/screen/${item.kind}/${item.tmdbId}`}
+              className="inline-flex items-center gap-1 text-[10px] font-semibold uppercase tracking-[0.12em] text-accent-strong transition-colors hover:text-fg"
+            >
+              <span>Open details</span>
+              <ChevronRightIcon className="h-3 w-3" />
+            </Link>
+            <button
+              type="button"
+              onClick={onQuickEdit}
+              className="inline-flex items-center gap-1 text-[10px] font-semibold uppercase tracking-[0.12em] text-muted transition-colors hover:text-fg"
+            >
+              <EditIcon className="h-3 w-3" />
+              <span>Quick edit</span>
+            </button>
+          </div>
           {item.voteCount ? (
             <span className="font-mono text-[9px] uppercase tracking-[0.08em] text-faint tabular-nums">
               {item.voteCount.toLocaleString("en-US")} votes
@@ -371,6 +390,7 @@ export function TmdbDiscoverBrowser({
   initialQuery,
   initialFilters,
   initialError,
+  canWrite = false,
 }: {
   kind: TmdbKind;
   initialPage: TmdbSearchPage | null;
@@ -378,7 +398,13 @@ export function TmdbDiscoverBrowser({
   initialQuery: string;
   initialFilters: TmdbDiscoverFilters;
   initialError: string | null;
+  /** Signed-in viewers can quick edit straight from the results. */
+  canWrite?: boolean;
 }) {
+  const screenLibrary = useScreenLibraryItems();
+  const [quickEditItem, setQuickEditItem] = useState<TmdbSearchResult | null>(
+    null,
+  );
   const [queryInput, setQueryInput] = useState(initialQuery);
   const [query, setQuery] = useState(initialQuery.trim());
   const [category, setCategory] =
@@ -727,6 +753,7 @@ export function TmdbDiscoverBrowser({
                   key={`${item.kind}-${item.tmdbId}`}
                   item={item}
                   priority={index < 6}
+                  onQuickEdit={setQuickEditItem}
                 />
               ))}
             </div>
@@ -736,6 +763,7 @@ export function TmdbDiscoverBrowser({
                 <TmdbDiscoverListCard
                   key={`${item.kind}-${item.tmdbId}`}
                   item={item}
+                  onQuickEdit={() => setQuickEditItem(item)}
                 />
               ))}
             </div>
@@ -777,6 +805,32 @@ export function TmdbDiscoverBrowser({
       )}
 
       <TmdbAttribution className="border-t border-border pt-3 text-[10px]" />
+
+      <ScreenQuickEdit
+        key={
+          quickEditItem
+            ? `${quickEditItem.kind}-${quickEditItem.tmdbId}-${
+                screenLibrary.find(
+                  (item) =>
+                    item.entry.tmdbId === quickEditItem.tmdbId &&
+                    item.entry.mediaType === quickEditItem.kind,
+                )?.entry.id ?? "new"
+              }`
+            : "closed"
+        }
+        item={quickEditItem}
+        entry={
+          quickEditItem
+            ? (screenLibrary.find(
+                (item) =>
+                  item.entry.tmdbId === quickEditItem.tmdbId &&
+                  item.entry.mediaType === quickEditItem.kind,
+              )?.entry ?? null)
+            : null
+        }
+        canWrite={canWrite}
+        onClose={() => setQuickEditItem(null)}
+      />
     </div>
   );
 }

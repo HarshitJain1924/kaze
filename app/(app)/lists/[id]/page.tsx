@@ -21,6 +21,7 @@ import { useLibrary } from "@/features/library/library-provider";
 import { useScreenLibraryItems } from "@/features/screen/use-screen-library";
 import { WATCH_STATUS_META } from "@/lib/library-meta";
 import { listItemsFor, smartRuleLabel } from "@/lib/smart-lists";
+import { useMounted } from "@/lib/use-mounted";
 import { cn } from "@/lib/utils";
 import {
   customListItemHref,
@@ -82,6 +83,17 @@ export default function CustomListDetailPage({ params }: PageProps) {
   const [dropTargetKey, setDropTargetKey] = useState<string | null>(null);
 
   const list = getList(id);
+  const mounted = useMounted();
+
+  // Collections live in localStorage, so the first paint must not guess at them.
+  if (!mounted) {
+    return (
+      <div
+        aria-busy="true"
+        className="h-64 animate-pulse border border-border bg-surface/40"
+      />
+    );
+  }
 
   if (!list) {
     return (
@@ -201,13 +213,16 @@ export default function CustomListDetailPage({ params }: PageProps) {
           </p>
           {list.rule ? (
             <span className="mt-3 inline-flex items-center border border-accent/40 bg-accent-soft px-2 py-0.5 font-mono text-[10px] font-bold uppercase tracking-[0.1em] text-accent-strong">
-              Smart collection · {smartRuleLabel(list.rule)} · fills itself
+              {smartRuleLabel(list.rule)} · auto-filled
             </span>
           ) : null}
         </div>
 
         {/* Completion Status Ledger */}
-        <div className="mt-6 border border-border bg-surface-2/40 p-4">
+        <div
+          hidden={items.length === 0}
+          className="mt-6 border border-border bg-surface-2/40 p-4"
+        >
           <div className="flex flex-wrap items-center justify-between gap-2">
             <div>
               <p className="text-[9px] font-semibold uppercase tracking-[0.18em] text-accent-strong">
@@ -248,7 +263,7 @@ export default function CustomListDetailPage({ params }: PageProps) {
         <div className="flex items-end justify-between gap-3 border-b border-border pb-2.5">
           <div>
             <h2 className="font-display text-base font-semibold text-fg">
-              Ranked Entries
+              {list.rule ? "Matching titles" : "Ranked Entries"}
             </h2>
             <p className="mt-0.5 text-[10px] text-faint">
               {list.rule
@@ -264,16 +279,18 @@ export default function CustomListDetailPage({ params }: PageProps) {
         {items.length === 0 ? (
           <div className="border border-border bg-surface/40 p-10 text-center">
             <h3 className="text-sm font-semibold text-fg">
-              No titles in this list yet
+              {list.rule ? "Nothing matches this rule yet" : "No titles in this list yet"}
             </h3>
-            <p className="mt-1 text-xs text-muted">
-              Browse Discover or the film &amp; TV shelves and click &ldquo;Add to Curated List&rdquo; on any title to populate this collection.
+            <p className="mx-auto mt-1 max-w-md text-xs leading-relaxed text-muted">
+              {list.rule
+                ? "This collection fills itself from your library, so it will populate as soon as a title fits the rule. Nothing needs adding by hand."
+                : "Browse Discover or the film & TV shelves and click “Add to Curated List” on any title to populate this collection."}
             </p>
             <Link
-              href="/discover"
+              href={list.rule ? "/library" : "/discover"}
               className="mt-4 inline-flex items-center gap-1.5 border border-accent bg-accent px-3 py-1.5 text-xs font-semibold text-accent-contrast transition-colors hover:bg-accent-hover"
             >
-              <span>Explore Discover</span>
+              <span>{list.rule ? "Open library" : "Explore Discover"}</span>
             </Link>
           </div>
         ) : (

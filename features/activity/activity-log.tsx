@@ -15,12 +15,6 @@ import {
 } from "@/lib/activity";
 import { apiFetch } from "@/lib/http";
 
-const KIND_LABEL: Record<ActivityEvent["kind"], string> = {
-  anime_episode: "Episode",
-  screen_episode: "Episode",
-  completed: "Completed",
-};
-
 async function undoThrough(undo: ActivityUndo): Promise<void> {
   if (undo.type === "anime_episode") {
     await apiFetch(`/api/library/${undo.anilistId}/episodes`, {
@@ -158,7 +152,7 @@ export function ActivityLog({ events: initialEvents }: { events: ActivityEvent[]
                       <ChevronRightIcon className="h-3 w-3 shrink-0 text-faint transition-transform group-hover:translate-x-0.5" />
                     </Link>
                     <span className="mt-0.5 block truncate text-[11px] text-muted">
-                      {KIND_LABEL[event.kind]} · {event.detail}
+                      {event.detail}
                     </span>
                   </span>
                   {event.undo ? (

@@ -127,4 +127,21 @@ describe("library health", () => {
     expect(report.overrun).toHaveLength(1);
     expect(report.overrun[0]?.href).toBe("/screen/tv/2");
   });
+
+  it("counts an unloaded title once instead of also calling its total missing", () => {
+    const report = computeLibraryHealth([animeItem(7, { hydrated: false })], []);
+    expect(report.unhydrated).toHaveLength(1);
+    expect(report.missingTotals).toHaveLength(0);
+    expect(report.total).toBe(1);
+  });
+
+  it("reports a duplicated id once even when its rows repeat", () => {
+    const report = computeLibraryHealth(
+      [animeItem(1, { hydrated: false }), animeItem(1, { hydrated: false })],
+      [],
+    );
+    expect(report.unhydrated).toHaveLength(1);
+    expect(report.duplicates).toHaveLength(1);
+    expect(report.total).toBe(2);
+  });
 });

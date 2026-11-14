@@ -1,14 +1,10 @@
 import { redirect } from "next/navigation";
 
 import { ActivityLog } from "@/features/activity/activity-log";
-import { loadLibraryItems } from "@/features/library/load-library";
+import { loadActivitySource } from "@/features/activity/load-activity";
 import { buildActivityEvents } from "@/lib/activity";
 import { getViewer } from "@/lib/auth";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
-import { createLibraryRepository } from "@/repositories/library";
-import { createSupabaseTmdbStore } from "@/repositories/tmdb-library";
-import type { WatchedEpisode } from "@/types/library";
-import type { TmdbLibraryEntry, TmdbWatchedEpisode } from "@/types/tmdb";
 
 export const metadata = {
   title: "Activity · Kaze",
@@ -26,23 +22,8 @@ export default async function ActivityPage() {
     return <ActivityLog events={[]} />;
   }
 
-  const libraryRepository = createLibraryRepository(supabase);
-  const screenStore = createSupabaseTmdbStore(supabase);
-
-  const [libraryItems, animeEpisodes, screenEntries, screenEpisodes] =
-    await Promise.all([
-      loadLibraryItems(viewer.id).catch(() => []),
-      libraryRepository.listEpisodes(viewer.id).catch(() => [] as WatchedEpisode[]),
-      screenStore.list(viewer.id).catch(() => [] as TmdbLibraryEntry[]),
-      screenStore.listEpisodes(viewer.id).catch(() => [] as TmdbWatchedEpisode[]),
-    ]);
-
-  const events = buildActivityEvents({
-    libraryItems,
-    animeEpisodes,
-    screenEntries,
-    screenEpisodes,
-  });
+  const source = await loadActivitySource(supabase, viewer.id);
+  const events = buildActivityEvents(source);
 
   return <ActivityLog events={events} />;
 }

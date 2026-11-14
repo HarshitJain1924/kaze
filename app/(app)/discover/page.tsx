@@ -223,6 +223,7 @@ export default async function DiscoverPage({
       initialTmdbFilters={initialTmdbFilters}
       initialTmdbError={initialTmdbError}
       adultAllowed={viewer?.showAdult === true}
+      canWrite={viewer !== null}
     />
   );
 }

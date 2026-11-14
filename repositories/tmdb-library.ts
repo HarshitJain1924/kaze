@@ -83,6 +83,11 @@ export interface TmdbLibraryStore {
     userId: string,
     entryId?: string,
   ): Promise<TmdbWatchedEpisode[]>;
+  /** Newest first and capped, for feeds that must not load full history. */
+  listRecentEpisodes?(
+    userId: string,
+    limit: number,
+  ): Promise<TmdbWatchedEpisode[]>;
   upsertEpisodes(
     entryId: string,
     userId: string,
@@ -261,6 +266,22 @@ export function createSupabaseTmdbStore(
       return (data ?? []).map(toWatchedEpisode);
     },
 
+    async listRecentEpisodes(userId, limit) {
+      const { data, error } = await client
+        .from("user_tmdb_episodes")
+        .select("*")
+        .eq("user_id", userId)
+        .order("watched_at", { ascending: false })
+        .limit(limit);
+
+      if (error) {
+        throw new TmdbLibraryDataError("Could not load recent episodes", {
+          cause: error,
+        });
+      }
+      return (data ?? []).map(toWatchedEpisode);
+    },
+
     async upsertEpisodes(entryId, userId, episodes) {
       if (episodes.length === 0) return;
       const watchedAt = new Date().toISOString();
@@ -348,6 +369,19 @@ export class TmdbLibraryRepository {
     entryId?: string,
   ): Promise<TmdbWatchedEpisode[]> {
     return this.store.listEpisodes(userId, entryId);
+  }
+
+  async listRecentEpisodes(
+    userId: string,
+    limit: number,
+  ): Promise<TmdbWatchedEpisode[]> {
+    if (this.store.listRecentEpisodes) {
+      return this.store.listRecentEpisodes(userId, limit);
+    }
+    const all = await this.store.listEpisodes(userId);
+    return [...all]
+      .sort((a, b) => (a.watchedAt < b.watchedAt ? 1 : -1))
+      .slice(0, limit);
   }
 
   async add(

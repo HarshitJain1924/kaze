@@ -67,6 +67,15 @@ export interface LibraryStore {
     userId: string,
     anilistId?: number,
   ): Promise<WatchedEpisode[]>;
+  /**
+   * The newest watched episodes first, capped at `limit`. Optional so stores
+   * that only need aggregate progress can omit it; callers fall back to
+   * sorting `listEpisodes` themselves.
+   */
+  listRecentEpisodes?(
+    userId: string,
+    limit: number,
+  ): Promise<WatchedEpisode[]>;
   recordEpisode(
     userId: string,
     anilistId: number,
@@ -241,6 +250,22 @@ export function createSupabaseLibraryStore(
 
       if (error) {
         throw new LibraryDataError("Could not load watched episodes", {
+          cause: error,
+        });
+      }
+      return (data ?? []).map(toWatchedEpisode);
+    },
+
+    async listRecentEpisodes(userId, limit) {
+      const { data, error } = await client
+        .from("user_anime_episodes")
+        .select("*")
+        .eq("user_id", userId)
+        .order("watched_at", { ascending: false })
+        .limit(limit);
+
+      if (error) {
+        throw new LibraryDataError("Could not load recent episodes", {
           cause: error,
         });
       }
@@ -464,6 +489,19 @@ export class LibraryRepository {
 
   listEpisodes(userId: string, anilistId?: number): Promise<WatchedEpisode[]> {
     return this.store.listEpisodes(userId, anilistId);
+  }
+
+  async listRecentEpisodes(
+    userId: string,
+    limit: number,
+  ): Promise<WatchedEpisode[]> {
+    if (this.store.listRecentEpisodes) {
+      return this.store.listRecentEpisodes(userId, limit);
+    }
+    const all = await this.store.listEpisodes(userId);
+    return [...all]
+      .sort((a, b) => (a.watchedAt < b.watchedAt ? 1 : -1))
+      .slice(0, limit);
   }
 
   async getWatchedEpisodes(

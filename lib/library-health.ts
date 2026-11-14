@@ -60,7 +60,9 @@ export function computeLibraryHealth(
       });
     }
 
-    if (item.entry.mediaType !== "manga" && (total === null || total === 0)) {
+    // A missing total only means something when metadata actually loaded;
+    // otherwise it is the same failure as `unhydrated` below.
+    if (item.anime && item.entry.mediaType !== "manga" && (total === null || total === 0)) {
       missingTotals.push({
         id: `missing-anilist-${item.entry.anilistId}`,
         title: animeTitle(item),
@@ -128,13 +130,28 @@ export function computeLibraryHealth(
     }
   }
 
+  const unique = (findings: HealthFinding[]): HealthFinding[] => {
+    const seen = new Set<string>();
+    return findings.filter((finding) => {
+      if (seen.has(finding.id)) return false;
+      seen.add(finding.id);
+      return true;
+    });
+  };
+
+  const uniqueOverrun = unique(overrun);
+  const uniqueMissing = unique(missingTotals);
+  const uniqueUnhydrated = unique(unhydrated);
   const total =
-    overrun.length + missingTotals.length + unhydrated.length + duplicates.length;
+    uniqueOverrun.length +
+    uniqueMissing.length +
+    uniqueUnhydrated.length +
+    duplicates.length;
 
   return {
-    overrun,
-    missingTotals,
-    unhydrated,
+    overrun: uniqueOverrun,
+    missingTotals: uniqueMissing,
+    unhydrated: uniqueUnhydrated,
     duplicates,
     clean: total === 0,
     total,

@@ -14,6 +14,7 @@ import { CreateListModal } from "@/components/create-list-modal";
 import { useCustomLists } from "@/features/lists/lists-provider";
 import { useLibrary } from "@/features/library/library-provider";
 import { useScreenLibraryItems } from "@/features/screen/use-screen-library";
+import { useMounted } from "@/lib/use-mounted";
 import {
   SMART_LIST_PRESETS,
   listItemsFor,
@@ -65,6 +66,7 @@ export default function ListsPage() {
   const screenItems = useScreenLibraryItems();
   const [search, setSearch] = useState("");
   const [isCreateOpen, setIsCreateOpen] = useState(false);
+  const mounted = useMounted();
 
   const filteredLists = useMemo(() => {
     if (!search.trim()) return lists;
@@ -78,7 +80,11 @@ export default function ListsPage() {
 
   return (
     <div className="space-y-6 pb-12">
-      {/* 1. Masthead */}
+      {mounted ? null : (
+        <div aria-busy="true" className="h-64 animate-pulse border border-border bg-surface/40" />
+      )}
+      {mounted ? (
+      <>
       <header className="relative border border-border bg-surface/40 p-5 sm:p-7">
         <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border pb-3">
           <div className="flex items-center gap-2">
@@ -222,7 +228,7 @@ export default function ListsPage() {
                       <div className="flex flex-col items-center justify-center text-muted">
                         <BookmarkIcon className="h-6 w-6 opacity-40" />
                         <span className="mt-1 font-mono text-[10px] text-faint">
-                          Empty collection
+                          {list.rule ? "No matches yet" : "Empty collection"}
                         </span>
                       </div>
                     )}
@@ -285,6 +291,8 @@ export default function ListsPage() {
           })}
         </div>
       )}
+      </>
+      ) : null}
 
       {/* Create Modal */}
       <CreateListModal
