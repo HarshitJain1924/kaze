@@ -531,6 +531,15 @@ export class LibraryRepository {
       );
     }
 
+    const existingEpisodes = await this.store.listEpisodes(userId, anilistId);
+    if (existingEpisodes.length === 0 && current.progress > 0) {
+      const legacyEpisodes = Array.from(
+        { length: current.progress },
+        (_, i) => i + 1,
+      );
+      await this.store.bulkRecordEpisodes(userId, anilistId, legacyEpisodes);
+    }
+
     if (watched) {
       await this.store.recordEpisode(userId, anilistId, episodeNumber);
     } else {

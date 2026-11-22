@@ -190,6 +190,46 @@ describe("calculateScreenInsights", () => {
     expect(insights.activity.weeklyPace).toBeNull();
   });
 
+  it("measures movie pace and backlog runway from watched films", () => {
+    const now = new Date(2026, 10, 13, 12);
+    const insights = calculateScreenInsights(
+      [
+        item({
+          id: "m1",
+          mediaType: "movie",
+          tmdbId: 40,
+          status: "completed",
+          watched: true,
+          updatedAt: new Date(2026, 10, 10, 20).toISOString(),
+        }),
+        item({
+          id: "m2",
+          mediaType: "movie",
+          tmdbId: 41,
+          status: "completed",
+          watched: true,
+          updatedAt: new Date(2026, 10, 12, 20).toISOString(),
+        }),
+        item({
+          id: "m3",
+          mediaType: "movie",
+          tmdbId: 42,
+          status: "planning",
+          watched: false,
+        }),
+      ],
+      "movie",
+      now,
+    );
+
+    expect(insights.activity.recentEpisodes).toBe(2);
+    expect(insights.activity.weeklyPace).toBe(0.5);
+    expect(insights.backlog.films).toBe(1);
+    expect(insights.backlog.hours).toBe(2);
+    // 2 hours backlog at 0.5 films/wk (1 hr/wk) => 2 weeks
+    expect(insights.backlog.weeksToClear).toBe(2);
+  });
+
   it("handles an empty archive", () => {
     const insights = calculateScreenInsights([], "tv");
     expect(insights.count).toBe(0);

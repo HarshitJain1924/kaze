@@ -28,6 +28,7 @@ export function AddToListModal({
   const { lists, addItemToList, removeItemFromList, isItemInList } =
     useCustomLists();
   const [notes, setNotes] = useState("");
+  const curatedLists = lists.filter((l) => !l.rule);
 
   const target: CustomListCandidate | null =
     candidate ??
@@ -120,12 +121,12 @@ export function AddToListModal({
 
         {/* Collections checklist */}
         <div className="mt-4 space-y-2 max-h-60 overflow-y-auto pr-1">
-          {lists.length === 0 ? (
+          {curatedLists.length === 0 ? (
             <p className="border border-dashed border-border p-4 text-center text-xs text-muted">
               No lists created yet. Create a list from Custom Lists first!
             </p>
           ) : (
-            lists.map((list) => {
+            curatedLists.map((list) => {
               const inList = isItemInList(list.id, itemKey);
               return (
                 <button

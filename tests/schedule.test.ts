@@ -29,6 +29,17 @@ describe("schedule utilities", () => {
     expect(range.weekLabel).toContain("Oct");
   });
 
+  it("formats days, prevWeekDate and nextWeekDate consistently with the given timeZone", () => {
+    const wednesday = new Date("2026-10-21T12:00:00Z");
+    const range = getWeekRange(wednesday, "Asia/Tokyo");
+
+    for (const day of range.days) {
+      expect(day.date).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+    }
+    expect(range.prevWeekDate).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+    expect(range.nextWeekDate).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+  });
+
   it("handles Sunday correctly by keeping Monday as the first day of that week", () => {
     // 2026-10-25 is a Sunday
     const sunday = new Date("2026-10-25T15:00:00Z");

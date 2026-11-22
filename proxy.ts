@@ -1,25 +1,22 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
+import { safeRedirectPath } from "@/lib/safe-redirect";
 import { getSupabaseConfig } from "@/lib/supabase/config";
 import type { Database } from "@/types/database";
 
-const PROTECTED_PREFIXES = ["/library", "/stats", "/settings"];
+const PROTECTED_PREFIXES = ["/library", "/stats", "/settings", "/activity"];
 
 function isProtected(pathname: string): boolean {
-  if (pathname.startsWith("/api/library")) {
+  if (
+    pathname.startsWith("/api/library") ||
+    pathname.startsWith("/api/tmdb/library")
+  ) {
     return true;
   }
   return PROTECTED_PREFIXES.some(
     (prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`),
   );
-}
-
-function safeRedirectPath(value: string | null): string {
-  if (value && value.startsWith("/") && !value.startsWith("//")) {
-    return value;
-  }
-  return "/";
 }
 
 export async function proxy(request: NextRequest) {

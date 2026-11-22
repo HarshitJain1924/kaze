@@ -54,6 +54,11 @@ export async function handleMediaSearch(
     };
     if (degraded) {
       headers["x-catalog-degraded"] = "1";
+    }
+    if (degraded || viewer) {
+      // A signed-in account's adult opt-in changes this response for the same
+      // URL, so it must never enter a shared cache. Guests always receive the
+      // filtered catalogue, which is safe to cache publicly.
       headers["cache-control"] = "private, max-age=0, must-revalidate";
     } else {
       headers["cache-control"] =

@@ -8,6 +8,7 @@ import { IntroShowcase } from "@/features/auth/intro-showcase";
 import { LoginForm } from "@/features/auth/login-form";
 import { MiniPosterMarquee } from "@/features/auth/poster-marquee-wall";
 import { getViewer } from "@/lib/auth";
+import { safeRedirectPath } from "@/lib/safe-redirect";
 import { getSupabaseConfig } from "@/lib/supabase/config";
 
 export const metadata: Metadata = {
@@ -20,10 +21,7 @@ export const dynamic = "force-dynamic";
 
 function safeNext(value: string | string[] | undefined): string {
   const candidate = Array.isArray(value) ? value[0] : value;
-  if (candidate && candidate.startsWith("/") && !candidate.startsWith("//")) {
-    return candidate;
-  }
-  return "/";
+  return safeRedirectPath(candidate);
 }
 
 export default async function LoginPage({

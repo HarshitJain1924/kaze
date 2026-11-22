@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 import { AnimePosterCard } from "@/components/anime-poster-card";
 import { EmptyState } from "@/components/empty-state";
@@ -28,6 +28,8 @@ import {
 } from "@/features/library/library-list";
 import { useLibrary } from "@/features/library/library-provider";
 import { ScreenLibraryCard } from "@/features/screen/screen-library";
+import { SCREEN_LIBRARY_CHANGED_EVENT } from "@/features/screen/use-screen-library";
+import { apiFetch } from "@/lib/http";
 import { WATCH_STATUS_META } from "@/lib/library-meta";
 import { cn, formatScore, getDisplayTitle } from "@/lib/utils";
 import type { AnimeSummary } from "@/types/anime";
@@ -53,10 +55,12 @@ const MEDIA_FILTER_TABS: { id: LibraryMediaFilter; label: string }[] = [
 
 export function LibraryBrowser({
   initialStatus,
+  initialMediaFilter = "all",
   suggestions = [],
-  screenItems = [],
+  screenItems: initialScreenItems = [],
 }: {
   initialStatus: LibraryStatusFilter;
+  initialMediaFilter?: LibraryMediaFilter;
   /** This season's most-watched titles, shown only on a first run. */
   suggestions?: AnimeSummary[];
   /** Tracked films and TV series from TMDB. */
@@ -68,7 +72,24 @@ export function LibraryBrowser({
   const [status, setStatus] = useState<LibraryStatusFilter>(initialStatus);
   const [query, setQuery] = useState("");
   const [sort, setSort] = useState<LibrarySort>("recent");
-  const [mediaFilter, setMediaFilter] = useState<LibraryMediaFilter>("all");
+  const [mediaFilter, setMediaFilter] = useState<LibraryMediaFilter>(initialMediaFilter);
+  const [screenItems, setScreenItems] = useState<TmdbLibraryItem[]>(initialScreenItems);
+
+  useEffect(() => {
+    const handleChanged = () => {
+      apiFetch<{ items: TmdbLibraryItem[] }>("/api/tmdb/library")
+        .then((data) => {
+          if (Array.isArray(data.items)) {
+            setScreenItems(data.items);
+          }
+        })
+        .catch(() => undefined);
+    };
+    window.addEventListener(SCREEN_LIBRARY_CHANGED_EVENT, handleChanged);
+    return () => {
+      window.removeEventListener(SCREEN_LIBRARY_CHANGED_EVENT, handleChanged);
+    };
+  }, []);
 
   const view = preferences.libraryView;
   const preferEnglish = preferences.titleLanguage === "english";
@@ -317,10 +338,26 @@ export function LibraryBrowser({
     });
   }, [allItems, mediaFilter, query, showAdult, sort, status]);
 
+  const updateUrl = (
+    nextStatus: LibraryStatusFilter,
+    nextMedia: LibraryMediaFilter,
+  ) => {
+    const sp = new URLSearchParams();
+    if (nextStatus !== "all") sp.set("status", nextStatus);
+    if (nextMedia !== "all") sp.set("media", nextMedia);
+    const qs = sp.toString();
+    const url = qs ? `/library?${qs}` : "/library";
+    window.history.replaceState(null, "", url);
+  };
+
   const selectStatus = (next: LibraryStatusFilter) => {
     setStatus(next);
-    const url = next === "all" ? "/library" : `/library?status=${next}`;
-    window.history.replaceState(null, "", url);
+    updateUrl(next, mediaFilter);
+  };
+
+  const selectMedia = (next: LibraryMediaFilter) => {
+    setMediaFilter(next);
+    updateUrl(status, next);
   };
 
   const meta = status === "all" ? null : WATCH_STATUS_META[status];
@@ -575,7 +612,7 @@ export function LibraryBrowser({
                 type="button"
                 role="tab"
                 aria-selected={mediaFilter === tab.id}
-                onClick={() => setMediaFilter(tab.id)}
+                onClick={() => selectMedia(tab.id)}
                 className={cn(
                   "h-8 shrink-0 border-r border-border last:border-r-0 px-3.5 text-[10px] font-semibold uppercase tracking-[0.14em] transition-colors",
                   mediaFilter === tab.id
@@ -714,14 +751,14 @@ export function LibraryBrowser({
               </button>
             ) : mediaFilter === "movie" ? (
               <Link
-                href="/discover?view=movie"
+                href="/discover?type=movie"
                 className="inline-flex h-8 items-center border border-border bg-surface px-3 text-[10px] font-semibold uppercase tracking-[0.1em] text-fg transition-colors hover:border-accent hover:text-accent-strong"
               >
                 Find movies in Discover
               </Link>
             ) : mediaFilter === "tv" ? (
               <Link
-                href="/discover?view=tv"
+                href="/discover?type=tv"
                 className="inline-flex h-8 items-center border border-border bg-surface px-3 text-[10px] font-semibold uppercase tracking-[0.1em] text-fg transition-colors hover:border-accent hover:text-accent-strong"
               >
                 Find TV shows in Discover

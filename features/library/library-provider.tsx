@@ -408,7 +408,13 @@ export function LibraryProvider({
       }
 
       const existingEntry = entryMap.get(anime.id);
-      const currentEpisodes = watchedEpisodesFor(anime.id);
+      const recorded = watchedEpisodesFor(anime.id);
+      const currentEpisodes =
+        recorded.length > 0
+          ? recorded
+          : existingEntry && existingEntry.progress > 0
+            ? Array.from({ length: existingEntry.progress }, (_, i) => i + 1)
+            : [];
       const isCurrentlyWatched = currentEpisodes.includes(episodeNumber);
       const nextWatched =
         targetWatched !== undefined ? targetWatched : !isCurrentlyWatched;

@@ -16,6 +16,7 @@ import {
   type ListProgress,
   type SmartListRule,
 } from "@/types/custom-list";
+import { listItemsFor } from "@/lib/smart-lists";
 import type { LibraryItem } from "@/types/library";
 import type { TmdbLibraryItem } from "@/types/tmdb";
 
@@ -225,7 +226,8 @@ export function computeListProgress(
   libraryItems: LibraryItem[],
   screenItems: TmdbLibraryItem[] = [],
 ): ListProgress {
-  const totalCount = list.items.length;
+  const items = listItemsFor(list, libraryItems, screenItems);
+  const totalCount = items.length;
   if (totalCount === 0) {
     return { watchedCount: 0, totalCount: 0, percentage: 0, isFullyWatched: false };
   }
@@ -250,7 +252,7 @@ export function computeListProgress(
   );
 
   let watchedCount = 0;
-  for (const item of list.items) {
+  for (const item of items) {
     const itemKey = customListItemKey(item);
     const isWatched = itemKey.startsWith("tmdb:")
       ? watchedScreen.has(itemKey)

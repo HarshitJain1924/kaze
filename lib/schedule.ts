@@ -126,7 +126,7 @@ export function getWeekRange(
       0,
       0,
     );
-    const dateStr = toIsoDateString(cur);
+    const dateStr = toIsoDateString(cur, timeZone);
     const curDay = cur.getDay();
 
     days.push({
@@ -177,8 +177,8 @@ export function getWeekRange(
     queryAiringAtGreater: mondaySec - paddingSec,
     queryAiringAtLesser: sundaySec + paddingSec,
     days,
-    prevWeekDate: toIsoDateString(prevMonday),
-    nextWeekDate: toIsoDateString(nextMonday),
+    prevWeekDate: toIsoDateString(prevMonday, timeZone),
+    nextWeekDate: toIsoDateString(nextMonday, timeZone),
     weekLabel,
     generatedAtMs,
   };

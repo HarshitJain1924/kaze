@@ -116,6 +116,7 @@ export function resolveSmartListItems(
       const unratedScreen = screenItems
         .filter((item) => item.entry.score === null && item.entry.status !== "planning")
         .map(screenItem);
+      if (rule.scope === "screen") return unratedScreen.sort(byTitle);
       return [...unratedAnime, ...unratedScreen].sort(byTitle);
     }
     case "status": {

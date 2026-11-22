@@ -1,6 +1,7 @@
 import type { EmailOtpType } from "@supabase/supabase-js";
 import { NextResponse } from "next/server";
 
+import { safeRedirectPath } from "@/lib/safe-redirect";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 const OTP_TYPES = new Set<EmailOtpType>([
@@ -12,13 +13,6 @@ const OTP_TYPES = new Set<EmailOtpType>([
   "email",
 ]);
 
-function safeNext(value: string | null): string {
-  if (value && value.startsWith("/") && !value.startsWith("//")) {
-    return value;
-  }
-  return "/";
-}
-
 /**
  * Handles Supabase email links. Supports the PKCE `code` flow and the
  * `token_hash` flow used by email templates.
@@ -28,7 +22,7 @@ export async function GET(request: Request) {
   const code = url.searchParams.get("code");
   const tokenHash = url.searchParams.get("token_hash");
   const type = url.searchParams.get("type");
-  const next = safeNext(url.searchParams.get("next"));
+  const next = safeRedirectPath(url.searchParams.get("next"));
 
   const supabase = await createSupabaseServerClient();
   if (!supabase) {

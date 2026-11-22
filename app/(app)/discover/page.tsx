@@ -70,7 +70,7 @@ function readView(
     const value = params[key];
     return Array.isArray(value) ? value[0] : value;
   };
-  const type = pick("type");
+  const type = pick("type") ?? pick("view");
   if (type === "movie" || type === "tv") return type;
   if (type === "manga") return pick("country") === "KR" ? "manhwa" : "manga";
   return "anime";

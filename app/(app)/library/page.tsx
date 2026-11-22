@@ -1,7 +1,10 @@
 import type { Metadata } from "next";
 
 import type { LibraryStatusFilter } from "@/components/library-toolbar";
-import { LibraryBrowser } from "@/features/library/library-browser";
+import {
+  LibraryBrowser,
+  type LibraryMediaFilter,
+} from "@/features/library/library-browser";
 import { loadScreenLibrary } from "@/lib/api/tmdb";
 import { requireViewer } from "@/lib/auth";
 import { getCurrentSeason } from "@/lib/season";
@@ -18,6 +21,20 @@ export const metadata: Metadata = {
 function parseStatus(value: string | string[] | undefined): LibraryStatusFilter {
   const candidate = Array.isArray(value) ? value[0] : value;
   return isWatchStatus(candidate) ? candidate : "all";
+}
+
+function parseMedia(value: string | string[] | undefined): LibraryMediaFilter {
+  const candidate = Array.isArray(value) ? value[0] : value;
+  if (
+    candidate === "anime" ||
+    candidate === "manga" ||
+    candidate === "manhwa" ||
+    candidate === "movie" ||
+    candidate === "tv"
+  ) {
+    return candidate;
+  }
+  return "all";
 }
 
 /** A starting point for the first run, when the library has nothing to show. */
@@ -45,6 +62,7 @@ export default async function LibraryPage({
   const viewer = await requireViewer("/library");
   const params = await searchParams;
   const initialStatus = parseStatus(params.status);
+  const initialMedia = parseMedia(params.media);
   const suggestions = await loadSeasonPicks();
   const screenItems = await loadScreenLibrary(viewer.id).catch((error: unknown) => {
     console.error(
@@ -56,8 +74,9 @@ export default async function LibraryPage({
 
   return (
     <LibraryBrowser
-      key={initialStatus}
+      key={`${initialStatus}:${initialMedia}`}
       initialStatus={initialStatus}
+      initialMediaFilter={initialMedia}
       suggestions={suggestions}
       screenItems={screenItems}
     />

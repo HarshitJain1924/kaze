@@ -76,6 +76,13 @@ function episodeLabel(seasonNumber: number, episodeNumber: number): string {
     : `Episode ${episodeNumber}`;
 }
 
+function normalizeTimestamp(at: string): string {
+  if (/^\d{4}-\d{2}-\d{2}$/.test(at)) {
+    return `${at}T23:59:59.999Z`;
+  }
+  return at;
+}
+
 export function buildActivityEvents({
   libraryItems,
   animeEpisodes,
@@ -142,7 +149,7 @@ export function buildActivityEvents({
     if (!item.entry.completedAt) continue;
     events.push({
       id: `anime-completed-${item.entry.id}`,
-      at: item.entry.completedAt,
+      at: normalizeTimestamp(item.entry.completedAt),
       kind: "completed",
       title: item.anime
         ? getDisplayTitle(item.anime.title, true)
@@ -158,7 +165,7 @@ export function buildActivityEvents({
     if (!entry.completedAt) continue;
     events.push({
       id: `screen-completed-${entry.id}`,
-      at: entry.completedAt,
+      at: normalizeTimestamp(entry.completedAt),
       kind: "completed",
       title: entry.title,
       detail:

@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 
+import { computeListProgress } from "@/features/lists/lists-provider";
 import {
   SMART_LIST_PRESETS,
   listItemsFor,
@@ -124,6 +125,48 @@ describe("smart collections", () => {
     expect(items.map((item) => item.title)).toEqual(["Manga, unrated", "Watching, unrated"]);
     expect(items[0]?.anilistId).toBe(4);
     expect(items[0]?.mediaType).toBe("manga");
+  });
+
+  it("keeps unrated screen items only when scope is screen", () => {
+    const library = [
+      animeItem({ anilistId: 1, english: "Unrated Anime", status: "watching" }),
+    ];
+    const screen = [
+      screenItem({ id: "movie-1", title: "Unrated Movie", score: null }),
+      screenItem({ id: "movie-2", title: "Scored Movie", score: 8 }),
+    ];
+
+    const items = resolveSmartListItems(
+      { type: "unrated", scope: "screen" },
+      library,
+      screen,
+    );
+
+    expect(items.map((item) => item.title)).toEqual(["Unrated Movie"]);
+    expect(items[0]?.tmdbId).toBe(1);
+  });
+
+  it("computes progress for smart lists based on resolved items", () => {
+    const library = [
+      animeItem({ anilistId: 1, english: "Anime 1", status: "completed", score: 9 }),
+      animeItem({ anilistId: 2, english: "Anime 2", status: "watching", progress: 0, score: 9 }),
+    ];
+    const smartList = {
+      id: "smart-scored",
+      title: "Top Anime",
+      description: "",
+      isPublic: true,
+      createdAt: "2026-01-01T00:00:00.000Z",
+      updatedAt: "2026-01-01T00:00:00.000Z",
+      items: [],
+      rule: { type: "score_min" as const, min: 8, scope: "anime" as const },
+    };
+
+    const progress = computeListProgress(smartList, library, []);
+    expect(progress.totalCount).toBe(2);
+    expect(progress.watchedCount).toBe(1);
+    expect(progress.percentage).toBe(50);
+    expect(progress.isFullyWatched).toBe(false);
   });
 
   it("merges both catalogues for a status rule", () => {

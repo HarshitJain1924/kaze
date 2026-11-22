@@ -6,6 +6,7 @@ import { useMemo, useState } from "react";
 
 import { CheckIcon, ChevronRightIcon, ClockIcon } from "@/components/icons";
 import { useToast } from "@/components/providers/toast-provider";
+import { notifyScreenLibraryChanged } from "@/features/screen/use-screen-library";
 import {
   formatActivityDay,
   groupActivityByMonth,
@@ -41,6 +42,7 @@ async function undoThrough(undo: ActivityUndo): Promise<void> {
       }),
     },
   );
+  notifyScreenLibraryChanged();
 }
 
 export function ActivityLog({ events: initialEvents }: { events: ActivityEvent[] }) {

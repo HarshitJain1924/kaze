@@ -334,6 +334,37 @@ describe("LibraryRepository", () => {
     expect(unmarkResult.entry.progress).toBe(2);
   });
 
+  it("backfills legacy progress when toggling episodes for an entry without individual records", async () => {
+    const store = new MemoryStore([
+      {
+        id: "legacy-entry",
+        userId: "user-1",
+        anilistId: 999,
+        mediaType: "anime",
+        status: "watching",
+        progress: 3,
+        volumesProgress: 0,
+        score: null,
+        startedAt: null,
+        completedAt: null,
+        notes: null,
+        createdAt: "2026-01-01T00:00:00.000Z",
+        updatedAt: "2026-01-01T00:00:00.000Z",
+      },
+    ]);
+    const repository = new LibraryRepository(store);
+
+    // Unmarking episode 2 should seed episodes [1, 2, 3] and remove 2 -> leaving [1, 3]
+    const unmarkResult = await repository.toggleEpisode("user-1", 999, 2, false, 12);
+    expect(unmarkResult.watchedEpisodes).toEqual([1, 3]);
+    expect(unmarkResult.entry.progress).toBe(3);
+
+    // Marking episode 4 should append to [1, 3] -> [1, 3, 4]
+    const markResult = await repository.toggleEpisode("user-1", 999, 4, true, 12);
+    expect(markResult.watchedEpisodes).toEqual([1, 3, 4]);
+    expect(markResult.entry.progress).toBe(4);
+  });
+
   it("transitions status to completed when all episodes are watched", async () => {
     const repository = new LibraryRepository(new MemoryStore());
     await repository.add("user-1", { anilistId: 902, status: "watching" });

@@ -141,4 +141,43 @@ describe("activity log", () => {
     expect(formatActivityDay("2026-10-05T23:30:00.000Z")).toContain("5");
     expect(formatActivityDay("not-a-date")).toBe("not-a-date");
   });
+
+  it("normalizes date-only completedAt to end of day so completion ranks above episodes watched on that day", () => {
+    const customEvents = buildActivityEvents({
+      libraryItems: [
+        {
+          entry: {
+            id: "entry-date-only",
+            userId: "user",
+            anilistId: 99,
+            mediaType: "anime",
+            status: "completed",
+            progress: 1,
+            score: null,
+            startedAt: "2026-10-20",
+            completedAt: "2026-10-20",
+            notes: null,
+            createdAt: "2026-10-20T00:00:00.000Z",
+            updatedAt: "2026-10-20T00:00:00.000Z",
+          },
+          anime: null,
+        },
+      ],
+      animeEpisodes: [
+        {
+          id: "ep-99",
+          userId: "user",
+          anilistId: 99,
+          episodeNumber: 1,
+          watchedAt: "2026-10-20T14:00:00.000Z",
+          createdAt: "2026-10-20T14:00:00.000Z",
+        },
+      ],
+      screenEntries: [],
+      screenEpisodes: [],
+    });
+
+    expect(customEvents[0]?.kind).toBe("completed");
+    expect(customEvents[1]?.kind).toBe("anime_episode");
+  });
 });

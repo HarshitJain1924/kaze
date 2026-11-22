@@ -121,9 +121,9 @@ function buildActivity(
   let longestStreak = sortedDays.length > 0 ? 1 : 0;
   let run = 1;
   for (let index = 1; index < sortedDays.length; index += 1) {
-    const previous = new Date(`${sortedDays[index - 1]}T12:00:00`).getTime();
-    const current = new Date(`${sortedDays[index]}T12:00:00`).getTime();
-    if (current - previous === DAY_MS) {
+    const previous = new Date(`${sortedDays[index - 1]}T12:00:00Z`).getTime();
+    const current = new Date(`${sortedDays[index]}T12:00:00Z`).getTime();
+    if (Math.round((current - previous) / DAY_MS) === 1) {
       run += 1;
       longestStreak = Math.max(longestStreak, run);
     } else {
@@ -133,12 +133,13 @@ function buildActivity(
 
   let currentStreak = 0;
   const today = startOfDay(now);
-  const yesterday = new Date(today.getTime() - DAY_MS);
+  const yesterday = new Date(today);
+  yesterday.setDate(yesterday.getDate() - 1);
   if (days.has(dayKey(today)) || days.has(dayKey(yesterday))) {
-    let cursor = days.has(dayKey(today)) ? today : yesterday;
+    const cursor = days.has(dayKey(today)) ? new Date(today) : new Date(yesterday);
     while (days.has(dayKey(cursor))) {
       currentStreak += 1;
-      cursor = new Date(cursor.getTime() - DAY_MS);
+      cursor.setDate(cursor.getDate() - 1);
     }
   }
 
@@ -272,6 +273,7 @@ export function calculateScreenInsights(
   // last-touch date of a watched film.
   const activityTimestamps: number[] = [];
   const episodeTimestamps: number[] = [];
+  const movieTimestamps: number[] = [];
   for (const item of scoped) {
     for (const episode of item.watchedEpisodes) {
       const stamp = new Date(episode.watchedAt).getTime();
@@ -283,11 +285,18 @@ export function calculateScreenInsights(
       const stamp = new Date(
         item.entry.completedAt ?? item.entry.updatedAt,
       ).getTime();
-      if (Number.isFinite(stamp)) activityTimestamps.push(stamp);
+      if (Number.isFinite(stamp)) {
+        activityTimestamps.push(stamp);
+        movieTimestamps.push(stamp);
+      }
     }
   }
 
-  const activity = buildActivity(activityTimestamps, episodeTimestamps, now);
+  const activity = buildActivity(
+    activityTimestamps,
+    kind === "movie" ? movieTimestamps : episodeTimestamps,
+    now,
+  );
 
   const backlogFilms =
     kind === "movie"
@@ -316,7 +325,9 @@ export function calculateScreenInsights(
   );
   const hoursPerWeek =
     activity.weeklyPace !== null
-      ? activity.weeklyPace * (TV_EPISODE_RUNTIME_MINUTES / 60)
+      ? kind === "movie"
+        ? activity.weeklyPace * FILM_RUNTIME_HOURS
+        : activity.weeklyPace * (TV_EPISODE_RUNTIME_MINUTES / 60)
       : 0;
   const weeksToClear =
     backlogHours > 0 && hoursPerWeek > 0
