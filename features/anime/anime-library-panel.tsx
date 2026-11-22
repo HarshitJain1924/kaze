@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 
 import { BookmarkIcon, CheckIcon, ExternalIcon, PlusIcon, TrashIcon } from "@/components/icons";
 import { AddToListModal } from "@/components/add-to-list-modal";
@@ -24,6 +24,8 @@ export function AnimeLibraryPanel({ anime }: { anime: Anime }) {
     entryFor,
     addToLibrary,
     updateEntry,
+    toggleEpisode,
+    watchedEpisodesFor,
     requestRemove,
     pendingIds,
   } = useLibrary();
@@ -35,6 +37,18 @@ export function AnimeLibraryPanel({ anime }: { anime: Anime }) {
   const totalVolumes = manga ? (anime.volumes ?? null) : null;
   const unitLabel = manga ? "Chapter" : "Episode";
   const unitVerb = manga ? "Read" : "Watched";
+
+  const recordedEpisodes = watchedEpisodesFor(anime.id);
+  const hasRecorded = !manga && recordedEpisodes.length > 0;
+  const watchedSet = useMemo(() => new Set(recordedEpisodes), [recordedEpisodes]);
+
+  const watchedCount = hasRecorded
+    ? recordedEpisodes.length
+    : (entry?.progress ?? 0);
+
+  const displayProgress = hasRecorded
+    ? Math.max(entry?.progress ?? 0, recordedEpisodes.length)
+    : (entry?.progress ?? 0);
 
   const [addStatus, setAddStatus] = useState<WatchStatus>("planning");
   const [adding, setAdding] = useState(false);
@@ -64,7 +78,28 @@ export function AnimeLibraryPanel({ anime }: { anime: Anime }) {
     entry !== null &&
     totalUnits !== null &&
     totalUnits > 0 &&
-    entry.progress >= totalUnits;
+    (hasRecorded ? watchedCount >= totalUnits : (entry?.progress ?? 0) >= totalUnits);
+
+  const nextUnwatchedEpisode = useMemo(() => {
+    if (manga) {
+      if (totalUnits !== null && totalUnits > 0 && (entry?.progress ?? 0) >= totalUnits) {
+        return null;
+      }
+      return (entry?.progress ?? 0) + 1;
+    }
+    let next = 1;
+    if (hasRecorded) {
+      while (watchedSet.has(next)) {
+        next += 1;
+      }
+    } else if (displayProgress > 0) {
+      next = displayProgress + 1;
+    }
+    if (totalUnits !== null && totalUnits > 0 && next > totalUnits) {
+      return null;
+    }
+    return next;
+  }, [displayProgress, entry?.progress, hasRecorded, manga, totalUnits, watchedSet]);
 
   const notYetAired = anime.status === "NOT_YET_RELEASED";
 
@@ -164,21 +199,27 @@ export function AnimeLibraryPanel({ anime }: { anime: Anime }) {
             <div className="rounded border border-warning/30 bg-warning/10 p-3 text-xs text-warning font-medium">
               <span>This series has not yet started broadcasting.</span>
             </div>
-          ) : (
+          ) : nextUnwatchedEpisode !== null ? (
             <Button
               variant="primary"
               className="w-full justify-center gap-2 py-2.5 text-xs font-semibold uppercase tracking-wider shadow-sm"
-              onClick={() =>
-                void updateEntry(anime.id, { progress: entry.progress + 1 })
-              }
+              onClick={() => {
+                if (manga) {
+                  void updateEntry(anime.id, {
+                    progress: (entry?.progress ?? 0) + 1,
+                  });
+                } else {
+                  void toggleEpisode(anime, nextUnwatchedEpisode, true);
+                }
+              }}
               disabled={pending}
             >
               <PlusIcon className="h-4 w-4" />
               <span>
-                Mark {unitLabel} {entry.progress + 1} {unitVerb}
+                Mark {unitLabel} {nextUnwatchedEpisode} {unitVerb}
               </span>
             </Button>
-          )}
+          ) : null}
 
           {/* 3. Progress Bar & Stepper Controls */}
           <div className="space-y-3 border-t border-white/10 pt-4">
@@ -189,9 +230,9 @@ export function AnimeLibraryPanel({ anime }: { anime: Anime }) {
                     {manga ? "Reading completion" : "Watch completion"}
                   </span>
                   <span className="font-semibold tabular-nums text-white">
-                    {Math.round((entry.progress / totalUnits) * 100)}%
+                    {Math.round((watchedCount / totalUnits) * 100)}%
                     <span className="ml-1 font-normal text-white/50">
-                      ({entry.progress}/{totalUnits})
+                      ({watchedCount}/{totalUnits})
                     </span>
                   </span>
                 </div>
@@ -201,7 +242,7 @@ export function AnimeLibraryPanel({ anime }: { anime: Anime }) {
                     style={{
                       width: `${Math.min(
                         100,
-                        (entry.progress / totalUnits) * 100,
+                        (watchedCount / totalUnits) * 100,
                       )}%`,
                     }}
                   />
@@ -210,7 +251,7 @@ export function AnimeLibraryPanel({ anime }: { anime: Anime }) {
             ) : null}
 
             <WatchProgressControl
-              progress={entry.progress}
+              progress={watchedCount}
               episodes={totalUnits}
               unit={manga ? "chapter" : "episode"}
               disabled={pending}

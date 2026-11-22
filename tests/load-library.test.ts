@@ -72,6 +72,39 @@ describe("loadLibraryItems error resilience", () => {
     expect(items[0]!.watchedEpisodes).toEqual([1, 3]);
   });
 
+  it("synchronizes entry progress with recorded episodes when progress is behind recorded history", async () => {
+    const entry: LibraryEntry = {
+      id: "e-desync",
+      userId: "u1",
+      anilistId: 500,
+      status: "watching",
+      progress: 6, // Database row had 6
+      score: null,
+      startedAt: null,
+      completedAt: null,
+      notes: null,
+      createdAt: "2026-01-01T00:00:00Z",
+      updatedAt: "2026-01-01T00:00:00Z",
+    };
+    mockList.mockResolvedValue([entry]);
+    mockListEpisodes.mockResolvedValue(
+      [1, 2, 3, 4, 5, 6, 7].map((num) => ({
+        id: `ep-${num}`,
+        userId: "u1",
+        anilistId: 500,
+        episodeNumber: num,
+        watchedAt: "2026-01-01T00:00:00Z",
+        createdAt: "2026-01-01T00:00:00Z",
+      })),
+    );
+    mockGetAnimeByIds.mockResolvedValue({ data: new Map() });
+
+    const items = await loadLibraryItems("u1");
+    expect(items).toHaveLength(1);
+    expect(items[0]!.entry.progress).toBe(7);
+    expect(items[0]!.watchedEpisodes).toHaveLength(7);
+  });
+
   it("keeps entries visible and editable when catalogue metadata is unavailable", async () => {
     const entry: LibraryEntry = {
       id: "e2",

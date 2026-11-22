@@ -49,6 +49,7 @@ interface AddResponse {
 
 interface UpdateResponse {
   entry: LibraryEntry;
+  watchedEpisodes?: number[];
 }
 
 export interface LibraryContextValue {
@@ -327,11 +328,23 @@ export function LibraryProvider({
         return false;
       }
 
+      const previousWatched = watchedEpisodesFor(anilistId);
+      const nextWatchedEpisodes =
+        mediaType !== "manga" && patch.progress !== undefined
+          ? Array.from({ length: patch.progress }, (_, i) => i + 1)
+          : undefined;
+
       setEntryPending(anilistId, true);
       setItems((current) =>
         current.map((item) =>
           item.entry.anilistId === anilistId
-            ? { ...item, entry: optimisticEntry }
+            ? {
+                ...item,
+                entry: optimisticEntry,
+                ...(nextWatchedEpisodes !== undefined
+                  ? { watchedEpisodes: nextWatchedEpisodes }
+                  : {}),
+              }
             : item,
         ),
       );
@@ -359,7 +372,13 @@ export function LibraryProvider({
         setItems((current) =>
           current.map((item) =>
             item.entry.anilistId === anilistId
-              ? { ...item, entry: data.entry }
+              ? {
+                  ...item,
+                  entry: data.entry,
+                  ...(data.watchedEpisodes !== undefined
+                    ? { watchedEpisodes: data.watchedEpisodes }
+                    : {}),
+                }
               : item,
           ),
         );
@@ -368,7 +387,13 @@ export function LibraryProvider({
         setItems((current) =>
           current.map((item) =>
             item.entry.anilistId === anilistId
-              ? { ...item, entry: previous }
+              ? {
+                  ...item,
+                  entry: previous,
+                  ...(nextWatchedEpisodes !== undefined
+                    ? { watchedEpisodes: previousWatched }
+                    : {}),
+                }
               : item,
           ),
         );
@@ -390,6 +415,7 @@ export function LibraryProvider({
       requireSignIn,
       setEntryPending,
       toast,
+      watchedEpisodesFor,
     ],
   );
 

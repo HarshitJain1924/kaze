@@ -443,6 +443,37 @@ export class LibraryRepository {
       throw new LibraryEntryNotFoundError(anilistId);
     }
 
+    if (current.mediaType !== "manga" && patch.progress !== undefined) {
+      const targetProgress = patch.progress;
+      const existingEpisodes = await this.store.listEpisodes(userId, anilistId);
+      const existingNums = new Set(existingEpisodes.map((e) => e.episodeNumber));
+
+      // If user had no individual episodes but had legacy progress, seed them first
+      if (existingEpisodes.length === 0 && current.progress > 0) {
+        const legacy = Array.from({ length: current.progress }, (_, i) => i + 1);
+        await this.store.bulkRecordEpisodes(userId, anilistId, legacy);
+        for (const num of legacy) existingNums.add(num);
+      }
+
+      // Remove any episode above targetProgress
+      for (const num of existingNums) {
+        if (num > targetProgress) {
+          await this.store.removeEpisode(userId, anilistId, num);
+        }
+      }
+
+      // Add any missing episode up to targetProgress
+      const toAdd: number[] = [];
+      for (let i = 1; i <= targetProgress; i += 1) {
+        if (!existingNums.has(i)) {
+          toAdd.push(i);
+        }
+      }
+      if (toAdd.length > 0) {
+        await this.store.bulkRecordEpisodes(userId, anilistId, toAdd);
+      }
+    }
+
     return this.commit(
       userId,
       anilistId,

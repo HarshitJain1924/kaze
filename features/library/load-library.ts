@@ -113,11 +113,22 @@ export async function loadLibraryItems(
     );
   }
 
-  return entries.map((entry) => ({
-    entry,
-    anime: mediaById.get(entry.anilistId) ?? null,
-    ...(rawEpisodesResult.ok && entry.mediaType !== "manga"
-      ? { watchedEpisodes: episodesByAnime.get(entry.anilistId) ?? [] }
-      : {}),
-  }));
+  return entries.map((entry) => {
+    const episodes = episodesByAnime.get(entry.anilistId) ?? [];
+    const hasEpisodes = entry.mediaType !== "manga" && episodes.length > 0;
+    const synchronizedProgress = hasEpisodes
+      ? Math.max(entry.progress, ...episodes)
+      : entry.progress;
+
+    return {
+      entry: {
+        ...entry,
+        progress: synchronizedProgress,
+      },
+      anime: mediaById.get(entry.anilistId) ?? null,
+      ...(rawEpisodesResult.ok && entry.mediaType !== "manga"
+        ? { watchedEpisodes: episodes }
+        : {}),
+    };
+  });
 }

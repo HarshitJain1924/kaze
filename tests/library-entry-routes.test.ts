@@ -4,6 +4,7 @@ const mocks = vi.hoisted(() => ({
   getAnimeById: vi.fn(),
   toggleEpisode: vi.fn(),
   updateEntry: vi.fn(),
+  getWatchedEpisodes: vi.fn(),
   getApiContext: vi.fn(),
 }));
 
@@ -26,6 +27,7 @@ vi.mock("@/repositories/library", async (importOriginal) => {
     createLibraryRepository: () => ({
       toggleEpisode: mocks.toggleEpisode,
       update: mocks.updateEntry,
+      getWatchedEpisodes: mocks.getWatchedEpisodes,
     }),
   };
 });

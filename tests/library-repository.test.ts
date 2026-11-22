@@ -202,6 +202,11 @@ describe("LibraryRepository", () => {
     expect(duplicate.entry.score).toBe(8);
     expect(duplicate.entry.status).toBe("watching");
     expect(await repository.list("user-1")).toHaveLength(1);
+    expect(await repository.getWatchedEpisodes("user-1", 101)).toEqual([1, 2, 3, 4]);
+
+    // Updating progress downward synchronizes recorded episodes by removing higher ones
+    await repository.update("user-1", 101, { progress: 2 }, 12);
+    expect(await repository.getWatchedEpisodes("user-1", 101)).toEqual([1, 2]);
   });
 
   it("returns the winner when a concurrent insert hits the unique constraint", async () => {

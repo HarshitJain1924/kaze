@@ -88,7 +88,15 @@ export async function PATCH(request: Request, context: RouteContext) {
             patch,
             units,
           );
-    return NextResponse.json({ entry });
+
+    const watchedEpisodes =
+      mediaType !== "manga" &&
+      patch.progress !== undefined &&
+      typeof repository.getWatchedEpisodes === "function"
+        ? await repository.getWatchedEpisodes(auth.context.viewer.id, animeId)
+        : undefined;
+
+    return NextResponse.json({ entry, watchedEpisodes });
   } catch (error) {
     return libraryErrorResponse(error);
   }
